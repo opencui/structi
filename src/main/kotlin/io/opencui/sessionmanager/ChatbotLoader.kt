@@ -1,8 +1,6 @@
 package io.opencui.sessionmanager
 
 import io.opencui.core.*
-import io.opencui.sessionmanager.ChatbotLoader.chatbotCache
-import io.opencui.sessionmanager.ChatbotLoader.genKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Closeable
@@ -27,10 +25,10 @@ object ChatbotLoader {
 
     private fun loadChatbot(botInfo: BotInfo): RecyclableAgentResource {
         val key = botInfo.lang
-        logger.info("No $key in ${chatbotCache.keys} so need to load from ${file.absolutePath} for $botInfo")
         if (!chatbotCache.keys.contains(key)) {
             // chatbotCache[key]?.recycle()
             val file = getJarFile(botInfo)
+            logger.info("No $key in ${chatbotCache.keys} so need to load from ${file.absolutePath} for $botInfo")
             val classLoader = URLClassLoader(arrayOf(file.toURI().toURL()), javaClass.classLoader)
             val qualifiedAgentName = "${botInfo.org}.${botInfo.agent}.Agent"
             val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
