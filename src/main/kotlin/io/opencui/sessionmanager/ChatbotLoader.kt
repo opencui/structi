@@ -1,6 +1,8 @@
 package io.opencui.sessionmanager
 
 import io.opencui.core.*
+import io.opencui.sessionmanager.ChatbotLoader.chatbotCache
+import io.opencui.sessionmanager.ChatbotLoader.genKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Closeable
@@ -12,29 +14,23 @@ object ChatbotLoader {
     val logger: Logger = LoggerFactory.getLogger(ChatbotLoader::class.java)
     val chatbotCache = PerpetualCache<String, RecyclableAgentResource>()
     val pattern = Pattern.compile("[^a-z]", Pattern.CASE_INSENSITIVE)
-
-    fun fetchValidCache(botInfo: BotInfo): RecyclableAgentResource? {
-        val key = genKey(botInfo)
-        val file = getJarFile(botInfo)
-        if (chatbotCache[key]?.lastModified == file.lastModified()) return chatbotCache[key]
-        return null
-    }
+    var botPrefix: String = ""
 
     // load chatbot based on BotInfo and BotVersion
     fun findChatbot(botInfo: BotInfo): IChatbot {
-        return fetchValidCache(botInfo)?.chatbot ?: loadChatbot(botInfo).chatbot
+        return chatbotCache[botInfo.lang]?.chatbot ?: loadChatbot(botInfo).chatbot
     }
 
     fun findClassLoader(botInfo: BotInfo): ClassLoader {
-        return fetchValidCache(botInfo)?.classLoader ?: loadChatbot(botInfo).classLoader
+        return chatbotCache[botInfo.lang]?.classLoader ?: loadChatbot(botInfo).classLoader
     }
 
     private fun loadChatbot(botInfo: BotInfo): RecyclableAgentResource {
-        val key = genKey(botInfo)
-        if(!chatbotCache.keys.contains(key)) {
+        val key = botInfo.lang
+        logger.info("No $key in ${chatbotCache.keys} so need to load from ${file.absolutePath} for $botInfo")
+        if (!chatbotCache.keys.contains(key)) {
             // chatbotCache[key]?.recycle()
             val file = getJarFile(botInfo)
-            logger.info("URLClassLoader path : ${file.absolutePath}")
             val classLoader = URLClassLoader(arrayOf(file.toURI().toURL()), javaClass.classLoader)
             val qualifiedAgentName = "${botInfo.org}.${botInfo.agent}.Agent"
             val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
@@ -49,10 +45,6 @@ object ChatbotLoader {
         return File("./jardir/agent-${botInfo.lang}.jar")
     }
 
-    private fun genKey(botInfo: BotInfo): String {
-        return botInfo.lang
-    }
-
     // This is useful for creating the index.
     fun init(file: File, botPrefix: String) {
         file.walk()
@@ -65,7 +57,7 @@ object ChatbotLoader {
                 if (!pattern.matcher(lang).find()) {
                     val classLoader = URLClassLoader(arrayOf(it.toURI().toURL()), javaClass.classLoader)
                     val qualifiedAgentName = "${botPrefix}.Agent"
-                    logger.info("load agent :$qualifiedAgentName with $botPrefix from $file")
+                    logger.info("load agent :$qualifiedAgentName with $lang from $file")
                     val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
                     val chatbot = kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot
                     chatbotCache[lang] = RecyclableAgentResource(chatbot, classLoader, file.lastModified())
