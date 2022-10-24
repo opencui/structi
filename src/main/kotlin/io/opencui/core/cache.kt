@@ -16,20 +16,21 @@ class PerpetualCache<Key, Value> : Cache<Key, Value> {
     override val size: Int
         get() = cache.size
 
+    val keys: Set<Key>
+        get() = cache.keys
+
     override fun set(key: Key, value: Value) {
-        this.cache[key] = value
+        cache[key] = value
     }
 
-    override fun remove(key: Key) = this.cache.remove(key)
+    override fun remove(key: Key) = cache.remove(key)
 
-    override fun get(key: Key) = this.cache[key]
+    override fun get(key: Key) = cache[key]
 
-    override fun clear() = this.cache.clear()
+    override fun clear() = cache.clear()
     override fun toString(): String {
         return "PerpetualCache(cache=${cache.toList().joinToString { "${it.first}:${it.second}" }})"
     }
-
-
 }
 
 class LRUCache<Key, Value>(
