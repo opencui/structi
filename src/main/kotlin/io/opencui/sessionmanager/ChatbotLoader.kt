@@ -10,7 +10,7 @@ import java.util.regex.Pattern
 
 object ChatbotLoader {
     val logger: Logger = LoggerFactory.getLogger(ChatbotLoader::class.java)
-    val chatbotCache = LRUCache<String, RecyclableAgentResource>(PerpetualCache())
+    val chatbotCache = PerpetualCache<String, RecyclableAgentResource>()
     val pattern = Pattern.compile("[^a-z]", Pattern.CASE_INSENSITIVE)
 
     fun fetchValidCache(botInfo: BotInfo): RecyclableAgentResource? {
@@ -31,14 +31,16 @@ object ChatbotLoader {
 
     private fun loadChatbot(botInfo: BotInfo): RecyclableAgentResource {
         val key = genKey(botInfo)
-        chatbotCache[key]?.recycle()
-        val file = getJarFile(botInfo)
-        logger.info("URLClassLoader path : ${file.absolutePath}")
-        val classLoader = URLClassLoader(arrayOf(file.toURI().toURL()), javaClass.classLoader)
-        val qualifiedAgentName = "${botInfo.org}.${botInfo.agent}.Agent"
-        val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
-        val chatbot = (kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot)
-        chatbotCache[key] = RecyclableAgentResource(chatbot, classLoader, file.lastModified())
+        if(!chatbotCache.keys.contains(key)) {
+            // chatbotCache[key]?.recycle()
+            val file = getJarFile(botInfo)
+            logger.info("URLClassLoader path : ${file.absolutePath}")
+            val classLoader = URLClassLoader(arrayOf(file.toURI().toURL()), javaClass.classLoader)
+            val qualifiedAgentName = "${botInfo.org}.${botInfo.agent}.Agent"
+            val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
+            val chatbot = (kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot)
+            chatbotCache[key] = RecyclableAgentResource(chatbot, classLoader, file.lastModified())
+        }
         return chatbotCache[key]!!
     }
 
