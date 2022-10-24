@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.opencui.du.ZhSearchTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2022-10-22T14:39:46" hostname="sean-Alienware-x15-R1" time="0.016">
+  <properties/>
+  <testcase name="confirmationWithoutExpectation" classname="io.opencui.du.ZhSearchTest" time="0.01"/>
+  <testcase name="confirmationWithExpectation" classname="io.opencui.du.ZhSearchTest" time="0.006"/>
+  <system-out><![CDATA[[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+随便 by io.opencui.core.DontCare with 1.0
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+是的 by io.opencui.core.confirmation.Yes with 1.0
+好的 by io.opencui.core.confirmation.Yes with 0.5795243
+不是 by io.opencui.core.confirmation.No with 0.5795243
+]]></system-out>
+  <system-err><![CDATA[[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for CarFinanceSimple
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 结束当前对话, 结束当前对话
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 随便, 随便
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 都行, 都行
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 都一样, 都一样
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 是的, 是的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 确认, 确认
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 当然, 当然
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: yes, yes
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 确定, 确定
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 好的, 好的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 可以, 可以
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"Regression.CarFinanceSimple.v_04a227a81a6b025230d9ac2882267507.EarlyTerminationImpl"}, expression: 是的, 是的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不, 不
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不是, 不是
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: no, no
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不好, 不好
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不行, 不行
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 还不行, 还不行
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 我不确定, 我不确定
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"Regression.CarFinanceSimple.v_04a227a81a6b025230d9ac2882267507.EarlyTerminationImpl"}, expression: 算了, 算了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 没有了, 没有了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 没有了谢谢, 没有了谢谢
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 我好了, 我好了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 就这些了, 就这些了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 你好, 你好
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 您好, 您好
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 下一页, 下一页
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 翻页, 翻页
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 还有别的吗？, 还有别的吗？
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 都不太喜欢, 都不太喜欢
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 上一页, 上一页
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我还有多少钱没有还？, 我还有多少钱没有还？
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我还欠多少钱?, 我还欠多少钱?
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 还有多少钱没还, 还有多少钱没还
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我想提前还款, 我想提前还款
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 提前结清, 提前结清
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我不要了, 我不要了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我不想了, 我不想了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: 是的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:是 expression:的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: 随便
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:随便
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:随便> stored,indexed,tokenized<expression:随便> stored,indexed,tokenized<utterance:随便> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.DontCare> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:随便
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for CarFinanceSimple
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 结束当前对话, 结束当前对话
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 随便, 随便
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 都行, 都行
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 都一样, 都一样
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 是的, 是的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 确认, 确认
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 当然, 当然
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: yes, yes
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 确定, 确定
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 好的, 好的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 可以, 可以
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"Regression.CarFinanceSimple.v_04a227a81a6b025230d9ac2882267507.EarlyTerminationImpl"}, expression: 是的, 是的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不, 不
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不是, 不是
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: no, no
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不好, 不好
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 不行, 不行
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 还不行, 还不行
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: 我不确定, 我不确定
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"Regression.CarFinanceSimple.v_04a227a81a6b025230d9ac2882267507.EarlyTerminationImpl"}, expression: 算了, 算了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 没有了, 没有了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 没有了谢谢, 没有了谢谢
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 我好了, 我好了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: 就这些了, 就这些了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 你好, 你好
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 您好, 您好
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 下一页, 下一页
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 翻页, 翻页
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 还有别的吗？, 还有别的吗？
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 都不太喜欢, 都不太喜欢
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.PagedSelectable"}, expression: 上一页, 上一页
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我还有多少钱没有还？, 我还有多少钱没有还？
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我还欠多少钱?, 我还欠多少钱?
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 还有多少钱没还, 还有多少钱没还
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我想提前还款, 我想提前还款
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 提前结清, 提前结清
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我不要了, 我不要了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: 我不想了, 我不想了
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: 是的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"io.opencui.core.Confirmation"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 3 raw results for expression:是 expression:的
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:是的> stored,indexed,tokenized<expression:是的> stored,indexed,tokenized<utterance:是的> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:{"frame_id":"io.opencui.core.Confirmation"}> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.confirmation.Yes> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=0.5795243, document=Document<stored,indexed,tokenized<probe:好的> stored,indexed,tokenized<expression:好的> stored,indexed,tokenized<utterance:好的> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:{"frame_id":"io.opencui.core.Confirmation"}> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.confirmation.Yes> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=0.5795243, document=Document<stored,indexed,tokenized<probe:不是> stored,indexed,tokenized<expression:不是> stored,indexed,tokenized<utterance:不是> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:{"frame_id":"io.opencui.core.Confirmation"}> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.confirmation.No> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 3 results for expression:是 expression:的
+]]></system-err>
+</testsuite>
