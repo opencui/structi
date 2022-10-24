@@ -1,0 +1,1200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.opencui.du.StateTrackerTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2022-10-22T14:39:44" hostname="sean-Alienware-x15-R1" time="1.73">
+  <properties/>
+  <testcase name="testIntentModel" classname="io.opencui.du.StateTrackerTest" time="0.08"/>
+  <testcase name="testConvertWithExpectation" classname="io.opencui.du.StateTrackerTest" time="0.007"/>
+  <testcase name="testIntentModel1" classname="io.opencui.du.StateTrackerTest" time="0.101"/>
+  <testcase name="testConfirmation" classname="io.opencui.du.StateTrackerTest" time="0.277"/>
+  <testcase name="testMatchIDontThinkSo" classname="io.opencui.du.StateTrackerTest" time="0.08"/>
+  <testcase name="testReplaceEntityValues" classname="io.opencui.du.StateTrackerTest" time="0.001"/>
+  <testcase name="testTwoSlotsWithSameEntity" classname="io.opencui.du.StateTrackerTest" time="0.058"/>
+  <testcase name="testDontCareProactive" classname="io.opencui.du.StateTrackerTest" time="0.059"/>
+  <testcase name="testDontCareReactive2" classname="io.opencui.du.StateTrackerTest" time="0.034"/>
+  <testcase name="testPrefixSuffixBoost" classname="io.opencui.du.StateTrackerTest" time="0.001"/>
+  <testcase name="testPrefixSuffixBoostFull" classname="io.opencui.du.StateTrackerTest" time="0.144"/>
+  <testcase name="testRecommendationExpression" classname="io.opencui.du.StateTrackerTest" time="0.188"/>
+  <testcase name="testHasMore" classname="io.opencui.du.StateTrackerTest" time="0.083"/>
+  <testcase name="testMultiValue" classname="io.opencui.du.StateTrackerTest" time="0.074"/>
+  <testcase name="testMatchIntent" classname="io.opencui.du.StateTrackerTest" time="0.135"/>
+  <testcase name="testDontCareExpected" classname="io.opencui.du.StateTrackerTest" time="0.036"/>
+  <testcase name="testSingleTokenSlotFilling" classname="io.opencui.du.StateTrackerTest" time="0.003"/>
+  <testcase name="testSlotModel" classname="io.opencui.du.StateTrackerTest" time="0.032"/>
+  <testcase name="testMultiFrameMatching" classname="io.opencui.du.StateTrackerTest" time="0.111"/>
+  <testcase name="testPartialApplication" classname="io.opencui.du.StateTrackerTest" time="0.132"/>
+  <testcase name="testExtractValue" classname="io.opencui.du.StateTrackerTest" time="0.001"/>
+  <system-out><![CDATA[[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+intent model resp: IntentModelResult(probs=[0.471079886, 0.528920054, 0.274562359, 0.725437701])
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting 0 for savings
+{org.Banks_1.account_type=[saving's @(0, 7)]}
+frame events: [FrameEvent(type=CheckBalance, slots=[EntityEvent(value="saving's", attribute=account_type)], frames=[], packageName=org.Banks_1)]
+getting 0 for savings
+{org.Banks_1.account_type=[saving's @(0, 7)]}
+frame events: [FrameEvent(type=CheckBalance, slots=[EntityEvent(value="saving's", attribute=recipient_account_type)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+intent model resp: IntentModelResult(probs=[4.2941665E-6, 0.999995708, 4.56148746E-6, 0.99999547, 5.82809525E-6, 0.999994159])
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for confirmed
+{}
+getting null for confirmed
+{}
+getting null for i
+getting null for i want
+getting null for i want change
+getting null for i want change my
+getting null for i want change my hotel
+getting null for want
+getting null for want change
+getting null for want change my
+getting null for want change my hotel
+getting null for change
+getting null for change my
+getting null for change my hotel
+getting null for my
+getting null for my hotel
+getting null for hotel
+{}
+confirm event3: [FrameEvent(type=IDonotGetIt, slots=[], frames=[], packageName=io.opencui.core)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for i
+getting null for i don't
+getting null for i don't think
+getting null for i don't think so
+getting null for don't
+getting null for don't think
+getting null for don't think so
+getting null for think
+getting null for think so
+getting null for so
+{}
+frame events: [FrameEvent(type=No, slots=[], frames=[], packageName=io.opencui.core.confirmation)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+replaced: [零< 奇数 >二三四五六七八九十, 零一二三四< 奇数 >六七八九十, < 偶数 >一二三四五六七八九十, 零< 奇数 >二三四< 奇数 >六七八九十, < 偶数 >< 奇数 >二三四五六七八九十, < 偶数 >一二三四< 奇数 >六七八九十]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for march
+getting null for march chongqing
+getting 7 for chongqing
+{org.Banks_1.city=[chongqing @(6, 15)]}
+frame event: [FrameEvent(type=buyTicket, slots=[EntityEvent(value="chongqing", attribute=departure)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for this
+getting null for this is
+getting null for this is intent
+getting null for this is intent, whatever
+getting null for this is intent, whatever frame
+getting null for is
+getting null for is intent
+getting null for is intent, whatever
+getting null for is intent, whatever frame
+getting null for intent
+getting null for intent, whatever
+getting null for intent, whatever frame
+getting null for whatever
+getting null for whatever frame
+getting null for frame
+{}
+frame events: [FrameEvent(type=IntentClarification, slots=[], frames=[FrameEvent(type=someFrame, slots=[], frames=[], packageName=org.Banks_1), FrameEvent(type=someIntent, slots=[], frames=[], packageName=org.Banks_1)], packageName=io.opencui.core)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for as
+getting null for as you
+getting null for as you like
+getting null for you
+getting null for you like
+getting null for like
+{}
+frame events 2: [FrameEvent(type=someIntent, slots=[EntityEvent(value="_DontCare", attribute=slot2)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for alice
+getting null for alice want
+getting null for alice want to
+getting null for alice want to buy
+getting null for alice want to buy a
+getting null for alice want to buy a ticket
+getting null for want
+getting null for want to
+getting null for want to buy
+getting null for want to buy a
+getting null for want to buy a ticket
+getting null for want to buy a ticket from
+getting null for to
+getting null for to buy
+getting null for to buy a
+getting null for to buy a ticket
+getting null for to buy a ticket from
+getting null for to buy a ticket from shanghai
+getting null for buy
+getting null for buy a
+getting null for buy a ticket
+getting null for buy a ticket from
+getting null for buy a ticket from shanghai
+getting null for buy a ticket from shanghai to
+getting null for a
+getting null for a ticket
+getting null for a ticket from
+getting null for a ticket from shanghai
+getting null for a ticket from shanghai to
+getting null for a ticket from shanghai to beijing
+getting null for ticket
+getting null for ticket from
+getting null for ticket from shanghai
+getting null for ticket from shanghai to
+getting null for ticket from shanghai to beijing
+getting null for ticket from shanghai to beijing at
+getting null for from
+getting null for from shanghai
+getting null for from shanghai to
+getting null for from shanghai to beijing
+getting null for from shanghai to beijing at
+getting null for from shanghai to beijing at today
+getting 8 for shanghai
+getting null for shanghai to
+getting null for shanghai to beijing
+getting null for shanghai to beijing at
+getting null for shanghai to beijing at today
+getting null for to
+getting null for to beijing
+getting null for to beijing at
+getting null for to beijing at today
+getting 6 for beijing
+getting null for beijing at
+getting null for beijing at today
+getting null for at
+getting null for at today
+getting null for today
+{org.Banks_1.city=[shanghai @(32, 40), beijing @(44, 51)]}
+frame event: [FrameEvent(type=buyTicket, slots=[EntityEvent(value="beijing", attribute=destination), EntityEvent(value="shanghai", attribute=departure)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for give
+getting null for give me
+getting null for give me some
+getting null for give me some recommendation
+getting null for me
+getting null for me some
+getting null for me some recommendation
+getting null for some
+getting null for some recommendation
+getting null for recommendation
+{}
+frame event: [FrameEvent(type=someIntent, slots=[], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for i
+getting null for i am
+getting null for i am good
+getting null for i am good now
+getting null for am
+getting null for am good
+getting null for am good now
+getting null for good
+getting null for good now
+getting null for now
+{}
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for first
+getting null for first and
+getting null for first and fourth
+getting null for and
+getting null for and fourth
+getting null for fourth
+{}
+multi value event: [FrameEvent(type=PageSelectableMulti, slots=[EntityEvent(value="1", attribute=index), EntityEvent(value="4", attribute=index)], frames=[], packageName=framely.core)]
+getting null for first
+getting null for first and
+getting null for first and fourth
+getting null for and
+getting null for and fourth
+getting null for fourth
+{}
+single value event: [FrameEvent(type=PageSelectableSingle, slots=[EntityEvent(value="1", attribute=index)], frames=[], packageName=framely.core)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for this
+getting null for this is
+getting null for this is intent
+getting null for is
+getting null for is intent
+getting null for intent
+{}
+frame events: [FrameEvent(type=someIntent, slots=[EntityEvent(value="_context", attribute=missSlot)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for as
+getting null for as you
+getting null for as you like
+getting null for you
+getting null for you like
+getting null for like
+{}
+[FrameEvent(type=PagedSelectable, slots=[EntityEvent(value="1", attribute=index)], frames=[], packageName=io.opencui.core)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for march
+{}
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+request slot model, utterance: march, probes: [departure?]slot model result 
+class_logits: [0.552739918, 0.447137654, 1.22523154E-4]
+segments: UnifiedModelResult(segments=[march], classLogits=[0.552739918, 0.447137654, 1.22523154E-4], startLogitss=[[1.0]], endLogitss=[[1.0]], segStarts=[0], segEnds=[5]).segments
+start_logits: [[1.0]]
+end_logits: [[1.0]]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for go
+getting null for go to
+getting null for go to beijing
+getting null for to
+getting null for to beijing
+getting 6 for beijing
+{org.Banks_1.city=[beijing @(6, 13)]}
+[FrameEvent(type=someIntent, slots=[EntityEvent(value="beijing", attribute=slot_city)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+getting null for this
+getting null for this is
+getting null for this is intent
+getting null for is
+getting null for is intent
+getting null for intent
+{}
+frame event: [FrameEvent(type=someIntent, slots=[EntityEvent(value="_context", attribute=missSlot)], frames=[], packageName=org.Banks_1)]
+[io.framely.du.StateTrackerTest] nlu addr: 127.0.0.1:8501, duckling addr: http://127.0.0.1:8000/parse
+processing org.Banks_1.account_type with saving's	savings	saving's	saving's account
+checkings	checking	checking's	checking's account
+processing org.Banks_1.city with beijing	beijing
+chongqing	chongqing
+shanghai	shanghai
+processing io.opencui.core.Ordinal with 
+]]></system-out>
+  <system-err><![CDATA[[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting savings under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.CheckBalance, slot=account_type, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: savings
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.CheckBalance"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:save
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: savings, probes: [from which account?, to which account?], frame: org.Banks_1.CheckBalance, slots: account_type, []
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[savings], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0]], endLogitss=[[0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - handle savings for DUSlotMeta(label=account_type, triggers=[from which account?], type=org.Banks_1.account_type, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - handle savings for DUSlotMeta(label=recipient_account_type, triggers=[to which account?], type=org.Banks_1.account_type, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - handle entity with Label = "saving's"
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - got matched: savings from null with EntityEvent(value="saving's", attribute=account_type)
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=0, end=7, score=3.6, value=savings, norm="saving's", type=org.Banks_1.account_type, attribute=account_type, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="saving's", attribute=account_type) with org.Banks_1.account_type
+[Test worker @coroutine#15] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=CheckBalance, slots=[EntityEvent(value="saving's", attribute=account_type)], frames=[], packageName=org.Banks_1)]
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting savings under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.CheckBalance, slot=recipient_account_type, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: savings
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.CheckBalance"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:save
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: savings, probes: [from which account?, to which account?], frame: org.Banks_1.CheckBalance, slots: recipient_account_type, []
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[savings], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0]], endLogitss=[[0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - handle savings for DUSlotMeta(label=account_type, triggers=[from which account?], type=org.Banks_1.account_type, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - handle savings for DUSlotMeta(label=recipient_account_type, triggers=[to which account?], type=org.Banks_1.account_type, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - handle entity with Label = "saving's"
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - got matched: savings from null with EntityEvent(value="saving's", attribute=recipient_account_type)
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=0, end=7, score=3.6, value=savings, norm="saving's", type=org.Banks_1.account_type, attribute=recipient_account_type, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="saving's", attribute=recipient_account_type) with org.Banks_1.account_type
+[Test worker @coroutine#16] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=CheckBalance, slots=[EntityEvent(value="saving's", attribute=recipient_account_type)], frames=[], packageName=org.Banks_1)]
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting confirmed under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null), ExpectedFrame(frame=io.opencui.core.Confirmation, slot=null, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"io.opencui.core.Confirmation"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:confirm
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:confirmed> stored,indexed,tokenized<expression:confirmed> stored,indexed,tokenized<utterance:confirmed> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:{"frame_id":"io.opencui.core.Confirmation"}> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.confirmation.Yes> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:confirm
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[0.0552024171, 0.944797575])
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection true and true
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting confirmed under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:confirm
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: confirmed, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: slot2, []
+[Test worker @coroutine#17] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[confirmed], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0], [0.0]], endLogitss=[[0.0], [0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker @coroutine#17] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: confirmed, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: slot2, []
+[Test worker @coroutine#18] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[confirmed], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0], [0.0]], endLogitss=[[0.0], [0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker @coroutine#18] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - for ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null) getting event: []
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting i want change my hotel under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: i want change my hotel
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:i expression:want expression:chang expression:my expression:hotel
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized<probe:i want to buy a ticket from < departure > to < destination >> stored,indexed,tokenized<expression:i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >> stored,indexed,tokenized<utterance:i want to buy a ticket from $departure$ to $destination$> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.buyTicket> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:departure,destination>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:i expression:want expression:chang expression:my expression:hotel
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[0.999997735, 2.23265329E-6])
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: i want change my hotel, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: slot2, []
+[Test worker @coroutine#20] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[i, want, change, my, hotel], classLogits=[0.999971867, 1.9486708E-5, 8.64843514E-6, 0.999682069, 2.38024892E-4, 7.99954505E-5, 0.999975085, 1.71836218E-5, 7.69058443E-6], startLogitss=[[0.034033481, 0.0609557666, 0.4946419, 0.232174516, 0.178194329], [0.00786714535, 0.0154442666, 0.787158072, 0.0862007067, 0.103329822], [0.0247864015, 0.0433957428, 0.629242718, 0.14933686, 0.153238237]], endLogitss=[[0.0253550932, 0.0934184864, 0.234754279, 0.276432127, 0.370040059], [0.00486667501, 0.0297656078, 0.25553441, 0.0806594566, 0.629173875], [0.0263178069, 0.0717337877, 0.390348464, 0.186297312, 0.325302631]], segStarts=[0, 2, 7, 14, 17], segEnds=[1, 6, 13, 16, 22]).class_logits
+[Test worker @coroutine#20] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: i want change my hotel, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: slot2, []
+[Test worker @coroutine#22] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[i, want, change, my, hotel], classLogits=[0.999971867, 1.9486708E-5, 8.64843514E-6, 0.999682069, 2.38024892E-4, 7.99954505E-5, 0.999975085, 1.71836218E-5, 7.69058443E-6], startLogitss=[[0.034033481, 0.0609557666, 0.4946419, 0.232174516, 0.178194329], [0.00786714535, 0.0154442666, 0.787158072, 0.0862007067, 0.103329822], [0.0247864015, 0.0433957428, 0.629242718, 0.14933686, 0.153238237]], endLogitss=[[0.0253550932, 0.0934184864, 0.234754279, 0.276432127, 0.370040059], [0.00486667501, 0.0297656078, 0.25553441, 0.0806594566, 0.629173875], [0.0263178069, 0.0717337877, 0.390348464, 0.186297312, 0.325302631]], segStarts=[0, 2, 7, 14, 17], segEnds=[1, 6, 13, 16, 22]).class_logits
+[Test worker @coroutine#22] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - for ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null) getting event: []
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting I don't think so under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null), ExpectedFrame(frame=io.opencui.core.Confirmation, slot=null, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"io.opencui.core.Confirmation"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 2 raw results for expression:i expression:don't expression:think expression:so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:i don't think so> stored,indexed,tokenized<expression:i don't think so> stored,indexed,tokenized<utterance:i don't think so> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:{"frame_id":"io.opencui.core.Confirmation"}> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.confirmation.No> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=0.17935888, document=Document<stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized<probe:i want to buy a ticket from < departure > to < destination >> stored,indexed,tokenized<expression:i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >> stored,indexed,tokenized<utterance:i want to buy a ticket from $departure$ to $destination$> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.buyTicket> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:departure,destination>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 2 results for expression:i expression:don't expression:think expression:so
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[0.00135224522, 0.998647749, 0.999996543, 3.41998884E-6])
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection true and true
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting march chongqing under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.buyTicket, slot=departure, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"march","start":0,"value":{"values":[{"value":"2023-03-01T00:00:00.000+00:00","grain":"month","type":"value"},{"value":"2024-03-01T00:00:00.000+00:00","grain":"month","type":"value"},{"value":"2025-03-01T00:00:00.000+00:00","grain":"month","type":"value"}],"value":"2023-03-01T00:00:00.000+00:00","grain":"month","type":"value"},"end":5,"dim":"time","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [java.time.LocalDateTime, java.time.LocalTime, java.time.LocalDate, java.time.YearMonth, java.time.Year]
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: march chongqing
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.buyTicket"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:march expression:chongq
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: march chongqing, probes: [departure, destination], frame: org.Banks_1.buyTicket, slots: departure, []
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[march, chong, ##qing], classLogits=[0.444394648, 0.555485785, 1.19531956E-4, 0.0601077, 0.939826667, 6.56618577E-5], startLogitss=[[0.815579891, 0.183747143, 6.72950293E-4], [8.72774908E-5, 0.999454081, 4.58553608E-4]], endLogitss=[[0.0410738811, 0.00161659927, 0.957309484], [2.24996456E-5, 0.00239018723, 0.997587323]], segStarts=[0, 6, 11], segEnds=[5, 11, 15]).class_logits
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - handle march chongqing for DUSlotMeta(label=departure, triggers=[departure], type=org.Banks_1.city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - handle march chongqing for DUSlotMeta(label=destination, triggers=[destination], type=org.Banks_1.city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - handle entity with Label = "chongqing"
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - got matched: chongqing from null with EntityEvent(value="chongqing", attribute=departure)
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=6, end=15, score=4.7410564, value=chongqing, norm="chongqing", type=org.Banks_1.city, attribute=departure, traceInfo={class_logit=SlotPrediction(result=UnifiedModelResult(segments=[march, chong, ##qing], classLogits=[0.444394648, 0.555485785, 1.19531956E-4, 0.0601077, 0.939826667, 6.56618577E-5], startLogitss=[[0.815579891, 0.183747143, 6.72950293E-4], [8.72774908E-5, 0.999454081, 4.58553608E-4]], endLogitss=[[0.0410738811, 0.00161659927, 0.957309484], [2.24996456E-5, 0.00239018723, 0.997587323]], segStarts=[0, 6, 11], segEnds=[5, 11, 15]), index=0).classLogit, end_logit=0.9573095, prefix_suffix_bonus=0.0, start_logit=0.18374714, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="chongqing", attribute=departure) with org.Banks_1.city
+[Test worker @coroutine#24] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=buyTicket, slots=[EntityEvent(value="chongqing", attribute=departure)], frames=[], packageName=org.Banks_1)]
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting this is intent, whatever frame under DialogExpectations(expectations=[])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: this is intent, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 2 raw results for expression:intent expression:whatev expression:frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:whatever frame> stored,indexed,tokenized<expression:whatever frame> stored,indexed,tokenized<utterance:whatever frame> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.someFrame> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<label:DontCare>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=0.6422487, document=Document<stored,indexed,tokenized<probe:this is intent> stored,indexed,tokenized<expression:this is intent> stored,indexed,tokenized<utterance:this is intent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.someIntent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<partial_application:missSlot>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 2 results for expression:intent expression:whatev expression:frame
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[0.0147475293, 0.98525244, 0.383223474, 0.616776526])
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting as you like under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=true)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:you expression:like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:as you like> stored,indexed,tokenized<expression:as you like> stored,indexed,tokenized<utterance:as you like> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.DontCare> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:you expression:like
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[5.45637682E-4, 0.999454319])
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[Alice want to buy a ticket from shanghai to beijing at today], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0]], endLogitss=[[0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker] INFO io.opencui.du.BertStateTracker - handle Alice want to buy a ticket from shanghai to beijing at today for DUSlotMeta(label=from, triggers=[departure], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle Alice want to buy a ticket from shanghai to beijing at today for DUSlotMeta(label=to, triggers=[destination], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle entity with Label = shanghai
+[Test worker] INFO io.opencui.du.BertStateTracker - got matched: shanghai from null with EntityEvent(value=shanghai, attribute=from)
+[Test worker] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=32, end=40, score=4.0, value=shanghai, norm=shanghai, type=city, attribute=from, traceInfo={prefix_suffix_bonus=2.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value=shanghai, attribute=from) with city
+[Test worker] INFO io.opencui.du.BertStateTracker - handle entity with Label = beijing
+[Test worker] INFO io.opencui.du.BertStateTracker - got matched: beijing from null with EntityEvent(value=beijing, attribute=to)
+[Test worker] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=44, end=51, score=3.0, value=beijing, norm=beijing, type=city, attribute=to, traceInfo={prefix_suffix_bonus=1.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value=beijing, attribute=to) with city
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting Alice want to buy a ticket from shanghai to beijing at today under DialogExpectations(expectations=[])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"today","start":55,"value":{"values":[{"value":"2022-10-22T00:00:00.000+00:00","grain":"day","type":"value"}],"value":"2022-10-22T00:00:00.000+00:00","grain":"day","type":"value"},"end":60,"dim":"time","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [java.time.LocalDateTime, java.time.LocalTime, java.time.LocalDate, java.time.YearMonth, java.time.Year]
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: alice want to buy a ticket from shanghai to beijing at today
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:alic expression:want expression:bui expression:ticket expression:from expression:shanghai expression:beij expression:todai
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized<probe:i want to buy a ticket from < departure > to < destination >> stored,indexed,tokenized<expression:i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >> stored,indexed,tokenized<utterance:i want to buy a ticket from $departure$ to $destination$> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.buyTicket> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:departure,destination>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:alic expression:want expression:bui expression:ticket expression:from expression:shanghai expression:beij expression:todai
+[Test worker] INFO io.opencui.du.BertStateTracker - Compare with alice want to buy a ticket from < org.Banks_1.city > to beijing at today with i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >
+[Test worker] INFO io.opencui.du.BertStateTracker - Compare with alice want to buy a ticket from shanghai to < org.Banks_1.city > at today with i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >
+[Test worker] INFO io.opencui.du.BertStateTracker - Compare with alice want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city > at today with i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[5.70798875E-4, 0.999429166])
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: alice want to buy a ticket from shanghai to beijing at today, probes: [departure, destination], frame: org.Banks_1.buyTicket, slots: null, [departure, destination]
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[alice, want, to, buy, a, ticket, from, shanghai, to, beijing, at, today], classLogits=[0.0724905804, 0.927414894, 9.45422362E-5, 0.00187454349, 0.998061836, 6.36509503E-5], startLogitss=[[7.24780839E-5, 1.84563169E-6, 1.04873993E-6, 1.63325808E-6, 1.29446903E-6, 3.86693364E-6, 4.93143352E-6, 0.0287321061, 6.20038099E-6, 1.0925511E-4, 9.16730187E-6, 0.971056104], [0.00209586718, 2.32696948E-6, 1.38274072E-6, 1.93325263E-6, 1.82883662E-6, 5.00157103E-6, 1.3045581E-5, 0.0734533221, 4.64673685E-5, 0.924175739, 4.87505167E-6, 1.9821983E-4]], endLogitss=[[9.78466269E-5, 4.30495629E-6, 1.42600118E-6, 3.85397243E-6, 1.8432263E-6, 3.02090666E-6, 7.05595039E-6, 0.0562370494, 6.52319886E-6, 9.82147903E-5, 4.8126949E-6, 0.943534], [0.00150890916, 2.28899E-6, 7.78964875E-7, 1.25210693E-6, 1.07090011E-6, 1.51384791E-6, 7.40764744E-6, 0.0756870136, 5.54226244E-5, 0.922529519, 7.9370011E-7, 2.04024502E-4]], segStarts=[0, 6, 11, 14, 18, 20, 27, 32, 41, 44, 52, 55], segEnds=[5, 10, 13, 17, 19, 26, 31, 40, 43, 51, 54, 60]).class_logits
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - handle alice want to buy a ticket from shanghai to beijing at today for DUSlotMeta(label=departure, triggers=[departure], type=org.Banks_1.city, isMultiValue=false, parent=null, isHead=false). with true
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - handle alice want to buy a ticket from shanghai to beijing at today for DUSlotMeta(label=destination, triggers=[destination], type=org.Banks_1.city, isMultiValue=false, parent=null, isHead=false). with true
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - handle entity with Label = "beijing"
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - got matched: beijing from i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city > with EntityEvent(value="beijing", attribute=destination)
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=44, end=51, score=8.846705, value=beijing, norm="beijing", type=org.Banks_1.city, attribute=destination, traceInfo={class_logit=SlotPrediction(result=UnifiedModelResult(segments=[alice, want, to, buy, a, ticket, from, shanghai, to, beijing, at, today], classLogits=[0.0724905804, 0.927414894, 9.45422362E-5, 0.00187454349, 0.998061836, 6.36509503E-5], startLogitss=[[7.24780839E-5, 1.84563169E-6, 1.04873993E-6, 1.63325808E-6, 1.29446903E-6, 3.86693364E-6, 4.93143352E-6, 0.0287321061, 6.20038099E-6, 1.0925511E-4, 9.16730187E-6, 0.971056104], [0.00209586718, 2.32696948E-6, 1.38274072E-6, 1.93325263E-6, 1.82883662E-6, 5.00157103E-6, 1.3045581E-5, 0.0734533221, 4.64673685E-5, 0.924175739, 4.87505167E-6, 1.9821983E-4]], endLogitss=[[9.78466269E-5, 4.30495629E-6, 1.42600118E-6, 3.85397243E-6, 1.8432263E-6, 3.02090666E-6, 7.05595039E-6, 0.0562370494, 6.52319886E-6, 9.82147903E-5, 4.8126949E-6, 0.943534], [0.00150890916, 2.28899E-6, 7.78964875E-7, 1.25210693E-6, 1.07090011E-6, 1.51384791E-6, 7.40764744E-6, 0.0756870136, 5.54226244E-5, 0.922529519, 7.9370011E-7, 2.04024502E-4]], segStarts=[0, 6, 11, 14, 18, 20, 27, 32, 41, 44, 52, 55], segEnds=[5, 10, 13, 17, 19, 26, 31, 40, 43, 51, 54, 60]), index=1).classLogit, end_logit=0.9225295, prefix_suffix_bonus=0.0, start_logit=0.92417574, recognizer_score=2.0, expressed_slot_bonus=5.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="beijing", attribute=destination) with org.Banks_1.city
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - handle entity with Label = "shanghai"
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - got matched: shanghai from i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city > with EntityEvent(value="shanghai", attribute=departure)
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=32, end=40, score=7.084969, value=shanghai, norm="shanghai", type=org.Banks_1.city, attribute=departure, traceInfo={class_logit=SlotPrediction(result=UnifiedModelResult(segments=[alice, want, to, buy, a, ticket, from, shanghai, to, beijing, at, today], classLogits=[0.0724905804, 0.927414894, 9.45422362E-5, 0.00187454349, 0.998061836, 6.36509503E-5], startLogitss=[[7.24780839E-5, 1.84563169E-6, 1.04873993E-6, 1.63325808E-6, 1.29446903E-6, 3.86693364E-6, 4.93143352E-6, 0.0287321061, 6.20038099E-6, 1.0925511E-4, 9.16730187E-6, 0.971056104], [0.00209586718, 2.32696948E-6, 1.38274072E-6, 1.93325263E-6, 1.82883662E-6, 5.00157103E-6, 1.3045581E-5, 0.0734533221, 4.64673685E-5, 0.924175739, 4.87505167E-6, 1.9821983E-4]], endLogitss=[[9.78466269E-5, 4.30495629E-6, 1.42600118E-6, 3.85397243E-6, 1.8432263E-6, 3.02090666E-6, 7.05595039E-6, 0.0562370494, 6.52319886E-6, 9.82147903E-5, 4.8126949E-6, 0.943534], [0.00150890916, 2.28899E-6, 7.78964875E-7, 1.25210693E-6, 1.07090011E-6, 1.51384791E-6, 7.40764744E-6, 0.0756870136, 5.54226244E-5, 0.922529519, 7.9370011E-7, 2.04024502E-4]], segStarts=[0, 6, 11, 14, 18, 20, 27, 32, 41, 44, 52, 55], segEnds=[5, 10, 13, 17, 19, 26, 31, 40, 43, 51, 54, 60]), index=0).classLogit, end_logit=0.05623705, prefix_suffix_bonus=0.0, start_logit=0.028732106, recognizer_score=2.0, expressed_slot_bonus=5.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="shanghai", attribute=departure) with org.Banks_1.city
+[Test worker @coroutine#26] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=buyTicket, slots=[EntityEvent(value="beijing", attribute=destination), EntityEvent(value="shanghai", attribute=departure)], frames=[], packageName=org.Banks_1)]
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting give me some recommendation under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=any.intent, slot=null, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"any.intent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:give expression:me expression:some expression:recommend
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:give me some recommendation> stored,indexed,tokenized<expression:give me some recommendation> stored,indexed,tokenized<utterance:give me some recommendation> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.someIntent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<label:Recommendation>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:give expression:me expression:some expression:recommend
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[2.20595189E-6, 0.999997735])
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: give me some recommendation, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: null, []
+[Test worker @coroutine#28] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[give, me, some, recommendation], classLogits=[0.999977, 1.38214446E-5, 9.19901868E-6, 0.999976277, 1.56453752E-5, 8.09394169E-6, 0.999976754, 1.61081898E-5, 7.16962131E-6], startLogitss=[[0.24831894, 0.215998918, 0.259571, 0.276111156], [0.213161811, 0.176916331, 0.225613177, 0.384308696], [0.221524686, 0.188496575, 0.266533047, 0.323445678]], endLogitss=[[0.216903269, 0.242846698, 0.237027809, 0.303222179], [0.193954155, 0.219736323, 0.221693233, 0.364616275], [0.19004, 0.218070701, 0.235872298, 0.356016964]], segStarts=[0, 5, 8, 13], segEnds=[4, 7, 12, 27]).class_logits
+[Test worker @coroutine#28] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting I am good now under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.someIntent, slot=slot2, slotType=null, allowDontCare=null), ExpectedFrame(frame=io.opencui.core.HasMore, slot=null, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"now","start":10,"value":{"values":[{"value":"2022-10-22T14:39:45.395+00:00","grain":"second","type":"value"}],"value":"2022-10-22T14:39:45.395+00:00","grain":"second","type":"value"},"end":13,"dim":"time","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [java.time.LocalDateTime, java.time.LocalTime, java.time.LocalDate, java.time.YearMonth, java.time.Year]
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: i am good now
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"io.opencui.core.HasMore"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 2 raw results for expression:i expression:am expression:good expression:now
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:i am good now.> stored,indexed,tokenized<expression:i am good now.> stored,indexed,tokenized<utterance:i am good now.> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:{"frame_id":"io.opencui.core.HasMore"}> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.hasMore.No> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=0.17266087, document=Document<stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slotType:org.Banks_1.city> stored,indexed,tokenized<probe:i want to buy a ticket from < departure > to < destination >> stored,indexed,tokenized<expression:i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >> stored,indexed,tokenized<utterance:i want to buy a ticket from $departure$ to $destination$> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.buyTicket> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:departure,destination>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 2 results for expression:i expression:am expression:good expression:now
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[4.56148746E-6, 0.99999547, 0.999997258, 2.77194272E-6])
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting first and fourth under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=framely.core.PageSelectableMulti, slot=index, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"first","start":0,"value":{"value":1,"type":"value"},"end":5,"dim":"ordinal","latent":false},{"body":"fourth","start":10,"value":{"value":4,"type":"value"},"end":16,"dim":"ordinal","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"first","start":0,"value":{"value":1,"type":"value"},"end":5,"dim":"ordinal","latent":false},{"body":"fourth","start":10,"value":{"value":4,"type":"value"},"end":16,"dim":"ordinal","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: first and fourth
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"framely.core.PageSelectableMulti"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:first expression:fourth
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: first and fourth, probes: [index], frame: framely.core.PageSelectableMulti, slots: index, []
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[first, and, fourth], classLogits=[0.999964, 1.73843418E-5, 1.85921072E-5], startLogitss=[[0.455887735, 0.415558487, 0.128553793]], endLogitss=[[0.0286586564, 0.0971374661, 0.87420392]], segStarts=[0, 6, 10], segEnds=[5, 9, 16]).class_logits
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - handle first and fourth for DUSlotMeta(label=index, triggers=[index], type=io.opencui.core.Ordinal, isMultiValue=true, parent=null, isHead=false). with false
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - handle entity with Label = "1"
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - got matched: first from null with EntityEvent(value="1", attribute=index)
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=0, end=5, score=5.6, value=first, norm="1", type=io.opencui.core.Ordinal, attribute=index, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="1", attribute=index) with io.opencui.core.Ordinal
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - handle entity with Label = "4"
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - got matched: fourth from null with EntityEvent(value="4", attribute=index)
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=10, end=16, score=5.6, value=fourth, norm="4", type=io.opencui.core.Ordinal, attribute=index, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="4", attribute=index) with io.opencui.core.Ordinal
+[Test worker @coroutine#30] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=PageSelectableMulti, slots=[EntityEvent(value="1", attribute=index), EntityEvent(value="4", attribute=index)], frames=[], packageName=framely.core)]
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting first and fourth under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=framely.core.PageSelectableSingle, slot=index, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"first","start":0,"value":{"value":1,"type":"value"},"end":5,"dim":"ordinal","latent":false},{"body":"fourth","start":10,"value":{"value":4,"type":"value"},"end":16,"dim":"ordinal","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"first","start":0,"value":{"value":1,"type":"value"},"end":5,"dim":"ordinal","latent":false},{"body":"fourth","start":10,"value":{"value":4,"type":"value"},"end":16,"dim":"ordinal","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [framely.core.Ordinal, io.opencui.core.Ordinal]
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: first and fourth
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"framely.core.PageSelectableSingle"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:first expression:fourth
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: first and fourth, probes: [index], frame: framely.core.PageSelectableSingle, slots: index, []
+[Test worker @coroutine#32] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[first, and, fourth], classLogits=[0.999964, 1.73843418E-5, 1.85921072E-5], startLogitss=[[0.455887735, 0.415558487, 0.128553793]], endLogitss=[[0.0286586564, 0.0971374661, 0.87420392]], segStarts=[0, 6, 10], segEnds=[5, 9, 16]).class_logits
+[Test worker @coroutine#32] INFO io.opencui.du.BertStateTracker - handle first and fourth for DUSlotMeta(label=index, triggers=[index], type=io.opencui.core.Ordinal, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#32] INFO io.opencui.du.BertStateTracker - handle entity with Label = "1"
+[Test worker @coroutine#32] INFO io.opencui.du.BertStateTracker - got matched: first from null with EntityEvent(value="1", attribute=index)
+[Test worker @coroutine#32] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=0, end=5, score=5.6, value=first, norm="1", type=io.opencui.core.Ordinal, attribute=index, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="1", attribute=index) with io.opencui.core.Ordinal
+[Test worker @coroutine#32] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=PageSelectableSingle, slots=[EntityEvent(value="1", attribute=index)], frames=[], packageName=framely.core)]
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting this is intent under DialogExpectations(expectations=[])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:this is intent> stored,indexed,tokenized<expression:this is intent> stored,indexed,tokenized<utterance:this is intent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.someIntent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<partial_application:missSlot>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:intent
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[0.332864046, 0.667136])
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: this is intent, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: null, []
+[Test worker @coroutine#34] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[this, is, intent], classLogits=[0.999971151, 1.94347103E-5, 9.41619601E-6, 0.999966621, 2.49412715E-5, 8.50218748E-6, 0.999970198, 2.31095273E-5, 6.69776546E-6], startLogitss=[[0.179537147, 0.114692032, 0.705770791], [0.117287546, 0.0671982, 0.815514266], [0.0629348382, 0.0304144416, 0.906650722]], endLogitss=[[0.175231218, 0.111408919, 0.713359833], [0.115936406, 0.0745283589, 0.809535205], [0.0715399906, 0.04862931, 0.879830658]], segStarts=[0, 5, 8], segEnds=[4, 7, 14]).class_logits
+[Test worker @coroutine#34] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting as you like under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=io.opencui.core.HasMore, slot=status, slotType=null, allowDontCare=null), ExpectedFrame(frame=LibraryIntegration.ScheduleApp.scheduleIntent, slot=extraRequirement, slotType=null, allowDontCare=null), ExpectedFrame(frame=io.opencui.core.PagedSelectable, slot=index, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"io.opencui.core.HasMore"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"LibraryIntegration.ScheduleApp.scheduleIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"io.opencui.core.PagedSelectable"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:you expression:like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:as you like> stored,indexed,tokenized<expression:as you like> stored,indexed,tokenized<utterance:as you like> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:io.opencui.core.DontCare> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:you expression:like
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[5.45637682E-4, 0.999454319])
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting march under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=org.Banks_1.buyTicket, slot=departure, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [{"body":"march","start":0,"value":{"values":[{"value":"2023-03-01T00:00:00.000+00:00","grain":"month","type":"value"},{"value":"2024-03-01T00:00:00.000+00:00","grain":"month","type":"value"},{"value":"2025-03-01T00:00:00.000+00:00","grain":"month","type":"value"}],"value":"2023-03-01T00:00:00.000+00:00","grain":"month","type":"value"},"end":5,"dim":"time","latent":false}]
+[Test worker] INFO io.opencui.du.DucklingRecognizer - [java.time.LocalDateTime, java.time.LocalTime, java.time.LocalDate, java.time.YearMonth, java.time.Year]
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: march
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.buyTicket"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:march
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: march, probes: [departure, destination], frame: org.Banks_1.buyTicket, slots: departure, []
+[Test worker @coroutine#35] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[march], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0]], endLogitss=[[0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker @coroutine#35] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: march, probes: [departure, destination], frame: org.Banks_1.buyTicket, slots: departure, []
+[Test worker @coroutine#36] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[march], classLogits=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], startLogitss=[[0.0], [0.0]], endLogitss=[[0.0], [0.0]], segStarts=[], segEnds=[]).class_logits
+[Test worker @coroutine#36] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - for ExpectedFrame(frame=org.Banks_1.buyTicket, slot=departure, slotType=null, allowDontCare=null) getting event: []
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting go to beijing under DialogExpectations(expectations=[DialogExpectation(activeFrames=[ExpectedFrame(frame=framely.core.PageSelectable, slot=null, slotType=null, allowDontCare=null), ExpectedFrame(frame=org.Banks_1.someIntent, slot=null, slotType=null, allowDontCare=null)], status=OPEN)])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: go to beijing
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"framely.core.PageSelectable"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with context: {"frame_id":"org.Banks_1.someIntent"}
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 0 raw results for expression:go expression:beij
+[Test worker] INFO io.opencui.du.BertStateTracker - null enter convertWithExpection false and false
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: go to beijing, probes: [], frame: framely.core.PageSelectable, slots: null, []
+[Test worker @coroutine#38] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[go, to, beijing], classLogits=[], startLogitss=[], endLogitss=[], segStarts=[0, 3, 6], segEnds=[2, 5, 13]).class_logits
+[Test worker @coroutine#38] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: go to beijing, probes: [], frame: framely.core.PageSelectable, slots: null, []
+[Test worker @coroutine#40] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[go, to, beijing], classLogits=[], startLogitss=[], endLogitss=[], segStarts=[0, 3, 6], segEnds=[2, 5, 13]).class_logits
+[Test worker @coroutine#40] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.du.BertStateTracker - for ExpectedFrame(frame=framely.core.PageSelectable, slot=null, slotType=null, allowDontCare=null) getting event: []
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: go to beijing, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: null, []
+[Test worker @coroutine#42] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[go, to, beijing], classLogits=[0.999976754, 1.17912432E-5, 1.14090035E-5, 0.999964595, 2.93673747E-5, 6.07148877E-6, 0.013695105, 0.986270487, 3.4393157E-5], startLogitss=[[0.102974959, 0.133010641, 0.764014423], [0.0036605387, 0.00582367508, 0.990515828], [2.48935E-5, 6.98341173E-5, 0.999905229]], endLogitss=[[0.0769367814, 0.0975604132, 0.825502872], [0.00403768849, 0.0046361736, 0.991326153], [8.79347226E-6, 1.26160467E-5, 0.999978542]], segStarts=[0, 3, 6], segEnds=[2, 5, 13]).class_logits
+[Test worker @coroutine#42] INFO io.opencui.du.BertStateTracker - handle go to beijing for DUSlotMeta(label=slot_city, triggers=[slot_city], type=org.Banks_1.city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker @coroutine#42] INFO io.opencui.du.BertStateTracker - handle entity with Label = "beijing"
+[Test worker @coroutine#42] INFO io.opencui.du.BertStateTracker - got matched: beijing from null with EntityEvent(value="beijing", attribute=slot_city)
+[Test worker @coroutine#42] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=6, end=13, score=3.9998837, value=beijing, norm="beijing", type=org.Banks_1.city, attribute=slot_city, traceInfo={class_logit=SlotPrediction(result=UnifiedModelResult(segments=[go, to, beijing], classLogits=[0.999976754, 1.17912432E-5, 1.14090035E-5, 0.999964595, 2.93673747E-5, 6.07148877E-6, 0.013695105, 0.986270487, 3.4393157E-5], startLogitss=[[0.102974959, 0.133010641, 0.764014423], [0.0036605387, 0.00582367508, 0.990515828], [2.48935E-5, 6.98341173E-5, 0.999905229]], endLogitss=[[0.0769367814, 0.0975604132, 0.825502872], [0.00403768849, 0.0046361736, 0.991326153], [8.79347226E-6, 1.26160467E-5, 0.999978542]], segStarts=[0, 3, 6], segEnds=[2, 5, 13]), index=2).classLogit, end_logit=0.99997854, prefix_suffix_bonus=0.0, start_logit=0.9999052, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value="beijing", attribute=slot_city) with org.Banks_1.city
+[Test worker @coroutine#42] INFO io.opencui.du.BertStateTracker - res: [FrameEvent(type=someIntent, slots=[EntityEvent(value="beijing", attribute=slot_city)], frames=[], packageName=org.Banks_1)]
+[Test worker] INFO io.opencui.du.BertStateTracker - for ExpectedFrame(frame=org.Banks_1.someIntent, slot=null, slotType=null, allowDontCare=null) getting event: [FrameEvent(type=someIntent, slots=[EntityEvent(value="beijing", attribute=slot_city)], frames=[], packageName=org.Banks_1)]
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - Getting this is intent under DialogExpectations(expectations=[])
+[Test worker] INFO io.opencui.du.DucklingRecognizer - []
+[Test worker] INFO io.opencui.du.ExpressionSearcher - search with expression: this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 raw results for expression:intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - ScoredDocument(score=1.0, document=Document<stored,indexed,tokenized<probe:this is intent> stored,indexed,tokenized<expression:this is intent> stored,indexed,tokenized<utterance:this is intent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<context:default> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<owner:org.Banks_1.someIntent> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<slots:> stored,indexed,tokenized,omitNorms,indexOptions=DOCS<partial_application:missSlot>>)
+[Test worker] INFO io.opencui.du.ExpressionSearcher - got 1 results for expression:intent
+[Test worker] INFO io.opencui.du.BertStateTracker - IntentModelResult(probs=[0.332864046, 0.667136])
+[Test worker] INFO io.opencui.du.BertStateTracker - slot model, utterance: this is intent, probes: [frame slot, hotel, slot_city], frame: org.Banks_1.someIntent, slots: null, []
+[Test worker @coroutine#44] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[this, is, intent], classLogits=[0.999971151, 1.94347103E-5, 9.41619601E-6, 0.999966621, 2.49412715E-5, 8.50218748E-6, 0.999970198, 2.31095273E-5, 6.69776546E-6], startLogitss=[[0.179537147, 0.114692032, 0.705770791], [0.117287546, 0.0671982, 0.815514266], [0.0629348382, 0.0304144416, 0.906650722]], endLogitss=[[0.175231218, 0.111408919, 0.713359833], [0.115936406, 0.0745283589, 0.809535205], [0.0715399906, 0.04862931, 0.879830658]], segStarts=[0, 5, 8], segEnds=[4, 7, 14]).class_logits
+[Test worker @coroutine#44] INFO io.opencui.du.BertStateTracker - res: []
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.DucklingRecognizer is configured twice, was http://127.0.0.1:8000/parse now http://127.0.0.1:8000/parse
+[Test worker] INFO io.opencui.core.Dispatcher - class io.opencui.du.TfRestBertNLUModel is configured twice, was (127.0.0.1, 8501, http) now (127.0.0.1, 8501, http)
+[Test worker] INFO io.opencui.du.ListRecognizer - Init ListRecognizer...
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.account_type with 2 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type org.Banks_1.city with 3 entries.
+[Test worker] INFO io.opencui.du.ListRecognizer - process entity type io.opencui.core.Ordinal with 1 entries.
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.account_type does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - org.Banks_1.city does not need DucklingRecognizer
+[Test worker] INFO io.opencui.du.DucklingRecognizer - io.opencui.core.Ordinal does need DucklingRecognizer
+[Test worker] INFO io.opencui.du.ExpressionSearcher - Dispatcher.memeoryBased = true
+[Test worker] INFO io.opencui.du.ExpressionSearcher - [ExpressionSearch] build index for Banks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: whatever frame, whatever frame
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: i want to buy a ticket from < org.Banks_1.city > to < org.Banks_1.city >, i want to buy a ticket from $departure$ to $destination$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.buyTicket"}, expression: my departure is < org.Banks_1.city > , please, my departure is $departure$ , please
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: this is intent, this is intent
+[Test worker] INFO io.opencui.du.ExpressionSearcher - entailed slots: missSlot
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: give me some recommendation, give me some recommendation
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"org.Banks_1.someIntent"}, expression: trigger a function with < org.Banks_1.city >, trigger a function with $slot_city$
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: as you like, as you like
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: confirmed, confirmed
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: that is incorrect, that is incorrect
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.Confirmation"}, expression: i don't think so, i don't think so
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: nope, thanks, nope, thanks
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: {"frame_id":"io.opencui.core.HasMore"}, expression: i am good now., i am good now.
+[Test worker] INFO io.opencui.du.ExpressionSearcher - context: default, expression: next page, next page
+[Test worker] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[buy, a, ticket, from, beijing, city, to, shanghai], classLogits=[0.11279419, 0.8870314, 1.743299E-4, 0.03408716, 0.96576923, 1.4359347E-4], startLogitss=[[2.196567E-5, 2.6365742E-5, 3.1778778E-5, 1.3596944E-4, 0.4008711, 3.536189E-4, 3.245814E-5, 0.5985267], [9.678948E-6, 1.5287478E-5, 1.6331456E-5, 7.200543E-5, 0.2823309, 2.5269715E-4, 1.6962993E-5, 0.7172861]], endLogitss=[[1.825438E-6, 1.8325056E-6, 7.967485E-6, 1.12943E-5, 4.643959E-4, 0.11388547, 6.501569E-6, 0.8856207], [1.469735E-6, 1.6144468E-6, 5.9993013E-6, 7.2088346E-6, 3.1644202E-4, 0.13221303, 4.2701727E-6, 0.8674499]], segStarts=[0, 4, 6, 13, 18, 26, 31, 34], segEnds=[3, 5, 12, 17, 25, 30, 33, 42]).class_logits
+[Test worker] INFO io.opencui.du.BertStateTracker - handle buy a ticket from beijing city to shanghai for DUSlotMeta(label=from, triggers=[from], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle buy a ticket from beijing city to shanghai for DUSlotMeta(label=to, triggers=[to], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle entity with Label = shanghai
+[Test worker] INFO io.opencui.du.BertStateTracker - got matched: shanghai from null with EntityEvent(value=shanghai, attribute=to)
+[Test worker] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=34, end=42, score=3.5847359, value=shanghai, norm=shanghai, type=city, attribute=to, traceInfo={class_logit=SlotPrediction(result=UnifiedModelResult(segments=[buy, a, ticket, from, beijing, city, to, shanghai], classLogits=[0.11279419, 0.8870314, 1.743299E-4, 0.03408716, 0.96576923, 1.4359347E-4], startLogitss=[[2.196567E-5, 2.6365742E-5, 3.1778778E-5, 1.3596944E-4, 0.4008711, 3.536189E-4, 3.245814E-5, 0.5985267], [9.678948E-6, 1.5287478E-5, 1.6331456E-5, 7.200543E-5, 0.2823309, 2.5269715E-4, 1.6962993E-5, 0.7172861]], endLogitss=[[1.825438E-6, 1.8325056E-6, 7.967485E-6, 1.12943E-5, 4.643959E-4, 0.11388547, 6.501569E-6, 0.8856207], [1.469735E-6, 1.6144468E-6, 5.9993013E-6, 7.2088346E-6, 3.1644202E-4, 0.13221303, 4.2701727E-6, 0.8674499]], segStarts=[0, 4, 6, 13, 18, 26, 31, 34], segEnds=[3, 5, 12, 17, 25, 30, 33, 42]), index=1).classLogit, end_logit=0.8674499, prefix_suffix_bonus=0.0, start_logit=0.7172861, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value=shanghai, attribute=to) with city
+[Test worker] INFO io.opencui.du.BertStateTracker - handle entity with Label = beijing
+[Test worker] INFO io.opencui.du.BertStateTracker - got matched: beijing from null with EntityEvent(value=beijing, attribute=from)
+[Test worker] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=18, end=25, score=2.4013355, value=beijing, norm=beijing, type=city, attribute=from, traceInfo={class_logit=SlotPrediction(result=UnifiedModelResult(segments=[buy, a, ticket, from, beijing, city, to, shanghai], classLogits=[0.11279419, 0.8870314, 1.743299E-4, 0.03408716, 0.96576923, 1.4359347E-4], startLogitss=[[2.196567E-5, 2.6365742E-5, 3.1778778E-5, 1.3596944E-4, 0.4008711, 3.536189E-4, 3.245814E-5, 0.5985267], [9.678948E-6, 1.5287478E-5, 1.6331456E-5, 7.200543E-5, 0.2823309, 2.5269715E-4, 1.6962993E-5, 0.7172861]], endLogitss=[[1.825438E-6, 1.8325056E-6, 7.967485E-6, 1.12943E-5, 4.643959E-4, 0.11388547, 6.501569E-6, 0.8856207], [1.469735E-6, 1.6144468E-6, 5.9993013E-6, 7.2088346E-6, 3.1644202E-4, 0.13221303, 4.2701727E-6, 0.8674499]], segStarts=[0, 4, 6, 13, 18, 26, 31, 34], segEnds=[3, 5, 12, 17, 25, 30, 33, 42]), index=0).classLogit, end_logit=4.643959E-4, prefix_suffix_bonus=0.0, start_logit=0.4008711, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value=beijing, attribute=from) with city
+[Test worker] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[beijing], classLogits=[0.11279419, 0.8870314, 1.743299E-4, 0.03408716, 0.96576923, 1.4359347E-4], startLogitss=[[0.1], [0.1]], endLogitss=[[0.1], [0.1]], segStarts=[0], segEnds=[1]).class_logits
+[Test worker] INFO io.opencui.du.BertStateTracker - handle beijing for DUSlotMeta(label=from, triggers=[from], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle beijing for DUSlotMeta(label=to, triggers=[to], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle entity with Label = beijing
+[Test worker] INFO io.opencui.du.BertStateTracker - got matched: beijing from null with EntityEvent(value=beijing, attribute=from)
+[Test worker] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=0, end=7, score=3.6, value=beijing, norm=beijing, type=city, attribute=from, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value=beijing, attribute=from) with city
+[Test worker] INFO io.opencui.du.BertStateTracker - extractSlotValues: class logits: UnifiedModelResult(segments=[beijing], classLogits=[0.11279419, 0.8870314, 1.743299E-4, 0.03408716, 0.96576923, 1.4359347E-4], startLogitss=[[0.1], [0.1]], endLogitss=[[0.1], [0.1]], segStarts=[0], segEnds=[1]).class_logits
+[Test worker] INFO io.opencui.du.BertStateTracker - handle beijing for DUSlotMeta(label=from, triggers=[from], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle beijing for DUSlotMeta(label=to, triggers=[to], type=city, isMultiValue=false, parent=null, isHead=false). with false
+[Test worker] INFO io.opencui.du.BertStateTracker - handle entity with Label = beijing
+[Test worker] INFO io.opencui.du.BertStateTracker - got matched: beijing from null with EntityEvent(value=beijing, attribute=to)
+[Test worker] INFO io.opencui.du.BertStateTracker - span is: ScoredSpan(start=0, end=7, score=3.6, value=beijing, norm=beijing, type=city, attribute=to, traceInfo={prefix_suffix_bonus=0.0, recognizer_score=2.0}, recongizedEntity=true, recongizedSlot=false). putting EntityEvent(value=beijing, attribute=to) with city
+]]></system-err>
+</testsuite>
