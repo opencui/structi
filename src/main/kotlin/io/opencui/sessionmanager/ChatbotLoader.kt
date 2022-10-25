@@ -39,12 +39,12 @@ object ChatbotLoader {
     }
 
     fun getJarFile(botInfo: BotInfo): File {
-        // return File("./jardir/${botInfo.org}_${botInfo.agent}_${botInfo.lang}_${botInfo.branch}.jar")
         return File("./jardir/agent-${botInfo.lang}.jar")
     }
 
     // This is useful for creating the index.
     fun init(file: File, botPrefix: String) {
+        this.botPrefix = botPrefix
         file.walk()
 			.filter { it.toString().endsWith("jar") }
 			.forEach {
