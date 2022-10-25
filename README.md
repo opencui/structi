@@ -1,10 +1,13 @@
-# Framely 
-A compiled approach for serving conversational interface where we convert schema and its dialogue annotations into kotlin source code, which then is compiled to serve the traffic. This compilation process allow us catch more bugs early and our system can be more robust. Operating at kotlin source code level make it easy to integrate functionalities from wide range of java/kotlin libraries. 
+# OpenCUI | Core 
 
 
-One of the great advantage of using Java ecosystem is we already have many packages (some binary ones) available for functionality you can think of.
-Framely extension makes it very easy to bring these functionality to platform so that you can make use of them at the conversational level. 
+OpenCUI is a declarative and component-based framework for conversational user interface (CUI), designed to make it easy to build conversational frontend for your backend services.
 
-Framely extension is built on the mature platform like: SpringBoot, Kotlin, Gradle, so that we can focus on build chatbots.
+Dialog Understanding:
 
-
+The OpenCUI runtime defines a set of interface for dialog understanding, and provides reference implementation based on duckling and transformer based Tensorflow models that can be accessed from:
+```
+docker run -it --rm -p 8000:8000 registry.cn-beijing.aliyuncs.com/ni/apps:0616-v1
+docker run -it --rm -p 8501:8501 registry.us-east-1.aliyuncs.com/framely/apps:du.private--20220815--tag--du-debug-v10.3-v2.2
+./gradlew core:test
+'''
