@@ -26,6 +26,7 @@ class DslEntityTest() : DuTestHelper() {
                     context("Banks_1.TransferMoney")
                 }
                 utterance("Great, let's make a transfer.")
+
                 utterance("Make a transfer to ${'$'}recipient_account_name${'$'}")
                 utterance("I wanna make a transfer")
                 utterance("send ${'$'}amount${'$'} and give it to ${'$'}recipient_account_name${'$'} and go with the ${'$'}account_type${'$'} account") {
@@ -40,6 +41,12 @@ class DslEntityTest() : DuTestHelper() {
                     context("account")
                 }
                 utterance("whatever frame")
+            },
+            frame("me.test.abstractEntity_1007.FoodOrdering") {
+                utterance("""test""") {
+                }
+                utterance("""order ${'$'}dish${'$'}""") {
+                }
             }
         )
 
@@ -73,7 +80,15 @@ class DslEntityTest() : DuTestHelper() {
             }
         )
 
-        override val frameSlotMetas: Map<String, List<DUSlotMeta>> = mapOf()
+        override val frameSlotMetas: Map<String, List<DUSlotMeta>> = mapOf(
+            "me.test.abstractEntity_1007.FoodOrdering" to listOf(
+                DUSlotMeta(
+                    label = "dish", isMultiValue = false, type = "me.test.abstractEntity_1007.Dish",
+                    isHead = false, triggers = listOf("dish item", )
+                )
+            )
+        )
+
         override val typeAlias: Map<String, List<String>> = mapOf(
             "io.opencui.core.Email" to listOf("Email"),
             "io.opencui.core.Currency" to listOf("Currency"),
@@ -112,6 +127,14 @@ class DslEntityTest() : DuTestHelper() {
     val duMeta: DUMeta = loadDUMetaDsl(En, DslEntityTest::class.java.classLoader, "me.test",
         "abstractEntity_1007", "en", "746395988637257728", "271", "Asia/Shanghai")
 
+    val stateTracker = BertStateTracker(
+            duMeta,
+            32,
+            3,
+            0.5f,
+            0.1f,
+            0.5f
+    )
 
     private val normalizers = listOf(ListRecognizer(duMeta))
 
@@ -129,6 +152,17 @@ class DslEntityTest() : DuTestHelper() {
         assertEquals(emap.size, 1)
         val value = emap["me.test.abstractEntity_1007.Dish"]!![0]
         assert(!value.leaf)
+    }
+
+    @Test
+    fun testMatchIntent() {
+        val frameEvents = stateTracker.convert("s", "order house special")
+        println("frame events: $frameEvents")
+        assertEquals(frameEvents.size, 1)
+        val entityEvents = frameEvents[0].activeSlots
+        assertEquals(entityEvents.size, 1 )
+        val longForm = """EntityEvent(value=me.test.abstractEntity_1007.HouseSpecial", attribute=dish, isLeaf=false, type=me.test.abstractEntity_1007.VirtualDish)"""
+        assertEquals(entityEvents[0].toLongForm(), longForm)
     }
 }
 

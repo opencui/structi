@@ -1009,6 +1009,7 @@ data class BertStateTracker(
                             "prefix_suffix_bonus" to bonus.toString()
                         );
                         recongizedEntity = true
+                        leaf = entity.leaf
                     }
                 }
 
