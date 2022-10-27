@@ -885,11 +885,18 @@ data class BertStateTracker(
             val path = nameParts.subList(0, nameParts.size - 1).joinToString(".")
             val entityLabel = span.norm!!
             logger.info("handle entity with Label = $entityLabel")
-            val event = if (ListRecognizer.isInternal(entityLabel)) {
+            val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
-                EntityEvent(entityLabel.substring(1), span.attribute!!).apply { origValue = span.value; type = addVirtual(span.type!!); isLeaf = false }
+                EntityEvent(entityLabel.substring(1), span.attribute!!).apply {
+                    origValue = span.value;
+                    type = addVirtual(span.type!!);
+                    isLeaf = false
+                }
             } else {
-                EntityEvent(entityLabel, span.attribute!!).apply { origValue = span.value; type = span.type }
+                EntityEvent(entityLabel, span.attribute!!).apply {
+                    origValue = span.value;
+                    type = span.type
+                }
             }
             // We need to have some form of explain away, if the entity occurs in the expression
             // There might be some ambiguity here.
@@ -936,7 +943,8 @@ data class BertStateTracker(
         var attribute: String? = null,
         var traceInfo: HashMap<String, String>? = null,
         var recongizedEntity: Boolean = false,
-        var recongizedSlot: Boolean = false
+        var recongizedSlot: Boolean = false,
+        var leaf: Boolean = true
     )
 
     fun extractValue(
@@ -985,6 +993,7 @@ data class BertStateTracker(
                     spans[span]!!.traceInfo!!["recognizer_score"] = entity.score.toString()
                     spans[span]!!.traceInfo!!["prefix_suffix_bonus"] = bonus.toString()
                     spans[span]!!.recongizedEntity = true
+                    spans[span]!!.leaf = entity.leaf
                 } else {
                     // let's add this as well.
                     spans[span] = ScoredSpan(
@@ -1000,6 +1009,7 @@ data class BertStateTracker(
                             "prefix_suffix_bonus" to bonus.toString()
                         );
                         recongizedEntity = true
+                        leaf = entity.leaf
                     }
                 }
 

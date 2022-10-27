@@ -31,23 +31,15 @@ data class EntityEvent(
     var type: String? = null
     var isUsed: Boolean = false
     var origValue: String? = null
-    
+
     var isLeaf: Boolean = true
+
+    fun toLongForm() : String {
+        return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
+    }
 
     // TODO(sean) what is this used for?
     val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
-
-    val isDontCare: Boolean
-        get() = value == ""
-
-
-    // We assume the value is encoding of the reference.
-    val isReference: Boolean
-        get() = pattern.matches(value)
-
-    companion object {
-        val pattern = Regex("\\{.*\\}")
-    }
 }
 
 enum class EventSource {

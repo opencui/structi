@@ -30,6 +30,7 @@ class SpanInfo(
         val latent: Boolean,
         val value: Any?=null,
         val recognizer: EntityRecognizer? = null,
+        val leaf: Boolean = true,
         val score: Float=2.0f) {
     override fun toString() : String {
         return "$value @($start, $end)"
@@ -131,7 +132,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         val end = items.getPrimitive("end").content().toInt()
         val latent = items.getPrimitive("latent").content().toBoolean()
         val value = items.get("value") as JsonElement
-        return SpanInfo(type, start, end, latent, value, this)
+        return SpanInfo(type, start, end, latent, value, this, true)
     }
 
     fun fill(input: String, sres: JsonArray, emap: MutableMap<String, MutableList<SpanInfo>>) {
@@ -232,13 +233,13 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             val substr = utterance.substring(v.start).lowercase(Locale.getDefault())
             if (v.type == "java.time.LocalDate") {
                 if (substr.startsWith("on ")) {
-                    return SpanInfo(v.type, v.start + 3, v.end, v.latent, v.value, v.recognizer, v.score)
+                    return SpanInfo(v.type, v.start + 3, v.end, v.latent, v.value, v.recognizer, true, v.score)
                 }
                 if (substr.startsWith("at ")) return null
             }
             if (v.type == "java.time.LocalTime") {
                 if (substr.startsWith("at ")) {
-                    return SpanInfo(v.type, v.start + 3, v.end, v.latent, v.value, v.recognizer, v.score)
+                    return SpanInfo(v.type, v.start + 3, v.end, v.latent, v.value, v.recognizer, true, v.score)
                 }
                 if (substr.startsWith("on ")) return null
             }
@@ -295,9 +296,9 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 }
 
 
-class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
+class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
 
-    data class TypedLabel(val typeId: Int, val labelId: Int)
+    data class TypedLabel(val typeId: Int, val labelId: Int, val leaf: Boolean)
     data class TypedMention(val typeId: Int, val mentionId: Int)
 
     val maxNgramSize = 5
@@ -311,10 +312,10 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
     // from token to all the mentions related to it.
     val tokenIndex = ArrayList<ArrayList<TypedMention>>()
 
-    fun updateMentionIndex(mentionId: Int, labelId: Int, typeId: Int) {
+    fun updateMentionIndex(mentionId: Int, labelId: Int, typeId: Int, leaf: Boolean) {
         mentionIndex.ensureCapacity(mentionId + 1)
         if (mentionIndex.size <= mentionId) mentionIndex.add(ArrayList())
-        mentionIndex[mentionId].add(TypedLabel(typeId, labelId))
+        mentionIndex[mentionId].add(TypedLabel(typeId, labelId, leaf))
     }
 
     fun updateTokenIndex(tokenId: Int, mentionId: Int, typeId: Int) {
@@ -350,7 +351,7 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
             val labelId = labelTable.put(label)
             for (phrase in phrases) {
                 val mentionId = mentionTable.put(phrase)
-                updateMentionIndex(mentionId, labelId, typeId)
+                updateMentionIndex(mentionId, labelId, typeId, true)
             }
         }
     }
@@ -362,13 +363,6 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
         val processedDontcare = HashMap<String, ArrayList<String>>()
         val processedThat = HashMap<String, ArrayList<String>>()
         val fullMatches = HashMap<Pair<String, String>, MutableSet<String>>()
-        // frame dontcare annotations
-        val exprOwners = agent.getFrameExpressions()
-        for (owner in exprOwners) {
-            owner as JsonObject
-            collectExtractiveFrame(owner, StateTracker.FullDontCare, processedDontcare)
-            collectExtractiveFrame(owner, StateTracker.FullThat, processedThat)
-        }
 
         // Populate the typeId
         agent.getEntities().map { typeTable.put(it) }
@@ -382,14 +376,14 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
             // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
             val partialIndex = HashMap<String, MutableList<String>>()
 
-            fun add(entryLabel: String, expressions: List<String>) {
+            fun add(entryLabel: String, expressions: List<String>, leaf: Boolean) {
                 // TODO(sean): again, the norm need to be language related.
                 val labelId = labelTable.put(entryLabel)
                 for (mention in expressions) {
                     val key = mention.lowercase().trim{ it.isWhitespace() }
                     val mentionId = mentionTable.put(key)
                     // Handle full match.
-                    updateMentionIndex(mentionId, labelId, typeId)
+                    updateMentionIndex(mentionId, labelId, typeId, leaf)
 
                     // Handle partial match.
                     val tokens = tokenize(key)
@@ -411,17 +405,16 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
             val children = meta?.children ?: emptyList()
             for (child in children) {
                 // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
-                val entryLabel = "*$child"
+                val entryLabel = "$child"
                 val expressions = agent.getTriggers(child)
-                add(entryLabel, expressions)
+                add(entryLabel, expressions, false)
             }
 
             // Actual instances.
-
             val content = agent.getEntityInstances(type)
             logger.info("process entity type $type with ${content.size} entries.")
             for ((entryLabel, expressions) in content) {
-                add(entryLabel,expressions)
+                add(entryLabel,expressions, true)
             }
 
             // process entity dontcare annotations
@@ -474,12 +467,12 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
                 val key = input.slice(range)
 
                 val mentionId = mentionTable.getId(key)
-                println("getting $mentionId for $key")
                 if (mentionId != null) {
                     val occurrences = mentionIndex[mentionId]
                     for (occurrence in occurrences) {
                         val typeId = occurrence.typeId
                         val labelId = occurrence.labelId
+                        val leaf = occurrence.leaf
                         val type = typeTable.getString(typeId)
                         val label = labelTable.getString(labelId)
 
@@ -492,7 +485,7 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
                         }
 
                         typedSpans[typeId]!!.add(Pair(spanlist[i].first, spanlist[i + k].second))
-                        emap[type]!!.add(SpanInfo(type, spanlist[i].first, spanlist[i + k].second, false, label, this))
+                        emap[type]!!.add(SpanInfo(type, spanlist[i].first, spanlist[i + k].second, false, label, this, leaf))
                     }
                 }  else {
                     // when this is not mention match
@@ -503,7 +496,17 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
                             val typeId = occurrence.typeId
                             val type = typeTable.getString(typeId)
                             val label = PARTIALMATCH
-                            partialMatch.add(SpanInfo(type, spanlist[i].first, spanlist[i + k].second, false, label, this))
+                            partialMatch.add(
+                                SpanInfo(
+                                    type,
+                                    spanlist[i].first,
+                                    spanlist[i + k].second,
+                                    false,
+                                    label,
+                                    this,
+                                    true
+                                )
+                            )
                         }
                     }
                 }
@@ -511,13 +514,10 @@ class ListRecognizer(val agent: DUMeta) : EntityRecognizer {
         }
 
         for (span in partialMatch) {
-            println(partialMatch)
             val target = Pair(span.start, span.end)
             val typeId = typeTable.getId(span.type)
-            println("getting for ${span.type} : $typeId")
             val listOfFullMatchedSpan = typedSpans[typeId]
             if (listOfFullMatchedSpan != null && !covered(target, listOfFullMatchedSpan)) {
-                println("getting for ${span.type} : $typeId 2")
                 logger.debug("Covered $target is not covered by $listOfFullMatchedSpan with $span" )
                 if (!emap.containsKey(span.type)) {
                     emap[span.type] = mutableListOf()

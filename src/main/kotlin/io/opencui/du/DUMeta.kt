@@ -70,9 +70,24 @@ fun extractSlotSurroundingWords(exprOwners: JsonArray, entities: Set<String>):
     return Pair(slotPrefixes, slotSuffixes)
 }
 
-
-interface DUMeta {
+interface LangBase {
     fun getLang(): String
+
+    fun getTriggers(name: String): List<String> {
+        return listOf()
+    }
+}
+
+interface ExtractiveMeta : LangBase {
+    fun getEntities(): Set<String>
+
+    fun getEntityInstances(name: String): Map<String, List<String>> // for runtime, all labels and normalized form
+
+    fun getEntityMeta(name: String): IEntityMeta? // string encoding of JsonArray of JsonObject
+}
+
+interface DUMeta : ExtractiveMeta {
+
     fun getLabel(): String
     fun getVersion(): String { return ""}
     fun getBranch(): String { return "master"}
@@ -80,15 +95,6 @@ interface DUMeta {
     fun getTimezone(): String { return "america/los_angeles" }
 
     fun getFrameExpressions(): JsonArray
-
-    fun getEntities(): Set<String>
-
-    fun getEntityInstances(name: String): Map<String, List<String>> // for runtime, all labels and normalized form
-
-    fun getTriggers(name: String): List<String> {
-        return listOf()
-    }
-    fun getEntityMeta(name: String): IEntityMeta? // string encoding of JsonArray of JsonObject
 
     fun getSlotMetas(frame: String) : List<DUSlotMeta>
 
