@@ -14,10 +14,7 @@ import java.io.Serializable
  * input and developer supplied annotation, predefined system rules.
  */
 
-interface Annotation: Serializable {
-    val switch: () -> Boolean
-        get() = {true}
-}
+interface Annotation: Serializable
 
 // It seems that prompt can be language dependent, but DialogAct should not be language
 // dependent.
@@ -179,7 +176,7 @@ data class TypedValueRecAnnotation<T>(val recFrameGen: T?.() -> IFrame, val show
 
 data class ConfirmationAnnotation(val confirmFrameGetter: ()->IFrame?): Annotation
 
-data class ValueCheckAnnotation(val checkFrame: IFrame, override val switch: () -> Boolean = {true}): Annotation
+data class ValueCheckAnnotation(val checkFrame: IFrame): Annotation
 
 data class MinMaxAnnotation(val min: Int, val minGen: () -> ComponentDialogAct, val max: Int, val maxGen: () -> ComponentDialogAct): Annotation
 
