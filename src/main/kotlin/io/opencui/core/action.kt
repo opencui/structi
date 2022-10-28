@@ -15,7 +15,6 @@ import kotlin.reflect.full.primaryConstructor
  * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
  * and only the map utterance need the get utterance with channel as input parameter.
  */
-typealias ChannelType = String
 
 // isTestable controls whether this log will participate in the log comparison during testing.
 data class ActionLog(
@@ -45,11 +44,11 @@ interface SideEffect {
 
 /**
  * Action is used for many things:
- * 1. build statechart,
+ * 1. change statechart by adding and removing node
  * 2. state change/direct assignment
- * 3. and as well as side effect that emitted to
- * 4. generate event (feel this is indirect state change).
- * end user so that user knows what to expect. Response of state machine does not change state.
+ * 3. and as well as side effect that emitted to end user so that user knows what to expect.
+ *    Response of state machine does not change state.
+ * 4. generate event (This is indirect state change).
  */
 interface Action: Serializable {
     fun run(session: UserSession): ActionResult
@@ -62,7 +61,7 @@ interface AtomAction : Action
 
 interface ChartAction : AtomAction
 
-// Ideally we should be enter and exit state declared in the interface so that it is easy to check.
+// Ideally we should enter and exit state declared in the interface so that it is easy to check.
 interface StateAction : AtomAction
 
 interface SchemaAction: AtomAction
@@ -72,7 +71,6 @@ interface SchemaAction: AtomAction
 interface CompositeAction : Action {
     //fun runs(): ActionResults
 }
-
 
 fun Action.emptyResult() : ActionResult {
     return ActionResult(emptyLog())
@@ -542,7 +540,7 @@ data class IntentAction(
     }
 }
 
-open class TextOutputAction(
+open class TextOutputAction (
         val dialogActGen: () -> ComponentDialogAct
 ) : SchemaAction {
     override fun run(session: UserSession): ActionResult {
