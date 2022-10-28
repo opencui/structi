@@ -423,9 +423,11 @@ data class ExpressionSearcher(val agent: DUMeta) {
                 logger.info("Dispatcher.deleteExistingIndex = ${Dispatcher.deleteExistingIndex}, dirExist = ${dirAsFile.exists()}")
                 // Make sure we delete the past index for springboot so that at least we use the newer version
                 // as we are rely on org/agent/version for uniqueness, which might fail.
-                if (Dispatcher.deleteExistingIndex) dirAsFile.delete()
+                val needIndex = !dirAsFile.exists()
                 MMapDirectory(path).apply{
-                     if (!dirAsFile.exists()) { buildIndexRaw(agent, this) }
+                     if (needIndex) {
+                         buildIndexRaw(agent, this)
+                     }
                 }
             }
         }
