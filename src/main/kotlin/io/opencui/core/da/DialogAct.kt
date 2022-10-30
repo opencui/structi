@@ -1,6 +1,7 @@
 package io.opencui.core.da
 
 import io.opencui.core.IFrame
+import io.opencui.core.SideEffect
 import io.opencui.core.Templates
 import io.opencui.core.defaultTemplate
 import java.io.Serializable
@@ -8,10 +9,15 @@ import java.io.Serializable
 // This interface represents the dialog act that bot about to take. We start from the list from schema guided
 // dialog. Notice the dialog act from user side is absorbed by dialog understanding, so we do not have model
 // these explicitly. These represent what bot want to express, not how they express it.
-interface DialogAct: Serializable
+interface DialogAct: Serializable {
+    operator fun invoke(channel: String = SideEffect.RESTFUL): String
+}
 
 interface ComponentDialogAct: DialogAct {
     var templates: Templates
+    override fun invoke(channel: String) : String {
+        return templates.pick(channel).invoke()
+    }
 }
 
 interface SlotDialogAct: ComponentDialogAct {
@@ -26,6 +32,9 @@ interface FrameDialogAct: ComponentDialogAct {
 
 interface CompositeDialogAct: DialogAct {
     var result: ComponentDialogAct
+    override fun invoke(channel: String) : String {
+        return result.invoke(channel)
+    }
 }
 
 // SLOT DialogAct

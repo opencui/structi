@@ -14,10 +14,7 @@ import java.io.Serializable
  * input and developer supplied annotation, predefined system rules.
  */
 
-interface Annotation: Serializable {
-    val switch: () -> Boolean
-        get() = {true}
-}
+interface Annotation: Serializable
 
 // It seems that prompt can be language dependent, but DialogAct should not be language
 // dependent.
@@ -52,6 +49,9 @@ data class StaticPrompt (
 data class LazyEvalPrompt (
     private val f: () -> String
 ) : IPrompt {
+    // This can be useful to remove the need for IPrompt/StaticPrompt down the road.
+    constructor(s: String) : this({s})
+
     override fun invoke() = f()
 }
 
@@ -85,6 +85,7 @@ fun <T> paramPrompt(f: (T) -> String): ParamPrompt<T> = object : ParamPrompt<T> 
 data class Templates(val channelPrompts: Map<String, List<IPrompt>>): Serializable {
     constructor(prompts: List<IPrompt>): this(mapOf(SideEffect.RESTFUL to prompts))
     constructor(vararg pprompts: IPrompt) : this(pprompts.asList())
+
     fun pick(channel: String = SideEffect.RESTFUL): IPrompt {
         val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return LazyEvalPrompt { "" }
         return if (prompts.isNotEmpty()) prompts.random() else LazyEvalPrompt { "" }
@@ -179,7 +180,7 @@ data class TypedValueRecAnnotation<T>(val recFrameGen: T?.() -> IFrame, val show
 
 data class ConfirmationAnnotation(val confirmFrameGetter: ()->IFrame?): Annotation
 
-data class ValueCheckAnnotation(val checkFrame: IFrame, override val switch: () -> Boolean = {true}): Annotation
+data class ValueCheckAnnotation(val checkFrame: IFrame): Annotation
 
 data class MinMaxAnnotation(val min: Int, val minGen: () -> ComponentDialogAct, val max: Int, val maxGen: () -> ComponentDialogAct): Annotation
 
