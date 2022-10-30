@@ -41,16 +41,11 @@ public data class HelloWorldService(
           TextOutputAction {
               UserDefinedInform(
                   this, "me.test.testApp_1012.HelloWorld",
-                  simpleTemplates(mapOf("restful" to
-                      listOf(
-                          StaticPrompt(
-                              with(frame) {
-                                        """component_0915.testFuncton：${component_0915.testFunction(":)")}""".trimMargin()
-
-                              }
-                          )
-                      )
-                  ))
+                  simpleTemplates(
+                      with(frame) {
+                          """component_0915.testFuncton：${component_0915.testFunction(":)")}""".trimMargin()
+                      }
+                  )
               )
           }
       )

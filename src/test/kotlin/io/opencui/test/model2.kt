@@ -897,12 +897,25 @@ data class ZepTestIntent_0(
 })
 
 data class SlotUpdate<T: Any>(override var session: UserSession? = null): AbstractSlotUpdate<T>(session) {
-    override val informNewValuePrompt = { SlotInform(newValue, "newValue", "", simpleTemplates(with(session!!){"""we have updated ${if (!isMV()) originalSlot!!.name() else "the ${index!!.name()} ${originalSlot!!.name()}"} form ${originalValue()!!.name()} to ${newValue!!.name()} for you"""})) }
-    override val askNewValuePrompt = { SlotRequest("newValue", "", simpleTemplates( {with(session!!){"""What do you want for ${if (!isMV()) originalSlot!!.name() else "${index!!.name()} ${originalSlot!!.name()}"}?"""}})) }
-    override val oldValueDisagreePrompt = { SlotConfirm(oldValue, "oldValue", "", simpleTemplates(with(session!!){"You just said ${oldValue!!.name()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.name()} from ${originalValue()!!.name()}?"})) }
-    override val doNothingPrompt = { SlotOfferZepInform("originalSlot", "", simpleTemplates( { "We have no clue what you are talking about." })) }
-    override val askIndexPrompt = { SlotRequest("index", "", simpleTemplates( {with(session!!){"There are multiple values in ${originalSlot!!.name()}. Which one do you want to change?"}})) }
-    override val wrongIndexPrompt = { SlotNotifyFailure(index, "index", "", FailType.VC, simpleTemplates(StaticPrompt(with(session!!){"""There's no ${index!!.name()} value in ${originalSlot!!.name()}"""}))) }
+    override val informNewValuePrompt = {
+        SlotInform(newValue, "newValue", "",
+            simpleTemplates(
+                with(session!!){"""we have updated ${if (!isMV()) originalSlot!!.name() else "the ${index!!.name()} ${originalSlot!!.name()}"} form ${originalValue()!!.name()} to ${newValue!!.name()} for you"""})) }
+    override val askNewValuePrompt = {
+        SlotRequest("newValue", "",
+            simpleTemplates( {with(session!!){"""What do you want for ${if (!isMV()) originalSlot!!.name() else "${index!!.name()} ${originalSlot!!.name()}"}?"""}})) }
+    override val oldValueDisagreePrompt = {
+        SlotConfirm(oldValue, "oldValue", "",
+            simpleTemplates(with(session!!){"You just said ${oldValue!!.name()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.name()} from ${originalValue()!!.name()}?"})) }
+    override val doNothingPrompt = {
+        SlotOfferZepInform("originalSlot", "",
+            simpleTemplates( { "We have no clue what you are talking about." })) }
+    override val askIndexPrompt = {
+        SlotRequest("index", "",
+            simpleTemplates( {with(session!!){"There are multiple values in ${originalSlot!!.name()}. Which one do you want to change?"}})) }
+    override val wrongIndexPrompt = {
+        SlotNotifyFailure(index, "index", "", FailType.VC,
+            simpleTemplates(with(session!!){"""There's no ${index!!.name()} value in ${originalSlot!!.name()}"""})) }
     override val indexRecPrompt: (List<Ordinal>) -> ComponentDialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(listOf(LazyEvalPrompt { offers.withIndex().joinToString("\n") { with(session!!) {"${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" }} }))) }
 }
 
@@ -1940,7 +1953,7 @@ data class SlotDoubleConfirmTestIntent(
                 searchConfirmation("slot")
             },
             DialogActCustomizationAnnotation("io.opencui.core.SlotOfferSepInformConfirm") {
-                simpleTemplates(StaticPrompt(with(it as SlotOfferSepInformConfirm<*>) { """combined confirm $slotName $slotType $target""" }))
+                simpleTemplates(with(it as SlotOfferSepInformConfirm<*>) { """combined confirm $slotName $slotType $target""" })
             }
         )
     )
