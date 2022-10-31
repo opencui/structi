@@ -887,7 +887,7 @@ data class BertStateTracker(
             logger.info("handle entity with Label = $entityLabel")
             val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
-                EntityEvent(entityLabel.substring(1), span.attribute!!).apply {
+                EntityEvent(entityLabel, span.attribute!!).apply {
                     origValue = span.value;
                     type = addVirtual(span.type!!);
                     isLeaf = false
