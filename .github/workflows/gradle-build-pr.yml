@@ -14,7 +14,6 @@ jobs:
             pwd
       - uses: ./../actions-framely-init
         with:
-          kubeconfig:           ${{ secrets.KUBECONFIG_US }}
           github-token:         ${{ secrets.PAT_TOKEN }}
           feishu-hook-id:       ${{ secrets.FEISHU_HOOK_ID }}
           command-main: |-
