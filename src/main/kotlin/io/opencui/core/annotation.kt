@@ -52,32 +52,15 @@ data class StaticPrompt (
 data class LazyEvalPrompt (
     private val f: () -> String
 ) : IPrompt {
+    constructor(s: String): this(  {s} )
     override fun invoke() = f()
 }
 
 data class LazyEvalCondition (
     private val f: () -> Boolean
 ): ICondition {
+
     override fun invoke() = f()
-}
-
-interface TablePrompt<in T>: Serializable {
-    operator fun invoke(table: List<T>) : String
-}
-
-
-fun <T> tablePrompt(f: (List<T>) -> String) : TablePrompt<T> = object : TablePrompt<T> {
-    override fun invoke(table: List<T>) : String { return f(table) }
-}
-
-interface ParamPrompt<in T>: Serializable {
-    operator fun invoke(obj: T): String
-}
-
-fun <T> paramPrompt(f: (T) -> String): ParamPrompt<T> = object : ParamPrompt<T> {
-    override fun invoke(obj: T): String {
-        return f(obj)
-    }
 }
 
 
