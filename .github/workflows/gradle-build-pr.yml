@@ -4,6 +4,7 @@ on:
     branches: [main]
 jobs:
   gradle:
+    runs-on: [ubuntu-latest]
     steps:
       - uses: framely/actions-uses-private-repo@v1
         with:
