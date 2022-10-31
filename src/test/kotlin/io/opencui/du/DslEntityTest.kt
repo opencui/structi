@@ -151,6 +151,7 @@ class DslEntityTest() : DuTestHelper() {
         normalizers.recognizeAll("order house special", listOf(), emap)
         assertEquals(emap.size, 1)
         val value = emap["me.test.abstractEntity_1007.Dish"]!![0]
+        println(value)
         assert(!value.leaf)
     }
 
@@ -161,7 +162,7 @@ class DslEntityTest() : DuTestHelper() {
         assertEquals(frameEvents.size, 1)
         val entityEvents = frameEvents[0].activeSlots
         assertEquals(entityEvents.size, 1 )
-        val longForm = """EntityEvent(value=me.test.abstractEntity_1007.HouseSpecial", attribute=dish, isLeaf=false, type=me.test.abstractEntity_1007.VirtualDish)"""
+        val longForm = """EntityEvent(value="me.test.abstractEntity_1007.HouseSpecial", attribute=dish, isLeaf=false, type=me.test.abstractEntity_1007.VirtualDish)"""
         assertEquals(entityEvents[0].toLongForm(), longForm)
     }
 }
