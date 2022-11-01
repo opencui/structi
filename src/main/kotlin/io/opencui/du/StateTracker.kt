@@ -884,7 +884,7 @@ data class BertStateTracker(
             val nameParts = span.attribute!!.split(".")
             val path = nameParts.subList(0, nameParts.size - 1).joinToString(".")
             val entityLabel = span.norm!!
-            logger.info("handle entity with Label = $entityLabel")
+            logger.info("handle entity with label00 = $entityLabel")
             val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
                 EntityEvent(entityLabel, span.attribute!!).apply {
