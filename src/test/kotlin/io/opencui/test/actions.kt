@@ -17,7 +17,7 @@ data class PreDiagnosisAction(
 
 data class PreDiagnosisListAction(
     val frame: PreDiagnosis
-) : TextListOutputAction(convertDialogActGen({frame.indexes!!}, { table -> UserDefinedInform(frame, simpleTemplates({with(frame) {"""your indices are ${table.joinToString { it.toString() }}""" }})) }))
+) : TextOutputAction(convertDialogActGen({frame.indexes!!}, { table -> UserDefinedInform(frame, simpleTemplates({with(frame) {"""your indices are ${table.joinToString { it.toString() }}""" }})) }))
 
 data class HelloAction(
     val frame: Hello

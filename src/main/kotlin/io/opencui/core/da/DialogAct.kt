@@ -1,17 +1,22 @@
 package io.opencui.core.da
 
-import io.opencui.core.IFrame
-import io.opencui.core.Templates
-import io.opencui.core.defaultTemplate
+import io.opencui.core.*
 import java.io.Serializable
 
 // This interface represents the dialog act that bot about to take. We start from the list from schema guided
 // dialog. Notice the dialog act from user side is absorbed by dialog understanding, so we do not have model
 // these explicitly. These represent what bot want to express, not how they express it.
-interface DialogAct: Serializable
 
-interface ComponentDialogAct: DialogAct {
+interface ComponentDialogAct: Serializable, SchemaAction {
     var templates: Templates
+    override fun run(session: UserSession): ActionResult {
+        val success = true
+        return ActionResult(
+            listOf(this),
+            createLog(templates.pick().invoke()),
+            success
+        )
+    }
 }
 
 interface SlotDialogAct: ComponentDialogAct {
@@ -24,8 +29,9 @@ interface FrameDialogAct: ComponentDialogAct {
     val frameType: String
 }
 
-interface CompositeDialogAct: DialogAct {
+interface CompositeDialogAct {
     var result: ComponentDialogAct
+    operator fun invoke(): ComponentDialogAct = result
 }
 
 // SLOT DialogAct
@@ -153,7 +159,7 @@ data class FrameOfferOutlier<T>(
     override val frameType: String,
     override var templates: Templates = defaultTemplate()) : FrameDialogAct
 
-data class UserDefinedInform<T>(
+open class UserDefinedInform<T>(
     val target: T,
     override val frameType: String,
     override var templates: Templates = defaultTemplate()) : FrameDialogAct {

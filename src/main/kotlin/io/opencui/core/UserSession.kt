@@ -784,7 +784,7 @@ data class UserSession(
             for (constructor in constructors) {
                 if (index + constructor.parameters.size > group.size) continue
                 if (areParametersCompatible(constructor.parameters, group.subList(index, index+constructor.parameters.size))) {
-                    val r = (constructor.call(*group.toTypedArray())).result
+                    val r = (constructor.call(*group.toTypedArray())).invoke()
                     findDialogActCustomization(r)?.let {
                         r.templates = it
                     }
