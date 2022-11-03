@@ -1563,7 +1563,7 @@ class RuntimeTest {
                 """<null""",
                 """>{"query": "2", "frames": [{"type": "ExternalEventIntent", "slots": [{"value" : "\"aaa\"", "attribute" : "s"}], "packageName": "io.opencui.test"}]}""",
                 """<{"type":"TextOutputAction","payload":"s=aaa"}""",
-                """<{"type":"TextOutputAction","payload":"implicitly confirm this intent.s=aaa"}""",
+                """<{"type":"SlotInform","payload":"implicitly confirm this intent.s=aaa"}""",
                 """<{"type":"SlotAskAction","payload":"we are waiting for callback for async result..."}""",
                 """<null""",
                 """>{"query": "3", "frames": [{"type": "ExternalEventIntent", "slots": [{"value" : "\"bbb\"", "attribute" : "s"}], "packageName": "io.opencui.test"}]}""",

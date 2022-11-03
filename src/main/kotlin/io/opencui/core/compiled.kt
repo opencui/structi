@@ -633,8 +633,8 @@ data class FreeActionConfirmation(
     var action: IIntent? = null
 
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(confirmPrompts))), ConditionalAsk(LazyEvalCondition { !implicit })),
-        "action" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(actionPrompts))), ConditionalAsk(LazyEvalCondition { status is io.opencui.core.confirmation.No && !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(confirmPrompts())), ConditionalAsk(LazyEvalCondition { !implicit })),
+        "action" to listOf(SlotPromptAnnotation(listOf(actionPrompts())), ConditionalAsk(LazyEvalCondition { status is io.opencui.core.confirmation.No && !implicit }))
     )
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -649,7 +649,7 @@ data class FreeActionConfirmation(
     }
 
     override fun searchResponse(): Action? = when {
-        implicit -> TextOutputAction(confirmPrompts)
+        implicit -> confirmPrompts()
         else -> null
     }
 }
