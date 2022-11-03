@@ -555,19 +555,6 @@ open class TextOutputAction (
 }
 
 // This is useful to delay the evaluation.
-open class LazyDialogAction (
-        val dialogActGen: () -> ComponentDialogAct
-) : SchemaAction {
-    override fun run(session: UserSession): ActionResult {
-        val success = true
-        val dialogAct = dialogActGen()
-        return ActionResult(
-                listOf(dialogAct),
-                createLog(dialogAct.templates.pick().invoke()),
-                success
-        )
-    }
-}
 
 
 open class TextListOutputAction(

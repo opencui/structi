@@ -584,7 +584,7 @@ data class Confirmation(
     val prompts: () -> ComponentDialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(LazyDialogAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(LazyPickAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
     )
 
     var status: io.opencui.core.confirmation.IStatus? = null
@@ -1160,7 +1160,7 @@ data class PagedSelectable<T: Any> (
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "index" to listOf<Annotation>(
-            SlotPromptAnnotation(listOf(LazyDialogAction(convertDialogActGen({payload}, promptTemplate)))),
+            SlotPromptAnnotation(listOf(LazyPickAction(convertDialogActGen({payload}, promptTemplate)))),
             ConditionalAsk(LazyEvalCondition { candidates.isNotEmpty() || outlierValue() }),
             SlotInitAnnotation(FillActionBySlot({generateAutoFillIndex()},  this, "index")),
             ValueCheckAnnotation(_check_index),
@@ -1452,11 +1452,11 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
                 ConditionalAsk(LazyEvalCondition {isMV()}),
                 ValueCheckAnnotation(_check_index),
                 TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
-                SlotPromptAnnotation(listOf(LazyDialogAction(askIndexPrompt)))),
+                SlotPromptAnnotation(listOf(LazyPickAction(askIndexPrompt)))),
             "originalValue" to listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue"))),
             "confirm" to listOf(
                 ConditionalAsk(LazyEvalCondition { needConfirm() }),
-                SlotPromptAnnotation(listOf(LazyDialogAction(oldValueDisagreePrompt))))
+                SlotPromptAnnotation(listOf(LazyPickAction(oldValueDisagreePrompt))))
         )
     }
 
