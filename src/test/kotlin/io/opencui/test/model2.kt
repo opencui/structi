@@ -804,7 +804,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                         "(${it})" }}."""}})))
             },
         pageSize = 2, target = this, slot = "citySoft", hard = false,
-        zeroEntryActions = listOf(TextOutputAction { SlotOfferZepInform("citySoft", "io.opencui.test.City", simpleTemplates({ """zero entry for citySoft""" })) }))}
+        zeroEntryActions = listOf(SlotOfferZepInform("citySoft", "io.opencui.test.City", simpleTemplates({ """zero entry for citySoft""" }))))}
 
     @JsonIgnore
     val _rec_cityHard = {it: City? -> PagedSelectable<City>(
@@ -815,7 +815,8 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
             },
         pageSize = 2, target = this, slot = "cityHard", hard = true,
         zeroEntryActions = listOf(
-            TextOutputAction { SlotOfferZepInform("cityHard", "io.opencui.test.City", simpleTemplates({ """zero entry for cityHard""" })) }, AbortIntentAction(AbortIntent(session))))}
+            SlotOfferZepInform("cityHard", "io.opencui.test.City", simpleTemplates({ """zero entry for cityHard""" })),
+            AbortIntentAction(AbortIntent(session))))}
 
     @JsonIgnore
     val _rec_citiesSoft = {it: City? -> PagedSelectable<City>(
