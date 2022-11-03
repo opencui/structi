@@ -1485,7 +1485,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
             if (filler == null) {
-                TextOutputAction(doNothingPrompt)
+                doNothingPrompt()
             } else {
                 var path: List<IFiller> = listOf()
                 for (s in session!!.schedulers) {

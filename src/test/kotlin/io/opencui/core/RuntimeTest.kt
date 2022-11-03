@@ -1221,7 +1221,7 @@ class RuntimeTest {
             """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"There's no 3rd value in origins"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdate&slot=index"},{"type":"RefocusAction","payload":""}]}""",
             """<{"type":"SeqAction","payload":[{"type":"MarkFillerDone","payload":"end filler for: index"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT value is null for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
-            """<{"type":"TextOutputAction","payload":"We have no clue what you are talking about."}""",
+            """<{"type":"SlotOfferZepInform","payload":"We have no clue what you are talking about."}""",
             """<{"type":"SlotAskAction","payload":"any citiesTo else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = [Shanghai, Beijing]; citiesTo = [Chengdu, Shenzhen]
