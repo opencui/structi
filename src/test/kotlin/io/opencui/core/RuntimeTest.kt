@@ -1051,7 +1051,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"citySoft?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.ZepTestIntent","slot":"citySoft"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "ZepTestIntent", "slots": [{"value" : "\"Shanghai\"", "attribute" : "citySoft"}], "packageName": "io.opencui.test"}]}""",
-            """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"zero entry for cityHard"},{"type":"AbortIntentAction","payload":"io.opencui.test.ZepTestIntent is Aborted successfully!"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"SlotOfferZepInform","payload":"zero entry for cityHard"},{"type":"AbortIntentAction","payload":"io.opencui.test.ZepTestIntent is Aborted successfully!"}]}""",
             """<null""",
             """>{"query": "3", "frames": [{"type": "ZepTestIntent", "slots": [{"value" : "\"Beijing\"", "attribute" : "citySoft"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
