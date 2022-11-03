@@ -845,7 +845,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"anything else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.MultiValueMinMax","slot":"payMethodList"}],"status":"OPEN"}""",
             """>{"query": "4", "frames": [{"type": "MultiValueMinMax", "slots": [{"value" : "\"visa\"", "attribute" : "payMethodList"}], "packageName": "io.opencui.test"}, {"type": "MultiValueMinMax", "slots": [{"value" : "\"paypal\"", "attribute" : "payMethodList"}], "packageName": "io.opencui.test"}]}""",
-            """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"size = 3 greater than 2"},{"type":"MaxDiscardAction","payload":"DISCARD mv entries that exceed max number, from 3 entries to 2 entries"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"size = 3 greater than 2"},{"type":"MaxDiscardAction","payload":"DISCARD mv entries that exceed max number, from 3 entries to 2 entries"}]}""",
             """<{"type":"MultiValueMinMax_0","payload":"Hi, size = 2"}""",
             """<null""",
         )

@@ -786,7 +786,7 @@ data class MaxValueCheck(
     override fun searchResponse(): Action? {
         return when {
             targetSlot != null && targetSlot!!.size > maxEntry -> SeqAction(
-                TextOutputAction(prompts),
+                prompts(),
                 MaxDiscardAction(targetSlot!!, maxEntry)
             )
             else -> null
