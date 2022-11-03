@@ -183,7 +183,7 @@ data class BoolGate(
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(prompts))))
+        "status" to listOf(SlotPromptAnnotation(listOf(prompts())))
     )
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -584,7 +584,7 @@ data class Confirmation(
     val prompts: () -> ComponentDialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(LazyDialogAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
     )
 
     var status: io.opencui.core.confirmation.IStatus? = null
@@ -601,7 +601,7 @@ data class Confirmation(
     }
 
     override fun searchResponse(): Action? = when {
-        implicit -> TextOutputAction(prompts)
+        implicit -> prompts()
         status is io.opencui.core.confirmation.No && (target != null || actions != null) -> {
             if (actions != null) {
                 SeqAction(actions)

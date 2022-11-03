@@ -259,7 +259,7 @@ class RuntimeTest {
             """>{"query": "2", "frames": [{"type": "BookFlight", "slots": [{"value": "\"Baltimore\"", "attribute": "origin"}, {"value": "\"Seattle\"", "attribute": "destination"}, {"value": "\"20200301\"", "attribute": "depart_date"}, {"value": "\"20200303\"", "attribute": "return_date"}]}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.BookFlight, slot : flight"}]}""",
-            """<{"type":"TextOutputAction","payload":"flight CA1001 is booked for you"}""",
+            """<{"type":"SlotInform","payload":"flight CA1001 is booked for you"}""",
             """<{"type":"BookFlightAction_0","payload":"Flight CA1001 has been successfully booked for you, depart date is 20200301"}""",
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.BookHotel, slot : checkin_date"}""",
             """<{"type":"SlotAskAction","payload":"When to checkout?"}""",
@@ -857,10 +857,10 @@ class RuntimeTest {
         val minMaxSep = listOf(
             """>{"query": "1", "frames": [{"type": "MultiValueMinMaxWithRec", "slots": []}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
-            """<{"type":"TextOutputAction","payload":"chose pay method visa_norm for you"}""",
+            """<{"type":"SlotOfferSepInform","payload":"chose pay method visa_norm for you"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.MultiValueMinMaxWithRec, slot : payMethodList"}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
-            """<{"type":"TextOutputAction","payload":"chose pay method visa_norm for you"}""",
+            """<{"type":"SlotOfferSepInform","payload":"chose pay method visa_norm for you"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.MultiValueMinMaxWithRec, slot : payMethodList"}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SlotAskAction","payload":"anything else?\nWe have following 1 choices for PayMethod : visa_norm."}""",
@@ -1102,7 +1102,7 @@ class RuntimeTest {
             """>{"query": "2", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "\"Beijing\"", "attribute" : "oldValue"}, {"value" : "\"Shanghai\"", "attribute" : "newValue"}, {"value" : "\"io.opencui.test.SlotUpdateTestIntent.cityFrom\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : cityFrom"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=cityFrom"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated departure form Beijing_norm to Shanghai_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated departure form Beijing_norm to Shanghai_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"cityFrom is Shanghai, cityTo?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"cityTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = null; citiesFrom = []; citiesTo = []
@@ -1120,7 +1120,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.SlotUpdate","slot":"confirm"}],"status":"OPEN"}""",
             """>{"query": "6", "frames": [{"type": "Yes", "slots": [], "packagename": "io.opencui.core.confirmation"}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : cityFrom"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=cityFrom"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated departure form Shanghai_norm to Shenzhen_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated departure form Shanghai_norm to Shenzhen_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"cityFrom is Shenzhen, cityTo?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"cityTo"}],"status":"OPEN"}""",
             // cityFrom = Shenzhen; cityTo = null; citiesFrom = []; citiesTo = []
@@ -1139,7 +1139,7 @@ class RuntimeTest {
             """>{"query": "9", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "\"Shanghai\"", "attribute" : "newValue"}, {"value" : "\"io.opencui.test.SlotUpdateTestIntent.cityFrom\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : cityFrom"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=cityFrom"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated departure form Beijing_norm to Shanghai_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated departure form Beijing_norm to Shanghai_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"cityFrom is Shanghai, cityTo?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"cityTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = null; citiesFrom = []; citiesTo = []
@@ -1158,7 +1158,7 @@ class RuntimeTest {
             """>{"query": "12", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "\"Shanghai\"", "attribute" : "newValue", "type": "io.opencui.test.City"}, {"value" : "\"Beijing\"", "attribute" : "oldValue", "type": "io.opencui.test.City"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : cityFrom"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=cityFrom"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated departure form Beijing_norm to Shanghai_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated departure form Beijing_norm to Shanghai_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"cityFrom is Shanghai, cityTo?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"cityTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = null; citiesFrom = []; citiesTo = []
@@ -1175,7 +1175,7 @@ class RuntimeTest {
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalSlot"}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : cityTo"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=cityTo"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated arrival form Beijing_norm to Chengdu_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated arrival form Beijing_norm to Chengdu_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"citiesFrom?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesFrom"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = []; citiesTo = []
@@ -1190,7 +1190,7 @@ class RuntimeTest {
             """>{"query": "18", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "\"Beijing\"", "attribute" : "oldValue"}, {"value" : "\"Shanghai\"", "attribute" : "newValue"}, {"value" : "\"io.opencui.test.SlotUpdateTestIntent.citiesFrom\"", "attribute" : "originalSlot"}, {"value" : "\"1\"", "attribute" : "index"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : citiesFrom._item"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=citiesFrom._item"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated the 1st origins form Beijing_norm to Shanghai_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated the 1st origins form Beijing_norm to Shanghai_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"any citiesTo else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = [Shanghai, Beijing]; citiesTo = [Chengdu, Shenzhen]
@@ -1200,7 +1200,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.SlotUpdate","slot":"confirm"}],"status":"OPEN"}""",
             """>{"query": "20", "frames": [{"type": "Yes", "slots": [], "packagename": "io.opencui.core.confirmation"}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : citiesFrom._item"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=citiesFrom._item"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated the 1st origins form Shanghai_norm to Beijing_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated the 1st origins form Shanghai_norm to Beijing_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"any citiesTo else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = [Beijing, Beijing]; citiesTo = [Chengdu, Shenzhen]
@@ -1213,7 +1213,7 @@ class RuntimeTest {
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : index"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : citiesFrom._item"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=citiesFrom._item"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated the 1st origins form Beijing_norm to Shanghai_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated the 1st origins form Beijing_norm to Shanghai_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"any citiesTo else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = [Shanghai, Beijing]; citiesTo = [Chengdu, Shenzhen]
@@ -1237,7 +1237,7 @@ class RuntimeTest {
             """>{"query": "26", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "\"Zhengzhou\"", "attribute" : "oldValue", "type": "io.opencui.test.City"}, {"value" : "\"Shenzhen\"", "attribute" : "newValue", "type": "io.opencui.test.City"}, {"value" : "\"1\"", "attribute" : "index"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : citiesFrom._item"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=citiesFrom._item"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated the 1st origins form Zhengzhou_norm to Shenzhen_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated the 1st origins form Zhengzhou_norm to Shenzhen_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"any citiesTo else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = [Shenzhen, Beijing]; citiesTo = [Chengdu, Shenzhen]
@@ -1252,7 +1252,7 @@ class RuntimeTest {
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : index"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdateTestIntent, slot : citiesTo._item"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotUpdateTestIntent&slot=citiesTo._item"},{"type":"RefocusAction","payload":""}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated the 1st destinations form Chengdu_norm to Shenzhen_norm for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated the 1st destinations form Chengdu_norm to Shenzhen_norm for you"}""",
             """<{"type":"SlotAskAction","payload":"any citiesTo else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotUpdateTestIntent","slot":"citiesTo"}],"status":"OPEN"}""",
             // cityFrom = Shanghai; cityTo = Chengdu; citiesFrom = [Shenzhen, Beijing]; citiesTo = [Shenzhen, Shenzhen]
@@ -1355,11 +1355,11 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"payMethod?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.MVEntryConfirmationTestIntent","slot":"payMethodList"}],"status":"OPEN"}""",
                 """>{"query": "3", "frames": [{"type": "MVEntryConfirmationTestIntent", "slots": [{"value" : "\"visa\"", "attribute" : "payMethodList"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"TextOutputAction","payload":"you chose visa"}""",
+                """<{"type":"SlotInform","payload":"you chose visa"}""",
                 """<{"type":"SlotAskAction","payload":"anything else?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.MVEntryConfirmationTestIntent","slot":"payMethodList"}],"status":"OPEN"}""",
                 """>{"query": "4", "frames": [{"type": "MVEntryConfirmationTestIntent", "slots": [{"value" : "\"mastercard\"", "attribute" : "payMethodList"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"TextOutputAction","payload":"you chose mastercard"}""",
+                """<{"type":"SlotInform","payload":"you chose mastercard"}""",
                 """<{"type":"SlotAskAction","payload":"anything else?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.MVEntryConfirmationTestIntent","slot":"payMethodList"}],"status":"OPEN"}""",
                 """>{"query": "5", "frames": [{"type": "No", "slots": [], "packageName": "io.opencui.core.hasMore"}]}""",
@@ -1531,7 +1531,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"r u sure of string value bbb"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.core.FreeActionConfirmation","slot":"status"}],"status":"OPEN"}""",
             """>{"query": "4", "frames": [{"type": "Yes", "slots": [], "packagename": "io.opencui.core.confirmation"}]}""",
-            """<{"type":"TextOutputAction","payload":"we have updated io.opencui.test.FreeActionConfirmationTestIntent.s form aaa to bbb for you"}""",
+            """<{"type":"SlotInform","payload":"we have updated io.opencui.test.FreeActionConfirmationTestIntent.s form aaa to bbb for you"}""",
             """<{"type":"TextOutputAction","payload":"s=bbb"}""",
             """<null""",
         )
@@ -1595,7 +1595,7 @@ class RuntimeTest {
         val test = listOf(
             """>{"query": "1", "frames": [{"type": "SlotDoubleConfirmTestIntent", "slots": [], "packageName": "io.opencui.test"}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
-            """<{"type":"TextOutputAction","payload":"we only have a; we chose it for u"}""",
+            """<{"type":"SlotOfferSepInform","payload":"we only have a; we chose it for u"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotDoubleConfirmTestIntent, slot : slot"}]}""",
             """<{"type":"SlotAskAction","payload":"r u sure of slot value a"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.SlotDoubleConfirmTestIntent","slot":"slot"}],"status":"OPEN"}""",
