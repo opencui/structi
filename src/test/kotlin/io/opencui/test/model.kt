@@ -1040,7 +1040,7 @@ data class ContractBasedIntentA(override var session: UserSession? = null): IInt
 }
 
 data class ContractBasedIntentA_0(
-    val frame: ContractBasedIntentA) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; contractId=$contractId""" }})) })
+    val frame: ContractBasedIntentA) : UserDefinedInform<ContractBasedIntentA>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; contractId=$contractId""" }}))
 
 
 data class ContractBasedIntentB(override var session: UserSession? = null): IIntent, IContractFrame {
@@ -1077,7 +1077,7 @@ data class ContractBasedIntentB(override var session: UserSession? = null): IInt
 
 data class ContractBasedIntentB_0(
         val frame: ContractBasedIntentB
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$b; contractId=$contractId""" }})) })
+) : UserDefinedInform<ContractBasedIntentB>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$b; contractId=$contractId""" }}))
 
 
 data class RecoverTestIntent(override var session: UserSession? = null): IIntent {
@@ -1117,7 +1117,7 @@ data class RecoverTestIntent(override var session: UserSession? = null): IIntent
 
 data class RecoverTestIntent_0(
         val frame: RecoverTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb""" }})) })
+) : UserDefinedInform<RecoverTestIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb""" }}))
 
 data class AssociationTestFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
@@ -1202,7 +1202,7 @@ data class AssociationTestIntent(override var session: UserSession? = null): IIn
 
 data class AssociationTestIntent_0(
         val frame: AssociationTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" }})) })
+) : UserDefinedInform<AssociationTestIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" }}))
 
 data class ValueRecInteractionFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
@@ -1277,7 +1277,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
                     simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") { "(${it.b}; ${it.c})" }}."""}})))
             },
         target = this, slot = "targetFrame", hard = false,
-        zeroEntryActions = listOf(TextOutputAction { SlotOfferZepInform("targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(LazyEvalPrompt { """no values for b and c while a=${a}""" })) }),
+        zeroEntryActions = listOf(SlotOfferZepInform("targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(LazyEvalPrompt { """no values for b and c while a=${a}""" }))),
         singleEntryPrompt = { SlotOfferSepInform(it, "targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(LazyEvalPrompt {"""b=${it.b}; c=${it.c}; contextB=${targetFrame?.b} are applied"""})) },
         implicit = true
     )
@@ -1315,7 +1315,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
 
 data class ValueRecInteractionIntent_0(
     val frame: ValueRecInteractionIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" }})) })
+) : UserDefinedInform<ValueRecInteractionIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" }}))
 
 data class CustomizedRecommendationIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1366,7 +1366,7 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
 
 data class CustomizedRecommendation_0(
     val frame: CustomizedRecommendationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, city=${hotel?.city}; hotel=${hotel?.hotel}""" }})) })
+) : UserDefinedInform<CustomizedRecommendationIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, city=${hotel?.city}; hotel=${hotel?.hotel}""" }}))
 
 data class Greeting(
     override var session: UserSession? = null
@@ -1378,7 +1378,7 @@ data class Greeting(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Good day!""" })) }
+        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Good day!""" }))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1402,7 +1402,7 @@ data class Goodbye(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Have a nice day! """ } )) })
+        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Have a nice day! """ } ))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {

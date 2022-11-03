@@ -576,7 +576,7 @@ class RuntimeTest {
     fun testAbortIntent() {
         val abortIntentTest = listOf(
             """>{"query": "1", "frames": [{"type": "Main", "slots": []}]}""",
-            """<{"type":"TextOutputAction","payload":"Good day!"}""",
+            """<{"type":"UserDefinedInform","payload":"Good day!"}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SlotAskAction","payload":"What can I do for you? (Main)\nWe have following 2 choices: (internal alias), (internal alias)."}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.Main","slot":"skills"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
@@ -686,7 +686,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.test.InternalNodeIntent","slot":"skill"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "3", "frames": [{"type": "PagedSelectable", "slots": [{"value" : "\"1\"", "attribute" : "index"}]}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.InternalNodeIntent, slot : skill"}]}""",
-            """<{"type":"TextOutputAction","payload":"Good day!"}""",
+            """<{"type":"UserDefinedInform","payload":"Good day!"}""",
             """<null""",
         )
         process(valueRecForIIntent)
@@ -696,7 +696,7 @@ class RuntimeTest {
     fun testIntentSuggestionForMain() {
         val intentSuggestionForMain = listOf(
             """>{"query": "1", "frames": [{"type": "Main", "slots": []}]}""",
-            """<{"type":"TextOutputAction","payload":"Good day!"}""",
+            """<{"type":"UserDefinedInform","payload":"Good day!"}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SlotAskAction","payload":"What can I do for you? (Main)\nWe have following 2 choices: (internal alias), (internal alias)."}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.Main","slot":"skills"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
@@ -711,14 +711,14 @@ class RuntimeTest {
             """<{"type":"SeqAction","payload":[{"type":"SeqAction","payload":[{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : conditionMap"},{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : page"},{"type":"ReinitAction","payload":"REINIT SLOT : target=io.opencui.core.PagedSelectable&slot=index"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.core.PagedSelectable&slot=index"}]}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.InternalNodeIntent, slot : skill"}]}""",
-            """<{"type":"TextOutputAction","payload":"Have a nice day! "}""",
+            """<{"type":"UserDefinedInform","payload":"Have a nice day! "}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SlotAskAction","payload":"What else can I do for you? (Main)\nWe have following 2 choices: (internal alias), (internal alias)."}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.Main","slot":"skills"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "4", "frames": [{"type": "Greeting", "slots": [], "packageName": "io.opencui.test"}]}""",
             """<{"type":"SeqAction","payload":[{"type":"SeqAction","payload":[{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : conditionMap"},{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : page"},{"type":"ReinitAction","payload":"REINIT SLOT : target=io.opencui.core.PagedSelectable&slot=index"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.core.PagedSelectable&slot=index"}]}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.Main, slot : skills"}]}""",
-            """<{"type":"TextOutputAction","payload":"Good day!"}""",
+            """<{"type":"UserDefinedInform","payload":"Good day!"}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SlotAskAction","payload":"What else can I do for you? (Main)\nWe have following 2 choices: (internal alias), (internal alias)."}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.Main","slot":"skills"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
@@ -913,7 +913,7 @@ class RuntimeTest {
     fun testValueClarification() {
         val valueClarificationTest = listOf(
             """>{"query": "1", "frames": [{"type": "Main", "slots": []}]}""",
-            """<{"type":"TextOutputAction","payload":"Good day!"}""",
+            """<{"type":"UserDefinedInform","payload":"Good day!"}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
             """<{"type":"SlotAskAction","payload":"What can I do for you? (Main)\nWe have following 2 choices: (internal alias), (internal alias)."}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.Main","slot":"skills"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
@@ -1435,7 +1435,7 @@ class RuntimeTest {
     fun testKernelIntent() {
         val test = listOf(
                 """>{"query": "1", "frames": [{"type": "MainWithKernelIntent", "slots": [], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"TextOutputAction","payload":"Good day!"}""",
+                """<{"type":"UserDefinedInform","payload":"Good day!"}""",
                 """<{"type":"SlotAskAction","payload":"What is your cell number?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.UserInit","slot":"cellPhone"}],"status":"OPEN"}""",
                 """>{"query": "2", "frames": [{"type": "UserInit", "slots": [{"value" : "\"12345678910\"", "attribute" : "cellPhone"}], "packageName": "io.opencui.test"}]}""",
@@ -1448,7 +1448,7 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"What can I do for you? (MainWithKernelIntent)"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.MainWithKernelIntent","slot":"skills"}],"status":"OPEN"}""",
                 """>{"query": "5", "frames": [{"type": "Greeting", "slots": [], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"TextOutputAction","payload":"Good day!"}""",
+                """<{"type":"UserDefinedInform","payload":"Good day!"}""",
                 """<{"type":"SlotAskAction","payload":"What else can I do for you? (MainWithKernelIntent)"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.MainWithKernelIntent","slot":"skills"}],"status":"OPEN"}""",
         )
