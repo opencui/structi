@@ -21,7 +21,7 @@ data class PreDiagnosisListAction(
 
 data class HelloAction(
     val frame: Hello
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""So you want to use ${payable} to pay. Am I right?""" }})) })
+) : UserDefinedInform<Hello>(frame, simpleTemplates({with(frame) {"""So you want to use ${payable} to pay. Am I right?""" }}))
 
 
 data class BookFlightAction_0(

@@ -502,7 +502,7 @@ data class Hi(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "symptom" to listOf(
-                SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("symptom", "io.opencui.test.ISymptom", simpleTemplates("What symptom do you have?")) }))
+                SlotPromptAnnotation(listOf(SlotRequest("symptom", "io.opencui.test.ISymptom", simpleTemplates("What symptom do you have?"))))
         )
     )
 
