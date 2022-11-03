@@ -1345,7 +1345,7 @@ data class VCTestIntent(override var session: UserSession? = null): IIntent {
 
 data class VCTestIntent_0(
         val frame: VCTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }})) })
+) : UserDefinedInform<VCTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }}))
 
 data class ValueRecheckTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1366,12 +1366,12 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
 
     @JsonIgnore
     public var _check_ab: ValueCheck = ValueCheck(session, {checkAB()}, listOf(
-        TextOutputAction({ SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { """b fails""" })) }),
+        SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { """b fails""" })),
         CleanupActionBySlot(listOf(Pair(this, "b")))
     ))
     @JsonIgnore
     public var _check_ac: ValueCheck = ValueCheck(session, {checkAC()}, listOf(
-        TextOutputAction({ SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a and c fails""" })) }),
+        SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a and c fails""" })),
         CleanupActionBySlot(listOf(Pair(this, "a"))),
         CleanupActionBySlot(listOf(Pair(this, "c"))),
         RecheckActionBySlot(listOf(Pair(this, "b"))),
@@ -1407,7 +1407,7 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
 
 data class ValueRecheckTestIntent_0(
         val frame: ValueRecheckTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }})) })
+) : UserDefinedInform<ValueRecheckTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }}))
 
 data class UserInit(override var session: UserSession? = null): IKernelIntent {
     @JsonIgnore
@@ -1514,7 +1514,7 @@ data class ValueRecOutlierValueIntent(
     ))
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1551,9 +1551,9 @@ data class TestSepNoIntent(
                         "(${it})" }}."""}})))
             },
         pageSize = 5, target = this, slot = "s", hard = true,
-        zeroEntryActions = listOf(TextOutputAction(
-                { SlotOfferZepInform("s", "kotlin.String", simpleTemplates( { """zero entry for s""" })) }
-        ), AbortIntentAction(AbortIntent(session))),
+        zeroEntryActions = listOf(
+            SlotOfferZepInform("s", "kotlin.String", simpleTemplates( { """zero entry for s""" })),
+            AbortIntentAction(AbortIntent(session))),
         singleEntryPrompt = { SlotOfferSepInform(it, "s", "kotlin.String", simpleTemplates(LazyEvalPrompt {"""only ${it} left for s, would u like it?"""})) },
         implicit = false, autoFillSwitch = {true})
 
@@ -1564,9 +1564,9 @@ data class TestSepNoIntent(
                         "(${it})" }}."""}})))
             },
         pageSize = 5, target = this, slot = "ss", hard = true,
-        zeroEntryActions = listOf(TextOutputAction(
-                { SlotOfferZepInform("ss", "kotlin.collections.List<kotlin.String>", simpleTemplates( { """zero entry for ss""" })) }
-        ), LazyPickAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
+        zeroEntryActions = listOf(
+            SlotOfferZepInform("ss", "kotlin.collections.List<kotlin.String>", simpleTemplates( { """zero entry for ss""" })),
+            LazyPickAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
         singleEntryPrompt = { SlotOfferSepInform(it, "ss", "kotlin.collections.List<kotlin.String>", simpleTemplates(LazyEvalPrompt {"""only ${it} left for ss, would u like it?"""})) },
         implicit = false, autoFillSwitch = {true}) // explicit confirmation always takes effect
 
@@ -1590,7 +1590,7 @@ data class TestSepNoIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}; ss=${ss?.joinToString { it }}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}; ss=${ss?.joinToString { it }}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1636,7 +1636,7 @@ data class FreeActionConfirmationTestIntent(
     }
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction { UserDefinedInform(this, simpleTemplates({ """s=${s}""" })) }
+        else -> UserDefinedInform(this, simpleTemplates({ """s=${s}""" }))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1663,7 +1663,7 @@ data class SimpleIntent(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf("s" to listOf(SlotPromptAnnotation(simpleTemplates( { """s?""" }))))
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1722,12 +1722,12 @@ data class ExternalEventContainerIntent(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
         "intent" to listOf(
             SlotInformActionAnnotation(
-                listOf(TextOutputAction({ SlotInform(intent, "intent", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback...""" })) }))
+                listOf(SlotInform(intent, "intent", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback...""" })))
             ),
             ExternalEventStrategy()),
         "result" to listOf(
             SlotInformActionAnnotation(
-                listOf(TextOutputAction({ SlotInform(result, "result", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback for async result...""" })) }))
+                listOf(SlotInform(result, "result", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback for async result...""" })))
             ),
             ExternalEventStrategy()),
         "this" to listOf(ConfirmationAnnotation({searchConfirmation("this")}))
@@ -1747,7 +1747,7 @@ data class ExternalEventContainerIntent(
     }
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""intent=${intent?.s}; result=${result?.s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""intent=${intent?.s}; result=${result?.s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1778,7 +1778,7 @@ data class ExternalEventIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1877,7 +1877,7 @@ data class RecommendationIntentForContextBasedRec(override var session: UserSess
 
     override fun searchResponse(): Action? {
         return when {
-            else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""rf=${rf?.a}"""})) })
+            else -> UserDefinedInform(this, simpleTemplates( {"""rf=${rf?.a}"""}))
         }
     }
 }
@@ -1908,7 +1908,7 @@ data class ContextBasedRecIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""f=${f?.a}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""f=${f?.a}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1954,7 +1954,7 @@ data class SlotDoubleConfirmTestIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction { UserDefinedInform(this, simpleTemplates({ """f=$slot""" })) }
+        else -> UserDefinedInform(this, simpleTemplates({ """f=$slot""" }))
     }
 
     @JsonIgnore

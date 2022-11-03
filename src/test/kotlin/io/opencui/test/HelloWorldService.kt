@@ -38,16 +38,14 @@ public data class HelloWorldService(
     public val frame: HelloWorldService
   ) : SeqAction(
       listOf(
-          TextOutputAction {
-              UserDefinedInform(
-                  this, "me.test.testApp_1012.HelloWorld",
-                  simpleTemplates(
-                      with(frame) {
-                          """component_0915.testFuncton：${component_0915.testFunction(":)")}""".trimMargin()
-                      }
-                  )
+          UserDefinedInform(
+              this, "me.test.testApp_1012.HelloWorld",
+              simpleTemplates(
+                  with(frame) {
+                      """component_0915.testFuncton：${component_0915.testFunction(":)")}""".trimMargin()
+                  }
               )
-          }
+          )
       )
   )
 }

@@ -1065,7 +1065,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"any citiesSoft else?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.ZepTestIntent","slot":"citiesSoft"}],"status":"OPEN"}""",
             """>{"query": "8", "frames": [{"type": "No", "slots": [], "packageName": "io.opencui.core.hasMore"}]}""",
-            """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"zero entry for citiesHard"},{"type":"AbortIntentAction","payload":"io.opencui.test.ZepTestIntent is Aborted successfully!"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"SlotOfferZepInform","payload":"zero entry for citiesHard"},{"type":"AbortIntentAction","payload":"io.opencui.test.ZepTestIntent is Aborted successfully!"}]}""",
             """<null""",
             """>{"query": "9", "frames": [{"type": "ZepTestIntent", "slots": [{"value" : "\"Beijing\"", "attribute" : "citySoft"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"FillAction","payload":"FILL SLOT value is null for target : io.opencui.core.PagedSelectable, slot : index"}""",
@@ -1084,7 +1084,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.ZepTestIntent","slot":"citiesHard"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "15", "frames": [{"type": "PagedSelectable", "slots": [{"value" : "\"2\"", "attribute" : "index"}]}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.ZepTestIntent, slot : citiesHard"}]}""",
-            """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"zero entry for citiesHard"},{"type":"MarkFillerDone","payload":"end filler for: citiesHard"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"SlotOfferZepInform","payload":"zero entry for citiesHard"},{"type":"MarkFillerDone","payload":"end filler for: citiesHard"}]}""",
             """<{"type":"ZepTestIntent_0","payload":"Hi, \ncitySoft = Beijing \ncityHard = Shenzhen \ncitiesSoft = Wuhan \ncitiesHard = Chengdu"}""",
             """<null""",
         )
@@ -1270,7 +1270,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"a?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.EarlyTerminationFrame","slot":"a"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "EarlyTerminationFrame", "slots": [{"value" : "\"aaa\"", "attribute" : "a"}], "packageName": "io.opencui.test"}]}""",
-            """<{"type":"SeqAction","payload":[{"type":"MarkFillerDone","payload":"end filler for: EarlyTerminationIntent"},{"type":"TextOutputAction","payload":"we don't have choices that meet your requirements, intent terminated"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"MarkFillerDone","payload":"end filler for: EarlyTerminationIntent"},{"type":"UserDefinedInform","payload":"we don't have choices that meet your requirements, intent terminated"}]}""",
             """<null""",
         )
         process(EarlyTerminationTest)
@@ -1394,7 +1394,7 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"d?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.VCTestIntent","slot":"d"}],"status":"OPEN"}""",
                 """>{"query": "4", "frames": [{"type": "VCTestIntent", "slots": [{"value" : "\"a\"", "attribute" : "b"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"a, b and c fail"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.VCTestIntent&slot=a, target=io.opencui.test.VCTestIntent&slot=b, target=io.opencui.test.VCTestIntent&slot=c"},{"type":"RefocusAction","payload":""}]}""",
+                """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"a, b and c fail"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.VCTestIntent&slot=a, target=io.opencui.test.VCTestIntent&slot=b, target=io.opencui.test.VCTestIntent&slot=c"},{"type":"RefocusAction","payload":""}]}""",
                 """<{"type":"SlotAskAction","payload":"a?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.VCTestIntent","slot":"a"}],"status":"OPEN"}""",
                 """>{"query": "5", "frames": [{"type": "VCTestIntent", "slots": [{"value" : "1", "attribute" : "a"}, {"value" : "\"b\"", "attribute" : "b"}, {"value" : "true", "attribute" : "c"}, {"value" : "\"d\"", "attribute" : "d"}], "packageName": "io.opencui.test"}]}""",
@@ -1411,11 +1411,11 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"c?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.ValueRecheckTestIntent","slot":"c"}],"status":"OPEN"}""",
                 """>{"query": "2", "frames": [{"type": "ValueRecheckTestIntent", "slots": [{"value" : "true", "attribute" : "c"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"a and c fails"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=a"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=c"},{"type":"RecheckAction","payload":"RECHECK SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=b"},{"type":"RefocusAction","payload":""}]}""",
+                """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"a and c fails"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=a"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=c"},{"type":"RecheckAction","payload":"RECHECK SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=b"},{"type":"RefocusAction","payload":""}]}""",
                 """<{"type":"SlotAskAction","payload":"a?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.ValueRecheckTestIntent","slot":"a"}],"status":"OPEN"}""",
                 """>{"query": "3", "frames": [{"type": "ValueRecheckTestIntent", "slots": [{"value" : "2", "attribute" : "a"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"b fails"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=b"}]}""",
+                """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"b fails"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=b"}]}""",
                 """<{"type":"SlotAskAction","payload":"b?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.ValueRecheckTestIntent","slot":"b"}],"status":"OPEN"}""",
                 """>{"query": "4", "frames": [{"type": "ValueRecheckTestIntent", "slots": [{"value" : "\"a\"", "attribute" : "b"}], "packageName": "io.opencui.test"}]}""",
@@ -1478,7 +1478,7 @@ class RuntimeTest {
                 """<{"type":"SeqAction","payload":[{"type":"SeqAction","payload":[{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : conditionMap"},{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : page"},{"type":"ReinitAction","payload":"REINIT SLOT : target=io.opencui.core.PagedSelectable&slot=index"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.core.PagedSelectable&slot=index"}]}]}""",
                 """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
                 """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.ValueRecOutlierValueIntent, slot : s"}]}""",
-                """<{"type":"TextOutputAction","payload":"s=c"}""",
+                """<{"type":"UserDefinedInform","payload":"s=c"}""",
                 """<null""",
         )
         process(test)
@@ -1492,7 +1492,7 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"s?\nonly a left for s, would u like it?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.TestSepNoIntent","slot":"s"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
                 """>{"query": "2", "frames": [{"type": "No", "slots": [], "packagename": "io.opencui.core.confirmation"}]}""",
-                """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"zero entry for s"},{"type":"AbortIntentAction","payload":"io.opencui.test.TestSepNoIntent is Aborted successfully!"}]}""",
+                """<{"type":"SeqAction","payload":[{"type":"AbortIntentAction","payload":"io.opencui.test.TestSepNoIntent is Aborted successfully!"}]}""",
                 """<null""",
                 """>{"query": "3", "frames": [{"type": "TestSepNoIntent", "slots": [], "packageName": "io.opencui.test"}]}""",
                 """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
@@ -1509,8 +1509,8 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"else ss?\nonly a left for ss, would u like it?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.TestSepNoIntent","slot":"ss"},{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
                 """>{"query": "6", "frames": [{"type": "No", "slots": [], "packageName": "io.opencui.core.confirmation"}]}""",
-                """<{"type":"SeqAction","payload":[{"type":"TextOutputAction","payload":"zero entry for ss"},{"type":"MarkFillerDone","payload":"end filler for: ss"}]}""",
-                """<{"type":"TextOutputAction","payload":"s=a; ss=a"}""",
+                """<{"type":"SeqAction","payload":[{"type":"MarkFillerDone","payload":"end filler for: ss"}]}""",
+                """<{"type":"UserDefinedInform","payload":"s=a; ss=a"}""",
                 """<null""",
         )
         process(test)
@@ -1532,7 +1532,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.core.FreeActionConfirmation","slot":"status"}],"status":"OPEN"}""",
             """>{"query": "4", "frames": [{"type": "Yes", "slots": [], "packagename": "io.opencui.core.confirmation"}]}""",
             """<{"type":"SlotInform","payload":"we have updated io.opencui.test.FreeActionConfirmationTestIntent.s form aaa to bbb for you"}""",
-            """<{"type":"TextOutputAction","payload":"s=bbb"}""",
+            """<{"type":"UserDefinedInform","payload":"s=bbb"}""",
             """<null""",
         )
         process(test)
@@ -1549,7 +1549,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"s?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.SimpleIntent","slot":"s"}],"status":"OPEN"}""",
             """>{"query": "3", "frames": [{"type": "SimpleIntent", "slots": [{"value" : "\"aaa\"", "attribute" : "s"}], "packageName": "io.opencui.test"}]}""",
-            """<{"type":"TextOutputAction","payload":"s=aaa"}""",
+            """<{"type":"UserDefinedInform","payload":"s=aaa"}""",
             """<null""",
         )
         process(test)
@@ -1562,13 +1562,13 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"we are waiting for callback..."}""",
                 """<null""",
                 """>{"query": "2", "frames": [{"type": "ExternalEventIntent", "slots": [{"value" : "\"aaa\"", "attribute" : "s"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"TextOutputAction","payload":"s=aaa"}""",
+                """<{"type":"UserDefinedInform","payload":"s=aaa"}""",
                 """<{"type":"SlotInform","payload":"implicitly confirm this intent.s=aaa"}""",
                 """<{"type":"SlotAskAction","payload":"we are waiting for callback for async result..."}""",
                 """<null""",
                 """>{"query": "3", "frames": [{"type": "ExternalEventIntent", "slots": [{"value" : "\"bbb\"", "attribute" : "s"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"TextOutputAction","payload":"s=bbb"}""",
-                """<{"type":"TextOutputAction","payload":"intent=aaa; result=bbb"}""",
+                """<{"type":"UserDefinedInform","payload":"s=bbb"}""",
+                """<{"type":"UserDefinedInform","payload":"intent=aaa; result=bbb"}""",
                 """<null""",
         )
         process(test)
@@ -1584,7 +1584,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.test.ContextBasedRecFrame"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "PagedSelectable", "slots": [{"value" : "\"2\"", "attribute" : "index"}]}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.ContextBasedRecFrame, slot : "}]}""",
-            """<{"type":"TextOutputAction","payload":"f=d"}""",
+            """<{"type":"UserDefinedInform","payload":"f=d"}""",
             """<null""",
         )
         process(test)
@@ -1600,7 +1600,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"r u sure of slot value a"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.SlotDoubleConfirmTestIntent","slot":"slot"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "Yes", "slots": []}]}""",
-            """<{"type":"TextOutputAction","payload":"f=a"}""",
+            """<{"type":"UserDefinedInform","payload":"f=a"}""",
             """<null""",
         )
         process(test)
