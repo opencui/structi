@@ -826,7 +826,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                         "(${it})" }}."""}})))
             },
         pageSize = 2, target = this, slot = "citiesSoft", hard = false,
-        zeroEntryActions = listOf(TextOutputAction({ SlotOfferZepInform("citiesSoft", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesSoft"""})) })))}
+        zeroEntryActions = listOf(SlotOfferZepInform("citiesSoft", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesSoft"""}))))}
 
     @JsonIgnore
     val _rec_citiesHard = {it: City? -> PagedSelectable<City>(
@@ -836,7 +836,8 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                         "(${it})" }}."""}})))
             },
         pageSize = 2, target = this, slot = "citiesHard", hard = true,
-        zeroEntryActions = listOf(TextOutputAction({ SlotOfferZepInform("citiesHard", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesHard"""})) }),
+        zeroEntryActions = listOf(
+            SlotOfferZepInform("citiesHard", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesHard"""})),
                 LazyPickAction { if (citiesHard != null && citiesHard!!.size >= 1) EndSlot(this, "citiesHard", true) else AbortIntentAction(AbortIntent(session)) }))}
 
     @JsonIgnore
@@ -888,14 +889,12 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
 
 data class ZepTestIntent_0(
         val frame: ZepTestIntent
-) : TextOutputAction({
-    UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, 
+) : UserDefinedInform<ZepTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, 
                                             |citySoft = ${citySoft} 
                                             |cityHard = ${cityHard} 
                                             |citiesSoft = ${citiesSoft?.joinToString { it.value }} 
-                                            |citiesHard = ${citiesHard?.joinToString { it.value }}""".trimMargin() }}
-))
-})
+                                            |citiesHard = ${citiesHard?.joinToString { it.value }}""".trimMargin() }}))
+
 
 data class SlotUpdate<T: Any>(override var session: UserSession? = null): AbstractSlotUpdate<T>(session) {
     override val informNewValuePrompt = {
@@ -993,14 +992,13 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
 
 data class SlotUpdateTestIntent_0(
         val frame: SlotUpdateTestIntent
-) : TextOutputAction({
-    UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, 
+) : UserDefinedInform<SlotUpdateTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, 
                                             |cityFrom = ${cityFrom} 
                                             |cityTo = ${cityTo} 
                                             |citiesFrom = ${citiesFrom?.joinToString { it.value }} 
                                             |citiesTo = ${citiesTo?.joinToString { it.value }}""".trimMargin() }}
 ))
-})
+
 
 data class EarlyTerminationFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
@@ -1041,7 +1039,7 @@ data class EarlyTerminationIntent(override var session: UserSession? = null): II
         "f.a" to listOf(
             SlotDoneAnnotation({earlyTerminationCondition()}, listOf(
                 EndSlot(this, null, true),
-                TextOutputAction({ UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })) }))
+                UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })))
             )
         )
     )
@@ -1065,11 +1063,11 @@ data class EarlyTerminationIntent(override var session: UserSession? = null): II
 
 data class EarlyTerminationIntent_0(
         val frame: EarlyTerminationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }})) })
+) : UserDefinedInform<EarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }}))
 
 data class EarlyTerminationIntent_1(
         val frame: EarlyTerminationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""early terminated response, should not appear""" }})) })
+) : UserDefinedInform<EarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""early terminated response, should not appear""" }}))
 
 data class ReturnValueTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1125,7 +1123,7 @@ data class ReturnValueTestIntent(override var session: UserSession? = null): IIn
 
 data class ReturnValueTestIntent_0(
     val frame: ReturnValueTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, return value test response""" }})) })
+) : UserDefinedInform<ReturnValueTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, return value test response""" }}))
 
 
 // TODO(xiaobo): the correct behavior should be asking s? first then start the recommendation?
@@ -1172,7 +1170,7 @@ data class ValueRecommendationTest(override var session: UserSession? = null): I
 
 data class ValueRecommendationTest_0(
         val frame: ValueRecommendationTest
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s""" }})) })
+) : UserDefinedInform<ValueRecommendationTest>(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s""" }}))
 
 data class DirectlyFillMultiValueSlotTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1218,7 +1216,7 @@ data class DirectlyFillMultiValueSlotTest(override var session: UserSession? = n
 
 data class DirectlyFillMultiValueSlotTest_0(
     val frame: DirectlyFillMultiValueSlotTest
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodListCopy : ${payMethodListCopy?.joinToString { it.value }}""" }})) })
+) : UserDefinedInform<DirectlyFillMultiValueSlotTest>(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodListCopy : ${payMethodListCopy?.joinToString { it.value }}""" }}))
 
 data class MVEntryConfirmationTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1277,10 +1275,8 @@ data class MVEntryConfirmationTestIntent(override var session: UserSession? = nu
 
 data class MVEntryConfirmationTestIntent_0(
         val frame: MVEntryConfirmationTestIntent
-) : TextOutputAction({
-    UserDefinedInform(frame,
+) : UserDefinedInform<MVEntryConfirmationTestIntent>(frame,
         simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodList = ${payMethodList?.joinToString { it.value }}""" }}))
-})
 
 data class VCTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1306,9 +1302,7 @@ data class VCTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
     public var _check_abc: ValueCheck = ValueCheck(session, {checkABC()},
         listOf(
-            TextOutputAction(
-                    { SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a, b and c fail""" })) }
-            ),
+            SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a, b and c fail""" })),
             CleanupActionBySlot(listOf(Pair(this, "a"), Pair(this, "b"), Pair(this, "c"))),
             RefocusActionBySlot(this, "a")
         )
