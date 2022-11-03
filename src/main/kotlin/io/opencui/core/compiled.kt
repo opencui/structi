@@ -966,7 +966,7 @@ data class PagedSelectable<T: Any> (
             Confirmation(
                     session, this, "index",
                     {it(pick()!!)},
-                    implicit, actions = zeroEntryActions.filter { it !is TextOutputAction })
+                    implicit, actions = zeroEntryActions.filter { it !is ComponentDialogAct })
         }
     }
 
@@ -1140,11 +1140,11 @@ data class PagedSelectable<T: Any> (
     val _check_index = ValueCheck(session, {isIndexValid()}, listOf(LazyPickAction {
         if (outlierValue())
             SeqAction(
-                TextOutputAction(convertDialogActGen({getBadCandidate()}, valueOutlierPrompt!!)),
+                convertDialogActGen({getBadCandidate()}, valueOutlierPrompt!!)(),
                 ReinitActionBySlot(listOf(Pair(this, "index"))),
                 CleanupActionBySlot(listOf(Pair(this, "page"), Pair(this, "conditionMap"), Pair(this, "index"))))
         else SeqAction(
-            TextOutputAction(convertDialogActGen({getBadIndex()}, indexOutlierPrompt!!)),
+            convertDialogActGen({getBadIndex()}, indexOutlierPrompt!!)(),
             ReinitActionBySlot(listOf(Pair(this, "index"))),
             CleanupActionBySlot(listOf(Pair(this, "index"))))
     }))
@@ -1160,7 +1160,7 @@ data class PagedSelectable<T: Any> (
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "index" to listOf<Annotation>(
-            SlotPromptAnnotation(listOf(TextOutputAction(convertDialogActGen({payload}, promptTemplate)))),
+            SlotPromptAnnotation(listOf(LazyDialogAction(convertDialogActGen({payload}, promptTemplate)))),
             ConditionalAsk(LazyEvalCondition { candidates.isNotEmpty() || outlierValue() }),
             SlotInitAnnotation(FillActionBySlot({generateAutoFillIndex()},  this, "index")),
             ValueCheckAnnotation(_check_index),
