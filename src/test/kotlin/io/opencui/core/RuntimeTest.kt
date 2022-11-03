@@ -1283,7 +1283,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"a?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.EarlyTerminationFrame","slot":"a"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "EarlyTerminationFrame", "slots": [{"value" : "\"aaa\"", "attribute" : "a"}], "packageName": "io.opencui.test"}]}""",
-            """<{"type":"SeqAction","payload":[{"type":"MarkFillerFilled","payload":"end filler for: SoftEarlyTerminationIntent"},{"type":"TextOutputAction","payload":"we don't have choices that meet your requirements, intent terminated"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"MarkFillerFilled","payload":"end filler for: SoftEarlyTerminationIntent"},{"type":"UserDefinedInform","payload":"we don't have choices that meet your requirements, intent terminated"}]}""",
             """<{"type":"SlotAskAction","payload":"r u sure of this intent and f.a value aaa"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.Confirmation","slot":"status"},{"frame":"io.opencui.test.SoftEarlyTerminationIntent"}],"status":"OPEN"}""",
             """>{"query": "3", "frames": [{"type": "Yes", "slots": [], "packageName": "io.opencui.core.confirmation"}]}""",
@@ -1615,7 +1615,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.test.AbstractEntityIntent","slot":"dish"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "PagedSelectable", "slots": [{"value" : "\"2\"", "attribute" : "index"}]}]}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.AbstractEntityIntent, slot : dish"}]}""",
-            """<{"type":"TextOutputAction","payload":"abstract entity type is io.opencui.test.MainDish; value is noodle"}""",
+            """<{"type":"UserDefinedInform","payload":"abstract entity type is io.opencui.test.MainDish; value is noodle"}""",
             """<null""",
         )
         process(test)
