@@ -735,7 +735,7 @@ data class OldValueCheck(
             }
             if (targetFillers.isNotEmpty() && refocusPath.isNotEmpty()) {
                 SeqAction(
-                    TextOutputAction(prompts),
+                    prompts(),
                     CleanupAction(targetFillers),
                     RefocusAction(refocusPath as List<ICompositeFiller>)
                 )
