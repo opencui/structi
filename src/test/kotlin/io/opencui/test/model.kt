@@ -481,7 +481,7 @@ data class PreDiagnosis(override var session: UserSession? = null
     override fun searchResponse(): Action? {
         return when {
             indexes!!.size > 1 -> PreDiagnosisAction(this)
-            else -> PreDiagnosisListAction(this)
+            else -> convertDialogActGen({indexes!!}, { table -> UserDefinedInform(this, simpleTemplates({with(this) {"""your indices are ${table.joinToString { it.toString() }}""" }})) })()
         }
     }
 }
