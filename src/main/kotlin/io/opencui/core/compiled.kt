@@ -1427,7 +1427,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
     fun genPromptAnnotation(): SlotPromptAnnotation {
         // we need to lock the prompt here to avoid this SlotUpdate being cleared
         val slotPromptDialogAct = askNewValuePrompt()
-        return SlotPromptAnnotation(listOf(TextOutputAction({slotPromptDialogAct})))
+        return SlotPromptAnnotation(listOf(slotPromptDialogAct))
     }
 
     val _check_index by lazy {
@@ -1452,11 +1452,11 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
                 ConditionalAsk(LazyEvalCondition {isMV()}),
                 ValueCheckAnnotation(_check_index),
                 TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
-                SlotPromptAnnotation(listOf(TextOutputAction(askIndexPrompt)))),
+                SlotPromptAnnotation(listOf(LazyDialogAction(askIndexPrompt)))),
             "originalValue" to listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue"))),
             "confirm" to listOf(
                 ConditionalAsk(LazyEvalCondition { needConfirm() }),
-                SlotPromptAnnotation(listOf(TextOutputAction(oldValueDisagreePrompt))))
+                SlotPromptAnnotation(listOf(LazyDialogAction(oldValueDisagreePrompt))))
         )
     }
 
