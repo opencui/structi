@@ -303,7 +303,7 @@ class RuntimeTest {
     fun testEmptySkill() {
         val emptySkillTestCase = listOf(
             """>{"query": "1", "frames": [{"type": "IDonotGetIt", "packageName": "io.opencui.core", "slots": []}]}""",
-            """<{"type":"TextOutputAction","payload":"I did not get that."}""",
+            """<{"type":"UserDefinedInform","payload":"I did not get that."}""",
             """<null""",
         )
         process(emptySkillTestCase)
@@ -450,7 +450,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"contractId?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.ContractBasedIntentA","slot":"contractId"}],"status":"OPEN"}""",
             """>{"query": "4", "frames": [{"type": "IDonotGetIt", "packageName": "io.opencui.core", "slots": []}]}""",
-            """<{"type":"TextOutputAction","payload":"I did not get that."}""",
+            """<{"type":"UserDefinedInform","payload":"I did not get that."}""",
             """<{"type":"SlotAskAction","payload":"contractId?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.ContractBasedIntentA","slot":"contractId"}],"status":"OPEN"}""",
             """>{"query": "5", "frames": [{"type": "ContractBasedIntentA", "slots": [{"value" : "\"CONTRACT_123\"", "attribute" : "contractId"}]}]}""",
@@ -1302,7 +1302,7 @@ class RuntimeTest {
             """<{"type":"SlotAskAction","payload":"s?\nWe have following 2 choices: (1), (2)."}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.ReturnValueTestIntent","slot":"b"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": []}""",
-            """<{"type":"TextOutputAction","payload":"I did not get that."}""",
+            """<{"type":"UserDefinedInform","payload":"I did not get that."}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.ReturnValueTestIntent","slot":"b"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "3", "frames": [{"type": "ReturnValueTestIntent", "slots": [{"value" : "2", "attribute" : "b"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"SeqAction","payload":[{"type":"SeqAction","payload":[{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : conditionMap"},{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : page"},{"type":"ReinitAction","payload":"REINIT SLOT : target=io.opencui.core.PagedSelectable&slot=index"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.core.PagedSelectable&slot=index"}]}]}""",

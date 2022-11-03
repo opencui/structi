@@ -19,7 +19,7 @@ data class IDonotGetIt(override var session: UserSession? = null) : IIntent {
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """I did not get that.""" } )) })
+        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """I did not get that.""" } ))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {

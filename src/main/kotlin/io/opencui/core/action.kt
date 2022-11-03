@@ -540,7 +540,19 @@ data class IntentAction(
     }
 }
 
-
+open class TextOutputAction (
+        val dialogActGen: () -> ComponentDialogAct
+) : SchemaAction {
+    override fun run(session: UserSession): ActionResult {
+        val success = true
+        val dialogAct = dialogActGen()
+        return ActionResult(
+                listOf(dialogAct),
+                createLog(dialogAct.templates.pick().invoke()),
+                success
+        )
+    }
+}
 
 // This is useful to delay the evaluation.
 open class LazyDialogAction (
