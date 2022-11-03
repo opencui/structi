@@ -997,7 +997,7 @@ data class WeakRecommendation(override var session: UserSession? = null
 
     override fun searchResponse(): Action? {
         return when {
-            else -> TextOutputAction { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """weak rec value is ${slotForWeakRec}, payMethod is ${payMethod}""" })) }
+            else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """weak rec value is ${slotForWeakRec}, payMethod is ${payMethod}""" }))
         }
     }
 }
