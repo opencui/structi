@@ -66,10 +66,10 @@ data class IntentSuggestion(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<kotlin.String, List<Annotation>> = mapOf(
         "intentPackage" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction({ SlotRequest("intentPackage", "kotlin.String", simpleTemplates(LazyEvalPrompt { "Which package?" })) }))),
+            SlotPromptAnnotation(listOf(SlotRequest("intentPackage", "kotlin.String", simpleTemplates(LazyEvalPrompt { "Which package?" })))),
             ValueRecAnnotation({recommendation}, false)),
         "intentName" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction({ SlotRequest("intentName", "kotlin.String", simpleTemplates(LazyEvalPrompt { "Which intent?" })) }))))
+            SlotPromptAnnotation(listOf(SlotRequest("intentName", "kotlin.String", simpleTemplates(LazyEvalPrompt { "Which intent?" })))))
     )
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -111,7 +111,7 @@ data class IDonotKnowWhatToDo(override var session: UserSession? = null
 
     override fun searchResponse(): Action? {
         return when {
-            else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """I do not know what to do now.""" } )) })
+            else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """I do not know what to do now.""" } ))
         }
     }
 }
@@ -150,7 +150,11 @@ data class ValueClarification<T: Any>(
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mapOf(
-        "target" to listOf(SlotPromptAnnotation(listOf(TextOutputAction({ SlotRequest("target", getClass().qualifiedName!!, simpleTemplates(LazyEvalPrompt { "target?" })) }))), TypedValueRecAnnotation<T>({_rec_target(this)})))
+        "target" to listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest("target", getClass().qualifiedName!!, simpleTemplates(LazyEvalPrompt { "target?" })))),
+                    TypedValueRecAnnotation<T>({_rec_target(this)})))
 }
 
 data class ResumeIntent(override var session: UserSession? = null
@@ -176,7 +180,8 @@ data class ResumeIntent(override var session: UserSession? = null
 
     override fun searchResponse(): Action? {
         return when {
-            else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { with(session!!){"We are in the middle of ${intent?.typeName()} already, let's continue with the current process."} } )) })
+            else -> UserDefinedInform(
+                this, simpleTemplates(LazyEvalPrompt { with(session!!){"We are in the middle of ${intent?.typeName()} already, let's continue with the current process."} } ))
         }
     }
 }
