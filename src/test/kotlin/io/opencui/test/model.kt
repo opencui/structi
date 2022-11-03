@@ -77,13 +77,13 @@ data class Fever(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "duration" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("duration", "kotlin.Int", simpleTemplates("How long did it last?")) }))
+            SlotPromptAnnotation(listOf( SlotRequest("duration", "kotlin.Int", simpleTemplates("How long did it last?"))))
         ),
         "degree" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("degree", "kotlin.Int", simpleTemplates("What is your temperature?")) }))
+            SlotPromptAnnotation(listOf( SlotRequest("degree", "kotlin.Int", simpleTemplates("What is your temperature?"))))
         ),
         "cause" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("cause", "kotlin.String", simpleTemplates("what is the cause for it?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("cause", "kotlin.String", simpleTemplates("what is the cause for it?"))))
         )
     )
 
@@ -115,13 +115,13 @@ data class Headache(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "duration" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("duration", "kotlin.Int", simpleTemplates("How long did it last?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("duration", "kotlin.Int", simpleTemplates("How long did it last?"))))
         ),
         "cause" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("cause", "kotlin.String", simpleTemplates("What is the cause for it?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("cause", "kotlin.String", simpleTemplates("What is the cause for it?"))))
         ),
         "part" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("part", "kotlin.String", simpleTemplates("which part of head?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("part", "kotlin.String", simpleTemplates("which part of head?"))))
         )
     )
 
@@ -153,13 +153,13 @@ data class Person(override var session: UserSession? = null
     @JsonIgnore
     override val annotations = mapOf(
         "name" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("name", "kotlin.String", simpleTemplates("What is your name?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("name", "kotlin.String", simpleTemplates("What is your name?"))))
         ),
         "age" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("age", "kotlin.Int", simpleTemplates("How old are you?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("age", "kotlin.Int", simpleTemplates("How old are you?"))))
         ),
         "height" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("height", "kotlin.Int", simpleTemplates("How tall are you?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("height", "kotlin.Int", simpleTemplates("How tall are you?"))))
         )
     )
 
@@ -206,14 +206,14 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "id" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("id", "kotlin.Int", simpleTemplates("What is your id?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("id", "kotlin.Int", simpleTemplates("What is your id?"))))
         ),
         "cellphone" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number? (MobileWithAdvances)")) })),
+            SlotPromptAnnotation(listOf(SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number? (MobileWithAdvances)")))),
             ValueRecAnnotation({recommendation}, false)
         ),
         "name" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("name", "kotlin.String", simpleTemplates("What is your name (MobileWithAdvances)?")) })),
+            SlotPromptAnnotation(listOf(SlotRequest("name", "kotlin.String", simpleTemplates("What is your name (MobileWithAdvances)?")))),
             ValueCheckAnnotation(OldValueCheck(session, {mobileService.search_cellphone(name).isNotEmpty()}, listOf(Pair(this, "name")),
                 { SlotNotifyFailure(name, "name", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { "your name has not been attached to a cellphone, let's try it again." })) }
             ))
@@ -277,15 +277,15 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "id" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("id", "kotlin.String", simpleTemplates("What is your id?")) }))
+            SlotPromptAnnotation(listOf(SlotRequest("id", "kotlin.String", simpleTemplates("What is your id?"))))
         ),
         "cellphone" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?")) })),
+            SlotPromptAnnotation(listOf(SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?")))),
             ValueCheckAnnotation(OldValueCheck(session, {mobileService.search_mobile(cellphone).isNotEmpty()}, listOf(Pair(this, "cellphone")),
                 { SlotNotifyFailure(cellphone, "cellphone", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { "your cellphone number is not correct, let's try it again." })) }
             ))),
         "amount" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("amount", "kotlin.Float", simpleTemplates("What much do you want?")) })),
+            SlotPromptAnnotation(listOf(SlotRequest("amount", "kotlin.Float", simpleTemplates("What much do you want?")))),
             ValueRecAnnotation({recommendation}, false))
     )
 
@@ -364,12 +364,12 @@ data class Hotel(override var session: UserSession? = null
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "city" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("city", "kotlin.String", simpleTemplates("""Which city?""")) })),
+            SlotPromptAnnotation(listOf(SlotRequest("city", "kotlin.String", simpleTemplates("""Which city?""")))),
             ValueCheckAnnotation(OldValueCheck(session, {vacationService.searchHotelByCity(city).isNotEmpty()}, listOf(Pair(this, "city")),
                 { SlotNotifyFailure(city, "city", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { "No hotel available for the city you have chosen." })) }
             ))),
         "hotel" to listOf(
-            SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("hotel", "kotlin.String", simpleTemplates("""Which hotel?""")) })),
+            SlotPromptAnnotation(listOf(SlotRequest("hotel", "kotlin.String", simpleTemplates("""Which hotel?""")))),
             TypedValueRecAnnotation<String>({pagedSelectable(this)}, false))
     )
 
@@ -407,40 +407,40 @@ data class PreDiagnosis(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "headaches" to listOf(
-                SlotConditionalPromptAnnotation(listOf(
-                        LazyPickAction {
-                            if (headaches!!.isEmpty())
-                                TextOutputAction { SlotRequest("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(LazyEvalPrompt { "What kind of headache do you have?" })) }
-                            else
-                                TextOutputAction { SlotRequestMore("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(LazyEvalPrompt { "What kind of headache do you still have?" })) }
-                        })
-                )
+            SlotConditionalPromptAnnotation(listOf(
+                LazyPickAction {
+                    if (headaches!!.isEmpty())
+                        SlotRequest("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(LazyEvalPrompt { "What kind of headache do you have?" }))
+                    else
+                        SlotRequestMore("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(LazyEvalPrompt { "What kind of headache do you still have?" }))
+                })
+            )
         ),
         "symptoms" to listOf(
-                SlotConditionalPromptAnnotation(listOf(
-                        LazyPickAction {
-                            if (symptoms!!.isEmpty())
-                                TextOutputAction { SlotRequest("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(LazyEvalPrompt { "What symptom do you have?" })) }
-                            else
-                                TextOutputAction { SlotRequestMore("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(LazyEvalPrompt { "What symptom do you still have?" })) }
-                        })
-                )
+            SlotConditionalPromptAnnotation(listOf(
+                LazyPickAction {
+                    if (symptoms!!.isEmpty())
+                        SlotRequest("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(LazyEvalPrompt { "What symptom do you have?" }))
+                    else
+                        SlotRequestMore("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(LazyEvalPrompt { "What symptom do you still have?" }))
+                })
+            )
         ),
         "indexes" to listOf(
-                SlotConditionalPromptAnnotation(listOf(
-                        LazyPickAction {
-                            if (indexes!!.isEmpty())
-                                TextOutputAction { SlotRequest("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(LazyEvalPrompt { "What id do you have?" })) }
-                            else
-                                TextOutputAction { SlotRequestMore("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(LazyEvalPrompt { "What id do you still have?" })) }
-                        })
-                )
+            SlotConditionalPromptAnnotation(listOf(
+                LazyPickAction {
+                    if (indexes!!.isEmpty())
+                        SlotRequest("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(LazyEvalPrompt { "What id do you have?" }))
+                    else
+                        SlotRequestMore("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(LazyEvalPrompt { "What id do you still have?" }))
+                })
+            )
         ),
         "indexes._item" to listOf(
-                SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("indexes._item", "kotlin.Int", simpleTemplates("what is the id?")) })),
+                SlotPromptAnnotation(listOf(SlotRequest("indexes._item", "kotlin.Int", simpleTemplates("what is the id?")))),
         ),
         "method" to listOf(
-                SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("method", "io.opencui.test.PayMethod", simpleTemplates("What pay method do you perfer?")) })),
+                SlotPromptAnnotation(listOf(SlotRequest("method", "io.opencui.test.PayMethod", simpleTemplates("What pay method do you perfer?")))),
         )
     )
 
@@ -481,7 +481,7 @@ data class PreDiagnosis(override var session: UserSession? = null
     override fun searchResponse(): Action? {
         return when {
             indexes!!.size > 1 -> PreDiagnosisAction(this)
-            else -> PreDiagnosisListAction(this)
+            else -> convertDialogActGen({indexes!!}, { table -> UserDefinedInform(this, simpleTemplates({with(this) {"""your indices are ${table.joinToString { it.toString() }}""" }})) })()
         }
     }
 }
@@ -502,7 +502,7 @@ data class Hi(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "symptom" to listOf(
-                SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("symptom", "io.opencui.test.ISymptom", simpleTemplates("What symptom do you have?")) }))
+                SlotPromptAnnotation(listOf(SlotRequest("symptom", "io.opencui.test.ISymptom", simpleTemplates("What symptom do you have?"))))
         )
     )
 
@@ -997,7 +997,7 @@ data class WeakRecommendation(override var session: UserSession? = null
 
     override fun searchResponse(): Action? {
         return when {
-            else -> TextOutputAction { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """weak rec value is ${slotForWeakRec}, payMethod is ${payMethod}""" })) }
+            else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """weak rec value is ${slotForWeakRec}, payMethod is ${payMethod}""" }))
         }
     }
 }
@@ -1040,7 +1040,7 @@ data class ContractBasedIntentA(override var session: UserSession? = null): IInt
 }
 
 data class ContractBasedIntentA_0(
-    val frame: ContractBasedIntentA) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; contractId=$contractId""" }})) })
+    val frame: ContractBasedIntentA) : UserDefinedInform<ContractBasedIntentA>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; contractId=$contractId""" }}))
 
 
 data class ContractBasedIntentB(override var session: UserSession? = null): IIntent, IContractFrame {
@@ -1077,7 +1077,7 @@ data class ContractBasedIntentB(override var session: UserSession? = null): IInt
 
 data class ContractBasedIntentB_0(
         val frame: ContractBasedIntentB
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$b; contractId=$contractId""" }})) })
+) : UserDefinedInform<ContractBasedIntentB>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$b; contractId=$contractId""" }}))
 
 
 data class RecoverTestIntent(override var session: UserSession? = null): IIntent {
@@ -1117,7 +1117,7 @@ data class RecoverTestIntent(override var session: UserSession? = null): IIntent
 
 data class RecoverTestIntent_0(
         val frame: RecoverTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb""" }})) })
+) : UserDefinedInform<RecoverTestIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb""" }}))
 
 data class AssociationTestFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
@@ -1202,7 +1202,7 @@ data class AssociationTestIntent(override var session: UserSession? = null): IIn
 
 data class AssociationTestIntent_0(
         val frame: AssociationTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" }})) })
+) : UserDefinedInform<AssociationTestIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" }}))
 
 data class ValueRecInteractionFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
@@ -1277,7 +1277,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
                     simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") { "(${it.b}; ${it.c})" }}."""}})))
             },
         target = this, slot = "targetFrame", hard = false,
-        zeroEntryActions = listOf(TextOutputAction { SlotOfferZepInform("targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(LazyEvalPrompt { """no values for b and c while a=${a}""" })) }),
+        zeroEntryActions = listOf(SlotOfferZepInform("targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(LazyEvalPrompt { """no values for b and c while a=${a}""" }))),
         singleEntryPrompt = { SlotOfferSepInform(it, "targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(LazyEvalPrompt {"""b=${it.b}; c=${it.c}; contextB=${targetFrame?.b} are applied"""})) },
         implicit = true
     )
@@ -1315,7 +1315,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
 
 data class ValueRecInteractionIntent_0(
     val frame: ValueRecInteractionIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" }})) })
+) : UserDefinedInform<ValueRecInteractionIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" }}))
 
 data class CustomizedRecommendationIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1366,7 +1366,7 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
 
 data class CustomizedRecommendation_0(
     val frame: CustomizedRecommendationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, city=${hotel?.city}; hotel=${hotel?.hotel}""" }})) })
+) : UserDefinedInform<CustomizedRecommendationIntent>(frame, simpleTemplates(LazyEvalPrompt{with(frame) {"""Hi, city=${hotel?.city}; hotel=${hotel?.hotel}""" }}))
 
 data class Greeting(
     override var session: UserSession? = null
@@ -1378,7 +1378,7 @@ data class Greeting(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Good day!""" })) }
+        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Good day!""" }))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1402,7 +1402,7 @@ data class Goodbye(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Have a nice day! """ } )) })
+        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Have a nice day! """ } ))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
