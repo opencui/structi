@@ -52,7 +52,7 @@ data class MultiValueEntityRecIntent(override var session: UserSession? = null):
 
 data class MultiValueEntityRecIntent_0(
         val frame: MultiValueEntityRecIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueEntityRecIntent>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class MultiValueFrameRecIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -107,7 +107,7 @@ data class MultiValueFrameRecIntent(override var session: UserSession? = null): 
 
 data class MultiValueFrameRecIntent_0(
         val frame: MultiValueFrameRecIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${hotels?.size}""" }})) })
+) : UserDefinedInform<MultiValueFrameRecIntent>(frame, simpleTemplates({with(frame) {"""Hi, size = ${hotels?.size}""" }}))
 
 data class InternalNode(@get:JsonIgnore var value: String): Serializable {
     var origValue: String? = null
@@ -189,7 +189,7 @@ data class EntityRecSelection(override var session: UserSession? = null): IInten
 
 data class EntityRecSelection_0(
         val frame: EntityRecSelection
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethod}""" }})) })
+) : UserDefinedInform<EntityRecSelection>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethod}""" }}))
 
 data class ShowOnceRecommendation(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -228,7 +228,7 @@ data class ShowOnceRecommendation(override var session: UserSession? = null): II
 
 data class ShowOnceRecommendation_0(
     val frame: ShowOnceRecommendation
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<ShowOnceRecommendation>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }}))
 
 data class MultiValueValueCheck(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -271,7 +271,7 @@ data class MultiValueValueCheck(override var session: UserSession? = null): IInt
 
 data class MultiValueValueCheck_0(
         val frame: MultiValueValueCheck
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueValueCheck>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }}))
 
 data class SepTestIntentExplicit(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -340,7 +340,7 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
 
 data class SepTestIntent_0(
     val frame: SepTestIntentExplicit
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }})) })
+) : UserDefinedInform<SepTestIntentExplicit>(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }}))
 
 data class SepTestIntentImplicit(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -410,7 +410,7 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
 
 data class SepTestIntentImplicit_0(
     val frame: SepTestIntentImplicit
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }})) })
+) : UserDefinedInform<SepTestIntentImplicit>(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }}))
 
 data class MultiValueMinMax(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -452,7 +452,7 @@ data class MultiValueMinMax(override var session: UserSession? = null): IIntent 
 
 data class MultiValueMinMax_0(
     val frame: MultiValueMinMax
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueMinMax>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class MultiValueMinMaxWithRec(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -512,7 +512,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
 
 data class MultiValueMinMaxWithRec_0(
     val frame: MultiValueMinMaxWithRec
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueMinMaxWithRec>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class ValueCheckSwitchTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -558,7 +558,7 @@ data class ValueCheckSwitchTest(override var session: UserSession? = null): IInt
 
 data class ValueCheckSwitchTest_0(
         val frame: ValueCheckSwitchTest
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates( {"""Hi, a = ${frame.a} b = ${frame.b} c = ${frame.c}""" })) })
+) : UserDefinedInform<ValueCheckSwitchTest>(frame, simpleTemplates( {"""Hi, a = ${frame.a} b = ${frame.b} c = ${frame.c}""" }))
 
 data class City(@get:JsonIgnore override var value: String): InternalEntity, Serializable {
     override var origValue: String? = null
@@ -606,7 +606,7 @@ data class CollectCities(override var session: UserSession? = null): IIntent {
 
 data class CollectCities_0(
         val frame: CollectCities
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, cities size = ${frame.cities?.size}""" }})) })
+) : UserDefinedInform<CollectCities>(frame, simpleTemplates({with(frame) {"""Hi, cities size = ${frame.cities?.size}""" }}))
 
 data class BookTrain(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -646,7 +646,7 @@ data class BookTrain(override var session: UserSession? = null): IIntent {
 
 data class BookTrain_0(
     val frame: BookTrain
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, departure = ${frame.departure} arrival = ${frame.arrival}""" }})) })
+) : UserDefinedInform<BookTrain>(frame, simpleTemplates({with(frame) {"""Hi, departure = ${frame.departure} arrival = ${frame.arrival}""" }}))
 
 data class WeatherConsult(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -687,7 +687,7 @@ data class WeatherConsult(override var session: UserSession? = null): IIntent {
 
 data class WeatherConsult_0(
         val frame: WeatherConsult
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({"""Hi, city = ${frame.city} weather = ${frame.weather()}"""})) })
+) : UserDefinedInform<WeatherConsult>(frame, simpleTemplates({"""Hi, city = ${frame.city} weather = ${frame.weather()}"""}))
 
 data class BoolGateTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -725,7 +725,7 @@ data class BoolGateTestIntent(override var session: UserSession? = null): IInten
 
 data class BoolGateTestIntent_0(
         val frame: BoolGateTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" })) })
+) : UserDefinedInform<BoolGateTestIntent>(frame, simpleTemplates({"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }))
 
 data class NeverAskIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -765,7 +765,7 @@ data class NeverAskIntent(override var session: UserSession? = null): IIntent {
 
 data class NeverAskIntent_0(
         val frame: NeverAskIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }})) })
+) : UserDefinedInform<NeverAskIntent>(frame, simpleTemplates({with(frame) {"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }}))
 
 data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
