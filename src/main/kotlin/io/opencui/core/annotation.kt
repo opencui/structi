@@ -96,12 +96,12 @@ interface PromptAnnotation : Annotation {
  */
 data class SlotPromptAnnotation(override val actions: List<Action>) : PromptAnnotation {
     // just for convenience of testcase
-    constructor(templates: Templates): this(listOf(TextOutputAction { SlotRequest("", "", templates) }))
+    constructor(templates: Templates): this(listOf( SlotRequest("", "", templates) ))
 }
 
 data class SlotConditionalPromptAnnotation(override val actions: List<Action>) : PromptAnnotation {
     // just for convenience of testcase
-    constructor(picker: () -> Templates): this(listOf(LazyPickAction { TextOutputAction { SlotRequest("", "", picker()) } }))
+    constructor(picker: () -> Templates): this(listOf(LazyPickAction { SlotRequest("", "", picker()) } ))
 }
 
 data class SlotInformActionAnnotation(override val actions: List<Action>) : PromptAnnotation

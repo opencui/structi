@@ -52,7 +52,7 @@ data class MultiValueEntityRecIntent(override var session: UserSession? = null):
 
 data class MultiValueEntityRecIntent_0(
         val frame: MultiValueEntityRecIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueEntityRecIntent>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class MultiValueFrameRecIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -107,7 +107,7 @@ data class MultiValueFrameRecIntent(override var session: UserSession? = null): 
 
 data class MultiValueFrameRecIntent_0(
         val frame: MultiValueFrameRecIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${hotels?.size}""" }})) })
+) : UserDefinedInform<MultiValueFrameRecIntent>(frame, simpleTemplates({with(frame) {"""Hi, size = ${hotels?.size}""" }}))
 
 data class InternalNode(@get:JsonIgnore var value: String): Serializable {
     var origValue: String? = null
@@ -189,7 +189,7 @@ data class EntityRecSelection(override var session: UserSession? = null): IInten
 
 data class EntityRecSelection_0(
         val frame: EntityRecSelection
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethod}""" }})) })
+) : UserDefinedInform<EntityRecSelection>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethod}""" }}))
 
 data class ShowOnceRecommendation(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -228,7 +228,7 @@ data class ShowOnceRecommendation(override var session: UserSession? = null): II
 
 data class ShowOnceRecommendation_0(
     val frame: ShowOnceRecommendation
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<ShowOnceRecommendation>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }}))
 
 data class MultiValueValueCheck(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -271,7 +271,7 @@ data class MultiValueValueCheck(override var session: UserSession? = null): IInt
 
 data class MultiValueValueCheck_0(
         val frame: MultiValueValueCheck
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueValueCheck>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }}))
 
 data class SepTestIntentExplicit(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -340,7 +340,7 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
 
 data class SepTestIntent_0(
     val frame: SepTestIntentExplicit
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }})) })
+) : UserDefinedInform<SepTestIntentExplicit>(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }}))
 
 data class SepTestIntentImplicit(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -410,7 +410,7 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
 
 data class SepTestIntentImplicit_0(
     val frame: SepTestIntentImplicit
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }})) })
+) : UserDefinedInform<SepTestIntentImplicit>(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }}))
 
 data class MultiValueMinMax(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -452,7 +452,7 @@ data class MultiValueMinMax(override var session: UserSession? = null): IIntent 
 
 data class MultiValueMinMax_0(
     val frame: MultiValueMinMax
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueMinMax>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class MultiValueMinMaxWithRec(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -512,7 +512,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
 
 data class MultiValueMinMaxWithRec_0(
     val frame: MultiValueMinMaxWithRec
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }})) })
+) : UserDefinedInform<MultiValueMinMaxWithRec>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class ValueCheckSwitchTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -558,7 +558,7 @@ data class ValueCheckSwitchTest(override var session: UserSession? = null): IInt
 
 data class ValueCheckSwitchTest_0(
         val frame: ValueCheckSwitchTest
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates( {"""Hi, a = ${frame.a} b = ${frame.b} c = ${frame.c}""" })) })
+) : UserDefinedInform<ValueCheckSwitchTest>(frame, simpleTemplates( {"""Hi, a = ${frame.a} b = ${frame.b} c = ${frame.c}""" }))
 
 data class City(@get:JsonIgnore override var value: String): InternalEntity, Serializable {
     override var origValue: String? = null
@@ -606,7 +606,7 @@ data class CollectCities(override var session: UserSession? = null): IIntent {
 
 data class CollectCities_0(
         val frame: CollectCities
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, cities size = ${frame.cities?.size}""" }})) })
+) : UserDefinedInform<CollectCities>(frame, simpleTemplates({with(frame) {"""Hi, cities size = ${frame.cities?.size}""" }}))
 
 data class BookTrain(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -646,7 +646,7 @@ data class BookTrain(override var session: UserSession? = null): IIntent {
 
 data class BookTrain_0(
     val frame: BookTrain
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, departure = ${frame.departure} arrival = ${frame.arrival}""" }})) })
+) : UserDefinedInform<BookTrain>(frame, simpleTemplates({with(frame) {"""Hi, departure = ${frame.departure} arrival = ${frame.arrival}""" }}))
 
 data class WeatherConsult(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -687,7 +687,7 @@ data class WeatherConsult(override var session: UserSession? = null): IIntent {
 
 data class WeatherConsult_0(
         val frame: WeatherConsult
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({"""Hi, city = ${frame.city} weather = ${frame.weather()}"""})) })
+) : UserDefinedInform<WeatherConsult>(frame, simpleTemplates({"""Hi, city = ${frame.city} weather = ${frame.weather()}"""}))
 
 data class BoolGateTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -725,7 +725,7 @@ data class BoolGateTestIntent(override var session: UserSession? = null): IInten
 
 data class BoolGateTestIntent_0(
         val frame: BoolGateTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" })) })
+) : UserDefinedInform<BoolGateTestIntent>(frame, simpleTemplates({"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }))
 
 data class NeverAskIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -765,7 +765,7 @@ data class NeverAskIntent(override var session: UserSession? = null): IIntent {
 
 data class NeverAskIntent_0(
         val frame: NeverAskIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }})) })
+) : UserDefinedInform<NeverAskIntent>(frame, simpleTemplates({with(frame) {"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }}))
 
 data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -804,7 +804,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                         "(${it})" }}."""}})))
             },
         pageSize = 2, target = this, slot = "citySoft", hard = false,
-        zeroEntryActions = listOf(TextOutputAction { SlotOfferZepInform("citySoft", "io.opencui.test.City", simpleTemplates({ """zero entry for citySoft""" })) }))}
+        zeroEntryActions = listOf(SlotOfferZepInform("citySoft", "io.opencui.test.City", simpleTemplates({ """zero entry for citySoft""" }))))}
 
     @JsonIgnore
     val _rec_cityHard = {it: City? -> PagedSelectable<City>(
@@ -815,7 +815,8 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
             },
         pageSize = 2, target = this, slot = "cityHard", hard = true,
         zeroEntryActions = listOf(
-            TextOutputAction { SlotOfferZepInform("cityHard", "io.opencui.test.City", simpleTemplates({ """zero entry for cityHard""" })) }, AbortIntentAction(AbortIntent(session))))}
+            SlotOfferZepInform("cityHard", "io.opencui.test.City", simpleTemplates({ """zero entry for cityHard""" })),
+            AbortIntentAction(AbortIntent(session))))}
 
     @JsonIgnore
     val _rec_citiesSoft = {it: City? -> PagedSelectable<City>(
@@ -825,7 +826,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                         "(${it})" }}."""}})))
             },
         pageSize = 2, target = this, slot = "citiesSoft", hard = false,
-        zeroEntryActions = listOf(TextOutputAction({ SlotOfferZepInform("citiesSoft", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesSoft"""})) })))}
+        zeroEntryActions = listOf(SlotOfferZepInform("citiesSoft", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesSoft"""}))))}
 
     @JsonIgnore
     val _rec_citiesHard = {it: City? -> PagedSelectable<City>(
@@ -835,7 +836,8 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                         "(${it})" }}."""}})))
             },
         pageSize = 2, target = this, slot = "citiesHard", hard = true,
-        zeroEntryActions = listOf(TextOutputAction({ SlotOfferZepInform("citiesHard", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesHard"""})) }),
+        zeroEntryActions = listOf(
+            SlotOfferZepInform("citiesHard", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesHard"""})),
                 LazyPickAction { if (citiesHard != null && citiesHard!!.size >= 1) EndSlot(this, "citiesHard", true) else AbortIntentAction(AbortIntent(session)) }))}
 
     @JsonIgnore
@@ -887,14 +889,12 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
 
 data class ZepTestIntent_0(
         val frame: ZepTestIntent
-) : TextOutputAction({
-    UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, 
+) : UserDefinedInform<ZepTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, 
                                             |citySoft = ${citySoft} 
                                             |cityHard = ${cityHard} 
                                             |citiesSoft = ${citiesSoft?.joinToString { it.value }} 
-                                            |citiesHard = ${citiesHard?.joinToString { it.value }}""".trimMargin() }}
-))
-})
+                                            |citiesHard = ${citiesHard?.joinToString { it.value }}""".trimMargin() }}))
+
 
 data class SlotUpdate<T: Any>(override var session: UserSession? = null): AbstractSlotUpdate<T>(session) {
     override val informNewValuePrompt = {
@@ -992,14 +992,13 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
 
 data class SlotUpdateTestIntent_0(
         val frame: SlotUpdateTestIntent
-) : TextOutputAction({
-    UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, 
+) : UserDefinedInform<SlotUpdateTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, 
                                             |cityFrom = ${cityFrom} 
                                             |cityTo = ${cityTo} 
                                             |citiesFrom = ${citiesFrom?.joinToString { it.value }} 
                                             |citiesTo = ${citiesTo?.joinToString { it.value }}""".trimMargin() }}
 ))
-})
+
 
 data class EarlyTerminationFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
@@ -1040,7 +1039,7 @@ data class EarlyTerminationIntent(override var session: UserSession? = null): II
         "f.a" to listOf(
             SlotDoneAnnotation({earlyTerminationCondition()}, listOf(
                 EndSlot(this, null, true),
-                TextOutputAction({ UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })) }))
+                UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })))
             )
         )
     )
@@ -1064,11 +1063,11 @@ data class EarlyTerminationIntent(override var session: UserSession? = null): II
 
 data class EarlyTerminationIntent_0(
         val frame: EarlyTerminationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }})) })
+) : UserDefinedInform<EarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }}))
 
 data class EarlyTerminationIntent_1(
         val frame: EarlyTerminationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""early terminated response, should not appear""" }})) })
+) : UserDefinedInform<EarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""early terminated response, should not appear""" }}))
 
 data class ReturnValueTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1124,7 +1123,7 @@ data class ReturnValueTestIntent(override var session: UserSession? = null): IIn
 
 data class ReturnValueTestIntent_0(
     val frame: ReturnValueTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, return value test response""" }})) })
+) : UserDefinedInform<ReturnValueTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, return value test response""" }}))
 
 
 // TODO(xiaobo): the correct behavior should be asking s? first then start the recommendation?
@@ -1171,7 +1170,7 @@ data class ValueRecommendationTest(override var session: UserSession? = null): I
 
 data class ValueRecommendationTest_0(
         val frame: ValueRecommendationTest
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s""" }})) })
+) : UserDefinedInform<ValueRecommendationTest>(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s""" }}))
 
 data class DirectlyFillMultiValueSlotTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1217,7 +1216,7 @@ data class DirectlyFillMultiValueSlotTest(override var session: UserSession? = n
 
 data class DirectlyFillMultiValueSlotTest_0(
     val frame: DirectlyFillMultiValueSlotTest
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodListCopy : ${payMethodListCopy?.joinToString { it.value }}""" }})) })
+) : UserDefinedInform<DirectlyFillMultiValueSlotTest>(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodListCopy : ${payMethodListCopy?.joinToString { it.value }}""" }}))
 
 data class MVEntryConfirmationTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1276,10 +1275,8 @@ data class MVEntryConfirmationTestIntent(override var session: UserSession? = nu
 
 data class MVEntryConfirmationTestIntent_0(
         val frame: MVEntryConfirmationTestIntent
-) : TextOutputAction({
-    UserDefinedInform(frame,
+) : UserDefinedInform<MVEntryConfirmationTestIntent>(frame,
         simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodList = ${payMethodList?.joinToString { it.value }}""" }}))
-})
 
 data class VCTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1305,9 +1302,7 @@ data class VCTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
     public var _check_abc: ValueCheck = ValueCheck(session, {checkABC()},
         listOf(
-            TextOutputAction(
-                    { SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a, b and c fail""" })) }
-            ),
+            SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a, b and c fail""" })),
             CleanupActionBySlot(listOf(Pair(this, "a"), Pair(this, "b"), Pair(this, "c"))),
             RefocusActionBySlot(this, "a")
         )
@@ -1350,7 +1345,7 @@ data class VCTestIntent(override var session: UserSession? = null): IIntent {
 
 data class VCTestIntent_0(
         val frame: VCTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }})) })
+) : UserDefinedInform<VCTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }}))
 
 data class ValueRecheckTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
@@ -1371,12 +1366,12 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
 
     @JsonIgnore
     public var _check_ab: ValueCheck = ValueCheck(session, {checkAB()}, listOf(
-        TextOutputAction({ SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { """b fails""" })) }),
+        SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { """b fails""" })),
         CleanupActionBySlot(listOf(Pair(this, "b")))
     ))
     @JsonIgnore
     public var _check_ac: ValueCheck = ValueCheck(session, {checkAC()}, listOf(
-        TextOutputAction({ SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a and c fails""" })) }),
+        SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a and c fails""" })),
         CleanupActionBySlot(listOf(Pair(this, "a"))),
         CleanupActionBySlot(listOf(Pair(this, "c"))),
         RecheckActionBySlot(listOf(Pair(this, "b"))),
@@ -1412,7 +1407,7 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
 
 data class ValueRecheckTestIntent_0(
         val frame: ValueRecheckTestIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }})) })
+) : UserDefinedInform<ValueRecheckTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }}))
 
 data class UserInit(override var session: UserSession? = null): IKernelIntent {
     @JsonIgnore
@@ -1519,7 +1514,7 @@ data class ValueRecOutlierValueIntent(
     ))
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1556,9 +1551,9 @@ data class TestSepNoIntent(
                         "(${it})" }}."""}})))
             },
         pageSize = 5, target = this, slot = "s", hard = true,
-        zeroEntryActions = listOf(TextOutputAction(
-                { SlotOfferZepInform("s", "kotlin.String", simpleTemplates( { """zero entry for s""" })) }
-        ), AbortIntentAction(AbortIntent(session))),
+        zeroEntryActions = listOf(
+            SlotOfferZepInform("s", "kotlin.String", simpleTemplates( { """zero entry for s""" })),
+            AbortIntentAction(AbortIntent(session))),
         singleEntryPrompt = { SlotOfferSepInform(it, "s", "kotlin.String", simpleTemplates(LazyEvalPrompt {"""only ${it} left for s, would u like it?"""})) },
         implicit = false, autoFillSwitch = {true})
 
@@ -1569,9 +1564,9 @@ data class TestSepNoIntent(
                         "(${it})" }}."""}})))
             },
         pageSize = 5, target = this, slot = "ss", hard = true,
-        zeroEntryActions = listOf(TextOutputAction(
-                { SlotOfferZepInform("ss", "kotlin.collections.List<kotlin.String>", simpleTemplates( { """zero entry for ss""" })) }
-        ), LazyPickAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
+        zeroEntryActions = listOf(
+            SlotOfferZepInform("ss", "kotlin.collections.List<kotlin.String>", simpleTemplates( { """zero entry for ss""" })),
+            LazyPickAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
         singleEntryPrompt = { SlotOfferSepInform(it, "ss", "kotlin.collections.List<kotlin.String>", simpleTemplates(LazyEvalPrompt {"""only ${it} left for ss, would u like it?"""})) },
         implicit = false, autoFillSwitch = {true}) // explicit confirmation always takes effect
 
@@ -1595,7 +1590,7 @@ data class TestSepNoIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}; ss=${ss?.joinToString { it }}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}; ss=${ss?.joinToString { it }}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1641,7 +1636,7 @@ data class FreeActionConfirmationTestIntent(
     }
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction { UserDefinedInform(this, simpleTemplates({ """s=${s}""" })) }
+        else -> UserDefinedInform(this, simpleTemplates({ """s=${s}""" }))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1668,7 +1663,7 @@ data class SimpleIntent(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf("s" to listOf(SlotPromptAnnotation(simpleTemplates( { """s?""" }))))
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1727,12 +1722,12 @@ data class ExternalEventContainerIntent(
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
         "intent" to listOf(
             SlotInformActionAnnotation(
-                listOf(TextOutputAction({ SlotInform(intent, "intent", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback...""" })) }))
+                listOf(SlotInform(intent, "intent", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback...""" })))
             ),
             ExternalEventStrategy()),
         "result" to listOf(
             SlotInformActionAnnotation(
-                listOf(TextOutputAction({ SlotInform(result, "result", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback for async result...""" })) }))
+                listOf(SlotInform(result, "result", "io.opencui.test.ExternalEventIntent", simpleTemplates( { """we are waiting for callback for async result...""" })))
             ),
             ExternalEventStrategy()),
         "this" to listOf(ConfirmationAnnotation({searchConfirmation("this")}))
@@ -1752,7 +1747,7 @@ data class ExternalEventContainerIntent(
     }
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""intent=${intent?.s}; result=${result?.s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""intent=${intent?.s}; result=${result?.s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1783,7 +1778,7 @@ data class ExternalEventIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""s=${s}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""s=${s}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1882,7 +1877,7 @@ data class RecommendationIntentForContextBasedRec(override var session: UserSess
 
     override fun searchResponse(): Action? {
         return when {
-            else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""rf=${rf?.a}"""})) })
+            else -> UserDefinedInform(this, simpleTemplates( {"""rf=${rf?.a}"""}))
         }
     }
 }
@@ -1913,7 +1908,7 @@ data class ContextBasedRecIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates( {"""f=${f?.a}"""})) })
+        else -> UserDefinedInform(this, simpleTemplates( {"""f=${f?.a}"""}))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1959,7 +1954,7 @@ data class SlotDoubleConfirmTestIntent(
     )
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction { UserDefinedInform(this, simpleTemplates({ """f=$slot""" })) }
+        else -> UserDefinedInform(this, simpleTemplates({ """f=$slot""" }))
     }
 
     @JsonIgnore

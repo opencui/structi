@@ -554,6 +554,9 @@ open class TextOutputAction (
     }
 }
 
+// This is useful to delay the evaluation.
+
+
 open class TextListOutputAction(
     val dialogActGen: () -> ComponentDialogAct
 ) : SchemaAction {
@@ -599,6 +602,7 @@ data class LazyPickAction(val picker: ()->Action): SchemaAction {
         return picker().run(session)
     }
 }
+
 class Handoff: SchemaAction {
     fun matchSize(intentStr: String, routingInfo:RoutingInfo) : Int {
         var maxSize : Int = 0

@@ -183,7 +183,7 @@ data class BoolGate(
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(prompts))))
+        "status" to listOf(SlotPromptAnnotation(listOf(prompts())))
     )
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -584,7 +584,7 @@ data class Confirmation(
     val prompts: () -> ComponentDialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(LazyPickAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
     )
 
     var status: io.opencui.core.confirmation.IStatus? = null
@@ -601,7 +601,7 @@ data class Confirmation(
     }
 
     override fun searchResponse(): Action? = when {
-        implicit -> TextOutputAction(prompts)
+        implicit -> prompts()
         status is io.opencui.core.confirmation.No && (target != null || actions != null) -> {
             if (actions != null) {
                 SeqAction(actions)
@@ -633,8 +633,8 @@ data class FreeActionConfirmation(
     var action: IIntent? = null
 
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(confirmPrompts))), ConditionalAsk(LazyEvalCondition { !implicit })),
-        "action" to listOf(SlotPromptAnnotation(listOf(TextOutputAction(actionPrompts))), ConditionalAsk(LazyEvalCondition { status is io.opencui.core.confirmation.No && !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(confirmPrompts())), ConditionalAsk(LazyEvalCondition { !implicit })),
+        "action" to listOf(SlotPromptAnnotation(listOf(actionPrompts())), ConditionalAsk(LazyEvalCondition { status is io.opencui.core.confirmation.No && !implicit }))
     )
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -649,7 +649,7 @@ data class FreeActionConfirmation(
     }
 
     override fun searchResponse(): Action? = when {
-        implicit -> TextOutputAction(confirmPrompts)
+        implicit -> confirmPrompts()
         else -> null
     }
 }
@@ -735,7 +735,7 @@ data class OldValueCheck(
             }
             if (targetFillers.isNotEmpty() && refocusPath.isNotEmpty()) {
                 SeqAction(
-                    TextOutputAction(prompts),
+                    prompts(),
                     CleanupAction(targetFillers),
                     RefocusAction(refocusPath as List<ICompositeFiller>)
                 )
@@ -786,7 +786,7 @@ data class MaxValueCheck(
     override fun searchResponse(): Action? {
         return when {
             targetSlot != null && targetSlot!!.size > maxEntry -> SeqAction(
-                TextOutputAction(prompts),
+                prompts(),
                 MaxDiscardAction(targetSlot!!, maxEntry)
             )
             else -> null
@@ -966,7 +966,7 @@ data class PagedSelectable<T: Any> (
             Confirmation(
                     session, this, "index",
                     {it(pick()!!)},
-                    implicit, actions = zeroEntryActions.filter { it !is TextOutputAction })
+                    implicit, actions = zeroEntryActions.filter { it !is ComponentDialogAct })
         }
     }
 
@@ -1140,11 +1140,11 @@ data class PagedSelectable<T: Any> (
     val _check_index = ValueCheck(session, {isIndexValid()}, listOf(LazyPickAction {
         if (outlierValue())
             SeqAction(
-                TextOutputAction(convertDialogActGen({getBadCandidate()}, valueOutlierPrompt!!)),
+                convertDialogActGen({getBadCandidate()}, valueOutlierPrompt!!)(),
                 ReinitActionBySlot(listOf(Pair(this, "index"))),
                 CleanupActionBySlot(listOf(Pair(this, "page"), Pair(this, "conditionMap"), Pair(this, "index"))))
         else SeqAction(
-            TextOutputAction(convertDialogActGen({getBadIndex()}, indexOutlierPrompt!!)),
+            convertDialogActGen({getBadIndex()}, indexOutlierPrompt!!)(),
             ReinitActionBySlot(listOf(Pair(this, "index"))),
             CleanupActionBySlot(listOf(Pair(this, "index"))))
     }))
@@ -1160,7 +1160,7 @@ data class PagedSelectable<T: Any> (
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "index" to listOf<Annotation>(
-            SlotPromptAnnotation(listOf(TextOutputAction(convertDialogActGen({payload}, promptTemplate)))),
+            SlotPromptAnnotation(listOf(LazyPickAction(convertDialogActGen({payload}, promptTemplate)))),
             ConditionalAsk(LazyEvalCondition { candidates.isNotEmpty() || outlierValue() }),
             SlotInitAnnotation(FillActionBySlot({generateAutoFillIndex()},  this, "index")),
             ValueCheckAnnotation(_check_index),
@@ -1427,7 +1427,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
     fun genPromptAnnotation(): SlotPromptAnnotation {
         // we need to lock the prompt here to avoid this SlotUpdate being cleared
         val slotPromptDialogAct = askNewValuePrompt()
-        return SlotPromptAnnotation(listOf(TextOutputAction({slotPromptDialogAct})))
+        return SlotPromptAnnotation(listOf(slotPromptDialogAct))
     }
 
     val _check_index by lazy {
@@ -1452,11 +1452,11 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
                 ConditionalAsk(LazyEvalCondition {isMV()}),
                 ValueCheckAnnotation(_check_index),
                 TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
-                SlotPromptAnnotation(listOf(TextOutputAction(askIndexPrompt)))),
+                SlotPromptAnnotation(listOf(LazyPickAction(askIndexPrompt)))),
             "originalValue" to listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue"))),
             "confirm" to listOf(
                 ConditionalAsk(LazyEvalCondition { needConfirm() }),
-                SlotPromptAnnotation(listOf(TextOutputAction(oldValueDisagreePrompt))))
+                SlotPromptAnnotation(listOf(LazyPickAction(oldValueDisagreePrompt))))
         )
     }
 
@@ -1485,7 +1485,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
             if (filler == null) {
-                TextOutputAction(doNothingPrompt)
+                doNothingPrompt()
             } else {
                 var path: List<IFiller> = listOf()
                 for (s in session!!.schedulers) {

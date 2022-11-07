@@ -31,7 +31,7 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
         "f.a" to listOf(
             SlotDoneAnnotation({earlyTerminationCondition()}, listOf(
                 EndSlot(this, null, false),
-                TextOutputAction({ UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })) }))
+                UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })))
             )
         ),
         "this" to listOf(ConfirmationAnnotation({searchConfirmation("this")}))
@@ -68,11 +68,11 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
 
 data class SoftEarlyTerminationIntent_0(
     val frame: SoftEarlyTerminationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }})) })
+) : UserDefinedInform<SoftEarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }}))
 
 data class SoftEarlyTerminationIntent_1(
     val frame: SoftEarlyTerminationIntent
-) : TextOutputAction({ UserDefinedInform(frame, simpleTemplates({with(frame) {"""soft early terminated response, should appear""" }})) })
+) : UserDefinedInform<SoftEarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""soft early terminated response, should appear""" }}))
 
 
 @JsonSerialize(using = InterfaceInternalEntitySerializer::class)
@@ -293,12 +293,12 @@ data class AbstractEntityIntent(
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf("dish" to listOf(
-        SlotPromptAnnotation(listOf(TextOutputAction { SlotRequest("dish", "io.opencui.test.Dish", simpleTemplates("What would u like?")) })),
+        SlotPromptAnnotation(listOf(SlotRequest("dish", "io.opencui.test.Dish", simpleTemplates("What would u like?")))),
         ValueRecAnnotation({recommendation}, false)
     ))
 
     override fun searchResponse(): Action? = when {
-        else -> TextOutputAction({ UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""" } )) })
+        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""" }))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
