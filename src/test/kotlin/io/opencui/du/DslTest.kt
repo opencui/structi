@@ -13,18 +13,18 @@ import org.junit.Test
 object En : LangPack {
     override val frames = listOf(
         frame("Banks_1.TransferMoney") {
-            utterance("${'$'}date_time_slot${'$'}")
+            utterance("<date_time_slot>")
             utterance("Yes, please make a transfer.")
             utterance("Okay, please make a transfer for me.")
             utterance("Please help me make a money transfer")
             utterance("Okay thats cool please make a fund transfer")
-            utterance("Make a transfer of ${'$'}amount${'$'}.") {
+            utterance("Make a transfer of <amount>.") {
                 context("Banks_1.TransferMoney")
             }
             utterance("Great, let's make a transfer.")
-            utterance("Make a transfer to ${'$'}recipient_account_name${'$'}")
+            utterance("Make a transfer to <recipient_account_name>")
             utterance("I wanna make a transfer")
-            utterance("send ${'$'}amount${'$'} and give it to ${'$'}recipient_account_name${'$'} and go with the ${'$'}account_type${'$'} account") {
+            utterance("send <amount> and give it to <recipient_account_name> and go with the <account_type> account") {
                 context("Banks_1.TransferMoney", "amount")
                 label("negation")
 
@@ -58,18 +58,18 @@ object En : LangPack {
 object Zh : LangPack {
     override val frames = listOf(
         frame("Banks_1.TransferMoney") {
-            utterance("${'$'}date_time_slot${'$'}")
+            utterance("<date_time_slot>")
             utterance("Yes, please make a transfer.")
             utterance("Okay, please make a transfer for me.")
             utterance("Please help me make a money transfer")
             utterance("Okay thats cool please make a fund transfer")
-            utterance("Make a transfer of ${'$'}amount${'$'}.") {
+            utterance("Make a transfer of <amount>.") {
                 context("Banks_1.TransferMoney")
             }
             utterance("Great, let's make a transfer.")
-            utterance("Make a transfer to ${'$'}recipient_account_name${'$'}")
+            utterance("Make a transfer to <recipient_account_name>")
             utterance("I wanna make a transfer")
-            utterance("send ${'$'}amount${'$'} and give it to ${'$'}recipient_account_name${'$'} and go with the ${'$'}account_type${'$'} account") {
+            utterance("send <amount> and give it to <recipient_account_name> and go with the <account_type> account") {
                 context("Banks_1.TransferMoney", "amount")
                 label("negation")
 
@@ -140,12 +140,15 @@ class DslTest() : DuTestHelper() {
                         DUSlotMeta("balance",
                                 listOf("which account?"), "AmountOfMoney"))
                 "Banks_1.TransferMoney" -> listOf(
-                        DUSlotMeta("Banks_1.account_type",
+                        DUSlotMeta("account_type",
                                 listOf("which account?")),
-                        DUSlotMeta("Banks_1.TransferMoney.amount",
+                        DUSlotMeta("amount",
                                 listOf("how much?"), "AmountOfMoney"),
-                        DUSlotMeta("Banks_1.TransferMoney.recipient_account_name",
-                                listOf("to whom?")))
+                        DUSlotMeta("recipient_account_name",
+                                listOf("to whom?")),
+                        DUSlotMeta("date_time_slot",
+                                listOf("what time?"))
+                )
                 else -> emptyList()
             }
         }
@@ -176,19 +179,6 @@ class DslTest() : DuTestHelper() {
             println("${result.probes} by ${result.ownerFrame} with ${result.score}")
         }
         assertEquals(4, results.size)
-    }
-
-    @Test
-    fun testContextDefinition() {
-        with(En) {
-            val x : Int = 2
-            println(x.getDialogAct())
-        }
-
-        with(Zh) {
-            val x : Int = 2
-            println(x.getDialogAct())
-        }
     }
 
     @Test
@@ -279,7 +269,7 @@ class DslTest() : DuTestHelper() {
 
     @Test
     fun testBuildExpression() {
-        val expression = ExpressionSearcher.buildTypedExpression("The account has \$balance\$ money", "Banks_1.CheckBalance", agent)
+        val expression = ExpressionSearcher.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
         assertEquals("The account has < AmountOfMoney > money", expression)
     }
 
@@ -293,15 +283,15 @@ class DslTest() : DuTestHelper() {
     @Test
     fun testBuildUtterance() {
         assertEquals(
-                "my phone is ${'$'}PhoneNumber${'$'} and email is ${'$'}EEE${'$'}",
-                ExpressionSearcher.toLowerProperly("My Phone is ${'$'}PhoneNumber${'$'} and Email is ${'$'}EEE${'$'}"))
+                "my phone is <PhoneNumber> and email is <EEE>",
+                ExpressionSearcher.toLowerProperly("My Phone is <PhoneNumber> and Email is <EEE>"))
         assertEquals(
-                "${'$'}Phone${'$'} is my phone number",
-                ExpressionSearcher.toLowerProperly("${'$'}Phone${'$'} Is My Phone Number")
+                "<Phone> is my phone number",
+                ExpressionSearcher.toLowerProperly("<Phone> Is My Phone Number")
         )
         assertEquals(
-                "${'$'}Phone${'$'}${'$'}PPP${'$'} is my phone number",
-                ExpressionSearcher.toLowerProperly("${'$'}Phone${'$'}${'$'}PPP${'$'} Is My Phone Number")
+                "<Phone><PPP> is my phone number",
+                ExpressionSearcher.toLowerProperly("<Phone><PPP> Is My Phone Number")
         )
     }
 }
