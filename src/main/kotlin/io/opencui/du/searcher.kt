@@ -99,6 +99,12 @@ data class IndexBuilder(val dir: Directory, val lang: String) {
     }
 }
 
+/**
+ * There three type of expressions:`
+ * Slot label expression: We want to go to <destination>
+ * Slot type expression: We want to go to <City>
+ * slot normalized expression: We want to go to <chu fa di> // for chinese, notice is it is in language dependent form.
+ */
 
 data class ExpressionSearcher(val agent: DUMeta) {
     val k: Int = 32
@@ -200,7 +206,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
         }
 
         private fun buildSlotTypes(): List<String> {
-            return DollarArgPatternRegex
+            return AngleSlotRegex
                     .findAll(utterance)
                     .map { it.value.substring(1, it.value.length - 1) }
                     .map { bot.getSlotType(owner, it) }
@@ -283,8 +289,9 @@ data class ExpressionSearcher(val agent: DUMeta) {
     }
 
     companion object {
-        private val DollarArgPatternRegex = Pattern.compile("""\$(.+?)\$""").toRegex()
+        private val AngleSlotRegex = Pattern.compile("""<(.+?)>""").toRegex()
         val logger: Logger = LoggerFactory.getLogger(ExpressionSearcher::class.java)
+        private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
 
         private val frameMap = mapOf(
             "io.opencui.core.confirmation.No" to "io.opencui.core.Confirmation",
@@ -299,17 +306,17 @@ data class ExpressionSearcher(val agent: DUMeta) {
         // "I need $dish$" -> "I need [MASK]"
         // TODO(sean): this might be a good idea to try out.
         val maskParser = { expr: Expression ->
-            DollarArgPatternRegex.split(expr.utterance).joinToString(separator = " [MASK] ")
+            AngleSlotRegex.split(expr.utterance).joinToString(separator = " [MASK] ")
         }
 
-        // "I need $dish$" -> "I need < dish.trigger >"
+        // "I need $dish$" -> "I need < dish.trigger in the natural language >"
         val angleSlotTriggerParser = { expr: Expression ->
-            DollarArgPatternRegex.replace(expr.utterance)
+            AngleSlotRegex.replace(expr.utterance)
             {
-                val slotName = it.value.removeSurrounding("$")
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
                 val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
                 if (triggers.isNullOrEmpty()) {
-                    slotName
+                    throw RuntimeException("Missing trigger for $slotName in ${expr.owner}.")
                 } else {
                     "< ${triggers[0]} >"
                 }
@@ -323,7 +330,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
          */
         @JvmStatic
         private fun parseQualifiedSlotNames(utterance: String): String {
-            val res = DollarArgPatternRegex
+            val res = AngleSlotRegex
                     .findAll(utterance)
                     .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
                     .toList()
@@ -381,9 +388,9 @@ data class ExpressionSearcher(val agent: DUMeta) {
          */
         @JvmStatic
         fun buildTypedExpression(utterance: String, owner: String, agent: DUMeta): String {
-            return DollarArgPatternRegex.replace(utterance)
+            return AngleSlotRegex.replace(utterance)
             {
-                val slotName = it.value.removeSurrounding("$")
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
                 var typeName = agent.getSlotType(owner, slotName)
                 if (typeName.isEmpty()) typeName = "WrongName"
                 "< $typeName >"
@@ -392,17 +399,19 @@ data class ExpressionSearcher(val agent: DUMeta) {
 
         // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
         fun toLowerProperly(utterance: String): String {
-            val parts = utterance.split('$')
-            var lowerCasedUtterace: String = ""
-            for ((i, part) in parts.withIndex()) {
-                if (i % 2 == 0) lowerCasedUtterace += part.lowercase(Locale.getDefault())
-                else {
-                    lowerCasedUtterace += '$'
-                    lowerCasedUtterace += part
-                    lowerCasedUtterace += '$'
+            val parts = utterance.split(LessGreaterThanRegex)
+            val lowerCasedUtterance = StringBuffer()
+            var lowerCase = true
+            for (part in parts) {
+                if (part == ">") lowerCase = true
+                if (!lowerCase) {
+                    lowerCasedUtterance.append(part)
+                } else {
+                    lowerCasedUtterance.append(part.lowercase(Locale.getDefault()))
                 }
+                if (part == "<") lowerCase = false
             }
-            return lowerCasedUtterace
+            return lowerCasedUtterance.toString()
         }
 
         private fun getContent(primitive: JsonElement?): String? {
