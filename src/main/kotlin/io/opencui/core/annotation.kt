@@ -101,7 +101,7 @@ data class SlotPromptAnnotation(override val actions: List<Action>) : PromptAnno
 
 data class SlotConditionalPromptAnnotation(override val actions: List<Action>) : PromptAnnotation {
     // just for convenience of testcase
-    constructor(picker: () -> Templates): this(listOf(LazyPickAction { SlotRequest("", "", picker()) } ))
+    constructor(picker: () -> Templates): this(listOf(LazyAction { SlotRequest("", "", picker()) } ))
 }
 
 data class SlotInformActionAnnotation(override val actions: List<Action>) : PromptAnnotation
