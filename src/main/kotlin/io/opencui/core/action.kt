@@ -597,9 +597,9 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
     }
 }
 
-data class LazyPickAction(val picker: ()->Action): SchemaAction {
+open class LazyAction(private val actionGenerator: ()->Action): SchemaAction {
     override fun run(session: UserSession): ActionResult {
-        return picker().run(session)
+        return actionGenerator.invoke().run(session)
     }
 }
 

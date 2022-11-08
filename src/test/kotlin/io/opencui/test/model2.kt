@@ -838,7 +838,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
         pageSize = 2, target = this, slot = "citiesHard", hard = true,
         zeroEntryActions = listOf(
             SlotOfferZepInform("citiesHard", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesHard"""})),
-                LazyPickAction { if (citiesHard != null && citiesHard!!.size >= 1) EndSlot(this, "citiesHard", true) else AbortIntentAction(AbortIntent(session)) }))}
+                LazyAction { if (citiesHard != null && citiesHard!!.size >= 1) EndSlot(this, "citiesHard", true) else AbortIntentAction(AbortIntent(session)) }))}
 
     @JsonIgnore
     override val annotations: Map<kotlin.String, List<Annotation>> = mapOf(
@@ -1566,7 +1566,7 @@ data class TestSepNoIntent(
         pageSize = 5, target = this, slot = "ss", hard = true,
         zeroEntryActions = listOf(
             SlotOfferZepInform("ss", "kotlin.collections.List<kotlin.String>", simpleTemplates( { """zero entry for ss""" })),
-            LazyPickAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
+            LazyAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
         singleEntryPrompt = { SlotOfferSepInform(it, "ss", "kotlin.collections.List<kotlin.String>", simpleTemplates(LazyEvalPrompt {"""only ${it} left for ss, would u like it?"""})) },
         implicit = false, autoFillSwitch = {true}) // explicit confirmation always takes effect
 

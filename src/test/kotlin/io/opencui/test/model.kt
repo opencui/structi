@@ -408,7 +408,7 @@ data class PreDiagnosis(override var session: UserSession? = null
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "headaches" to listOf(
             SlotConditionalPromptAnnotation(listOf(
-                LazyPickAction {
+                LazyAction {
                     if (headaches!!.isEmpty())
                         SlotRequest("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(LazyEvalPrompt { "What kind of headache do you have?" }))
                     else
@@ -418,7 +418,7 @@ data class PreDiagnosis(override var session: UserSession? = null
         ),
         "symptoms" to listOf(
             SlotConditionalPromptAnnotation(listOf(
-                LazyPickAction {
+                LazyAction {
                     if (symptoms!!.isEmpty())
                         SlotRequest("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(LazyEvalPrompt { "What symptom do you have?" }))
                     else
@@ -428,7 +428,7 @@ data class PreDiagnosis(override var session: UserSession? = null
         ),
         "indexes" to listOf(
             SlotConditionalPromptAnnotation(listOf(
-                LazyPickAction {
+                LazyAction {
                     if (indexes!!.isEmpty())
                         SlotRequest("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(LazyEvalPrompt { "What id do you have?" }))
                     else
@@ -481,7 +481,7 @@ data class PreDiagnosis(override var session: UserSession? = null
     override fun searchResponse(): Action? {
         return when {
             indexes!!.size > 1 -> PreDiagnosisAction(this)
-            else -> convertDialogActGen({indexes!!}, { table -> UserDefinedInform(this, simpleTemplates({with(this) {"""your indices are ${table.joinToString { it.toString() }}""" }})) })()
+            else -> PreDiagnosisListAction(this)
         }
     }
 }

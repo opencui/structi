@@ -14,7 +14,9 @@ data class HiAction_1(
 data class PreDiagnosisAction(
     val frame: PreDiagnosis
 ) : UserDefinedInform<PreDiagnosis>(frame, simpleTemplates({with(frame) {"""Hi, ${person?.name}, I know you have ${indexes?.size} ids. Am I right?""" }}))
-
+data class PreDiagnosisListAction(
+    val frame: PreDiagnosis
+) : LazyAction(convertDialogActGen({frame.indexes!!}, { table -> UserDefinedInform(frame, simpleTemplates({with(frame) {"""your indices are ${table.joinToString { it.toString() }}""" }})) }))
 
 data class HelloAction(
     val frame: Hello
