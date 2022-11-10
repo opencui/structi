@@ -1,7 +1,7 @@
 package io.opencui.core
 
 import io.opencui.channel.IChannel
-import io.opencui.core.da.CompositeDialogAct
+import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.UserInfo
 import io.opencui.du.*
 import io.opencui.serialization.*
@@ -183,7 +183,7 @@ abstract class IChatbot : Component {
     val extensions = mutableMapOf<KClass<*>, ExtensionManager<*>>()
 
     // This is used for hosting dialog act rewrite rule.
-    abstract val rewriteRules: List<KClass<out CompositeDialogAct>>
+    abstract val rewriteRules: List<KClass<out DialogActRewriter>>
 
     // This is designed for routing conversation to right department when needed.
     abstract val routing: Map<String, RoutingInfo>

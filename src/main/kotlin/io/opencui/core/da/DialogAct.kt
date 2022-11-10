@@ -6,9 +6,8 @@ import java.io.Serializable
 // This interface represents the dialog act that bot about to take. We start from the list from schema guided
 // dialog. Notice the dialog act from user side is absorbed by dialog understanding, so we do not have model
 // these explicitly. These represent what bot want to express, not how they express it.
-interface DialogAct: Serializable, SchemaAction
 
-interface ComponentDialogAct: DialogAct {
+interface DialogAct: Serializable, SchemaAction {
     var templates: Templates
     override fun run(session: UserSession): ActionResult {
         val success = true
@@ -20,19 +19,19 @@ interface ComponentDialogAct: DialogAct {
     }
 }
 
-interface SlotDialogAct: ComponentDialogAct {
+interface SlotDialogAct: DialogAct {
     val slotName: String
     val slotType: String
     val context: List<IFrame>
 }
 
-interface FrameDialogAct: ComponentDialogAct {
+interface FrameDialogAct: DialogAct {
     val frameType: String
 }
 
-interface CompositeDialogAct {
-    var result: ComponentDialogAct
-    operator fun invoke(): ComponentDialogAct = result
+interface DialogActRewriter : Serializable {
+    var result: DialogAct
+    operator fun invoke(): DialogAct = result
 }
 
 // SLOT DialogAct
@@ -176,6 +175,6 @@ data class SlotOfferSepInformConfirm<T>(
     override var templates: Templates = defaultTemplate()) : SlotDialogAct
 
 // used as a placeholder for DialogAct that is not configured yet; this kind of DialogAct should not be called at runtime
-class DumbDialogAct : ComponentDialogAct {
+class DumbDialogAct : DialogAct {
     override var templates: Templates = TODO("Not yet implemented")
 }

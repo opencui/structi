@@ -1,7 +1,7 @@
 package io.opencui.test
 
 import io.opencui.core.*
-import io.opencui.core.da.CompositeDialogAct
+import io.opencui.core.da.DialogActRewriter
 import io.opencui.du.BertStateTracker
 import io.opencui.du.DUMeta
 import kotlin.reflect.KClass
@@ -14,7 +14,7 @@ data class Agent(val user: String) : IChatbot() {
     val pkgName = this.javaClass.packageName.replace(".", "/")
     override val stateTracker = Agent.stateTracker
 
-    override val rewriteRules: MutableList<KClass<out CompositeDialogAct>> = mutableListOf()
+    override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
 
 
     override val routing: Map<String, RoutingInfo> = mapOf(
@@ -22,7 +22,7 @@ data class Agent(val user: String) : IChatbot() {
         "Default" to RoutingInfo("47", listOf()))
 
     init {
-        rewriteRules += Class.forName("io.opencui.test.SlotOfferSepInformConfirmRule").kotlin as KClass<out CompositeDialogAct>
+        rewriteRules += Class.forName("io.opencui.test.SlotOfferSepInformConfirmRule").kotlin as KClass<out DialogActRewriter>
 
         extensions[IMobileService::class] = buildManager<IMobileService> {
             builder("default", MobileServiceTemplateImpl.Companion) {
