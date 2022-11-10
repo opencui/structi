@@ -916,7 +916,7 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
     override val wrongIndexPrompt = {
         SlotNotifyFailure(index, "index", "", FailType.VC,
             simpleTemplates(with(session!!){"""There's no ${index!!.name()} value in ${originalSlot!!.name()}"""})) }
-    override val indexRecPrompt: (List<Ordinal>) -> ComponentDialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(listOf(LazyEvalPrompt { offers.withIndex().joinToString("\n") { with(session!!) {"${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" }} }))) }
+    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(listOf(LazyEvalPrompt { offers.withIndex().joinToString("\n") { with(session!!) {"${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" }} }))) }
 }
 
 

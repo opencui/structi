@@ -1,7 +1,7 @@
 package io.opencui.core
 
 
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.core.da.SlotRequest
 import java.io.Serializable
 
@@ -81,12 +81,15 @@ fun simpleTemplates(vararg texts: String) = Templates(texts.asList().map{ LazyEv
 fun simpleTemplates(vararg ops: () -> String) = Templates(ops.asList().map{ LazyEvalPrompt(it) })
 fun simpleTemplates(channelPrompts: Map<String, List<IPrompt>>) = Templates(channelPrompts)
 
-fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> ComponentDialogAct): () -> ComponentDialogAct {
+fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
     return {dialogActGen(source())}
 }
 
 interface PromptAnnotation : Annotation {
     val actions: List<Action>
+    operator fun invoke(): Action {
+        return SeqAction(actions)
+    }
 }
 
 /**
@@ -148,7 +151,7 @@ data class RecoverOnly(var condition: Boolean = false): AskStrategy {
     }
 }
 
-data class BoolGateAsk(val generator: () -> ComponentDialogAct): AskStrategy {
+data class BoolGateAsk(val generator: () -> DialogAct): AskStrategy {
     override fun canEnter(): Boolean {
         return true
     }
@@ -164,13 +167,13 @@ data class ConfirmationAnnotation(val confirmFrameGetter: ()->IFrame?): Annotati
 
 data class ValueCheckAnnotation(val checkFrame: IFrame, override val switch: () -> Boolean = {true}): Annotation
 
-data class MinMaxAnnotation(val min: Int, val minGen: () -> ComponentDialogAct, val max: Int, val maxGen: () -> ComponentDialogAct): Annotation
+data class MinMaxAnnotation(val min: Int, val minGen: () -> DialogAct, val max: Int, val maxGen: () -> DialogAct): Annotation
 
 data class SlotInitAnnotation(val action: Action): Annotation
 
 data class SlotDoneAnnotation(val condition: () -> Boolean, val actions: List<Action>): Annotation
 
-data class DialogActCustomizationAnnotation(val dialogActName: String, val templateGen: (ComponentDialogAct) -> Templates): Annotation
+data class DialogActCustomizationAnnotation(val dialogActName: String, val templateGen: (DialogAct) -> Templates): Annotation
 
 
 enum class SystemAnnotationType(val typeName: String) {

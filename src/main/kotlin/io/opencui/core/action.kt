@@ -3,7 +3,7 @@ package io.opencui.core
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.serialization.*
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import org.slf4j.LoggerFactory
@@ -26,8 +26,8 @@ data class ActionResult(
     val actionLog: ActionLog?, 
     val success: Boolean = true) : Serializable {
     var botOwn: Boolean  = true
-    var botUtterance: List<ComponentDialogAct>? = null
-    constructor(b: List<ComponentDialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
+    var botUtterance: List<DialogAct>? = null
+    constructor(b: List<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
         botUtterance = b
     }
 }
@@ -541,7 +541,7 @@ data class IntentAction(
 }
 
 open class TextOutputAction (
-        val dialogActGen: () -> ComponentDialogAct
+        val dialogActGen: () -> DialogAct
 ) : SchemaAction {
     override fun run(session: UserSession): ActionResult {
         val success = true
@@ -558,7 +558,7 @@ open class TextOutputAction (
 
 
 open class TextListOutputAction(
-    val dialogActGen: () -> ComponentDialogAct
+    val dialogActGen: () -> DialogAct
 ) : SchemaAction {
     override fun run(session: UserSession): ActionResult {
         val success = true
@@ -576,7 +576,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
     constructor(vararg actions: Action): this(actions.toList())
     override fun run(session: UserSession): ActionResult {
         // TODO(xiaoyun): the message can be different.
-        val messages = mutableListOf<ComponentDialogAct>()
+        val messages = mutableListOf<DialogAct>()
         val logs = mutableListOf<ActionLog>()
         var flag = true
         for (action in actions) {

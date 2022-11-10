@@ -12,8 +12,8 @@ import io.opencui.serialization.deserializeInternalEntity
 import kotlin.reflect.KMutableProperty0
 
 data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val slot1: SlotConfirm<*>):
-    CompositeDialogAct {
-    override var result: ComponentDialogAct = SlotOfferSepInformConfirm(slot1.target, slot1.slotName, slot1.slotType, slot1.context)
+    DialogActRewriter {
+    override var result: DialogAct = SlotOfferSepInformConfirm(slot1.target, slot1.slotName, slot1.slotType, slot1.context)
 }
 
 data class SoftEarlyTerminationIntent(override var session: UserSession? = null): IIntent {

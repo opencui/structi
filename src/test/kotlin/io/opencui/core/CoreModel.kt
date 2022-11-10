@@ -2,7 +2,7 @@ package io.opencui.core
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.core.da.SlotOffer
 import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.UserDefinedInform
@@ -124,9 +124,9 @@ data class IntentName(@get:JsonIgnore override var value: String): InternalEntit
 
 data class AbortIntent(override var session: UserSession? = null): AbstractAbortIntent(session) {
     override val builder: (String) -> InternalEntity? = { Json.decodeFromString<IntentName>(it)}
-    override val defaultFailPrompt: (() -> ComponentDialogAct)? = { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Failed to abort!""" })) }
-    override val defaultSuccessPrompt: (() -> ComponentDialogAct)? = { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { with(session!!) {"""${intent?.typeName()} is Aborted successfully!"""} })) }
-    override val defaultFallbackPrompt: (() -> ComponentDialogAct)? = { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Aborted ancestor intent""" })) }
+    override val defaultFailPrompt: (() -> DialogAct)? = { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Failed to abort!""" })) }
+    override val defaultSuccessPrompt: (() -> DialogAct)? = { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { with(session!!) {"""${intent?.typeName()} is Aborted successfully!"""} })) }
+    override val defaultFallbackPrompt: (() -> DialogAct)? = { UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """Aborted ancestor intent""" })) }
 }
 
 data class ValueClarification<T: Any>(

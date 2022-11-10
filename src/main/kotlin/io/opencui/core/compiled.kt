@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
 import java.io.Serializable
 import java.util.*
@@ -134,7 +134,7 @@ data class HasMore(
         val promptActions: List<Action>,
         val inferFunc: (FrameEvent) -> FrameEvent?,
         val minChecker: () -> Boolean = {true},
-        val minPrompts: () -> ComponentDialogAct
+        val minPrompts: () -> DialogAct
 ) : IFrame {
 
     @JsonIgnore
@@ -172,7 +172,7 @@ data class HasMore(
 
 data class BoolGate(
     override var session: UserSession? = null,
-    val prompts: () -> ComponentDialogAct,
+    val prompts: () -> DialogAct,
     val inferFunc: (FrameEvent) -> FrameEvent?) : IFrame {
 
     @JsonIgnore
@@ -506,10 +506,10 @@ abstract class AbstractAbortIntent(override var session: UserSession? = null) : 
         }
     }
 
-    open val defaultFailPrompt: (() -> ComponentDialogAct)? = null
-    open val defaultSuccessPrompt: (() -> ComponentDialogAct)? = null
-    open val defaultFallbackPrompt: (() -> ComponentDialogAct)? = null
-    open val customizedSuccessPrompt: Map<String, () -> ComponentDialogAct> = mapOf()
+    open val defaultFailPrompt: (() -> DialogAct)? = null
+    open val defaultSuccessPrompt: (() -> DialogAct)? = null
+    open val defaultFallbackPrompt: (() -> DialogAct)? = null
+    open val customizedSuccessPrompt: Map<String, () -> DialogAct> = mapOf()
 }
 
 data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
@@ -517,7 +517,7 @@ data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
         val specifiedQualifiedIntentName = frame.intentType?.value
         var targetFiller: AnnotatedWrapperFiller? = null
         val fillersNeedToPop = mutableSetOf<IFiller>()
-        val prompts: MutableList<ComponentDialogAct> = mutableListOf()
+        val prompts: MutableList<DialogAct> = mutableListOf()
         val mainScheduler = session.mainSchedule
         for (f in mainScheduler.reversed()) {
             fillersNeedToPop.add(f)
@@ -581,7 +581,7 @@ data class Confirmation(
     override var session: UserSession? = null,
     val target: IFrame?,
     val slot: String,
-    val prompts: () -> ComponentDialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
+    val prompts: () -> DialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
         "status" to listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
@@ -624,8 +624,8 @@ data class Confirmation(
 
 data class FreeActionConfirmation(
     override var session: UserSession? = null,
-    val confirmPrompts: () -> ComponentDialogAct,
-    val actionPrompts: () -> ComponentDialogAct,
+    val confirmPrompts: () -> DialogAct,
+    val actionPrompts: () -> DialogAct,
     val implicit: Boolean = false): IIntent {
     override val type = FrameKind.BIGINTENT
 
@@ -687,7 +687,7 @@ data class OldValueCheck(
     override var session: UserSession? = null,
     val checker: () -> Boolean,
     val toBeCleaned: List<Pair<IFrame?, String?>>,
-    val prompts: () -> ComponentDialogAct
+    val prompts: () -> DialogAct
 ): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mapOf()
@@ -764,7 +764,7 @@ data class MaxValueCheck(
     override var session: UserSession? = null,
     val targetSlotGetter: () -> MutableList<*>?,
     val maxEntry: Int,
-    val prompts: () -> ComponentDialogAct
+    val prompts: () -> DialogAct
 ): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mapOf()
@@ -925,15 +925,15 @@ data class PagedSelectable<T: Any> (
     override var session: UserSession? = null,
     var suggestionIntentBuilder: FullFrameBuilder?,
     val kClass: () -> KClass<T>,
-    var promptTemplate: (List<T>) -> ComponentDialogAct,
+    var promptTemplate: (List<T>) -> DialogAct,
     var pageSize: Int = 5,
     var target: IFrame? = null,
     var slot: String? = null,
     var hard: Boolean = false,
     @JsonIgnore var zeroEntryActions: List<Action> = listOf(),
-    @JsonIgnore var valueOutlierPrompt: ((BadCandidate<T>) -> ComponentDialogAct)? = null,
-    @JsonIgnore var indexOutlierPrompt: ((BadIndex) -> ComponentDialogAct)? = null,
-    @JsonIgnore var singleEntryPrompt: ((T) -> ComponentDialogAct)? = null,
+    @JsonIgnore var valueOutlierPrompt: ((BadCandidate<T>) -> DialogAct)? = null,
+    @JsonIgnore var indexOutlierPrompt: ((BadIndex) -> DialogAct)? = null,
+    @JsonIgnore var singleEntryPrompt: ((T) -> DialogAct)? = null,
     @JsonIgnore var implicit: Boolean = false,
     @JsonIgnore var autoFillSwitch: () -> Boolean = {true},
     @JsonIgnore var candidateListProvider: (() -> List<T>)? = null,
@@ -943,15 +943,15 @@ data class PagedSelectable<T: Any> (
         session: UserSession? = null,
         valuesProvider: (() -> List<T>)? = null,
         kClass: () -> KClass<T>,
-        promptTemplate: (List<T>) -> ComponentDialogAct,
+        promptTemplate: (List<T>) -> DialogAct,
         pageSize: Int = 5,
         target: IFrame? = null,
         slot: String? = null,
         hard: Boolean = false,
         zeroEntryActions: List<Action> = listOf(),
-        valueOutlierPrompt: ((BadCandidate<T>) -> ComponentDialogAct)? = null,
-        indexOutlierPrompt: ((BadIndex) -> ComponentDialogAct)? = null,
-        singleEntryPrompt: ((T) -> ComponentDialogAct)? = null,
+        valueOutlierPrompt: ((BadCandidate<T>) -> DialogAct)? = null,
+        indexOutlierPrompt: ((BadIndex) -> DialogAct)? = null,
+        singleEntryPrompt: ((T) -> DialogAct)? = null,
         implicit: Boolean = false,
         autoFillSwitch: () -> Boolean = {true}
     ) : this (session, null, kClass, promptTemplate, pageSize, target, slot, hard, zeroEntryActions, valueOutlierPrompt, indexOutlierPrompt, singleEntryPrompt, implicit, autoFillSwitch, valuesProvider)
@@ -966,7 +966,7 @@ data class PagedSelectable<T: Any> (
             Confirmation(
                     session, this, "index",
                     {it(pick()!!)},
-                    implicit, actions = zeroEntryActions.filter { it !is ComponentDialogAct })
+                    implicit, actions = zeroEntryActions.filter { it !is DialogAct })
         }
     }
 
@@ -1410,13 +1410,13 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
     }
 
     // informNewValuePrompt and askNewValuePrompt are used in other frames, so they need to be locked before SlotUpdate ends
-    abstract val informNewValuePrompt: () -> ComponentDialogAct
-    abstract val askNewValuePrompt: () -> ComponentDialogAct
-    abstract val oldValueDisagreePrompt: () -> ComponentDialogAct
-    abstract val doNothingPrompt: () -> ComponentDialogAct
-    abstract val askIndexPrompt: () -> ComponentDialogAct
-    abstract val wrongIndexPrompt: () -> ComponentDialogAct
-    abstract val indexRecPrompt: (List<Ordinal>) -> ComponentDialogAct
+    abstract val informNewValuePrompt: () -> DialogAct
+    abstract val askNewValuePrompt: () -> DialogAct
+    abstract val oldValueDisagreePrompt: () -> DialogAct
+    abstract val doNothingPrompt: () -> DialogAct
+    abstract val askIndexPrompt: () -> DialogAct
+    abstract val wrongIndexPrompt: () -> DialogAct
+    abstract val indexRecPrompt: (List<Ordinal>) -> DialogAct
 
     fun genNewValueConfirmAnnotation(): ConfirmationAnnotation {
         // we need to lock the prompt here to avoid this SlotUpdate being cleared

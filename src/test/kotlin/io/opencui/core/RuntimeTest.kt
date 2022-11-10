@@ -1,7 +1,7 @@
 package io.opencui.core
 
 import com.fasterxml.jackson.databind.node.NullNode
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.core.user.UserInfo
 import io.opencui.du.DucklingRecognizer
 import io.opencui.du.TfRestBertNLUModel
@@ -1691,7 +1691,7 @@ class RuntimeTest {
                 listOf(ActionResult(ActionLog("Exception", Json.makePrimitive(""), true)))
             }
 
-            val replies : List<ComponentDialogAct> = responses.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
+            val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
             val rewrittenReplies = session.rewriteDialogAct(replies)
             for (reply in rewrittenReplies) {
                 println("reply = ${reply.templates.pick().invoke()}")

@@ -1,7 +1,7 @@
 package io.opencui.sessionmanager
 
 import io.opencui.core.*
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.core.user.IUserIdentifier
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -123,7 +123,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
      * This the place where we can remove extra prompt if we need to.
      */
     private fun convertBotUtteranceToText(session: UserSession, results: List<ActionResult>, targetChannels: List<String>): Map<String, List<String>> {
-        val responses : List<ComponentDialogAct> = results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
+        val responses : List<DialogAct> = results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
         val rewrittenResponses = session.rewriteDialogAct(responses)
         return targetChannels.associateWith { k -> rewrittenResponses.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k).invoke()}"""} }
     }

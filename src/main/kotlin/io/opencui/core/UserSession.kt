@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.*
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserIdentifier
-import io.opencui.core.da.ComponentDialogAct
+import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.sessionmanager.ChatbotLoader
@@ -745,7 +745,7 @@ data class UserSession(
         return construct(packageName, className, this, *args) as? IIntent
     }
 
-    private fun genGroupKey(dialogAct: ComponentDialogAct): String {
+    private fun genGroupKey(dialogAct: DialogAct): String {
         return when (dialogAct) {
             is SlotDialogAct -> """${if (dialogAct.context.isNotEmpty()) dialogAct.context.first()::class.qualifiedName else "null"}_${dialogAct.slotName}_${dialogAct.slotType}"""
             is FrameDialogAct -> dialogAct.frameType
@@ -753,7 +753,7 @@ data class UserSession(
         }
     }
 
-    private fun areParametersCompatible(formalParams: List<KParameter>, actualParams: List<ComponentDialogAct>): Boolean {
+    private fun areParametersCompatible(formalParams: List<KParameter>, actualParams: List<DialogAct>): Boolean {
         check(formalParams.size == actualParams.size)
         for (i in formalParams.indices) {
             if ((formalParams[i].type.classifier as? KClass<*>)?.isInstance(actualParams[i]) != true) return false
@@ -761,7 +761,7 @@ data class UserSession(
         return true
     }
 
-    private fun findDialogActCustomization(dialogAct: ComponentDialogAct): Templates? {
+    private fun findDialogActCustomization(dialogAct: DialogAct): Templates? {
         if (dialogAct is SlotDialogAct) {
             val annotations = dialogAct.context.firstOrNull()?.findAll<DialogActCustomizationAnnotation>(dialogAct.slotName) ?: listOf()
             return annotations.firstOrNull { it.dialogActName == dialogAct::class.qualifiedName }?.templateGen?.invoke(dialogAct)
@@ -775,8 +775,8 @@ data class UserSession(
         }
     }
 
-    private fun rewriteDialogActInGroup(group: List<ComponentDialogAct>): List<ComponentDialogAct> {
-        val res = mutableListOf<ComponentDialogAct>()
+    private fun rewriteDialogActInGroup(group: List<DialogAct>): List<DialogAct> {
+        val res = mutableListOf<DialogAct>()
         val constructors = chatbot!!.rewriteRules.map { it.primaryConstructor!! }.sortedByDescending { it.parameters.size }
         var index = 0
         while (index < group.size) {
@@ -802,8 +802,8 @@ data class UserSession(
         return res
     }
 
-    fun rewriteDialogAct(dialogActList: List<ComponentDialogAct>): List<ComponentDialogAct> {
-        val groups: MutableList<Pair<String, MutableList<ComponentDialogAct>>> = mutableListOf()
+    fun rewriteDialogAct(dialogActList: List<DialogAct>): List<DialogAct> {
+        val groups: MutableList<Pair<String, MutableList<DialogAct>>> = mutableListOf()
         for (dialogAct in dialogActList) {
             val  key = genGroupKey(dialogAct)
             if (groups.isEmpty() || groups.last().first != key) {
