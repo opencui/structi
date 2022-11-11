@@ -55,7 +55,7 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
-        { SlotConfirm(this, "", "io.opencui.test.SoftEarlyTerminationIntent", listOf(this), simpleTemplates(LazyEvalPrompt {"""r u sure of this intent and f.a value ${f?.a}"""})) })
+        { SlotConfirm(this, "", "io.opencui.test.SoftEarlyTerminationIntent", listOf(this), simpleTemplates(Prompt { """r u sure of this intent and f.a value ${f?.a}""" })) })
 
     override fun searchConfirmation(slot: String): IFrame? {
         return when (slot) {
@@ -286,8 +286,15 @@ data class AbstractEntityIntent(
     val recommendation = PagedSelectable<Dish>(
         session, {dishService.recDish()}, { Dish::class },
         {offers -> SlotOffer(offers, "dish", "io.opencui.test.Dish",
-            simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                "(${it.value})" }}."""}})))
+            simpleTemplates(listOf(Prompt {
+                with(session) {
+                    """We have following ${offers.size} choices: ${
+                        offers.joinToString(", ") {
+                            "(${it.value})"
+                        }
+                    }."""
+                }
+            })))
         },
         pageSize = 5, target = this, slot = "dish")
 
@@ -298,7 +305,7 @@ data class AbstractEntityIntent(
     ))
 
     override fun searchResponse(): Action? = when {
-        else -> UserDefinedInform(this, simpleTemplates(LazyEvalPrompt { """abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""" }))
+        else -> UserDefinedInform(this, simpleTemplates(Prompt { """abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""" }))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {

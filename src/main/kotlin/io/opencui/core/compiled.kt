@@ -584,7 +584,7 @@ data class Confirmation(
     val prompts: () -> DialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
     override val type = FrameKind.BIGINTENT
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(LazyEvalCondition { !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(Condition { !implicit }))
     )
 
     var status: io.opencui.core.confirmation.IStatus? = null
@@ -633,8 +633,8 @@ data class FreeActionConfirmation(
     var action: IIntent? = null
 
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(confirmPrompts())), ConditionalAsk(LazyEvalCondition { !implicit })),
-        "action" to listOf(SlotPromptAnnotation(listOf(actionPrompts())), ConditionalAsk(LazyEvalCondition { status is io.opencui.core.confirmation.No && !implicit }))
+        "status" to listOf(SlotPromptAnnotation(listOf(confirmPrompts())), ConditionalAsk(Condition { !implicit })),
+        "action" to listOf(SlotPromptAnnotation(listOf(actionPrompts())), ConditionalAsk(Condition { status is io.opencui.core.confirmation.No && !implicit }))
     )
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -1161,7 +1161,7 @@ data class PagedSelectable<T: Any> (
     override val annotations = mapOf<String, List<Annotation>>(
         "index" to listOf<Annotation>(
             SlotPromptAnnotation(listOf(LazyAction(convertDialogActGen({payload}, promptTemplate)))),
-            ConditionalAsk(LazyEvalCondition { candidates.isNotEmpty() || outlierValue() }),
+            ConditionalAsk(Condition { candidates.isNotEmpty() || outlierValue() }),
             SlotInitAnnotation(FillActionBySlot({generateAutoFillIndex()},  this, "index")),
             ValueCheckAnnotation(_check_index),
             ConfirmationAnnotation { searchConfirmation("index") }
@@ -1449,13 +1449,13 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
             "oldValue" to listOf(NeverAsk()),
             "newValue" to listOf(NeverAsk()),
             "index" to listOf(
-                ConditionalAsk(LazyEvalCondition {isMV()}),
+                ConditionalAsk(Condition { isMV() }),
                 ValueCheckAnnotation(_check_index),
                 TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
                 SlotPromptAnnotation(listOf(LazyAction(askIndexPrompt)))),
             "originalValue" to listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue"))),
             "confirm" to listOf(
-                ConditionalAsk(LazyEvalCondition { needConfirm() }),
+                ConditionalAsk(Condition { needConfirm() }),
                 SlotPromptAnnotation(listOf(LazyAction(oldValueDisagreePrompt))))
         )
     }

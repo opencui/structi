@@ -66,8 +66,15 @@ data class MultiValueFrameRecIntent(override var session: UserSession? = null): 
     val recommendation = PagedSelectable<Hotel>(
         session, {recHotels.vacationService.searchHotel()}, { Hotel::class },
             {offers -> SlotOffer(offers, "hotels", "kotlin.collections.List<io.opencui.test.Hotel>",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it.hotel})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it.hotel})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "hotels")
 
@@ -136,8 +143,15 @@ data class InternalNodeIntent(
     var recommendation: PagedSelectable<IIntent> = PagedSelectable(
         session, {searchIntentsService.searchIntentsByCurrent(current)}, { IIntent::class },
             {offers -> SlotOffer(offers, "skill", "io.opencui.core.IIntent",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session!!){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it.typeName()})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session!!) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it.typeName()})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         target = this, slot = "skill")
 
@@ -245,7 +259,8 @@ data class MultiValueValueCheck(override var session: UserSession? = null): IInt
                 if (payMethodList!!.isEmpty()) simpleTemplates( { "payMethod?" })
                 else simpleTemplates( { "any payMethod else?" })}) ,
             ValueCheckAnnotation(OldValueCheck(session, {checker()}, listOf(Pair(this, "payMethodList")),
-                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.VC, simpleTemplates(LazyEvalPrompt { "payMethodList check failed, size = ${payMethodList!!.size}" })) }
+                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.VC, simpleTemplates(
+                        Prompt { "payMethodList check failed, size = ${payMethodList!!.size}" })) }
             ))))
 
     var payMethodList: MutableList<PayMethod>? = null
@@ -282,11 +297,18 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
     val _rec_b = PagedSelectable<Int>(
         session, {recInt()}, { Int::class },
             {offers -> SlotOffer(offers, "b", "kotlin.Int",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices for you : ${offers.joinToString(", ") {
-                        "($it)" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices for you : ${
+                                offers.joinToString(", ") {
+                                    "($it)"
+                                }
+                            }."""
+                        }
+                    })))
             },
         target = this, slot = "b", hard = true,
-        singleEntryPrompt = { SlotOfferSepInform(it, "b", "kotlin.Int", simpleTemplates(LazyEvalPrompt {"sep confirmation b=${it}, contextC=${c}"})) }
+        singleEntryPrompt = { SlotOfferSepInform(it, "b", "kotlin.Int", simpleTemplates(Prompt { "sep confirmation b=${it}, contextC=${c}" })) }
     )
 
     var b: Int? = null
@@ -298,7 +320,7 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
 
     @JsonIgnore
     val confirmb = Confirmation(session, this, "b",
-            { SlotConfirm(this, "b", "kotlin.Int", simpleTemplates(LazyEvalPrompt {"original confirmation b=${b}"})) }
+            { SlotConfirm(this, "b", "kotlin.Int", simpleTemplates(Prompt { "original confirmation b=${b}" })) }
     )
 
     @JsonIgnore
@@ -351,11 +373,18 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
     val _rec_b = PagedSelectable<Int>(
         session, {recInt()}, { Int::class },
             {offers -> SlotOffer(offers, "b", "kotlin.Int",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices for you : ${offers.joinToString(", ") {
-                        "($it)" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices for you : ${
+                                offers.joinToString(", ") {
+                                    "($it)"
+                                }
+                            }."""
+                        }
+                    })))
             },
         target = this, slot = "b", hard = true,
-        singleEntryPrompt = { SlotOfferSepInform(it, "b", "kotlin.Int", simpleTemplates(LazyEvalPrompt {"sep confirmation b=${it}, contextC=${c}"})) },
+        singleEntryPrompt = { SlotOfferSepInform(it, "b", "kotlin.Int", simpleTemplates(Prompt { "sep confirmation b=${it}, contextC=${c}" })) },
         implicit = false
     )
 
@@ -368,7 +397,7 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
 
     @JsonIgnore
     val confirmb = Confirmation(session, this, "b",
-            { SlotConfirm(this, "b", "kotlin.Int", simpleTemplates(LazyEvalPrompt {"original confirmation b=${b}"})) }
+            { SlotConfirm(this, "b", "kotlin.Int", simpleTemplates(Prompt { "original confirmation b=${b}" })) }
     )
 
     @JsonIgnore
@@ -467,11 +496,19 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
     val rec = PagedSelectable(
         session, {recData()}, { PayMethod::class },
             {offers -> SlotOffer(offers, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session!!){"""We have following ${offers.size} choices for PayMethod : ${offers.joinToString(", ") {
-                        "${it.name()}" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session!!) {
+                            """We have following ${offers.size} choices for PayMethod : ${
+                                offers.joinToString(", ") {
+                                    "${it.name()}"
+                                }
+                            }."""
+                        }
+                    })))
             },
         target = this, slot = "payMethodList", hard = true, zeroEntryActions = listOf(),
-        singleEntryPrompt = { SlotOfferSepInform(it, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", simpleTemplates(LazyEvalPrompt { with(session!!){"""chose pay method ${it.name()} for you"""}})) },
+        singleEntryPrompt = { SlotOfferSepInform(it, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", simpleTemplates(
+            Prompt { with(session!!) { """chose pay method ${it.name()} for you""" } })) },
         implicit = true, autoFillSwitch = {payMethodList!!.size < 2})
 
     @JsonIgnore
@@ -480,12 +517,15 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
             SlotConditionalPromptAnnotation { if (payMethodList!!.isEmpty()) simpleTemplates( { "payMethod?" }) else
                 simpleTemplates( { "anything else?" }) },
             MinMaxAnnotation(2,
-                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.MIN, simpleTemplates(LazyEvalPrompt { "size = ${payMethodList!!.size} less than 2" })) },
+                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.MIN, simpleTemplates(
+                        Prompt { "size = ${payMethodList!!.size} less than 2" })) },
                     3,
-                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.MAX, simpleTemplates(LazyEvalPrompt { "size = ${payMethodList!!.size} greater than 3" })) }
+                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.MAX, simpleTemplates(
+                        Prompt { "size = ${payMethodList!!.size} greater than 3" })) }
             ),
             ValueCheckAnnotation(MaxValueCheck(session, {payMethodList}, 3,
-                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.VC, simpleTemplates(LazyEvalPrompt { "size = ${payMethodList!!.size} greater than 3" })) }
+                    { SlotNotifyFailure(payMethodList, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", FailType.VC, simpleTemplates(
+                        Prompt { "size = ${payMethodList!!.size} greater than 3" })) }
             )),
             ValueRecAnnotation({rec})
         )
@@ -523,10 +563,10 @@ data class ValueCheckSwitchTest(override var session: UserSession? = null): IInt
     var c: String? = null
 
     val valueCheck_a = OldValueCheck(session, {a != 1}, listOf(Pair(this, "a")),
-            { SlotNotifyFailure(a, "a", "kotlin.Int", FailType.VC, simpleTemplates(LazyEvalPrompt { """no such a = ${a}""" })) }
+            { SlotNotifyFailure(a, "a", "kotlin.Int", FailType.VC, simpleTemplates(Prompt { """no such a = ${a}""" })) }
     )
     val valueCheck_ab = OldValueCheck(session, {a!! > 2 && b == true}, listOf(Pair(this, "a"), Pair(this, "b")),
-            { SlotNotifyFailure(b, "b", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """no such combination of a = ${a} b = ${b}""" })) }
+            { SlotNotifyFailure(b, "b", "kotlin.Boolean", FailType.VC, simpleTemplates(Prompt { """no such combination of a = ${a} b = ${b}""" })) }
     )
 
     @JsonIgnore
@@ -800,8 +840,15 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_citySoft = {it: City? -> PagedSelectable<City>(
         session, {zeroEntry(it)}, { City::class },
             {offers -> SlotOffer(offers, "citySoft", "io.opencui.test.City",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "citySoft", hard = false,
         zeroEntryActions = listOf(SlotOfferZepInform("citySoft", "io.opencui.test.City", simpleTemplates({ """zero entry for citySoft""" }))))}
@@ -810,8 +857,15 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_cityHard = {it: City? -> PagedSelectable<City>(
         session, {zeroEntryForHard(it)}, { City::class },
             {offers -> SlotOffer(offers, "cityHard", "io.opencui.test.City",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "cityHard", hard = true,
         zeroEntryActions = listOf(
@@ -822,8 +876,15 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_citiesSoft = {it: City? -> PagedSelectable<City>(
         session, {zeroEntry(it)}, { City::class },
             {offers -> SlotOffer(offers, "citiesSoft", "kotlin.collections.List<io.opencui.test.City>",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "citiesSoft", hard = false,
         zeroEntryActions = listOf(SlotOfferZepInform("citiesSoft", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesSoft"""}))))}
@@ -832,8 +893,15 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_citiesHard = {it: City? -> PagedSelectable<City>(
         session, {zeroEntryForMultiValueHard(it)}, { City::class },
             {offers -> SlotOffer(offers, "citiesHard", "kotlin.collections.List<io.opencui.test.City>",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "citiesHard", hard = true,
         zeroEntryActions = listOf(
@@ -847,17 +915,21 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
         "citiesSoft" to listOf(SlotConditionalPromptAnnotation({if (citiesSoft!!.isEmpty()) simpleTemplates( { "citiesSoft?" })
         else simpleTemplates( { "any citiesSoft else?" })}),
                 MinMaxAnnotation(1,
-                        { SlotNotifyFailure(citiesSoft, "citiesSoft", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(LazyEvalPrompt { "size = ${citiesSoft!!.size} less than 1" })) },
+                        { SlotNotifyFailure(citiesSoft, "citiesSoft", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(
+                            Prompt { "size = ${citiesSoft!!.size} less than 1" })) },
                         2,
-                        { SlotNotifyFailure(citiesSoft, "citiesSoft", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(LazyEvalPrompt { "size = ${citiesSoft!!.size} greater than 2" })) }
+                        { SlotNotifyFailure(citiesSoft, "citiesSoft", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(
+                            Prompt { "size = ${citiesSoft!!.size} greater than 2" })) }
                 ),
             TypedValueRecAnnotation<City>({_rec_citiesSoft(this)})),
         "citiesHard" to listOf(SlotConditionalPromptAnnotation({if (citiesHard!!.isEmpty()) simpleTemplates( { "citiesHard?" })
         else simpleTemplates( { "any citiesHard else?" })}),
                 MinMaxAnnotation(1,
-                        { SlotNotifyFailure(citiesHard, "citiesHard", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(LazyEvalPrompt { "size = ${citiesHard!!.size} less than 1" })) },
+                        { SlotNotifyFailure(citiesHard, "citiesHard", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(
+                            Prompt { "size = ${citiesHard!!.size} less than 1" })) },
                         3,
-                        { SlotNotifyFailure(citiesHard, "citiesHard", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(LazyEvalPrompt { "size = ${citiesHard!!.size} greater than 2" })) }
+                        { SlotNotifyFailure(citiesHard, "citiesHard", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(
+                            Prompt { "size = ${citiesHard!!.size} greater than 2" })) }
                 ),
             TypedValueRecAnnotation<City>({_rec_citiesHard(this)}))
     )
@@ -916,7 +988,11 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
     override val wrongIndexPrompt = {
         SlotNotifyFailure(index, "index", "", FailType.VC,
             simpleTemplates(with(session!!){"""There's no ${index!!.name()} value in ${originalSlot!!.name()}"""})) }
-    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(listOf(LazyEvalPrompt { offers.withIndex().joinToString("\n") { with(session!!) {"${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" }} }))) }
+    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(listOf(
+        Prompt {
+            offers.withIndex()
+                .joinToString("\n") { with(session!!) { "${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" } }
+        }))) }
 }
 
 
@@ -941,8 +1017,15 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
     val _rec_cityFrom = {it: City? -> PagedSelectable<City>(
         session, {recs(it)}, { City::class },
             {offers -> SlotOffer(offers, "cityFrom", "io.opencui.test.City",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session!!){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it.name()})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session!!) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it.name()})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 5, target = this, slot = "cityFrom", hard = true)}
 
@@ -952,16 +1035,20 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
         "cityTo" to listOf(SlotPromptAnnotation(simpleTemplates({"""cityFrom is ${cityFrom}, cityTo?"""}))),
         "citiesFrom" to listOf(SlotConditionalPromptAnnotation({if (citiesFrom!!.isEmpty()) simpleTemplates( { "citiesFrom?" }) else simpleTemplates( { "any citiesFrom else?" })}),
                 MinMaxAnnotation(0,
-                        { SlotNotifyFailure(citiesFrom, "citiesFrom", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(LazyEvalPrompt { "size = ${citiesFrom!!.size} less than 0" })) },
+                        { SlotNotifyFailure(citiesFrom, "citiesFrom", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(
+                            Prompt { "size = ${citiesFrom!!.size} less than 0" })) },
                         2,
-                        { SlotNotifyFailure(citiesFrom, "citiesFrom", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(LazyEvalPrompt { "size = ${citiesFrom!!.size} greater than 2" })) })
+                        { SlotNotifyFailure(citiesFrom, "citiesFrom", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(
+                            Prompt { "size = ${citiesFrom!!.size} greater than 2" })) })
         ),
         "citiesTo" to listOf(
                 SlotConditionalPromptAnnotation({if (citiesTo!!.isEmpty()) simpleTemplates( { "citiesTo?" }) else simpleTemplates( { "any citiesTo else?" })}),
                 MinMaxAnnotation(0,
-                        { SlotNotifyFailure(citiesTo, "citiesTo", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(LazyEvalPrompt { "size = ${citiesTo!!.size} less than 0" })) },
+                        { SlotNotifyFailure(citiesTo, "citiesTo", "kotlin.collections.List<io.opencui.test.City>", FailType.MIN, simpleTemplates(
+                            Prompt { "size = ${citiesTo!!.size} less than 0" })) },
                         3,
-                        { SlotNotifyFailure(citiesTo, "citiesTo", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(LazyEvalPrompt { "size = ${citiesTo!!.size} greater than 2" })) })
+                        { SlotNotifyFailure(citiesTo, "citiesTo", "kotlin.collections.List<io.opencui.test.City>", FailType.MAX, simpleTemplates(
+                            Prompt { "size = ${citiesTo!!.size} greater than 2" })) })
         )
     )
 
@@ -1085,8 +1172,15 @@ data class ReturnValueTestIntent(override var session: UserSession? = null): IIn
     val recommendation = PagedSelectable<Int>(
         session, {recB()}, { Int::class },
             {offers -> SlotOffer(offers, "b", "kotlin.Int",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "b")
 
@@ -1139,8 +1233,15 @@ data class ValueRecommendationTest(override var session: UserSession? = null): I
         session, JsonFrameBuilder("""{"@class": "io.opencui.test.ReturnValueTestIntent", "a": 1}""", listOf(session)),
         { String::class },
             {offers -> SlotOffer(offers, "s", "kotlin.String",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "s")
 
@@ -1297,12 +1398,12 @@ data class VCTestIntent(override var session: UserSession? = null): IIntent {
 
     @JsonIgnore
     public var _check_ab: OldValueCheck = OldValueCheck(session, {checkAB()}, listOf(Pair(this, "b")),
-            { SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { "b fails" })) }
+            { SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "b fails" })) }
     )
     @JsonIgnore
     public var _check_abc: ValueCheck = ValueCheck(session, {checkABC()},
         listOf(
-            SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a, b and c fail""" })),
+            SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(Prompt { """a, b and c fail""" })),
             CleanupActionBySlot(listOf(Pair(this, "a"), Pair(this, "b"), Pair(this, "c"))),
             RefocusActionBySlot(this, "a")
         )
@@ -1366,12 +1467,12 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
 
     @JsonIgnore
     public var _check_ab: ValueCheck = ValueCheck(session, {checkAB()}, listOf(
-        SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(LazyEvalPrompt { """b fails""" })),
+        SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, simpleTemplates(Prompt { """b fails""" })),
         CleanupActionBySlot(listOf(Pair(this, "b")))
     ))
     @JsonIgnore
     public var _check_ac: ValueCheck = ValueCheck(session, {checkAC()}, listOf(
-        SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(LazyEvalPrompt { """a and c fails""" })),
+        SlotNotifyFailure(c, "c", "kotlin.Boolean", FailType.VC, simpleTemplates(Prompt { """a and c fails""" })),
         CleanupActionBySlot(listOf(Pair(this, "a"))),
         CleanupActionBySlot(listOf(Pair(this, "c"))),
         RecheckActionBySlot(listOf(Pair(this, "b"))),
@@ -1500,12 +1601,31 @@ data class ValueRecOutlierValueIntent(
     val _rec_s = PagedSelectable<String>(
         session, {recData()}, { String::class },
             {offers -> SlotOffer(offers, "s", "kotlin.String",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 5, target = this, slot = "s", hard = true,
-        valueOutlierPrompt = { SlotOfferOutlier(it, "s", "kotlin.String", simpleTemplates(LazyEvalPrompt { with(it) {with(session!!){"""outlier value: ${value?.name()}"""}}})) },
-        indexOutlierPrompt = { SlotOfferOutlier(it, "s", "kotlin.String", simpleTemplates(LazyEvalPrompt { with(it) { with(session!!) {"""outlier index : ${index}""" }}})) })
+        valueOutlierPrompt = { SlotOfferOutlier(it, "s", "kotlin.String", simpleTemplates(Prompt {
+            with(it) {
+                with(
+                    session!!
+                ) { """outlier value: ${value?.name()}""" }
+            }
+        })) },
+        indexOutlierPrompt = { SlotOfferOutlier(it, "s", "kotlin.String", simpleTemplates(Prompt {
+            with(it) {
+                with(
+                    session!!
+                ) { """outlier index : ${index}""" }
+            }
+        })) })
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf("s" to listOf(
@@ -1547,27 +1667,42 @@ data class TestSepNoIntent(
     val _rec_s = PagedSelectable<String>(
         session, {recData()}, { String::class },
             {offers -> SlotOffer(offers, "s", "kotlin.String",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 5, target = this, slot = "s", hard = true,
         zeroEntryActions = listOf(
             SlotOfferZepInform("s", "kotlin.String", simpleTemplates( { """zero entry for s""" })),
             AbortIntentAction(AbortIntent(session))),
-        singleEntryPrompt = { SlotOfferSepInform(it, "s", "kotlin.String", simpleTemplates(LazyEvalPrompt {"""only ${it} left for s, would u like it?"""})) },
+        singleEntryPrompt = { SlotOfferSepInform(it, "s", "kotlin.String", simpleTemplates(Prompt { """only ${it} left for s, would u like it?""" })) },
         implicit = false, autoFillSwitch = {true})
 
     val _rec_ss = PagedSelectable<String>(
         session, {recData()}, { String::class },
             {offers -> SlotOffer(offers, "ss", "kotlin.collections.List<kotlin.String>",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") {
-                        "(${it})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(", ") {
+                                    "(${it})"
+                                }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 5, target = this, slot = "ss", hard = true,
         zeroEntryActions = listOf(
             SlotOfferZepInform("ss", "kotlin.collections.List<kotlin.String>", simpleTemplates( { """zero entry for ss""" })),
             LazyAction({if (ss != null && ss!!.size >= 1) EndSlot(this, "ss", true) else AbortIntentAction(AbortIntent(session))})),
-        singleEntryPrompt = { SlotOfferSepInform(it, "ss", "kotlin.collections.List<kotlin.String>", simpleTemplates(LazyEvalPrompt {"""only ${it} left for ss, would u like it?"""})) },
+        singleEntryPrompt = { SlotOfferSepInform(it, "ss", "kotlin.collections.List<kotlin.String>", simpleTemplates(
+            Prompt { """only ${it} left for ss, would u like it?""" })) },
         implicit = false, autoFillSwitch = {true}) // explicit confirmation always takes effect
 
     @JsonIgnore
@@ -1581,9 +1716,11 @@ data class TestSepNoIntent(
                     if (ss == null || ss!!.isEmpty()) simpleTemplates( { """ss?""" })
                     else simpleTemplates( { """else ss?""" }) },
                 MinMaxAnnotation(1,
-                        { SlotNotifyFailure(ss, "ss", "kotlin.collections.List<kotlin.String>", FailType.MIN, simpleTemplates(LazyEvalPrompt { "size = ${ss!!.size} less than 1" })) },
+                        { SlotNotifyFailure(ss, "ss", "kotlin.collections.List<kotlin.String>", FailType.MIN, simpleTemplates(
+                            Prompt { "size = ${ss!!.size} less than 1" })) },
                         3,
-                        { SlotNotifyFailure(ss, "ss", "kotlin.collections.List<kotlin.String>", FailType.MAX, simpleTemplates(LazyEvalPrompt { "size = ${ss!!.size} greater than 3" })) }
+                        { SlotNotifyFailure(ss, "ss", "kotlin.collections.List<kotlin.String>", FailType.MAX, simpleTemplates(
+                            Prompt { "size = ${ss!!.size} greater than 3" })) }
                 ),
                 ValueRecAnnotation({_rec_ss})
             )
@@ -1898,7 +2035,15 @@ data class ContextBasedRecIntent(
         ),
         { ContextBasedRecFrame::class },
             {offers -> SlotOffer(offers, "f", "io.opencui.test.ContextBasedRecFrame",
-                    simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") { "(${it.a};${it.b})" }}."""}})))
+                    simpleTemplates(listOf(Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices: ${
+                                offers.joinToString(
+                                    ", "
+                                ) { "(${it.a};${it.b})" }
+                            }."""
+                        }
+                    })))
             },
         pageSize = 2, target = this, slot = "f")}
 
@@ -1936,9 +2081,18 @@ data class SlotDoubleConfirmTestIntent(
         session, { listOf("a") },
         { String::class },
         {offers -> SlotOffer(offers, "slot", "kotlin.String",
-            simpleTemplates(listOf(LazyEvalPrompt {with(session){"""We have following ${offers.size} choices: ${offers.joinToString(", ") { it }}."""}})))
+            simpleTemplates(listOf(Prompt {
+                with(session) {
+                    """We have following ${offers.size} choices: ${
+                        offers.joinToString(
+                            ", "
+                        ) { it }
+                    }."""
+                }
+            })))
         },
-        pageSize = 2, target = this, slot = "slot", hard = true, singleEntryPrompt = { SlotOfferSepInform(it, "slot", "kotlin.String", listOf(this), simpleTemplates(LazyEvalPrompt {"we only have $it; we chose it for u"})) }, implicit = true)}
+        pageSize = 2, target = this, slot = "slot", hard = true, singleEntryPrompt = { SlotOfferSepInform(it, "slot", "kotlin.String", listOf(this), simpleTemplates(
+            Prompt { "we only have $it; we chose it for u" })) }, implicit = true)}
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
@@ -1959,7 +2113,7 @@ data class SlotDoubleConfirmTestIntent(
 
     @JsonIgnore
     var confirmSlot: Confirmation = Confirmation(session, this, "slot",
-        { SlotConfirm(slot, "slot", "kotlin.String", listOf(this), simpleTemplates(LazyEvalPrompt {"""r u sure of slot value $slot"""})) })
+        { SlotConfirm(slot, "slot", "kotlin.String", listOf(this), simpleTemplates(Prompt { """r u sure of slot value $slot""" })) })
 
     override fun searchConfirmation(slot: String): IFrame? {
         return when (slot) {
