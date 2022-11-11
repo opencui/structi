@@ -38,41 +38,33 @@ interface Annotation: Serializable {
 // There are map from channel to string generator, string generator has types (dialog act).
 // Actions are language independent.
 
-interface IPrompt: () -> String, Serializable
-
-interface ICondition: () -> Boolean, Serializable
-
-data class LazyEvalPrompt (
+data class Prompt(
     private val f: () -> String
-) : IPrompt {
-    constructor(s: String): this(  {s} )
-    override fun invoke() = f()
+) : () -> String, Serializable {
+    override fun invoke(): String = f()
 }
 
-data class LazyEvalCondition (
-    private val f: () -> Boolean
-): ICondition {
-
-    override fun invoke() = f()
+data class Condition(private val f: () -> Boolean): () -> Boolean, Serializable {
+    override fun invoke(): Boolean = f()
 }
 
 
 // This has two sides: how it is used and how it is created, and also just a type.
-data class Templates(val channelPrompts: Map<String, List<IPrompt>>): Serializable {
-    constructor(prompts: List<IPrompt>): this(mapOf(SideEffect.RESTFUL to prompts))
-    constructor(vararg pprompts: IPrompt) : this(pprompts.asList())
-    fun pick(channel: String = SideEffect.RESTFUL): IPrompt {
-        val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return LazyEvalPrompt { "" }
-        return if (prompts.isNotEmpty()) prompts.random() else LazyEvalPrompt { "" }
+data class Templates(val channelPrompts: Map<String, List<Prompt>>): Serializable {
+    constructor(prompts: List<Prompt>): this(mapOf(SideEffect.RESTFUL to prompts))
+    constructor(vararg pprompts: Prompt) : this(pprompts.asList())
+    fun pick(channel: String = SideEffect.RESTFUL): Prompt {
+        val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return Prompt { "" }
+        return if (prompts.isNotEmpty()) prompts.random() else Prompt { "" }
     }
 }
 
 fun defaultTemplate() = Templates(mapOf())
-fun simpleTemplates(vararg pprompts: IPrompt) = Templates(pprompts.asList())
-fun simpleTemplates(promptList: List<IPrompt>) = Templates(promptList)
-fun simpleTemplates(vararg texts: String) = Templates(texts.asList().map{ LazyEvalPrompt{it} })
-fun simpleTemplates(vararg ops: () -> String) = Templates(ops.asList().map{ LazyEvalPrompt(it) })
-fun simpleTemplates(channelPrompts: Map<String, List<IPrompt>>) = Templates(channelPrompts)
+fun simpleTemplates(vararg pprompts: Prompt) = Templates(pprompts.asList())
+fun simpleTemplates(promptList: List<Prompt>) = Templates(promptList)
+fun simpleTemplates(vararg texts: String) = Templates(texts.asList().map{ Prompt { it } })
+fun simpleTemplates(vararg ops: () -> String) = Templates(ops.asList().map { Prompt(it) })
+fun simpleTemplates(channelPrompts: Map<String, List<Prompt>>) = Templates(channelPrompts)
 
 fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
     return {dialogActGen(source())}
@@ -124,7 +116,7 @@ data class NeverAsk(val condition: Boolean = true): AskStrategy {
     }
 }
 
-data class ConditionalAsk(val condition: ICondition): AskStrategy {
+data class ConditionalAsk(val condition: Condition): AskStrategy {
     override fun canEnter(): Boolean {
         return condition()
     }
