@@ -42,13 +42,6 @@ interface IPrompt: () -> String, Serializable
 
 interface ICondition: () -> Boolean, Serializable
 
-// codegen needs this for DialogAct
-data class StaticPrompt (
-        private val s: String
-) : IPrompt {
-    override fun invoke() = s
-}
-
 data class LazyEvalPrompt (
     private val f: () -> String
 ) : IPrompt {
