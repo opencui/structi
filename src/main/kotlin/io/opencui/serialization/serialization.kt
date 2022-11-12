@@ -75,6 +75,8 @@ fun ValueNode.content() : String {
 
 interface Converter<T>: Serializable {
     operator fun invoke(o: JsonElement?) : T
+
+    val isEntity: Boolean
 }
 
 fun deserializeInternalEntity(node: JsonNode, defaultClass: String): InternalEntity {
@@ -154,18 +156,6 @@ object Json {
         return mapper.treeToValue(jn, clazz.java) as T
     }
 
-    fun <T> getListConverter(svConverter: Converter<T>): Converter<List<T>> {
-        return object : Converter<List<T>> {
-            override fun invoke(o: JsonElement?): List<T> {
-                if (o == null || o !is ArrayNode) {
-                    return listOf()
-                }
-                return o.map { svConverter(it) }
-            }
-            override fun toString() : String { return "FrameConverter"}
-        }
-    }
-
     fun <T> getFrameConverter(session: UserSession?, clazz: Class<T>): Converter<T> {
         return object : Converter<T> {
             override fun invoke(o: JsonElement?): T {
@@ -181,6 +171,8 @@ object Json {
                 }
                 return res
             }
+
+            override val isEntity: Boolean = false
             override fun toString() : String { return "FrameConverter"}
         }
     }
@@ -208,11 +200,13 @@ object Json {
                 tmpMapper.typeFactory = tmpMapper.typeFactory.withClassLoader(clazz.classLoader)
                 return tmpMapper.treeToValue(finalNode, clazz)
             }
+
+            override val isEntity: Boolean = true
             override fun toString() : String { return "EntityConverter"}
         }
     }
 
-    fun <T> getInterfaceConverter(session: UserSession): Converter<T> {
+    fun <T> getInterfaceConverter(session: UserSession, clazz: Class<T>): Converter<T> {
         return object : Converter<T> {
             override fun invoke(o: JsonElement?): T {
                 if (o == null) {
@@ -229,13 +223,15 @@ object Json {
                 }
                 return res
             }
+
+            override val isEntity: Boolean = InternalEntity::class.java.isAssignableFrom(clazz)
             override fun toString() : String { return "InterfaceConverter"}
         }
     }
 
     fun <T> getConverter(session: UserSession?, clazz: Class<T>): Converter<T> {
         return if (clazz.isInterface && InternalEntity::class.java.isAssignableFrom(clazz)) {
-            getInterfaceConverter(session!!)
+            getInterfaceConverter(session!!, clazz)
         } else if (IFrame::class.java.isAssignableFrom(clazz)) {
             getFrameConverter(session, clazz)
         } else {

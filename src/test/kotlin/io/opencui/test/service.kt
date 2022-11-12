@@ -91,11 +91,11 @@ data class MobileServiceTemplateImpl(override var session: UserSession?, overrid
 data class IntentSuggestionServiceTemplateImpl(override var session: UserSession?, override var provider: IConnection?): IIntentSuggestionService, ITemplatedProvider{
     override fun searchIntents(): List<IIntent> {
         val sql = """select "@class" as "@class", current_node as current from intents where node_state = 'root'"""
-        return (provider as IConnection).mvInvoke(mapOf(), mapOf(), sql, Json.getInterfaceConverter(session!!))
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf(), sql, Json.getInterfaceConverter(session!!, IIntent::class.java))
     }
     override fun searchIntentsByCurrent(current: InternalNode?): List<IIntent> {
         val sql = """select "@class" as "@class", current_node as current from intents where node_state = '${current}'"""
-        return (provider as IConnection).mvInvoke(mapOf(), mapOf("current" to current), sql, Json.getInterfaceConverter(session!!))
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf("current" to current), sql, Json.getInterfaceConverter(session!!, IIntent::class.java))
     }
 
     companion object: ExtensionBuilder<IIntentSuggestionService> {
