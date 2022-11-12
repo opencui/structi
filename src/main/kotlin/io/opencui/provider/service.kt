@@ -13,13 +13,19 @@ interface Closable {
 }
 
 interface IConnection: Closable {
-    fun <T> invoke(
+    fun <T> svInvoke(
         functionMeta: Map<String, String>,
         context: Map<String, Any?>,
         body: String,
-        converter: Converter<T>,
-        isList: Boolean = false
+        converter: Converter<T>
     ): T
+
+    fun <T> mvInvoke(
+        functionMeta: Map<String, String>,
+        context: Map<String, Any?>,
+        body: String,
+        converter: Converter<T>
+    ): List<T>
 }
 
 // Templated provider will have connection.
@@ -53,8 +59,10 @@ data class SqlConnection(val cfg: Configuration) : IConnection {
         }
     }
 
+
+
     @Throws(ProviderInvokeException::class)
-    override fun <T> invoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String, converter: Converter<T>, isList: Boolean): T {
+    fun invoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String): ArrayNode {
         val results = mutableListOf<JsonNode>()
         try {
             val stmt = dbConn.createStatement()
@@ -85,16 +93,23 @@ data class SqlConnection(val cfg: Configuration) : IConnection {
         }
         val result = ArrayNode(JsonNodeFactory.instance, results)
         logger.debug("Sql Provider result : ${result.toPrettyString()}")
+        return result
+    }
 
-        return if (isList) {
-            converter(result)
-        } else {
-            if (result.isEmpty) {
-                converter(null)
-            } else {
-                converter(result[0])
-            }
-        }
+
+
+    @Throws(ProviderInvokeException::class)
+    override fun <T> svInvoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String, converter: Converter<T>): T {
+        val result = invoke(functionMeta, context, body)
+        return if (result.isEmpty) { converter(null) } else { converter(result[0]) }
+    }
+
+    @Throws(ProviderInvokeException::class)
+    override fun <T> mvInvoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String, converter: Converter<T>): List<T> {
+        val result = invoke(functionMeta, context, body)
+        val results = mutableListOf<T>()
+        result.map { results.add(converter(it)) }
+        return results
     }
 
     override fun close() {

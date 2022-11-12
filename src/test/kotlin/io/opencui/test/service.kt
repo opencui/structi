@@ -37,19 +37,19 @@ interface IDishService: IService {
 data class VacationServiceTemplateImpl(override var session: UserSession?, override var provider: IConnection?): IVacationService, ITemplatedProvider{
     override fun search_flight(origin: String?, destination: String?): List<String> {
         val sql = """select flight as flight from flight where origin = '${origin}' and destination = '${destination}'"""
-        return (provider as IConnection).invoke(mapOf(), mapOf("origin" to origin, "destination" to destination), sql, Json.getListConverter(Json.getEntityConverter(String::class.java)), isList = true)
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf("origin" to origin, "destination" to destination), sql, Json.getEntityConverter(String::class.java))
     }
     override fun searchHotel(): List<Hotel> {
         val sql = """select hotel as hotel, city as city from hotel"""
-        return (provider as IConnection).invoke(mapOf(), mapOf(), sql, Json.getListConverter(Json.getFrameConverter(session, Hotel::class.java)), isList = true)
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf(), sql, Json.getFrameConverter(session, Hotel::class.java))
     }
     override fun searchHotelByCity(city: String?): List<String> {
         val sql = """select hotel as hotel from hotel where city = '${city}'"""
-        return (provider as IConnection).invoke(mapOf(), mapOf("city" to city), sql, Json.getListConverter(Json.getEntityConverter(String::class.java)), isList = true)
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf("city" to city), sql, Json.getEntityConverter(String::class.java))
     }
     override fun hotel_address(hotel: Hotel?): HotelAddress {
         val sql = """select address from hotel_address where hotel = '${hotel?.hotel}'"""
-        return (provider as IConnection).invoke(mapOf(), mapOf("hotel" to hotel), sql, Json.getFrameConverter(session, HotelAddress::class.java), isList = false)
+        return (provider as IConnection).svInvoke(mapOf(), mapOf("hotel" to hotel), sql, Json.getFrameConverter(session, HotelAddress::class.java))
     }
 
     companion object : ExtensionBuilder<IVacationService> {
@@ -63,24 +63,21 @@ data class VacationServiceTemplateImpl(override var session: UserSession?, overr
 data class MobileServiceTemplateImpl(override var session: UserSession?, override var provider: IConnection?): IMobileService, ITemplatedProvider {
     override fun search_mobile(cellphone: String?): List<Mobile> {
         val sql = """select id, amount from mobile where cellphone = '${cellphone}'"""
-        return (provider as IConnection).invoke(
+        return (provider as IConnection).mvInvoke(
             mapOf(),
             mapOf(),
             sql,
-            Json.getListConverter(Json.getFrameConverter(session, Mobile::class.java)),
-            isList = true
+            Json.getFrameConverter(session, Mobile::class.java)
         )
     }
 
     override fun search_cellphone(name: String?): List<MobileWithAdvancesForMapping> {
         val sql = """select id, cellphoneMapping from cellphone where nameMapping = '${name}'"""
-        return (provider as IConnection).invoke(
+        return (provider as IConnection).mvInvoke(
             mapOf(),
             mapOf("name" to name),
             sql,
-            Json.getListConverter(Json.getFrameConverter(session, MobileWithAdvancesForMapping::class.java)),
-            isList = true
-        )
+            Json.getFrameConverter(session, MobileWithAdvancesForMapping::class.java))
     }
 
     companion object : ExtensionBuilder<IMobileService> {
@@ -94,11 +91,11 @@ data class MobileServiceTemplateImpl(override var session: UserSession?, overrid
 data class IntentSuggestionServiceTemplateImpl(override var session: UserSession?, override var provider: IConnection?): IIntentSuggestionService, ITemplatedProvider{
     override fun searchIntents(): List<IIntent> {
         val sql = """select "@class" as "@class", current_node as current from intents where node_state = 'root'"""
-        return (provider as IConnection).invoke(mapOf(), mapOf(), sql, Json.getListConverter(Json.getInterfaceConverter(session!!)),isList = true)
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf(), sql, Json.getInterfaceConverter(session!!))
     }
     override fun searchIntentsByCurrent(current: InternalNode?): List<IIntent> {
         val sql = """select "@class" as "@class", current_node as current from intents where node_state = '${current}'"""
-        return (provider as IConnection).invoke(mapOf(), mapOf("current" to current), sql, Json.getListConverter(Json.getInterfaceConverter(session!!)),isList = true)
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf("current" to current), sql, Json.getInterfaceConverter(session!!))
     }
 
     companion object: ExtensionBuilder<IIntentSuggestionService> {
@@ -114,7 +111,7 @@ data class DishServiceTemplateImpl(override var session: UserSession?, override 
 
     override fun recDish(): List<Dish> {
         val sql = """select dish as dish from dish"""
-        return (provider as IConnection).invoke(mapOf(), mapOf(), sql, Json.getListConverter(Json.getEntityConverter(Dish::class.java)),isList = true)
+        return (provider as IConnection).mvInvoke(mapOf(), mapOf(), sql, Json.getEntityConverter(Dish::class.java))
     }
 
     companion object: ExtensionBuilder<IDishService> {
