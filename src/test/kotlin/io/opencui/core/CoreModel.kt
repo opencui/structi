@@ -58,8 +58,8 @@ data class IntentSuggestion(override var session: UserSession? = null
     var recommendation: PagedSelectable<IntentSuggestion> = PagedSelectable(
         session, {getSuggestions()}, { IntentSuggestion::class },
         {offers -> SlotOffer(offers, "this", "io.opencui.core.IntentSuggestion",
-                simpleTemplates(listOf(Prompt {"""We have following ${offers.size} choices for intents : ${offers.joinToString(", ") {
-            "(${it.intentPackage}, ${it.intentName})" }}."""})))
+                simpleTemplates({"""We have following ${offers.size} choices for intents : ${offers.joinToString(", ") {
+            "(${it.intentPackage}, ${it.intentName})" }}."""}))
         },
         target = this, slot = "")
 
@@ -143,8 +143,8 @@ data class ValueClarification<T: Any>(
     override fun _rec_target(it: T?): PagedSelectable<T> = PagedSelectable(
         session,  {source}, getClass,
         {offers -> SlotOffer(offers, "target", getClass().qualifiedName!!,
-                    simpleTemplates(listOf(Prompt {with(session!!){"""by ${targetSlotAlias()}, which do you mean: ${offers.joinToString(", ") {
-                        "(${it.name()})" }}."""}})))
+                    simpleTemplates({with(session!!){"""by ${targetSlotAlias()}, which do you mean: ${offers.joinToString(", ") {
+                        "(${it.name()})" }}."""}}))
         },
         pageSize = 5, target = this, slot = "target")
 

@@ -286,7 +286,7 @@ data class AbstractEntityIntent(
     val recommendation = PagedSelectable<Dish>(
         session, {dishService.recDish()}, { Dish::class },
         {offers -> SlotOffer(offers, "dish", "io.opencui.test.Dish",
-            simpleTemplates(listOf(Prompt {
+            simpleTemplates(Prompt {
                 with(session) {
                     """We have following ${offers.size} choices: ${
                         offers.joinToString(", ") {
@@ -294,13 +294,13 @@ data class AbstractEntityIntent(
                         }
                     }."""
                 }
-            })))
+            }))
         },
         pageSize = 5, target = this, slot = "dish")
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf("dish" to listOf(
-        SlotPromptAnnotation(listOf(SlotRequest("dish", "io.opencui.test.Dish", simpleTemplates("What would u like?")))),
+        SlotPromptAnnotation(listOf(SlotRequest("dish", "io.opencui.test.Dish", simpleTemplates({"What would u like?"})))),
         ValueRecAnnotation({recommendation}, false)
     ))
 

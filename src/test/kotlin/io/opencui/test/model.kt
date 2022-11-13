@@ -30,7 +30,7 @@ data class PayMethod(@get:JsonIgnore var value: String): Serializable {
         fun createRecFrame(session: UserSession, target: IFrame? = null, slot: String? = null): PagedSelectable<PayMethod> {
             return PagedSelectable(session, { getAllInstances() },  { PayMethod::class },
                 {offers -> SlotOffer(offers, "this", "io.opencui.test.PayMethod",
-                        simpleTemplates(listOf(Prompt {
+                        simpleTemplates(Prompt {
                             with(session) {
                                 """We have following ${offers.size} choices for PayMethod : ${
                                     offers.joinToString(
@@ -38,7 +38,7 @@ data class PayMethod(@get:JsonIgnore var value: String): Serializable {
                                     ) { it.name() }
                                 }."""
                             }
-                        })))
+                        }))
                 },
                 target = target, slot = slot, implicit = false)
         }
@@ -85,13 +85,16 @@ data class Fever(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "duration" to listOf(
-            SlotPromptAnnotation(listOf( SlotRequest("duration", "kotlin.Int", simpleTemplates("How long did it last?"))))
+            SlotPromptAnnotation(
+                SlotRequest("duration", "kotlin.Int", simpleTemplates({"How long did it last?"})))
         ),
         "degree" to listOf(
-            SlotPromptAnnotation(listOf( SlotRequest("degree", "kotlin.Int", simpleTemplates("What is your temperature?"))))
+            SlotPromptAnnotation(
+                SlotRequest("degree", "kotlin.Int", simpleTemplates({"What is your temperature?"})))
         ),
         "cause" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("cause", "kotlin.String", simpleTemplates("what is the cause for it?"))))
+            SlotPromptAnnotation(
+                SlotRequest("cause", "kotlin.String", simpleTemplates({"what is the cause for it?"})))
         )
     )
 
@@ -123,13 +126,16 @@ data class Headache(override var session: UserSession? = null
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "duration" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("duration", "kotlin.Int", simpleTemplates("How long did it last?"))))
+            SlotPromptAnnotation(
+                SlotRequest("duration", "kotlin.Int", simpleTemplates({"How long did it last?"})))
         ),
         "cause" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("cause", "kotlin.String", simpleTemplates("What is the cause for it?"))))
+            SlotPromptAnnotation(
+                SlotRequest("cause", "kotlin.String", simpleTemplates({"What is the cause for it?"})))
         ),
         "part" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("part", "kotlin.String", simpleTemplates("which part of head?"))))
+            SlotPromptAnnotation(
+                SlotRequest("part", "kotlin.String", simpleTemplates({"which part of head?"})))
         )
     )
 
@@ -161,13 +167,16 @@ data class Person(override var session: UserSession? = null
     @JsonIgnore
     override val annotations = mapOf(
         "name" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("name", "kotlin.String", simpleTemplates("What is your name?"))))
+            SlotPromptAnnotation(
+                SlotRequest("name", "kotlin.String", simpleTemplates({"What is your name?"})))
         ),
         "age" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("age", "kotlin.Int", simpleTemplates("How old are you?"))))
+            SlotPromptAnnotation(
+                SlotRequest("age", "kotlin.Int", simpleTemplates({"How old are you?"})))
         ),
         "height" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("height", "kotlin.Int", simpleTemplates("How tall are you?"))))
+            SlotPromptAnnotation(
+                SlotRequest("height", "kotlin.Int", simpleTemplates({"How tall are you?"})))
         )
     )
 
@@ -206,29 +215,33 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
         session, {mobileService.search_cellphone(name).map { MobileWithAdvances.from(it) }},
         { MobileWithAdvances::class },
         {offers -> SlotOffer(offers, "cellphone", "kotlin.String",
-                simpleTemplates(listOf(Prompt {
-                    with(session) {
-                        """We have following ${offers.size} choices for cellphones : ${
-                            offers.joinToString(", ") {
-                                "(${it.id}, ${it.cellphone})"
-                            }
-                        }."""
-                    }
-                })))
+                simpleTemplates(
+                    Prompt {
+                        with(session) {
+                            """We have following ${offers.size} choices for cellphones : ${
+                                offers.joinToString(", ") {
+                                    "(${it.id}, ${it.cellphone})"
+                                }
+                            }."""
+                        }
+                }))
         },
             target = this, slot = "", hard = true)
 
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "id" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("id", "kotlin.Int", simpleTemplates("What is your id?"))))
+            SlotPromptAnnotation(
+                SlotRequest("id", "kotlin.Int", simpleTemplates({"What is your id?"})))
         ),
         "cellphone" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number? (MobileWithAdvances)")))),
+            SlotPromptAnnotation(
+                SlotRequest("cellphone", "kotlin.String", simpleTemplates({"What is your cell number? (MobileWithAdvances)"}))),
             ValueRecAnnotation({recommendation}, false)
         ),
         "name" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("name", "kotlin.String", simpleTemplates("What is your name (MobileWithAdvances)?")))),
+            SlotPromptAnnotation(
+                SlotRequest("name", "kotlin.String", simpleTemplates({"What is your name (MobileWithAdvances)?"}))),
             ValueCheckAnnotation(OldValueCheck(session, {mobileService.search_cellphone(name).isNotEmpty()}, listOf(Pair(this, "name")),
                 { SlotNotifyFailure(name, "name", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "your name has not been attached to a cellphone, let's try it again." })) }
             ))
@@ -281,9 +294,12 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
 
     @JsonIgnore
     val recommendation: PagedSelectable<Mobile> = PagedSelectable(
-        session, {mobileService.search_mobile(cellphone)}, {Mobile::class},
-            {offers -> SlotOffer(offers, "amount", "kotlin.Float",
-                    simpleTemplates(listOf(Prompt {
+        session,
+        {mobileService.search_mobile(cellphone)},
+        {Mobile::class},
+        {offers -> SlotOffer(offers, "amount", "kotlin.Float",
+                simpleTemplates(
+                    Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -291,17 +307,19 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
                                 }
                             }."""
                         }
-                    })))
-            },
-            target = this, slot = "")
+                }))
+        },
+        target = this, slot = "")
 
     @JsonIgnore
     override val annotations = mapOf<String, List<Annotation>>(
         "id" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("id", "kotlin.String", simpleTemplates("What is your id?"))))
+            SlotPromptAnnotation(
+                SlotRequest("id", "kotlin.String", simpleTemplates({"What is your id?"})))
         ),
         "cellphone" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?")))),
+            SlotPromptAnnotation(
+                SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?"))),
             ValueCheckAnnotation(OldValueCheck(session, {mobileService.search_mobile(cellphone).isNotEmpty()}, listOf(Pair(this, "cellphone")),
                 { SlotNotifyFailure(cellphone, "cellphone", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "your cellphone number is not correct, let's try it again." })) }
             ))),
@@ -377,7 +395,8 @@ data class Hotel(override var session: UserSession? = null
         session, JsonFrameBuilder("""{"@class": "io.opencui.test.HotelSuggestionIntent"}""", constructorParameters = listOf(session), slotAssignments = mapOf("city" to {city}, "hotel" to {this})),
         {String::class},
         {offers -> SlotOffer(offers, "hotel", "kotlin.String",
-                simpleTemplates(listOf(Prompt {
+                simpleTemplates(
+                    Prompt {
                     with(session) {
                         """We have following ${offers.size} choices: ${
                             offers.joinToString(", ") {
@@ -385,7 +404,7 @@ data class Hotel(override var session: UserSession? = null
                             }
                         }."""
                     }
-                })))
+                }))
         },
             pageSize = 2, target = this@Hotel, slot = "hotel", hard = true)}
 
@@ -613,7 +632,8 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
     var recommendation: PagedSelectable<String> = PagedSelectable(session, {vacationService.search_flight(origin, destination)}, {String::class},
             {offers -> SlotOffer(offers, "this", "io.opencui.test.PayMethod",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(
+                        Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -621,7 +641,7 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
             target = this, slot = "flight", hard = true)
 
@@ -982,7 +1002,8 @@ data class WeakRecommendation(override var session: UserSession? = null
     @JsonIgnore
     var recommendation: PagedSelectable<WeakRecommendation> = PagedSelectable(session, {getSuggestions()}, {WeakRecommendation::class},
             {offers -> SlotOffer(offers, "this", "io.opencui.test.WeakRecommendation",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(
+                        Prompt {
                         with(session) {
                             """We have following ${offers.size} choices for intents : ${
                                 offers.joinToString(", ") {
@@ -990,7 +1011,7 @@ data class WeakRecommendation(override var session: UserSession? = null
                                 }
                             }."""
                         }
-                    })))
+                    }))
             }, target = this, slot = "")
     @JsonIgnore
     val recPayMethod = PayMethod.createRecFrame(session!!, this, "payMethod")
@@ -1325,7 +1346,8 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
     var _rec_frame: PagedSelectable<ValueRecInteractionFrame> = PagedSelectable(
         session,  {recData()}, {ValueRecInteractionFrame::class},
             {offers -> SlotOffer(offers, "targetFrame", "io.opencui.test.ValueRecInteractionFrame",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(
+                        Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(
@@ -1333,7 +1355,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
                                 ) { "(${it.b}; ${it.c})" }
                             }."""
                         }
-                    })))
+                    }))
             },
         target = this, slot = "targetFrame", hard = false,
         zeroEntryActions = listOf(SlotOfferZepInform("targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(
@@ -1385,7 +1407,7 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
 
     var recommendation: PagedSelectable<Hotel> = PagedSelectable(session,  {recData()}, {Hotel::class},
             {offers -> SlotOffer(offers, "hotel", "io.opencui.test.Hotel",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1393,7 +1415,7 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
             target = this, slot = "hotel")
     @JsonIgnore
@@ -1503,7 +1525,8 @@ data class Main(
 
     var recommendation: PagedSelectable<IIntent> = PagedSelectable(session, {searchIntentsService.searchIntents()}, {IIntent::class},
             {offers -> SlotOffer(offers, "skills", "kotlin.collections.List<io.opencui.core.IIntent>",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(
+                        Prompt {
                         with(session!!) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1511,7 +1534,7 @@ data class Main(
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
             target = this, slot = "skills")
 

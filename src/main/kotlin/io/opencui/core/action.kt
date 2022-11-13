@@ -540,36 +540,8 @@ data class IntentAction(
     }
 }
 
-open class TextOutputAction (
-        val dialogActGen: () -> DialogAct
-) : SchemaAction {
-    override fun run(session: UserSession): ActionResult {
-        val success = true
-        val dialogAct = dialogActGen()
-        return ActionResult(
-                listOf(dialogAct),
-                createLog(dialogAct.templates.pick().invoke()),
-                success
-        )
-    }
-}
-
-// This is useful to delay the evaluation.
 
 
-open class TextListOutputAction(
-    val dialogActGen: () -> DialogAct
-) : SchemaAction {
-    override fun run(session: UserSession): ActionResult {
-        val success = true
-        val dialogAct = dialogActGen()
-        return ActionResult(
-            listOf(dialogAct),
-            createLog(dialogAct.templates.pick().invoke()),
-            success
-        )
-    }
-}
 
 // TODO(xiaoyun): separate execution path for composite action later.
 open class SeqAction(val actions: List<Action>): CompositeAction {

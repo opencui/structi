@@ -66,7 +66,7 @@ data class MultiValueFrameRecIntent(override var session: UserSession? = null): 
     val recommendation = PagedSelectable<Hotel>(
         session, {recHotels.vacationService.searchHotel()}, { Hotel::class },
             {offers -> SlotOffer(offers, "hotels", "kotlin.collections.List<io.opencui.test.Hotel>",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -74,7 +74,7 @@ data class MultiValueFrameRecIntent(override var session: UserSession? = null): 
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "hotels")
 
@@ -143,7 +143,7 @@ data class InternalNodeIntent(
     var recommendation: PagedSelectable<IIntent> = PagedSelectable(
         session, {searchIntentsService.searchIntentsByCurrent(current)}, { IIntent::class },
             {offers -> SlotOffer(offers, "skill", "io.opencui.core.IIntent",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session!!) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -151,7 +151,7 @@ data class InternalNodeIntent(
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         target = this, slot = "skill")
 
@@ -297,7 +297,7 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
     val _rec_b = PagedSelectable<Int>(
         session, {recInt()}, { Int::class },
             {offers -> SlotOffer(offers, "b", "kotlin.Int",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices for you : ${
                                 offers.joinToString(", ") {
@@ -305,7 +305,7 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         target = this, slot = "b", hard = true,
         singleEntryPrompt = { SlotOfferSepInform(it, "b", "kotlin.Int", simpleTemplates(Prompt { "sep confirmation b=${it}, contextC=${c}" })) }
@@ -373,7 +373,7 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
     val _rec_b = PagedSelectable<Int>(
         session, {recInt()}, { Int::class },
             {offers -> SlotOffer(offers, "b", "kotlin.Int",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices for you : ${
                                 offers.joinToString(", ") {
@@ -381,7 +381,7 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         target = this, slot = "b", hard = true,
         singleEntryPrompt = { SlotOfferSepInform(it, "b", "kotlin.Int", simpleTemplates(Prompt { "sep confirmation b=${it}, contextC=${c}" })) },
@@ -496,7 +496,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
     val rec = PagedSelectable(
         session, {recData()}, { PayMethod::class },
             {offers -> SlotOffer(offers, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session!!) {
                             """We have following ${offers.size} choices for PayMethod : ${
                                 offers.joinToString(", ") {
@@ -504,7 +504,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         target = this, slot = "payMethodList", hard = true, zeroEntryActions = listOf(),
         singleEntryPrompt = { SlotOfferSepInform(it, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>", simpleTemplates(
@@ -840,7 +840,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_citySoft = {it: City? -> PagedSelectable<City>(
         session, {zeroEntry(it)}, { City::class },
             {offers -> SlotOffer(offers, "citySoft", "io.opencui.test.City",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -848,7 +848,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "citySoft", hard = false,
         zeroEntryActions = listOf(SlotOfferZepInform("citySoft", "io.opencui.test.City", simpleTemplates({ """zero entry for citySoft""" }))))}
@@ -857,7 +857,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_cityHard = {it: City? -> PagedSelectable<City>(
         session, {zeroEntryForHard(it)}, { City::class },
             {offers -> SlotOffer(offers, "cityHard", "io.opencui.test.City",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -865,7 +865,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "cityHard", hard = true,
         zeroEntryActions = listOf(
@@ -876,7 +876,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_citiesSoft = {it: City? -> PagedSelectable<City>(
         session, {zeroEntry(it)}, { City::class },
             {offers -> SlotOffer(offers, "citiesSoft", "kotlin.collections.List<io.opencui.test.City>",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -884,7 +884,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "citiesSoft", hard = false,
         zeroEntryActions = listOf(SlotOfferZepInform("citiesSoft", "kotlin.collections.List<io.opencui.test.City>", simpleTemplates( {"""zero entry for citiesSoft"""}))))}
@@ -893,7 +893,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     val _rec_citiesHard = {it: City? -> PagedSelectable<City>(
         session, {zeroEntryForMultiValueHard(it)}, { City::class },
             {offers -> SlotOffer(offers, "citiesHard", "kotlin.collections.List<io.opencui.test.City>",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates({
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -901,7 +901,7 @@ data class ZepTestIntent(override var session: UserSession? = null): IIntent {
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "citiesHard", hard = true,
         zeroEntryActions = listOf(
@@ -988,11 +988,11 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
     override val wrongIndexPrompt = {
         SlotNotifyFailure(index, "index", "", FailType.VC,
             simpleTemplates(with(session!!){"""There's no ${index!!.name()} value in ${originalSlot!!.name()}"""})) }
-    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(listOf(
+    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers -> SlotOffer(offers, "index", "", simpleTemplates(
         Prompt {
             offers.withIndex()
                 .joinToString("\n") { with(session!!) { "${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" } }
-        }))) }
+        })) }
 }
 
 
@@ -1017,7 +1017,7 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
     val _rec_cityFrom = {it: City? -> PagedSelectable<City>(
         session, {recs(it)}, { City::class },
             {offers -> SlotOffer(offers, "cityFrom", "io.opencui.test.City",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates(Prompt {
                         with(session!!) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1025,7 +1025,7 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 5, target = this, slot = "cityFrom", hard = true)}
 
@@ -1172,7 +1172,7 @@ data class ReturnValueTestIntent(override var session: UserSession? = null): IIn
     val recommendation = PagedSelectable<Int>(
         session, {recB()}, { Int::class },
             {offers -> SlotOffer(offers, "b", "kotlin.Int",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates({
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1180,7 +1180,7 @@ data class ReturnValueTestIntent(override var session: UserSession? = null): IIn
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "b")
 
@@ -1233,7 +1233,7 @@ data class ValueRecommendationTest(override var session: UserSession? = null): I
         session, JsonFrameBuilder("""{"@class": "io.opencui.test.ReturnValueTestIntent", "a": 1}""", listOf(session)),
         { String::class },
             {offers -> SlotOffer(offers, "s", "kotlin.String",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates({
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1241,7 +1241,7 @@ data class ValueRecommendationTest(override var session: UserSession? = null): I
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "s")
 
@@ -1601,7 +1601,7 @@ data class ValueRecOutlierValueIntent(
     val _rec_s = PagedSelectable<String>(
         session, {recData()}, { String::class },
             {offers -> SlotOffer(offers, "s", "kotlin.String",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates({
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1609,7 +1609,7 @@ data class ValueRecOutlierValueIntent(
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 5, target = this, slot = "s", hard = true,
         valueOutlierPrompt = { SlotOfferOutlier(it, "s", "kotlin.String", simpleTemplates(Prompt {
@@ -1667,7 +1667,7 @@ data class TestSepNoIntent(
     val _rec_s = PagedSelectable<String>(
         session, {recData()}, { String::class },
             {offers -> SlotOffer(offers, "s", "kotlin.String",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates({
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1675,7 +1675,7 @@ data class TestSepNoIntent(
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 5, target = this, slot = "s", hard = true,
         zeroEntryActions = listOf(
@@ -1687,7 +1687,7 @@ data class TestSepNoIntent(
     val _rec_ss = PagedSelectable<String>(
         session, {recData()}, { String::class },
             {offers -> SlotOffer(offers, "ss", "kotlin.collections.List<kotlin.String>",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates( {
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(", ") {
@@ -1695,7 +1695,7 @@ data class TestSepNoIntent(
                                 }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 5, target = this, slot = "ss", hard = true,
         zeroEntryActions = listOf(
@@ -2035,7 +2035,7 @@ data class ContextBasedRecIntent(
         ),
         { ContextBasedRecFrame::class },
             {offers -> SlotOffer(offers, "f", "io.opencui.test.ContextBasedRecFrame",
-                    simpleTemplates(listOf(Prompt {
+                    simpleTemplates({
                         with(session) {
                             """We have following ${offers.size} choices: ${
                                 offers.joinToString(
@@ -2043,7 +2043,7 @@ data class ContextBasedRecIntent(
                                 ) { "(${it.a};${it.b})" }
                             }."""
                         }
-                    })))
+                    }))
             },
         pageSize = 2, target = this, slot = "f")}
 
@@ -2081,7 +2081,7 @@ data class SlotDoubleConfirmTestIntent(
         session, { listOf("a") },
         { String::class },
         {offers -> SlotOffer(offers, "slot", "kotlin.String",
-            simpleTemplates(listOf(Prompt {
+            simpleTemplates({
                 with(session) {
                     """We have following ${offers.size} choices: ${
                         offers.joinToString(
@@ -2089,7 +2089,7 @@ data class SlotDoubleConfirmTestIntent(
                         ) { it }
                     }."""
                 }
-            })))
+            }))
         },
         pageSize = 2, target = this, slot = "slot", hard = true, singleEntryPrompt = { SlotOfferSepInform(it, "slot", "kotlin.String", listOf(this), simpleTemplates(
             Prompt { "we only have $it; we chose it for u" })) }, implicit = true)}
