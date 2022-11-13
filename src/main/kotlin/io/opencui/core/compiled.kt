@@ -138,7 +138,7 @@ data class HasMore(
 ) : IFrame {
 
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     @JsonIgnore
     var status: IStatus? = null
@@ -176,7 +176,7 @@ data class BoolGate(
     val inferFunc: (FrameEvent) -> FrameEvent?) : IFrame {
 
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     @JsonIgnore
     var status: io.opencui.core.booleanGate.IStatus? = null
@@ -213,7 +213,7 @@ enum class FillStateEnum {
 
 data class ActionWrapperIntent(override var session: UserSession? = null, val action: Action): IIntent {
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -244,7 +244,7 @@ data class StitchedIntent<T: IFrame>(
     val eventFrame: T,
     val updateRules: List<UpdateRule>): IIntent {
 
-    override val type = FrameKind.SMALLINTENT
+    override val type = FrameKind.OFINTENT
     override val annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -480,7 +480,7 @@ class EndTopIntent : StateAction {
 
 abstract class AbstractAbortIntent(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.SMALLINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf("intentType" to listOf(RecoverOnly()))
@@ -582,7 +582,7 @@ data class Confirmation(
     val target: IFrame?,
     val slot: String,
     val prompts: () -> DialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
     override var annotations: Map<String, List<Annotation>> = mutableMapOf(
         "status" to listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(Condition { !implicit }))
     )
@@ -627,7 +627,7 @@ data class FreeActionConfirmation(
     val confirmPrompts: () -> DialogAct,
     val actionPrompts: () -> DialogAct,
     val implicit: Boolean = false): IIntent {
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var status: io.opencui.core.confirmation.IStatus? = null
     var action: IIntent? = null
@@ -659,7 +659,7 @@ data class ValueCheck(
     val conditionActionPairs: List<Pair<()->Boolean, List<Action>>>): IIntent {
     constructor(session: UserSession?, checker: () -> Boolean, actions: List<Action>): this(session, listOf(Pair(checker, actions)))
 
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
     override var annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -689,7 +689,7 @@ data class OldValueCheck(
     val toBeCleaned: List<Pair<IFrame?, String?>>,
     val prompts: () -> DialogAct
 ): IIntent {
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
     override var annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -766,7 +766,7 @@ data class MaxValueCheck(
     val maxEntry: Int,
     val prompts: () -> DialogAct
 ): IIntent {
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
     override var annotations: Map<String, List<Annotation>> = mapOf()
 
     val targetSlot: MutableList<*>?
@@ -817,7 +817,7 @@ data class Ordinal(
 
 data class NextPage(override var session: UserSession? = null) : IFrame {
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -834,7 +834,7 @@ data class NextPage(override var session: UserSession? = null) : IFrame {
 
 data class PreviousPage(override var session: UserSession? = null) : IFrame {
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -851,7 +851,7 @@ data class PreviousPage(override var session: UserSession? = null) : IFrame {
 
 data class FilterCandidate(override var session: UserSession? = null) : IFrame {
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     var conditionMapJson: String? = null
 
@@ -871,7 +871,7 @@ data class FilterCandidate(override var session: UserSession? = null) : IFrame {
 
 abstract class ValueRecSourceWrapper(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -888,7 +888,7 @@ abstract class ValueRecSourceWrapper(override var session: UserSession? = null) 
 
 data class BadCandidate<T>(override var session: UserSession? = null, var value: T?) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -906,7 +906,7 @@ data class BadCandidate<T>(override var session: UserSession? = null, var value:
 
 data class BadIndex(override var session: UserSession? = null, var index: Int) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -1129,7 +1129,7 @@ data class PagedSelectable<T: Any> (
     }
 
     @JsonIgnore
-    override val type = FrameKind.SMALLINTENT
+    override val type = FrameKind.OFINTENT
 
     fun findTargetFiller(): AnnotatedWrapperFiller? {
         if (target == null) return null
@@ -1273,7 +1273,7 @@ abstract class AbstractValueClarification<T: Any>(
     open val source: List<T>,
     open var targetFrame: IFrame,
     open var slot: String): IIntent {
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     abstract var target: T?
     abstract fun _rec_target(it: T?): PagedSelectable<T>
@@ -1326,7 +1326,7 @@ data class SlotType(@get:JsonIgnore var value: String) : Serializable {
 }
 
 abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): IIntent {
-    override val type = FrameKind.SMALLINTENT
+    override val type = FrameKind.OFINTENT
 
     var originalSlot: SlotType? = null
     var oldValue: T? = null
@@ -1546,7 +1546,7 @@ class IntentClarification(
 ) : IFrame{
 
     @JsonIgnore
-    override val type: FrameKind = FrameKind.FRAME
+    override val type: FrameKind = FrameKind.OFFRAME
 
     var utterance: String? = null
 

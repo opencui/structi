@@ -14,7 +14,7 @@ import kotlin.reflect.KMutableProperty0
 
 data class MultiValueEntityRecIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
 
     @JsonIgnore
@@ -56,7 +56,7 @@ data class MultiValueEntityRecIntent_0(
 
 data class MultiValueFrameRecIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
 
     @JsonIgnore
@@ -127,7 +127,7 @@ data class InternalNodeIntent(
         override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     var current: InternalNode? = null
     @JsonIgnore
@@ -175,7 +175,7 @@ data class InternalNodeIntent(
 
 data class EntityRecSelection(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var payMethod: PayMethod? = null
 
@@ -207,7 +207,7 @@ data class EntityRecSelection_0(
 
 data class ShowOnceRecommendation(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     val recommendation = PayMethod.createRecFrame(session!!, this, "payMethodList")
@@ -246,7 +246,7 @@ data class ShowOnceRecommendation_0(
 
 data class MultiValueValueCheck(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     fun checker():Boolean {
         return payMethodList!!.firstOrNull { it.value == "visa" } != null
@@ -290,7 +290,7 @@ data class MultiValueValueCheck_0(
 
 data class SepTestIntentExplicit(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
     var a: Boolean? = null
 
     @JsonIgnore
@@ -366,7 +366,7 @@ data class SepTestIntent_0(
 
 data class SepTestIntentImplicit(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
     var a: Boolean? = null
 
     @JsonIgnore
@@ -443,7 +443,7 @@ data class SepTestIntentImplicit_0(
 
 data class MultiValueMinMax(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var payMethodList: MutableList<PayMethod>? = null
 
@@ -485,7 +485,7 @@ data class MultiValueMinMax_0(
 
 data class MultiValueMinMaxWithRec(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var payMethodList: MutableList<PayMethod>? = null
 
@@ -556,7 +556,7 @@ data class MultiValueMinMaxWithRec_0(
 
 data class ValueCheckSwitchTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var a: Int? = null
     var b: Boolean? = null
@@ -617,7 +617,7 @@ data class City(@get:JsonIgnore override var value: String): InternalEntity, Ser
 
 data class CollectCities(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var cities: MutableList<City>? = null
 
@@ -650,7 +650,7 @@ data class CollectCities_0(
 
 data class BookTrain(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var departure: City? = null
     var arrival: City? = null
@@ -690,7 +690,7 @@ data class BookTrain_0(
 
 data class WeatherConsult(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var city: City? = null
 
@@ -731,7 +731,7 @@ data class WeatherConsult_0(
 
 data class BoolGateTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var city: City? = null
     var placeHolder: String? = null
@@ -769,7 +769,7 @@ data class BoolGateTestIntent_0(
 
 data class NeverAskIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var city: City? = null
     var placeHolder: String? = null
@@ -809,7 +809,7 @@ data class NeverAskIntent_0(
 
 data class ZepTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var citySoft: City? = null
 
@@ -998,7 +998,7 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
 
 data class SlotUpdateTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var cityFrom: City? = null
 
@@ -1089,7 +1089,7 @@ data class SlotUpdateTestIntent_0(
 
 data class EarlyTerminationFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     var a: String? = null
     var b: String? = null
@@ -1113,7 +1113,7 @@ data class EarlyTerminationFrame(override var session: UserSession? = null): IFr
 
 data class EarlyTerminationIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     fun earlyTerminationCondition():Boolean {
         return f?.a == "aaa"
@@ -1158,7 +1158,7 @@ data class EarlyTerminationIntent_1(
 
 data class ReturnValueTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var a: Int? = null
     var b: Int? = null
@@ -1224,7 +1224,7 @@ data class ReturnValueTestIntent_0(
 // assuming the recommendation is on s. But it does not seems to be the case.
 data class ValueRecommendationTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var s: String? = null
 
@@ -1275,7 +1275,7 @@ data class ValueRecommendationTest_0(
 
 data class DirectlyFillMultiValueSlotTest(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var payMethodList: MutableList<PayMethod>? = mutableListOf()
     var s: String? = null
@@ -1321,7 +1321,7 @@ data class DirectlyFillMultiValueSlotTest_0(
 
 data class MVEntryConfirmationTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var payMethodList: MutableList<PayMethod>? = mutableListOf()
     var s: String? = null
@@ -1381,7 +1381,7 @@ data class MVEntryConfirmationTestIntent_0(
 
 data class VCTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var a: Int? = null
     var b: String? = null
@@ -1450,7 +1450,7 @@ data class VCTestIntent_0(
 
 data class ValueRecheckTestIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var a: Int? = null
     var b: String? = null
@@ -1512,7 +1512,7 @@ data class ValueRecheckTestIntent_0(
 
 data class UserInit(override var session: UserSession? = null): IKernelIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     var cellPhone: String? = null
     var userName: String? = null
@@ -1545,7 +1545,7 @@ data class MainWithKernelIntent(
         override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     var Greeting: Greeting? = Greeting(session)
 
@@ -1589,7 +1589,7 @@ data class ValueRecOutlierValueIntent(
         override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     fun recData(): List<String> {
         return listOf("a", "b", "c")
@@ -1652,7 +1652,7 @@ data class TestSepNoIntent(
         override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     fun recData(): List<String> {
         return listOf("a")
@@ -1749,7 +1749,7 @@ data class FreeActionConfirmationTestIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     @JsonIgnore
     var s: String? = null
@@ -1791,7 +1791,7 @@ data class SimpleIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     @JsonIgnore
     var s: String? = null
@@ -1821,7 +1821,7 @@ data class MobileWithAdvancesForMapping(@JsonInclude(JsonInclude.Include.NON_NUL
     var id: Int? = null
 
     @JsonIgnore
-    override val type = FrameKind.FRAME
+    override val type = FrameKind.OFFRAME
 
     @JsonIgnore
     override val annotations = mapOf<kotlin.String, List<Annotation>>(
@@ -1849,7 +1849,7 @@ data class ExternalEventContainerIntent(
         override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     var intent: ExternalEventIntent? = ExternalEventIntent(session)
 
@@ -1903,7 +1903,7 @@ data class ExternalEventIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     @JsonIgnore
     var s: String? = null
@@ -1933,7 +1933,7 @@ data class ContextBasedRecFrame(
     override var session: UserSession? = null
 ) : IFrame {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     var a: String? = null
     var b: String? = null
@@ -1961,7 +1961,7 @@ data class ContextBasedRecFrame(
 
 data class RecommendationIntentForContextBasedRec(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var rf: ContextBasedRecFrame? = ContextBasedRecFrame(session)
     var result: MutableList<ContextBasedRecFrame>? = null
@@ -2023,7 +2023,7 @@ data class ContextBasedRecIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     @JsonIgnore
     var f: ContextBasedRecFrame? = ContextBasedRecFrame()
@@ -2071,7 +2071,7 @@ data class SlotDoubleConfirmTestIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     @JsonIgnore
     var slot: String? = null

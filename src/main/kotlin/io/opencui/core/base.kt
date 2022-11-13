@@ -41,9 +41,8 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
 }
 
 enum class FrameKind {
-    FRAME,
-    BIGINTENT,
-    SMALLINTENT,
+    OFFRAME,
+    OFINTENT,
 }
 
 /**

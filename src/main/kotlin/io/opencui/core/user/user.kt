@@ -57,7 +57,7 @@ override var session: UserSession?
     override var channelLabel: String? = null
     @JsonIgnore
     override lateinit var filler: FrameFiller<*>
-    override val type: FrameKind = FrameKind.FRAME
+    override val type: FrameKind = FrameKind.OFFRAME
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = emptyMap()
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {

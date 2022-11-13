@@ -432,7 +432,7 @@ class RuntimeTest {
             """<{"activeFrames":[{"frame":"io.opencui.core.IntentSuggestion","slot":"intentPackage"},{"frame":"io.opencui.core.PagedSelectable","slot":"index"}],"status":"OPEN"}""",
             """>{"query": "4", "frames": [{"type": "IDonotKnowWhatToDo", "slots": [], "packageName": "io.opencui.core"}]}""",
             """<{"type":"UserDefinedInform","payload":"I do not know what to do now."}""",
-            """<null""",
+            """<{"type":"SlotAskAction","payload":"Which package?\nWe have following 2 choices for intents : (io.opencui.test, BookHotel), (io.opencui.core, IDonotKnowWhatToDo)."}""",
         )
         process(intentSuggestionTestCase)
     }

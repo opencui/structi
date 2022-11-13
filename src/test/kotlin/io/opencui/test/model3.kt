@@ -18,7 +18,7 @@ data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val s
 
 data class SoftEarlyTerminationIntent(override var session: UserSession? = null): IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     fun earlyTerminationCondition():Boolean {
         return f?.a == "aaa"
@@ -274,7 +274,7 @@ data class AbstractEntityIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     var dish: Dish? = null
 

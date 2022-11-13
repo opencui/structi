@@ -13,7 +13,7 @@ import kotlin.reflect.full.isSubclassOf
 
 data class IDonotGetIt(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
+    override val type: FrameKind = FrameKind.OFINTENT
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
@@ -35,7 +35,7 @@ data class IDonotGetIt(override var session: UserSession? = null) : IIntent {
 data class IntentSuggestion(override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.SMALLINTENT
+    override val type = FrameKind.OFINTENT
 
     var intentPackage: String? = null
     var intentName: String? = null
@@ -96,7 +96,7 @@ data class IntentSuggestion(override var session: UserSession? = null
 data class IDonotKnowWhatToDo(override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
@@ -160,7 +160,7 @@ data class ValueClarification<T: Any>(
 data class ResumeIntent(override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
+    override val type = FrameKind.OFINTENT
 
     var intent: IIntent? = null
 
@@ -189,7 +189,7 @@ data class ResumeIntent(override var session: UserSession? = null
 // hardcode for clean session
 data class CleanSession(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
-    override val type = FrameKind.SMALLINTENT
+    override val type = FrameKind.OFINTENT
 
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()

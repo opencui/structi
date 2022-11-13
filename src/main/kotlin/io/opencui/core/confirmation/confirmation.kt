@@ -12,7 +12,7 @@ data class Yes(
         override var session: UserSession? = null
 ) : IFrame, IStatus {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.FRAME
+    override val type: FrameKind = FrameKind.OFFRAME
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
@@ -32,7 +32,7 @@ data class No(
         override var session: UserSession? = null
 ) : IFrame, IStatus {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.FRAME
+    override val type: FrameKind = FrameKind.OFFRAME
 
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
