@@ -93,7 +93,7 @@ interface PromptAnnotation : Annotation {
  */
 data class SlotPromptAnnotation(override val actions: List<Action>) : PromptAnnotation {
     // just for convenience of testcase
-    constructor(templates: Templates): this(listOf( SlotRequest("", "", templates) ))
+    constructor(templates: Templates): this( SlotRequest("", "", templates) )
     constructor(vararg acts: Action): this(acts.toList())
 }
 

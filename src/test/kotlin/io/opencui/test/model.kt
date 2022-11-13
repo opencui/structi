@@ -52,8 +52,6 @@ interface ISymptom: IFrame {
 
 data class Symptom(@JsonIgnore @Transient override var session: UserSession? = null) : IFrame, ISymptom {
     @JsonIgnore
-    override val type = FrameKind.FRAME
-    @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = emptyMap()
 
     override var duration: Int? = null
@@ -75,9 +73,6 @@ data class Symptom(@JsonIgnore @Transient override var session: UserSession? = n
 
 data class Fever(override var session: UserSession? = null
 ) : IFrame, ISymptom {
-    @JsonIgnore
-    override val type = FrameKind.FRAME
-
     override var duration: Int? = null
     override var cause: String? = null
     var degree: Int? = null
@@ -116,9 +111,6 @@ data class Fever(override var session: UserSession? = null
 
 data class Headache(override var session: UserSession? = null
 ) : ISymptom, IFrame {
-    @JsonIgnore
-    override val type = FrameKind.FRAME
-
     override var duration: Int? = null
     override var cause: String? = null
     var part: String? = null
@@ -156,8 +148,6 @@ data class Headache(override var session: UserSession? = null
 
 data class Person(override var session: UserSession? = null
 ) : ISingleton {
-    @JsonIgnore
-    override val type = FrameKind.FRAME
 
     var name: String? = null
     var age: Int? = null
@@ -205,10 +195,6 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
     var name: String? = null
     var cellphone: String? = null
     var id: Int? = null
-
-    @JsonIgnore
-    override val type = FrameKind.FRAME
-
 
     @JsonIgnore
     var recommendation: PagedSelectable<MobileWithAdvances> = PagedSelectable(
@@ -285,9 +271,6 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
     var amount: Float? = null
     var id: Int? = null
 
-    @JsonIgnore
-    override val type = FrameKind.FRAME
-
     @get:JsonIgnore
     val mobileService: IMobileService
         get() = session!!.getExtension<IMobileService>() as IMobileService
@@ -343,9 +326,6 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
 }
 
 data class HotelSuggestionIntent(override var session: UserSession? = null) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var city: String? = null
     var hotel: String? = null
     var result: MutableList<String>? = null
@@ -382,9 +362,6 @@ data class Hotel(override var session: UserSession? = null
 ) : IFrame {
     var city: String? = null
     var hotel: String? = null
-
-    @JsonIgnore
-    override val type = FrameKind.FRAME
 
     @get:JsonIgnore
     val vacationService: IVacationService
@@ -437,8 +414,6 @@ data class Hotel(override var session: UserSession? = null
 
 data class PreDiagnosis(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
 
     var method: PayMethod? = null
 
@@ -540,9 +515,6 @@ data class PreDiagnosis(override var session: UserSession? = null
 
 data class Hi(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     @get:JsonIgnore
     val person: Person?
         get() = session?.getGlobal()
@@ -581,9 +553,6 @@ data class Hi(override var session: UserSession? = null
 
 data class Hello(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var mobile_with_adcances: MobileWithAdvances? = MobileWithAdvances(session)
     var mobile: Mobile? = Mobile(session)
     var payable: PayMethod? = null
@@ -616,9 +585,6 @@ data class Hello(override var session: UserSession? = null
 
 
 data class BookFlight(override var session: UserSession? = null) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var origin: String? = null
     var destination: String? = null
     var depart_date: String? = null
@@ -697,9 +663,6 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
 
 data class BookHotel(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var checkin_date: String? = null
     var checkout_date: String? = null
     var hotel: Hotel? = Hotel(session)
@@ -746,9 +709,6 @@ data class BookHotel(override var session: UserSession? = null
 
 data class CreateUnimportant(override var session: UserSession? = null) : IFrame {
     @JsonIgnore
-    override val type = FrameKind.FRAME
-
-    @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -762,9 +722,6 @@ data class CreateUnimportant(override var session: UserSession? = null) : IFrame
 
 data class HotelAddress(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var hotel: Hotel? = Hotel(session)
 
     var unimportant: String? = null
@@ -819,9 +776,6 @@ val vacationService: IVacationService
 
 
 data class FirstLevelQuestion(override var session: UserSession? = null) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var need_hotel: Boolean? = null
 
     @JsonIgnore
@@ -848,9 +802,6 @@ data class FirstLevelQuestion(override var session: UserSession? = null) : IInte
 
 data class BookVacation(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var book_flight: BookFlight? = BookFlight(session)
     var book_hotel: BookHotel? = BookHotel(session)
 
@@ -871,9 +822,6 @@ data class BookVacation(override var session: UserSession? = null
 
 data class CompositeWithIIntent(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var skill: IIntent? = null
 
     @JsonIgnore
@@ -895,9 +843,6 @@ data class CompositeWithIIntent(override var session: UserSession? = null
 
 data class MoreBasics(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var int_condition: Int? = null
     var bool_condition: Boolean? = null
     var conditional_slot: String? = null
@@ -942,9 +887,6 @@ data class MoreBasics(override var session: UserSession? = null
 
 data class IntentNeedConfirm(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var intVar: Int? = null
     var boolVar: Boolean? = null
     var stringVal: String? = null
@@ -996,9 +938,6 @@ data class IntentNeedConfirm(override var session: UserSession? = null
 
 data class WeakRecommendation(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     @JsonIgnore
     var recommendation: PagedSelectable<WeakRecommendation> = PagedSelectable(session, {getSuggestions()}, {WeakRecommendation::class},
             {offers -> SlotOffer(offers, "this", "io.opencui.test.WeakRecommendation",
@@ -1077,9 +1016,6 @@ interface IContractFrame: IFrame {
 
 data class ContractBasedIntentA(override var session: UserSession? = null): IIntent, IContractFrame {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
-    @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "a" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "a?" }))),
         "contractId" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
@@ -1117,9 +1053,6 @@ data class ContractBasedIntentA_0(
 
 data class ContractBasedIntentB(override var session: UserSession? = null): IIntent, IContractFrame {
     @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
-    @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "b" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "b?" }))),
         "contractId" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
@@ -1153,9 +1086,6 @@ data class ContractBasedIntentB_0(
 
 
 data class RecoverTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "aaa" to listOf(
@@ -1193,9 +1123,6 @@ data class RecoverTestIntent_0(
 
 data class AssociationTestFrame(override var session: UserSession? = null): IFrame {
     @JsonIgnore
-    override val type = FrameKind.FRAME
-
-    @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "aaa" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame aaa?" }))),
         "bbb" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame bbb?" }))),
@@ -1227,9 +1154,6 @@ data class AssociationTestFrame(override var session: UserSession? = null): IFra
 
 
 data class AssociationTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     @JsonIgnore
     override val annotations: Map<String, List<Annotation>> = mapOf(
         "aaa" to listOf(
@@ -1277,9 +1201,6 @@ data class AssociationTestIntent_0(
 ) : UserDefinedInform<AssociationTestIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" } }))
 
 data class ValueRecInteractionFrame(override var session: UserSession? = null): IFrame {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var b: Int? = null
     var c: Boolean? = null
 
@@ -1310,9 +1231,6 @@ data class ValueRecInteractionFrame(override var session: UserSession? = null): 
 
 
 data class ValueRecInteractionIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var a: Int? = null
     var targetFrame: ValueRecInteractionFrame? = ValueRecInteractionFrame(session)
 
@@ -1402,9 +1320,6 @@ data class ValueRecInteractionIntent_0(
 ) : UserDefinedInform<ValueRecInteractionIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" } }))
 
 data class CustomizedRecommendationIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     var recommendation: PagedSelectable<Hotel> = PagedSelectable(session,  {recData()}, {Hotel::class},
             {offers -> SlotOffer(offers, "hotel", "io.opencui.test.Hotel",
                     simpleTemplates(Prompt {
@@ -1463,9 +1378,6 @@ data class Greeting(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
-
-    @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
@@ -1487,9 +1399,6 @@ data class Goodbye(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
-
-    @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun searchResponse(): Action? = when {
@@ -1510,9 +1419,6 @@ data class Goodbye(
 data class Main(
     override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
-
     var Greeting: Greeting? = Greeting(session)
 
     @JsonIgnore

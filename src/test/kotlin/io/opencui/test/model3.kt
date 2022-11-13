@@ -17,9 +17,6 @@ data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val s
 }
 
 data class SoftEarlyTerminationIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.BIGINTENT
-
     fun earlyTerminationCondition():Boolean {
         return f?.a == "aaa"
     }
@@ -273,9 +270,6 @@ public data class NALDrink(
 data class AbstractEntityIntent(
     override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.BIGINTENT
-
     var dish: Dish? = null
 
     @get:JsonIgnore

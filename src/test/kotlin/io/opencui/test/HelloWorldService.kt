@@ -10,9 +10,6 @@ import kotlin.reflect.KMutableProperty0
 public data class HelloWorldService(
   public override var session: UserSession? = null
 ) : IIntent {
-  @JsonIgnore
-  public override val type: FrameKind = FrameKind.BIGINTENT
-
   @get:JsonIgnore
   public val component_0915: IComponent_0915
     public get() = session!!.getExtension<IComponent_0915>()!!

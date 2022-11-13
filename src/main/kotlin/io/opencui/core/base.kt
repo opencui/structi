@@ -40,12 +40,6 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
     }
 }
 
-enum class FrameKind {
-    FRAME,
-    BIGINTENT,
-    SMALLINTENT,
-}
-
 /**
  * If a global implement this, we need to persist it to disk.
  */
@@ -71,7 +65,6 @@ interface InternalEntity: Serializable {
  */
 interface IFrame: Serializable {
     var session: UserSession?
-    val type: FrameKind
     val annotations: Map<String, List<Annotation>>
 
     fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder

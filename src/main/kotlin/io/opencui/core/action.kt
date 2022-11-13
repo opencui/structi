@@ -128,17 +128,6 @@ data class StartFill(
 
         if (session.inKernelMode(session.schedule)) return ActionResult(emptyLog())
 
-        if (intent.type == FrameKind.BIGINTENT) {
-            with(session) {
-                while (schedulers.size > 1
-                        && ((schedule.firstOrNull() as? AnnotatedWrapperFiller)?.targetFiller as? FrameFiller<*>)?.frame()?.type == FrameKind.SMALLINTENT) {
-                    schedulers.removeLast()
-                }
-                if (((mainSchedule.firstOrNull() as? AnnotatedWrapperFiller)?.targetFiller as? FrameFiller<*>)?.frame()?.type == FrameKind.SMALLINTENT) {
-                    mainSchedule.cleanup()
-                }
-            }
-        }
         if (session.schedule.isNotEmpty()) {
             session.schedulers += Scheduler(session)
         }
