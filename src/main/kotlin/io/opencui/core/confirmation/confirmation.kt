@@ -12,9 +12,6 @@ data class Yes(
         override var session: UserSession? = null
 ) : IFrame, IStatus {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.OFFRAME
-
-    @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -31,9 +28,6 @@ data class Yes(
 data class No(
         override var session: UserSession? = null
 ) : IFrame, IStatus {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFFRAME
-
     @JsonIgnore
     override var annotations: Map<String, List<Annotation>> = mutableMapOf()
 

@@ -10,13 +10,7 @@ import io.opencui.serialization.Json
 import java.io.Serializable
 import kotlin.reflect.KMutableProperty0
 
-
-
 data class MultiValueEntityRecIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
-
     @JsonIgnore
     val recommendation = PayMethod.createRecFrame(session!!, this, "payMethodList")
 
@@ -55,10 +49,6 @@ data class MultiValueEntityRecIntent_0(
 ) : UserDefinedInform<MultiValueEntityRecIntent>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class MultiValueFrameRecIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
-
     @JsonIgnore
     var recHotels = Hotel(session)
 
@@ -126,9 +116,6 @@ data class InternalNode(@get:JsonIgnore var value: String): Serializable {
 data class InternalNodeIntent(
         override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     var current: InternalNode? = null
     @JsonIgnore
     var skill: IIntent? = null
@@ -174,9 +161,6 @@ data class InternalNodeIntent(
 }
 
 data class EntityRecSelection(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var payMethod: PayMethod? = null
 
     @JsonIgnore
@@ -206,9 +190,6 @@ data class EntityRecSelection_0(
 ) : UserDefinedInform<EntityRecSelection>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethod}""" }}))
 
 data class ShowOnceRecommendation(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     @JsonIgnore
     val recommendation = PayMethod.createRecFrame(session!!, this, "payMethodList")
 
@@ -245,9 +226,6 @@ data class ShowOnceRecommendation_0(
 ) : UserDefinedInform<ShowOnceRecommendation>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }}))
 
 data class MultiValueValueCheck(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     fun checker():Boolean {
         return payMethodList!!.firstOrNull { it.value == "visa" } != null
     }
@@ -289,8 +267,6 @@ data class MultiValueValueCheck_0(
 ) : UserDefinedInform<MultiValueValueCheck>(frame, simpleTemplates({with(frame) {"""Hi, pay method = ${payMethodList?.size}""" }}))
 
 data class SepTestIntentExplicit(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
     var a: Boolean? = null
 
     @JsonIgnore
@@ -365,8 +341,6 @@ data class SepTestIntent_0(
 ) : UserDefinedInform<SepTestIntentExplicit>(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }}))
 
 data class SepTestIntentImplicit(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
     var a: Boolean? = null
 
     @JsonIgnore
@@ -442,9 +416,6 @@ data class SepTestIntentImplicit_0(
 ) : UserDefinedInform<SepTestIntentImplicit>(frame, simpleTemplates({with(frame) {"""Hi, a=${a}, b=${b}, c=${c}""" }}))
 
 data class MultiValueMinMax(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var payMethodList: MutableList<PayMethod>? = null
 
     @JsonIgnore
@@ -484,9 +455,6 @@ data class MultiValueMinMax_0(
 ) : UserDefinedInform<MultiValueMinMax>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class MultiValueMinMaxWithRec(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var payMethodList: MutableList<PayMethod>? = null
 
     fun recData(): List<PayMethod> {
@@ -555,9 +523,6 @@ data class MultiValueMinMaxWithRec_0(
 ) : UserDefinedInform<MultiValueMinMaxWithRec>(frame, simpleTemplates({with(frame) {"""Hi, size = ${payMethodList?.size}""" }}))
 
 data class ValueCheckSwitchTest(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var a: Int? = null
     var b: Boolean? = null
     var c: String? = null
@@ -616,9 +581,6 @@ data class City(@get:JsonIgnore override var value: String): InternalEntity, Ser
 }
 
 data class CollectCities(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var cities: MutableList<City>? = null
 
     @JsonIgnore
@@ -649,9 +611,6 @@ data class CollectCities_0(
 ) : UserDefinedInform<CollectCities>(frame, simpleTemplates({with(frame) {"""Hi, cities size = ${frame.cities?.size}""" }}))
 
 data class BookTrain(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var departure: City? = null
     var arrival: City? = null
     var placeHolder: String? = null
@@ -689,9 +648,6 @@ data class BookTrain_0(
 ) : UserDefinedInform<BookTrain>(frame, simpleTemplates({with(frame) {"""Hi, departure = ${frame.departure} arrival = ${frame.arrival}""" }}))
 
 data class WeatherConsult(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var city: City? = null
 
     fun weather(): String? {
@@ -730,9 +686,6 @@ data class WeatherConsult_0(
 ) : UserDefinedInform<WeatherConsult>(frame, simpleTemplates({"""Hi, city = ${frame.city} weather = ${frame.weather()}"""}))
 
 data class BoolGateTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var city: City? = null
     var placeHolder: String? = null
 
@@ -768,9 +721,6 @@ data class BoolGateTestIntent_0(
 ) : UserDefinedInform<BoolGateTestIntent>(frame, simpleTemplates({"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }))
 
 data class NeverAskIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var city: City? = null
     var placeHolder: String? = null
 
@@ -808,9 +758,6 @@ data class NeverAskIntent_0(
 ) : UserDefinedInform<NeverAskIntent>(frame, simpleTemplates({with(frame) {"""Hi, city = ${frame.city} placeHolder = ${frame.placeHolder}""" }}))
 
 data class ZepTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var citySoft: City? = null
 
     var cityHard: City? = null
@@ -997,9 +944,6 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
 
 
 data class SlotUpdateTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var cityFrom: City? = null
 
     var cityTo: City? = null
@@ -1088,9 +1032,6 @@ data class SlotUpdateTestIntent_0(
 
 
 data class EarlyTerminationFrame(override var session: UserSession? = null): IFrame {
-    @JsonIgnore
-    override val type = FrameKind.OFFRAME
-
     var a: String? = null
     var b: String? = null
 
@@ -1112,9 +1053,6 @@ data class EarlyTerminationFrame(override var session: UserSession? = null): IFr
 
 
 data class EarlyTerminationIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     fun earlyTerminationCondition():Boolean {
         return f?.a == "aaa"
     }
@@ -1157,9 +1095,6 @@ data class EarlyTerminationIntent_1(
 ) : UserDefinedInform<EarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""early terminated response, should not appear""" }}))
 
 data class ReturnValueTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var a: Int? = null
     var b: Int? = null
     var result: MutableList<String>? = null
@@ -1223,9 +1158,6 @@ data class ReturnValueTestIntent_0(
 // TODO(xiaobo): the correct behavior should be asking s? first then start the recommendation?
 // assuming the recommendation is on s. But it does not seems to be the case.
 data class ValueRecommendationTest(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var s: String? = null
 
     @JsonIgnore
@@ -1274,9 +1206,6 @@ data class ValueRecommendationTest_0(
 ) : UserDefinedInform<ValueRecommendationTest>(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s""" }}))
 
 data class DirectlyFillMultiValueSlotTest(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var payMethodList: MutableList<PayMethod>? = mutableListOf()
     var s: String? = null
     var payMethodListCopy: MutableList<PayMethod>? = mutableListOf()
@@ -1320,9 +1249,6 @@ data class DirectlyFillMultiValueSlotTest_0(
 ) : UserDefinedInform<DirectlyFillMultiValueSlotTest>(frame, simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodListCopy : ${payMethodListCopy?.joinToString { it.value }}""" }}))
 
 data class MVEntryConfirmationTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var payMethodList: MutableList<PayMethod>? = mutableListOf()
     var s: String? = null
 
@@ -1380,9 +1306,6 @@ data class MVEntryConfirmationTestIntent_0(
         simpleTemplates({with(frame) {"""Hi, value recommendation test response s = $s payMethodList = ${payMethodList?.joinToString { it.value }}""" }}))
 
 data class VCTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var a: Int? = null
     var b: String? = null
     var c: Boolean? = null
@@ -1449,9 +1372,6 @@ data class VCTestIntent_0(
 ) : UserDefinedInform<VCTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }}))
 
 data class ValueRecheckTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var a: Int? = null
     var b: String? = null
     var c: Boolean? = null
@@ -1511,9 +1431,6 @@ data class ValueRecheckTestIntent_0(
 ) : UserDefinedInform<ValueRecheckTestIntent>(frame, simpleTemplates({with(frame) {"""Hi, value check test response a = $a b = $b c = $c""" }}))
 
 data class UserInit(override var session: UserSession? = null): IKernelIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     var cellPhone: String? = null
     var userName: String? = null
 
@@ -1544,9 +1461,6 @@ data class UserInit(override var session: UserSession? = null): IKernelIntent {
 data class MainWithKernelIntent(
         override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     var Greeting: Greeting? = Greeting(session)
 
     var user: UserInit? = UserInit(session)
@@ -1588,9 +1502,6 @@ data class MainWithKernelIntent(
 data class ValueRecOutlierValueIntent(
         override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     fun recData(): List<String> {
         return listOf("a", "b", "c")
     }
@@ -1651,9 +1562,6 @@ data class ValueRecOutlierValueIntent(
 data class TestSepNoIntent(
         override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     fun recData(): List<String> {
         return listOf("a")
     }
@@ -1749,9 +1657,6 @@ data class FreeActionConfirmationTestIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
-    @JsonIgnore
     var s: String? = null
 
     @JsonIgnore
@@ -1791,9 +1696,6 @@ data class SimpleIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
-    @JsonIgnore
     var s: String? = null
 
     @JsonIgnore
@@ -1821,9 +1723,6 @@ data class MobileWithAdvancesForMapping(@JsonInclude(JsonInclude.Include.NON_NUL
     var id: Int? = null
 
     @JsonIgnore
-    override val type = FrameKind.OFFRAME
-
-    @JsonIgnore
     override val annotations = mapOf<kotlin.String, List<Annotation>>(
             "id" to listOf(),
             "cellphoneMapping" to listOf(),
@@ -1848,9 +1747,6 @@ data class MobileWithAdvancesForMapping(@JsonInclude(JsonInclude.Include.NON_NUL
 data class ExternalEventContainerIntent(
         override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     var intent: ExternalEventIntent? = ExternalEventIntent(session)
 
     var result: ExternalEventIntent? = ExternalEventIntent(session)
@@ -1903,9 +1799,6 @@ data class ExternalEventIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
-    @JsonIgnore
     var s: String? = null
 
     @JsonIgnore
@@ -1932,9 +1825,6 @@ data class ExternalEventIntent(
 data class ContextBasedRecFrame(
     override var session: UserSession? = null
 ) : IFrame {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     var a: String? = null
     var b: String? = null
 
@@ -1960,9 +1850,6 @@ data class ContextBasedRecFrame(
 }
 
 data class RecommendationIntentForContextBasedRec(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val type = FrameKind.OFINTENT
-
     var rf: ContextBasedRecFrame? = ContextBasedRecFrame(session)
     var result: MutableList<ContextBasedRecFrame>? = null
 
@@ -2023,9 +1910,6 @@ data class ContextBasedRecIntent(
     override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
-    @JsonIgnore
     var f: ContextBasedRecFrame? = ContextBasedRecFrame()
 
     @JsonIgnore
@@ -2070,9 +1954,6 @@ data class ContextBasedRecIntent(
 data class SlotDoubleConfirmTestIntent(
     override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val type: FrameKind = FrameKind.OFINTENT
-
     @JsonIgnore
     var slot: String? = null
 
