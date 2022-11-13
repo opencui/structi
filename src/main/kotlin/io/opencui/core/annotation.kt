@@ -48,23 +48,32 @@ data class Condition(private val f: () -> Boolean): () -> Boolean, Serializable 
     override fun invoke(): Boolean = f()
 }
 
+data class Prompts(val prompts: List<Prompt>) : Serializable {
+    constructor(vararg prompts: () -> String) : this(prompts.toList().map{Prompt(it)})
+
+    fun isNotEmpty() = prompts.isNotEmpty()
+    fun random() = prompts.random()
+}
+
 
 // This has two sides: how it is used and how it is created, and also just a type.
-data class Templates(val channelPrompts: Map<String, List<Prompt>>): Serializable {
-    constructor(prompts: List<Prompt>): this(mapOf(SideEffect.RESTFUL to prompts))
-    constructor(vararg pprompts: Prompt) : this(pprompts.asList())
+data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
+    constructor(prompts: Prompts): this(mapOf(SideEffect.RESTFUL to prompts))
+    constructor(vararg prompts:Prompt): this(mapOf(SideEffect.RESTFUL to Prompts(prompts.toList())))
+    constructor(vararg prompts: () -> String): this(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
+
     fun pick(channel: String = SideEffect.RESTFUL): Prompt {
         val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return Prompt { "" }
         return if (prompts.isNotEmpty()) prompts.random() else Prompt { "" }
     }
 }
 
+fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(if (pairs.size > 0) pairs.toMap() else emptyMap())
+
 fun defaultTemplate() = Templates(mapOf())
-fun simpleTemplates(vararg pprompts: Prompt) = Templates(pprompts.asList())
-fun simpleTemplates(promptList: List<Prompt>) = Templates(promptList)
-fun simpleTemplates(vararg texts: String) = Templates(texts.asList().map{ Prompt { it } })
-fun simpleTemplates(vararg ops: () -> String) = Templates(ops.asList().map { Prompt(it) })
-fun simpleTemplates(channelPrompts: Map<String, List<Prompt>>) = Templates(channelPrompts)
+fun simpleTemplates(vararg pprompts: Prompt) = Templates(Prompts(pprompts.asList()))
+fun simpleTemplates(vararg ops: () -> String) = Templates(Prompts(*ops))
+fun simpleTemplates(vararg strs: String) = Templates(Prompts(strs.toList().map{Prompt { it }}))
 
 fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
     return {dialogActGen(source())}
@@ -85,6 +94,7 @@ interface PromptAnnotation : Annotation {
 data class SlotPromptAnnotation(override val actions: List<Action>) : PromptAnnotation {
     // just for convenience of testcase
     constructor(templates: Templates): this(listOf( SlotRequest("", "", templates) ))
+    constructor(vararg acts: Action): this(acts.toList())
 }
 
 data class SlotConditionalPromptAnnotation(override val actions: List<Action>) : PromptAnnotation {

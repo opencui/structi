@@ -41,7 +41,7 @@ data class SlotRequest(
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = defaultTemplate()) : SlotDialogAct {
     // this kind of constructor is just for convenience of testcase
-    constructor(slotName: String, slotType: String, templates: Templates = defaultTemplate(), context: List<IFrame> = listOf()): this(slotName, slotType, context, templates)
+    constructor(slotName: String, slotType: String, templates: Templates = defaultTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
 data class SlotRequestMore(
@@ -49,7 +49,7 @@ data class SlotRequestMore(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = defaultTemplate()) : SlotDialogAct {
-    constructor(slotName: String, slotType: String, templates: Templates = defaultTemplate(), context: List<IFrame> = listOf()): this(slotName, slotType, context, templates)
+    constructor(slotName: String, slotType: String, templates: Templates = defaultTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
 data class SlotGate(
@@ -57,7 +57,7 @@ data class SlotGate(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = defaultTemplate()) : SlotDialogAct {
-    constructor(slotName: String, slotType: String, templates: Templates = defaultTemplate(), context: List<IFrame> = listOf()): this(slotName, slotType, context, templates)
+    constructor(slotName: String, slotType: String, templates: Templates = defaultTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
 enum class FailType {

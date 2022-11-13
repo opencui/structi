@@ -16,7 +16,6 @@ data class Agent(val user: String) : IChatbot() {
 
     override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
 
-
     override val routing: Map<String, RoutingInfo> = mapOf(
         "Team B" to RoutingInfo("48", listOf("Intent_No2", "Intent_No3")),
         "Default" to RoutingInfo("47", listOf()))
