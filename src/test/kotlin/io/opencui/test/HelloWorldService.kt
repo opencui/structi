@@ -14,9 +14,6 @@ public data class HelloWorldService(
   public val component_0915: IComponent_0915
     public get() = session!!.getExtension<IComponent_0915>()!!
 
-  @JsonIgnore
-  public override var annotations: Map<String, List<Annotation>> = mutableMapOf()
-
   public override fun searchResponse(): Action? = when {
     else -> HelloWorld_else_branch(this)
   }

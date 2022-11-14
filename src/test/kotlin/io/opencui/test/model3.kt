@@ -22,17 +22,22 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
     }
 
     var f: EarlyTerminationFrame? = EarlyTerminationFrame(session)
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "f.a" to listOf(
-            SlotDoneAnnotation({earlyTerminationCondition()}, listOf(
-                EndSlot(this, null, false),
-                UserDefinedInform(this, simpleTemplates({"""we don't have choices that meet your requirements, intent terminated""" })))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "f.a" -> listOf(
+            SlotDoneAnnotation(
+                { earlyTerminationCondition() }, listOf(
+                    EndSlot(this, null, false),
+                    UserDefinedInform(
+                        this,
+                        simpleTemplates({ """we don't have choices that meet your requirements, intent terminated""" })
+                    )
+                )
             )
-        ),
-        "this" to listOf(ConfirmationAnnotation({searchConfirmation("this")}))
-    )
+        )
+
+        "this" -> listOf(ConfirmationAnnotation({ searchConfirmation("this") }))
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame:SoftEarlyTerminationIntent? = this@SoftEarlyTerminationIntent
@@ -291,12 +296,21 @@ data class AbstractEntityIntent(
             }))
         },
         pageSize = 5, target = this, slot = "dish")
-
-    @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf("dish" to listOf(
-        SlotPromptAnnotation(listOf(SlotRequest("dish", "io.opencui.test.Dish", simpleTemplates({"What would u like?"})))),
-        ValueRecAnnotation({recommendation}, false)
-    ))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "dish" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "dish",
+                        "io.opencui.test.Dish",
+                        simpleTemplates({ "What would u like?" })
+                    )
+                )
+            ),
+            ValueRecAnnotation({ recommendation }, false)
+        )
+        else -> listOf()
+    }
 
     override fun searchResponse(): Action? = when {
         else -> UserDefinedInform(this, simpleTemplates(Prompt { """abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""" }))

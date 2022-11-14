@@ -65,7 +65,7 @@ interface InternalEntity: Serializable {
  */
 interface IFrame: Serializable {
     var session: UserSession?
-    val annotations: Map<String, List<Annotation>>
+    fun annotations(path: String): List<Annotation> = listOf()
 
     fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
 
@@ -88,14 +88,13 @@ interface IFrame: Serializable {
 }
 
 inline fun <reified T : Annotation> IFrame.find(rpath: String): T? =
-        annotations[rpath]?.firstOrNull { it is T && it.switch() } as T?
+    annotations(rpath).firstOrNull { it is T && it.switch() } as T?
 
 inline fun <reified T : Annotation> IFrame.findAll(rpath: String): List<T> =
-        annotations[rpath]?.filter { it is T && it.switch() }?.map { it as T } ?: listOf()
+    annotations(rpath).filter { it is T && it.switch() }?.map { it as T } ?: listOf()
 
 interface IIntent : IFrame {
     // TODO(xiaobo, xiaoyun): all the filling related property should be in filler instead of frame, ideally.
-
     fun searchResponse(): Action? {
         return null
     }

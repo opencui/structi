@@ -118,14 +118,14 @@ data class ParamPath(val path: List<Param>): Serializable {
             val rpath = if (i != path.size-1) path.subList(i, path.size).filter { it.attribute != "this" }.joinToString(separator = ".") { it.attribute }
             else path.last().attribute
             val frame = path[i].frame
-            val t: T? = patchFind(frame, rpath)
+            val t: T? = pathFind(frame, rpath)
             if (t != null) return t
         }
         return null
     }
 
-    // we need a patch since granularity of runtime annotations are finer than that of platform's
-    inline fun <reified T : Annotation> patchFind(frame: IFrame, rpath: String): T? {
+    // we need a path since granularity of runtime annotations are finer than that of platform's
+    inline fun <reified T : Annotation> pathFind(frame: IFrame, rpath: String): T? {
         val clazz = T::class
         when {
             clazz.isSubclassOf(PromptAnnotation::class) -> {
