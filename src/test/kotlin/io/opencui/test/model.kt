@@ -51,9 +51,6 @@ interface ISymptom: IFrame {
 }
 
 data class Symptom(@JsonIgnore @Transient override var session: UserSession? = null) : IFrame, ISymptom {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = emptyMap()
-
     override var duration: Int? = null
     override var cause: String? = null
 
@@ -76,22 +73,24 @@ data class Fever(override var session: UserSession? = null
     override var duration: Int? = null
     override var cause: String? = null
     var degree: Int? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "duration" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "duration" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("duration", "kotlin.Int", simpleTemplates({"How long did it last?"})))
-        ),
-        "degree" to listOf(
-            SlotPromptAnnotation(
-                SlotRequest("degree", "kotlin.Int", simpleTemplates({"What is your temperature?"})))
-        ),
-        "cause" to listOf(
-            SlotPromptAnnotation(
-                SlotRequest("cause", "kotlin.String", simpleTemplates({"what is the cause for it?"})))
+                SlotRequest("duration", "kotlin.Int", simpleTemplates({ "How long did it last?" }))
+            )
         )
-    )
+        "degree" -> listOf(
+            SlotPromptAnnotation(
+                SlotRequest("degree", "kotlin.Int", simpleTemplates({ "What is your temperature?" }))
+            )
+        )
+        "cause" -> listOf(
+            SlotPromptAnnotation(
+                SlotRequest("cause", "kotlin.String", simpleTemplates({ "what is the cause for it?" }))
+            )
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: Fever? = this@Fever
@@ -115,21 +114,24 @@ data class Headache(override var session: UserSession? = null
     override var cause: String? = null
     var part: String? = null
 
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "duration" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "duration" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("duration", "kotlin.Int", simpleTemplates({"How long did it last?"})))
-        ),
-        "cause" to listOf(
-            SlotPromptAnnotation(
-                SlotRequest("cause", "kotlin.String", simpleTemplates({"What is the cause for it?"})))
-        ),
-        "part" to listOf(
-            SlotPromptAnnotation(
-                SlotRequest("part", "kotlin.String", simpleTemplates({"which part of head?"})))
+                SlotRequest("duration", "kotlin.Int", simpleTemplates({ "How long did it last?" }))
+            )
         )
-    )
+        "cause" -> listOf(
+            SlotPromptAnnotation(
+                SlotRequest("cause", "kotlin.String", simpleTemplates({ "What is the cause for it?" }))
+            )
+        )
+        "part" -> listOf(
+            SlotPromptAnnotation(
+                SlotRequest("part", "kotlin.String", simpleTemplates({ "which part of head?" }))
+            )
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object: FillBuilder {
         var frame : Headache? = this@Headache
@@ -154,21 +156,27 @@ data class Person(override var session: UserSession? = null
     var height: Int? = null
     var weight: Int? = null
 
-    @JsonIgnore
-    override val annotations = mapOf(
-        "name" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "name" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("name", "kotlin.String", simpleTemplates({"What is your name?"})))
-        ),
-        "age" to listOf(
-            SlotPromptAnnotation(
-                SlotRequest("age", "kotlin.Int", simpleTemplates({"How old are you?"})))
-        ),
-        "height" to listOf(
-            SlotPromptAnnotation(
-                SlotRequest("height", "kotlin.Int", simpleTemplates({"How tall are you?"})))
+                SlotRequest("name", "kotlin.String", simpleTemplates({ "What is your name?" }))
+            )
         )
-    )
+
+        "age" -> listOf(
+            SlotPromptAnnotation(
+                SlotRequest("age", "kotlin.Int", simpleTemplates({ "How old are you?" }))
+            )
+        )
+
+        "height" -> listOf(
+            SlotPromptAnnotation(
+                SlotRequest("height", "kotlin.Int", simpleTemplates({ "How tall are you?" }))
+            )
+        )
+
+        else -> listOf()
+    }
 
     override lateinit var filler: FrameFiller<*>
 
@@ -214,25 +222,42 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
         },
             target = this, slot = "", hard = true)
 
-    @JsonIgnore
-    override val annotations = mapOf<String, List<Annotation>>(
-        "id" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "id" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("id", "kotlin.Int", simpleTemplates({"What is your id?"})))
-        ),
-        "cellphone" to listOf(
+                SlotRequest("id", "kotlin.Int", simpleTemplates({ "What is your id?" }))
+            )
+        )
+        "cellphone" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("cellphone", "kotlin.String", simpleTemplates({"What is your cell number? (MobileWithAdvances)"}))),
-            ValueRecAnnotation({recommendation}, false)
-        ),
-        "name" to listOf(
+                SlotRequest(
+                    "cellphone",
+                    "kotlin.String",
+                    simpleTemplates({ "What is your cell number? (MobileWithAdvances)" })
+                )
+            ),
+            ValueRecAnnotation({ recommendation }, false)
+        )
+        "name" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("name", "kotlin.String", simpleTemplates({"What is your name (MobileWithAdvances)?"}))),
-            ValueCheckAnnotation(OldValueCheck(session, {mobileService.search_cellphone(name).isNotEmpty()}, listOf(Pair(this, "name")),
-                { SlotNotifyFailure(name, "name", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "your name has not been attached to a cellphone, let's try it again." })) }
+                SlotRequest("name", "kotlin.String", simpleTemplates({ "What is your name (MobileWithAdvances)?" }))
+            ),
+            ValueCheckAnnotation(OldValueCheck(session,
+                { mobileService.search_cellphone(name).isNotEmpty() },
+                listOf(Pair(this, "name")),
+                {
+                    SlotNotifyFailure(
+                        name,
+                        "name",
+                        "kotlin.String",
+                        FailType.VC,
+                        simpleTemplates(Prompt { "your name has not been attached to a cellphone, let's try it again." })
+                    )
+                }
             ))
         )
-    )
+        else -> listOf()
+    }
 
     @get:JsonIgnore
     val mobileService: IMobileService
@@ -294,22 +319,43 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
         },
         target = this, slot = "")
 
-    @JsonIgnore
-    override val annotations = mapOf<String, List<Annotation>>(
-        "id" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "id" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("id", "kotlin.String", simpleTemplates({"What is your id?"})))
-        ),
-        "cellphone" to listOf(
+                SlotRequest("id", "kotlin.String", simpleTemplates({ "What is your id?" }))
+            )
+        )
+        "cellphone" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?"))),
-            ValueCheckAnnotation(OldValueCheck(session, {mobileService.search_mobile(cellphone).isNotEmpty()}, listOf(Pair(this, "cellphone")),
-                { SlotNotifyFailure(cellphone, "cellphone", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "your cellphone number is not correct, let's try it again." })) }
-            ))),
-        "amount" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("amount", "kotlin.Float", simpleTemplates("What much do you want?")))),
-            ValueRecAnnotation({recommendation}, false))
-    )
+                SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?"))
+            ),
+            ValueCheckAnnotation(OldValueCheck(session,
+                { mobileService.search_mobile(cellphone).isNotEmpty() },
+                listOf(Pair(this, "cellphone")),
+                {
+                    SlotNotifyFailure(
+                        cellphone,
+                        "cellphone",
+                        "kotlin.String",
+                        FailType.VC,
+                        simpleTemplates(Prompt { "your cellphone number is not correct, let's try it again." })
+                    )
+                }
+            )))
+        "amount" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "amount",
+                        "kotlin.Float",
+                        simpleTemplates("What much do you want?")
+                    )
+                )
+            ),
+            ValueRecAnnotation({ recommendation }, false)
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
          var frame: Mobile? = this@Mobile
@@ -334,8 +380,12 @@ data class HotelSuggestionIntent(override var session: UserSession? = null) : II
     val vacationService: IVacationService
         get() = session!!.getExtension<IVacationService>() as IVacationService
 
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf("city" to listOf(NeverAsk()), "hotel" to listOf(NeverAsk()), "result" to listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({initResult()}, this, "result"))))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "city" -> listOf(NeverAsk())
+        "hotel" -> listOf(NeverAsk())
+        "result" -> listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({ initResult() }, this, "result")))
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: HotelSuggestionIntent? = this@HotelSuggestionIntent
@@ -384,18 +434,28 @@ data class Hotel(override var session: UserSession? = null
                 }))
         },
             pageSize = 2, target = this@Hotel, slot = "hotel", hard = true)}
-
-    @JsonIgnore
-    override val annotations = mapOf<String, List<Annotation>>(
-        "city" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "city" -> listOf(
             SlotPromptAnnotation(listOf(SlotRequest("city", "kotlin.String", simpleTemplates("""Which city?""")))),
-            ValueCheckAnnotation(OldValueCheck(session, {vacationService.searchHotelByCity(city).isNotEmpty()}, listOf(Pair(this, "city")),
-                { SlotNotifyFailure(city, "city", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "No hotel available for the city you have chosen." })) }
-            ))),
-        "hotel" to listOf(
+            ValueCheckAnnotation(OldValueCheck(session,
+                { vacationService.searchHotelByCity(city).isNotEmpty() },
+                listOf(Pair(this, "city")),
+                {
+                    SlotNotifyFailure(
+                        city,
+                        "city",
+                        "kotlin.String",
+                        FailType.VC,
+                        simpleTemplates(Prompt { "No hotel available for the city you have chosen." })
+                    )
+                }
+            )))
+        "hotel" -> listOf(
             SlotPromptAnnotation(listOf(SlotRequest("hotel", "kotlin.String", simpleTemplates("""Which hotel?""")))),
-            TypedValueRecAnnotation<String>({pagedSelectable(this)}, false))
-    )
+            TypedValueRecAnnotation<String>({ pagedSelectable(this) }, false)
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object: FillBuilder {
         var frame: Hotel? = this@Hotel
@@ -425,50 +485,84 @@ data class PreDiagnosis(override var session: UserSession? = null
     var symptoms: MutableList<ISymptom>? = null
     var indexes: MutableList<Int>? = null
 
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "headaches" to listOf(
-            SlotConditionalPromptAnnotation(listOf(
-                LazyAction {
-                    if (headaches!!.isEmpty())
-                        SlotRequest("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(
-                            Prompt { "What kind of headache do you have?" }))
-                    else
-                        SlotRequestMore("headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(
-                            Prompt { "What kind of headache do you still have?" }))
-                })
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "headaches" -> listOf(
+            SlotConditionalPromptAnnotation(
+                listOf(
+                    LazyAction {
+                        if (headaches!!.isEmpty())
+                            SlotRequest(
+                                "headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(
+                                    Prompt { "What kind of headache do you have?" })
+                            )
+                        else
+                            SlotRequestMore(
+                                "headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(
+                                    Prompt { "What kind of headache do you still have?" })
+                            )
+                    })
             )
-        ),
-        "symptoms" to listOf(
-            SlotConditionalPromptAnnotation(listOf(
-                LazyAction {
-                    if (symptoms!!.isEmpty())
-                        SlotRequest("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(
-                            Prompt { "What symptom do you have?" }))
-                    else
-                        SlotRequestMore("symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(
-                            Prompt { "What symptom do you still have?" }))
-                })
-            )
-        ),
-        "indexes" to listOf(
-            SlotConditionalPromptAnnotation(listOf(
-                LazyAction {
-                    if (indexes!!.isEmpty())
-                        SlotRequest("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(Prompt { "What id do you have?" }))
-                    else
-                        SlotRequestMore("indexes", "kotlin.collections.List<kotlin.Int>", simpleTemplates(Prompt { "What id do you still have?" }))
-                })
-            )
-        ),
-        "indexes._item" to listOf(
-                SlotPromptAnnotation(listOf(SlotRequest("indexes._item", "kotlin.Int", simpleTemplates("what is the id?")))),
-        ),
-        "method" to listOf(
-                SlotPromptAnnotation(listOf(SlotRequest("method", "io.opencui.test.PayMethod", simpleTemplates("What pay method do you perfer?")))),
         )
-    )
+        "symptoms" -> listOf(
+            SlotConditionalPromptAnnotation(
+                listOf(
+                    LazyAction {
+                        if (symptoms!!.isEmpty())
+                            SlotRequest(
+                                "symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(
+                                    Prompt { "What symptom do you have?" })
+                            )
+                        else
+                            SlotRequestMore(
+                                "symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(
+                                    Prompt { "What symptom do you still have?" })
+                            )
+                    })
+            )
+        )
+        "indexes" -> listOf(
+            SlotConditionalPromptAnnotation(
+                listOf(
+                    LazyAction {
+                        if (indexes!!.isEmpty())
+                            SlotRequest(
+                                "indexes",
+                                "kotlin.collections.List<kotlin.Int>",
+                                simpleTemplates(Prompt { "What id do you have?" })
+                            )
+                        else
+                            SlotRequestMore(
+                                "indexes",
+                                "kotlin.collections.List<kotlin.Int>",
+                                simpleTemplates(Prompt { "What id do you still have?" })
+                            )
+                    })
+            )
+        )
+        "indexes._item" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "indexes._item",
+                        "kotlin.Int",
+                        simpleTemplates("what is the id?")
+                    )
+                )
+            ),
+        )
+        "method" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "method",
+                        "io.opencui.test.PayMethod",
+                        simpleTemplates("What pay method do you perfer?")
+                    )
+                )
+            ),
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: PreDiagnosis? = this@PreDiagnosis
@@ -521,13 +615,20 @@ data class Hi(override var session: UserSession? = null
 
     @JsonIgnore
     var symptom: ISymptom? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "symptom" to listOf(
-                SlotPromptAnnotation(listOf(SlotRequest("symptom", "io.opencui.test.ISymptom", simpleTemplates("What symptom do you have?"))))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "symptom" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "symptom",
+                        "io.opencui.test.ISymptom",
+                        simpleTemplates("What symptom do you have?")
+                    )
+                )
+            )
         )
-    )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: Hi? = this@Hi
@@ -556,9 +657,6 @@ data class Hello(override var session: UserSession? = null
     var mobile_with_adcances: MobileWithAdvances? = MobileWithAdvances(session)
     var mobile: Mobile? = Mobile(session)
     var payable: PayMethod? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: Hello? = this@Hello
@@ -610,20 +708,33 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
                     }))
             },
             target = this, slot = "flight", hard = true)
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "depart_date" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When will you depart?""" }))),
-        "return_date" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When will you return?""" }))),
-        "origin" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """From where?""" }))),
-        "destination" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """To where?""" })),
-                ValueCheckAnnotation(OldValueCheck(session, { vacationService.search_flight(origin, destination).isNotEmpty() }, listOf(Pair(this, "destination")),
-                    { SlotNotifyFailure(destination, "destination", "kotlin.String", FailType.VC, simpleTemplates(Prompt { "No flight available for your origin and destination." })) }
-                ))),
-        "flight" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """Which flight?""" })), ValueRecAnnotation({recommendation}, false)),
-        "extra" to listOf(NeverAsk()),
-        "this" to listOf(ConfirmationAnnotation({searchConfirmation("this")}))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "depart_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When will you depart?""" })))
+        "return_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When will you return?""" })))
+        "origin" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """From where?""" })))
+        "destination" -> listOf<Annotation>(
+            SlotPromptAnnotation(simpleTemplates(Prompt { """-> where?""" })),
+            ValueCheckAnnotation(OldValueCheck(session,
+                { vacationService.search_flight(origin, destination).isNotEmpty() },
+                listOf(Pair(this, "destination")),
+                {
+                    SlotNotifyFailure(
+                        destination,
+                        "destination",
+                        "kotlin.String",
+                        FailType.VC,
+                        simpleTemplates(Prompt { "No flight available for your origin and destination." })
+                    )
+                }
+            )))
+        "flight" -> listOf<Annotation>(
+            SlotPromptAnnotation(simpleTemplates(Prompt { """Which flight?""" })),
+            ValueRecAnnotation({ recommendation }, false)
+        )
+        "extra" -> listOf(NeverAsk())
+        "this" -> listOf(ConfirmationAnnotation({ searchConfirmation("this") }))
+        else -> listOf()
+    }
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
@@ -667,14 +778,13 @@ data class BookHotel(override var session: UserSession? = null
     var checkout_date: String? = null
     var hotel: Hotel? = Hotel(session)
     var placeHolder: String? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "checkin_date" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When to checkin?""" }))),
-        "checkout_date" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When to checkout?""" }))),
-        "placeHolder" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """ask placeholder""" }))),
-        "this" to listOf(ConfirmationAnnotation({searchConfirmation("this")}))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "checkin_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When to checkin?""" })))
+        "checkout_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When to checkout?""" })))
+        "placeHolder" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """ask placeholder""" })))
+        "this" -> listOf(ConfirmationAnnotation({ searchConfirmation("this") }))
+        else -> listOf()
+    }
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
@@ -708,9 +818,6 @@ data class BookHotel(override var session: UserSession? = null
 }
 
 data class CreateUnimportant(override var session: UserSession? = null) : IFrame {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: CreateUnimportant? = this@CreateUnimportant
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -727,16 +834,15 @@ data class HotelAddress(override var session: UserSession? = null
     var unimportant: String? = null
 
     var address: String? = null
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "unimportant" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """unimportant?""" })))
+        "createUnimportant" -> listOf()
+        "address" -> listOf(NeverAsk())
+        else -> listOf()
+    }
 
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "unimportant" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """unimportant?""" }))),
-        "createUnimportant" to listOf(),
-        "address" to listOf(NeverAsk())
-    )
-
-val vacationService: IVacationService
-    get() = session!!.getExtension<IVacationService>() as IVacationService
+    val vacationService: IVacationService
+        get() = session!!.getExtension<IVacationService>() as IVacationService
 
     fun createUnimportant(): String {
         return "generated_unimportant"
@@ -777,11 +883,10 @@ val vacationService: IVacationService
 
 data class FirstLevelQuestion(override var session: UserSession? = null) : IIntent {
     var need_hotel: Boolean? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "need_hotel" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """Do you need to book hotel?""" })))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "need_hotel" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """Do you need to book hotel?""" })))
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: FirstLevelQuestion? = this@FirstLevelQuestion
@@ -804,9 +909,18 @@ data class BookVacation(override var session: UserSession? = null
 ) : IIntent {
     var book_flight: BookFlight? = BookFlight(session)
     var book_hotel: BookHotel? = BookHotel(session)
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf("book_hotel.checkin_date" to listOf(SlotInitAnnotation(FillActionBySlot({book_flight?.depart_date}, book_hotel, "checkin_date"))))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "book_hotel.checkin_date" -> listOf(
+            SlotInitAnnotation(
+                FillActionBySlot(
+                    { book_flight?.depart_date },
+                    book_hotel,
+                    "checkin_date"
+                )
+            )
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BookVacation? = this@BookVacation
@@ -823,11 +937,10 @@ data class BookVacation(override var session: UserSession? = null
 data class CompositeWithIIntent(override var session: UserSession? = null
 ) : IIntent {
     var skill: IIntent? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "skill" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """What do you want to do?""" })))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "skill" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """What do you want to do?""" })))
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: CompositeWithIIntent? = this@CompositeWithIIntent
@@ -854,15 +967,21 @@ data class MoreBasics(override var session: UserSession? = null
         return payMethod!!.concreteMethod()
     }
 
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "int_condition" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """int condition?""" }))),
-        "bool_condition" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """bool condition?""" }))),
-        "payMethod" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """payMethod?""" }))),
-        "associateSlot" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """associate slot?""" })), SlotInitAnnotation(FillActionBySlot({associateClosure()}, this, "associateSlot"))),
-        "conditional_slot" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """condition met and ask conditional slot""" })), ConditionalAsk(
-            Condition { int_condition != null && int_condition!! > 3 && bool_condition == true }))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "int_condition" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """int condition?""" })))
+        "bool_condition" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """bool condition?""" })))
+        "payMethod" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """payMethod?""" })))
+        "associateSlot" -> listOf(
+            SlotPromptAnnotation(simpleTemplates(Prompt { """associate slot?""" })),
+            SlotInitAnnotation(FillActionBySlot({ associateClosure() }, this, "associateSlot"))
+        )
+        "conditional_slot" -> listOf(
+            SlotPromptAnnotation(simpleTemplates(Prompt { """condition met and ask conditional slot""" })),
+            ConditionalAsk(
+                Condition { int_condition != null && int_condition!! > 3 && bool_condition == true })
+        )
+        else -> listOf()
+    }
 
     override fun searchResponse(): Action? {
         return when {
@@ -890,14 +1009,16 @@ data class IntentNeedConfirm(override var session: UserSession? = null
     var intVar: Int? = null
     var boolVar: Boolean? = null
     var stringVal: String? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "intVar" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """intVar?""" }))),
-        "boolVar" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """boolVar?""" })), ConfirmationAnnotation({searchConfirmation("boolVar")})),
-        "stringVal" to listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """stringVal?""" }))),
-        "this" to listOf(ConfirmationAnnotation { searchConfirmation("this") })
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "intVar" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """intVar?""" })))
+        "boolVar" -> listOf<Annotation>(
+            SlotPromptAnnotation(simpleTemplates(Prompt { """boolVar?""" })),
+            ConfirmationAnnotation({ searchConfirmation("boolVar") })
+        )
+        "stringVal" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """stringVal?""" })))
+        "this" -> listOf(ConfirmationAnnotation { searchConfirmation("this") })
+        else -> listOf()
+    }
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
@@ -954,14 +1075,16 @@ data class WeakRecommendation(override var session: UserSession? = null
             }, target = this, slot = "")
     @JsonIgnore
     val recPayMethod = PayMethod.createRecFrame(session!!, this, "payMethod")
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "slotForWeakRec" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "weak rec slot?" }))),
-        "payMethod" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "slotForWeakRec" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "weak rec slot?" })))
+        "payMethod" -> listOf(
             SlotPromptAnnotation(simpleTemplates(Prompt { "payMethod?" })),
-            ValueRecAnnotation({recPayMethod}, false)),
-        "this" to listOf(ValueRecAnnotation({recommendation}, false))
-    )
+            ValueRecAnnotation({ recPayMethod }, false)
+        )
+
+        "this" -> listOf(ValueRecAnnotation({ recommendation }, false))
+        else -> listOf()
+    }
 
     var condition: Boolean? = null
     var payMethod: PayMethod? = null
@@ -1015,11 +1138,11 @@ interface IContractFrame: IFrame {
 
 
 data class ContractBasedIntentA(override var session: UserSession? = null): IIntent, IContractFrame {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "a" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "a?" }))),
-        "contractId" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "a" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "a?" })))
+        "contractId" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
+        else -> listOf()
+    }
 
     var a: String? = null
     override var contractId: String? = null
@@ -1052,11 +1175,11 @@ data class ContractBasedIntentA_0(
 
 
 data class ContractBasedIntentB(override var session: UserSession? = null): IIntent, IContractFrame {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "b" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "b?" }))),
-        "contractId" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "b" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "b?" })))
+        "contractId" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
+        else -> listOf()
+    }
 
     var b: String? = null
     override var contractId: String? = null
@@ -1086,14 +1209,16 @@ data class ContractBasedIntentB_0(
 
 
 data class RecoverTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "aaa" to listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { "aaa?" }))),
-        "bbb" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "aaa" -> listOf(
+            SlotPromptAnnotation(simpleTemplates(Prompt { "aaa?" }))
+        )
+        "bbb" -> listOf(
             SlotPromptAnnotation(simpleTemplates(Prompt { throw Exception("exception") })),
-            ConditionalAsk(Condition { aaa == "aaa" }))
-    )
+            ConditionalAsk(Condition { aaa == "aaa" })
+        )
+        else -> listOf()
+    }
 
     var aaa: String? = null
     var bbb: String? = null
@@ -1122,12 +1247,12 @@ data class RecoverTestIntent_0(
 ) : UserDefinedInform<RecoverTestIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, aaa=$aaa; bbb=$bbb""" } }))
 
 data class AssociationTestFrame(override var session: UserSession? = null): IFrame {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "aaa" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame aaa?" }))),
-        "bbb" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame bbb?" }))),
-        "this" to listOf(SlotInitAnnotation(FillActionBySlot({associationSource()}, this, "")))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "aaa" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame aaa?" })))
+        "bbb" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame bbb?" })))
+        "this" -> listOf(SlotInitAnnotation(FillActionBySlot({ associationSource() }, this, "")))
+        else -> listOf()
+    }
 
     var aaa: String? = null
     var bbb: String? = null
@@ -1154,14 +1279,23 @@ data class AssociationTestFrame(override var session: UserSession? = null): IFra
 
 
 data class AssociationTestIntent(override var session: UserSession? = null): IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "aaa" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "aaa" -> listOf(
             SlotPromptAnnotation(simpleTemplates(Prompt { "intent aaa?" })),
-            SlotInitAnnotation(FillActionBySlot({associationFrameA?.associationSource()?.aaa}, this, "aaa"))),
-        "bbb" to listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "intent bbb?" }))),
-        "associationFrameB" to listOf(SlotInitAnnotation(FillActionBySlot({associationSource()}, this, "associationFrameB")))
-    )
+            SlotInitAnnotation(FillActionBySlot({ associationFrameA?.associationSource()?.aaa }, this, "aaa"))
+        )
+        "bbb" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "intent bbb?" })))
+        "associationFrameB" -> listOf(
+            SlotInitAnnotation(
+                FillActionBySlot(
+                    { associationSource() },
+                    this,
+                    "associationFrameB"
+                )
+            )
+        )
+        else -> listOf()
+    }
 
     var aaa: String? = null
     var bbb: String? = null
@@ -1203,16 +1337,19 @@ data class AssociationTestIntent_0(
 data class ValueRecInteractionFrame(override var session: UserSession? = null): IFrame {
     var b: Int? = null
     var c: Boolean? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "b" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "b" -> listOf(
             SlotPromptAnnotation(
-                simpleTemplates(Prompt { "b?" }))),
-        "c" to listOf(
+                simpleTemplates(Prompt { "b?" })
+            )
+        )
+        "c" -> listOf(
             SlotPromptAnnotation(
-                simpleTemplates(Prompt { "c?" })))
-    )
+                simpleTemplates(Prompt { "c?" })
+            )
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame:ValueRecInteractionFrame? = this@ValueRecInteractionFrame
@@ -1283,17 +1420,26 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
         implicit = true
     )
 
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "a" to listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { "a?" }))),
-        "targetFrame" to listOf(
-            ValueRecAnnotation({_rec_frame}, false),
-            ValueCheckAnnotation(OldValueCheck(session, {checkData()}, listOf(Pair(this, "targetFrame")),
-                    { SlotNotifyFailure(targetFrame, "targetFrame", "io.opencui.test.ValueRecInteractionFrame", FailType.VC, simpleTemplates(
-                        Prompt { "b=${targetFrame?.b}; c=${targetFrame?.c}; value check failed" })) }
-            ))),
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "a" -> listOf(
+            SlotPromptAnnotation(simpleTemplates(Prompt { "a?" }))
+        )
+        "targetFrame" -> listOf(
+            ValueRecAnnotation({ _rec_frame }, false),
+            ValueCheckAnnotation(OldValueCheck(session, { checkData() }, listOf(Pair(this, "targetFrame")),
+                {
+                    SlotNotifyFailure(
+                        targetFrame,
+                        "targetFrame",
+                        "io.opencui.test.ValueRecInteractionFrame",
+                        FailType.VC,
+                        simpleTemplates(
+                            Prompt { "b=${targetFrame?.b}; c=${targetFrame?.c}; value check failed" })
+                    )
+                }
+            )))
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame:ValueRecInteractionIntent? = this@ValueRecInteractionIntent
@@ -1333,8 +1479,11 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
                     }))
             },
             target = this, slot = "hotel")
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf("hotel.city" to listOf(ValueRecAnnotation({recommendation}, false)))
+
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "hotel.city" -> listOf(ValueRecAnnotation({recommendation}, false))
+        else -> listOf()
+    }
 
     var hotel: Hotel? = Hotel(session)
 
@@ -1377,9 +1526,6 @@ data class CustomizedRecommendation_0(
 data class Greeting(
     override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf()
-
     override fun searchResponse(): Action? = when {
         else -> UserDefinedInform(this, simpleTemplates(Prompt { """Good day!""" }))
     }
@@ -1398,9 +1544,6 @@ data class Greeting(
 data class Goodbye(
     override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf()
-
     override fun searchResponse(): Action? = when {
         else -> UserDefinedInform(this, simpleTemplates(Prompt { """Have a nice day! """ }))
     }
@@ -1444,15 +1587,16 @@ data class Main(
             },
             target = this, slot = "skills")
 
-    @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "Greeting" to listOf(),
-        "skills" to listOf(
-            SlotConditionalPromptAnnotation({if (skills!!.isEmpty()) simpleTemplates(Prompt { """What can I do for you? (Main)""" }) else simpleTemplates(
-                Prompt { """What else can I do for you? (Main)""" })}),
-            ValueRecAnnotation({recommendation}, false)
-        ),
-        "Goodbye" to listOf())
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "skills" -> listOf(
+            SlotConditionalPromptAnnotation{
+                if (skills!!.isEmpty()) simpleTemplates(Prompt { """What can I do for you? (Main)""" }) else simpleTemplates(
+                    Prompt { """What else can I do for you? (Main)""" })
+            },
+            ValueRecAnnotation({ recommendation }, false)
+        )
+        else -> listOf()
+    }
 
     override fun searchResponse(): Action? = when {
         else -> null

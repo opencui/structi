@@ -12,9 +12,6 @@ import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
 
 data class IDonotGetIt(override var session: UserSession? = null) : IIntent {
-    @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf()
-
     override fun searchResponse(): Action? = when {
         else -> UserDefinedInform(this, simpleTemplates(Prompt { """I did not get that.""" } ))
     }
@@ -57,14 +54,32 @@ data class IntentSuggestion(override var session: UserSession? = null
         },
         target = this, slot = "")
 
-    @JsonIgnore
-    override val annotations: Map<kotlin.String, List<Annotation>> = mapOf(
-        "intentPackage" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("intentPackage", "kotlin.String", simpleTemplates(Prompt { "Which package?" })))),
-            ValueRecAnnotation({recommendation}, false)),
-        "intentName" to listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("intentName", "kotlin.String", simpleTemplates(Prompt { "Which intent?" })))))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "intentPackage" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "intentPackage",
+                        "kotlin.String",
+                        simpleTemplates(Prompt { "Which package?" })
+                    )
+                )
+            ),
+            ValueRecAnnotation({ recommendation }, false)
+        )
+        "intentName" -> listOf(
+            SlotPromptAnnotation(
+                listOf(
+                    SlotRequest(
+                        "intentName",
+                        "kotlin.String",
+                        simpleTemplates(Prompt { "Which intent?" })
+                    )
+                )
+            )
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame:IntentSuggestion? = this@IntentSuggestion
@@ -89,9 +104,6 @@ data class IntentSuggestion(override var session: UserSession? = null
 
 data class IDonotKnowWhatToDo(override var session: UserSession? = null
 ) : IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: IDonotKnowWhatToDo?= this@IDonotKnowWhatToDo
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -139,23 +151,26 @@ data class ValueClarification<T: Any>(
         },
         pageSize = 5, target = this, slot = "target")
 
-    @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mapOf(
-        "target" to listOf(
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "target" -> listOf(
             SlotPromptAnnotation(
                 listOf(
-                    SlotRequest("target", getClass().qualifiedName!!, simpleTemplates(Prompt { "target?" })))),
-                    TypedValueRecAnnotation<T>({_rec_target(this)})))
+                    SlotRequest("target", getClass().qualifiedName!!, simpleTemplates(Prompt { "target?" }))
+                )
+            ),
+            TypedValueRecAnnotation<T>({ _rec_target(this) })
+        )
+        else -> listOf()
+    }
 }
 
 data class ResumeIntent(override var session: UserSession? = null
 ) : IIntent {
     var intent: IIntent? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf(
-        "intent" to listOf(NeverAsk())
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "intent" -> listOf(NeverAsk())
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ResumeIntent?= this@ResumeIntent
@@ -176,9 +191,6 @@ data class ResumeIntent(override var session: UserSession? = null
 
 // hardcode for clean session
 data class CleanSession(override var session: UserSession? = null) : IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: CleanSession? = this@CleanSession
         override fun invoke(path: ParamPath): FrameFiller<*> {

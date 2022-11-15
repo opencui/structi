@@ -14,6 +14,7 @@ import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
+import org.jetbrains.kotlin.fir.expressions.builder.buildElseIfTrueCondition
 import java.io.Serializable
 import java.util.*
 import kotlin.reflect.KClass
@@ -140,11 +141,22 @@ data class HasMore(
     var status: IStatus? = null
 
     @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mapOf(
-        STATUS to listOf(
-            SlotPromptAnnotation(promptActions),
-            ValueCheckAnnotation(OldValueCheck(session, { status !is No || minChecker()}, listOf(Pair(this, STATUS)), minPrompts)))
-    )
+    override fun annotations(path: String): List<Annotation> =
+        when(path) {
+            STATUS -> listOf(
+                SlotPromptAnnotation(promptActions),
+                ValueCheckAnnotation(
+                    OldValueCheck(
+                        session,
+                        { status !is No || minChecker() },
+                        listOf(Pair(this, STATUS)),
+                        minPrompts
+                    )
+                )
+            )
+            else -> listOf()
+        }
+
 
     fun hasMore(): Boolean {
         return status is Yes
@@ -175,9 +187,10 @@ data class BoolGate(
     var status: io.opencui.core.booleanGate.IStatus? = null
 
     @JsonIgnore
-    override var annotations: Map<String, List<Annotation>> = mapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(prompts())))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "status" -> listOf(SlotPromptAnnotation(listOf(prompts())))
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BoolGate? = this@BoolGate
@@ -200,16 +213,8 @@ class CloseSession() : ChartAction {
     }
 }
 
-enum class FillStateEnum {
-    SlotInit
-}
 
 data class ActionWrapperIntent(override var session: UserSession? = null, val action: Action): IIntent {
-
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ActionWrapperIntent? = this@ActionWrapperIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -235,8 +240,6 @@ data class StitchedIntent<T: IFrame>(
     override var session: UserSession? = null,
     val eventFrame: T,
     val updateRules: List<UpdateRule>): IIntent {
-
-    override val annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: StitchedIntent<T>? = this@StitchedIntent
@@ -471,7 +474,10 @@ class EndTopIntent : StateAction {
 
 abstract class AbstractAbortIntent(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf("intentType" to listOf(RecoverOnly()))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "intentType" -> listOf(RecoverOnly())
+        else -> listOf()
+    }
 
     var intentType: InternalEntity? = null
     var intent: IIntent? = null
@@ -571,9 +577,10 @@ data class Confirmation(
     val slot: String,
     val prompts: () -> DialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
 
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(Condition { !implicit }))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "status" -> listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(Condition { !implicit }))
+        else -> listOf()
+    }
 
     var status: io.opencui.core.confirmation.IStatus? = null
 
@@ -619,10 +626,14 @@ data class FreeActionConfirmation(
     var status: io.opencui.core.confirmation.IStatus? = null
     var action: IIntent? = null
 
-    override var annotations: Map<String, List<Annotation>> = mutableMapOf(
-        "status" to listOf(SlotPromptAnnotation(listOf(confirmPrompts())), ConditionalAsk(Condition { !implicit })),
-        "action" to listOf(SlotPromptAnnotation(listOf(actionPrompts())), ConditionalAsk(Condition { status is io.opencui.core.confirmation.No && !implicit }))
-    )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "status" -> listOf(SlotPromptAnnotation(listOf(confirmPrompts())), ConditionalAsk(Condition { !implicit }))
+        "action" -> listOf(
+            SlotPromptAnnotation(listOf(actionPrompts())),
+            ConditionalAsk(Condition { status is io.opencui.core.confirmation.No && !implicit })
+        )
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: FreeActionConfirmation? = this@FreeActionConfirmation
@@ -645,8 +656,6 @@ data class ValueCheck(
     override var session: UserSession? = null,
     val conditionActionPairs: List<Pair<()->Boolean, List<Action>>>): IIntent {
     constructor(session: UserSession?, checker: () -> Boolean, actions: List<Action>): this(session, listOf(Pair(checker, actions)))
-
-    override var annotations: Map<String, List<Annotation>> = mapOf()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ValueCheck? = this@ValueCheck
@@ -675,9 +684,6 @@ data class OldValueCheck(
     val toBeCleaned: List<Pair<IFrame?, String?>>,
     val prompts: () -> DialogAct
 ): IIntent {
-
-    override var annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: OldValueCheck? = this@OldValueCheck
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -752,9 +758,6 @@ data class MaxValueCheck(
     val maxEntry: Int,
     val prompts: () -> DialogAct
 ): IIntent {
-
-    override var annotations: Map<String, List<Annotation>> = mapOf()
-
     val targetSlot: MutableList<*>?
         get() {
             return targetSlotGetter()
@@ -802,9 +805,6 @@ data class Ordinal(
 }
 
 data class NextPage(override var session: UserSession? = null) : IFrame {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: NextPage? = this@NextPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -816,9 +816,6 @@ data class NextPage(override var session: UserSession? = null) : IFrame {
 }
 
 data class PreviousPage(override var session: UserSession? = null) : IFrame {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: PreviousPage? = this@PreviousPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -831,9 +828,10 @@ data class PreviousPage(override var session: UserSession? = null) : IFrame {
 
 data class FilterCandidate(override var session: UserSession? = null) : IFrame {
     var conditionMapJson: String? = null
-
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf("conditionMapJson" to listOf(RecoverOnly()))
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "conditionMapJson" -> listOf(RecoverOnly())
+        else -> listOf()
+    }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: FilterCandidate? = this@FilterCandidate
@@ -847,9 +845,6 @@ data class FilterCandidate(override var session: UserSession? = null) : IFrame {
 }
 
 abstract class ValueRecSourceWrapper(override var session: UserSession? = null) : IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ValueRecSourceWrapper? = this@ValueRecSourceWrapper
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -861,9 +856,6 @@ abstract class ValueRecSourceWrapper(override var session: UserSession? = null) 
 }
 
 data class BadCandidate<T>(override var session: UserSession? = null, var value: T?) : IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BadCandidate<T>? = this@BadCandidate
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -876,9 +868,6 @@ data class BadCandidate<T>(override var session: UserSession? = null, var value:
 
 
 data class BadIndex(override var session: UserSession? = null, var index: Int) : IIntent {
-    @JsonIgnore
-    override val annotations: Map<String, List<Annotation>> = mapOf()
-
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BadIndex? = this@BadIndex
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1122,18 +1111,18 @@ data class PagedSelectable<T: Any> (
         return BadIndex(session, index!!.value.toInt())
     }
 
-    @JsonIgnore
-    override val annotations = mapOf<String, List<Annotation>>(
-        "index" to listOf<Annotation>(
-            SlotPromptAnnotation(listOf(LazyAction(convertDialogActGen({payload}, promptTemplate)))),
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "index" -> listOf(
+            SlotPromptAnnotation(listOf(LazyAction(convertDialogActGen({ payload }, promptTemplate)))),
             ConditionalAsk(Condition { candidates.isNotEmpty() || outlierValue() }),
-            SlotInitAnnotation(FillActionBySlot({generateAutoFillIndex()},  this, "index")),
+            SlotInitAnnotation(FillActionBySlot({ generateAutoFillIndex() }, this, "index")),
             ValueCheckAnnotation(_check_index),
             ConfirmationAnnotation { searchConfirmation("index") }
-        ),
-        "conditionMap" to listOf(NeverAsk()),
-        "page" to listOf(NeverAsk())
-    )
+        )
+        "conditionMap" -> listOf(NeverAsk())
+        "page" -> listOf(NeverAsk())
+        else -> listOf()
+    }
 
     override fun searchConfirmation(slot: String): IFrame? {
         return when (slot) {
@@ -1405,21 +1394,20 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
             target = this, slot = "index", hard = true, zeroEntryActions = listOf(EndSlot(this, "index", true)))
     }
 
-    override val annotations: Map<String, List<Annotation>> by lazy {
-        mapOf(
-            "originalSlot" to listOf(NeverAsk()),
-            "oldValue" to listOf(NeverAsk()),
-            "newValue" to listOf(NeverAsk()),
-            "index" to listOf(
-                ConditionalAsk(Condition { isMV() }),
-                ValueCheckAnnotation(_check_index),
-                TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
-                SlotPromptAnnotation(listOf(LazyAction(askIndexPrompt)))),
-            "originalValue" to listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue"))),
-            "confirm" to listOf(
-                ConditionalAsk(Condition { needConfirm() }),
-                SlotPromptAnnotation(listOf(LazyAction(oldValueDisagreePrompt))))
-        )
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "originalSlot" -> listOf(NeverAsk())
+        "oldValue" -> listOf(NeverAsk())
+        "newValue" -> listOf(NeverAsk())
+        "index" -> listOf(
+            ConditionalAsk(Condition { isMV() }),
+            ValueCheckAnnotation(_check_index),
+            TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
+            SlotPromptAnnotation(listOf(LazyAction(askIndexPrompt))))
+        "originalValue" -> listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue")))
+        "confirm" -> listOf(
+            ConditionalAsk(Condition { needConfirm() }),
+            SlotPromptAnnotation(listOf(LazyAction(oldValueDisagreePrompt))))
+        else -> listOf()
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
@@ -1511,8 +1499,6 @@ class IntentClarification(
     var source: Array<IIntent>? = null
 
     var target: IIntent? = null
-
-    override val annotations: Map<String, List<Annotation>> = emptyMap()
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: IntentClarification? = this@IntentClarification
