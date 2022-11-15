@@ -316,7 +316,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
                 val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
                 val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
                 if (triggers.isNullOrEmpty()) {
-                    throw RuntimeException("Missing trigger for $slotName in ${expr.owner}.")
+                    throw RuntimeException("Missing trigger for $slotName in ${expr.owner} for ${expr.utterance}.")
                 } else {
                     "< ${triggers[0]} >"
                 }
