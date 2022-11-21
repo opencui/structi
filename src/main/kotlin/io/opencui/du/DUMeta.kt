@@ -4,15 +4,6 @@ import io.opencui.serialization.*
 import kotlin.collections.HashMap
 
 
-// Language independent slot meta.
-interface SchemaSlotMeta{
-    val label: String
-    val type: String
-    val isMultiValue: Boolean
-    val parent: String?
-    val isHead: Boolean
-}
-
 /**
  * This is mainly used as raw source of the information.
  * isHead is created to indicate whether current slot is head of the hosting frame.
@@ -30,6 +21,14 @@ data class DUSlotMeta(
     var isMentioned: Boolean = false
     var prefixes: Set<String>?=null
     var suffixes: Set<String>?=null
+
+    fun typeReplaced(newType: String, newTriggers: List<String>): DUSlotMeta {
+        val meta = DUSlotMeta(label, newTriggers, newType, isMultiValue, parent, isHead)
+        meta.isMentioned = isMentioned
+        meta.prefixes = prefixes
+        meta.suffixes = suffixes
+        return meta
+    }
 }
 
 
@@ -84,6 +83,8 @@ interface ExtractiveMeta : LangBase {
     fun getEntityInstances(name: String): Map<String, List<String>> // for runtime, all labels and normalized form
 
     fun getEntityMeta(name: String): IEntityMeta? // string encoding of JsonArray of JsonObject
+
+    fun getSlotTrigger(): Map<String, List<String>> = emptyMap()
 }
 
 interface DUMeta : ExtractiveMeta {
@@ -145,6 +146,16 @@ abstract class DslDUMeta() : DUMeta {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
 
+    override fun getSlotTrigger(): Map<String, List<String>> {
+        val results = mutableMapOf<String, List<String>>()
+        for ((frame, metas) in slotMetaMap) {
+            for (slotMeta in metas) {
+                results["${frame}.${slotMeta.label}"] = slotMeta.triggers
+            }
+        }
+        return results
+    }
+
     override fun getEntities(): Set<String> {
         return entityTypes.keys
     }
@@ -194,6 +205,16 @@ abstract class JsonDUMeta() : DUMeta {
 
     override fun isEntity(name: String): Boolean {
         return entityMetas.containsKey(name)
+    }
+
+    override fun getSlotTrigger(): Map<String, List<String>> {
+        val results = mutableMapOf<String, List<String>>()
+        for ((frame, metas) in slotMetaMap) {
+            for (slotMeta in metas) {
+                results["${frame}.${slotMeta.label}"] = slotMeta.triggers
+            }
+        }
+        return results
     }
 }
 

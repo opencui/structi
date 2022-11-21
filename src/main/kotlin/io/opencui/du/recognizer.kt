@@ -411,7 +411,8 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
             }
 
             // Actual instances.
-            val content = agent.getEntityInstances(type)
+            // TODO (sean): find a better place to hard code.
+            val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTrigger()
             logger.info("process entity type $type with ${content.size} entries.")
             for ((entryLabel, expressions) in content) {
                 add(entryLabel,expressions, true)

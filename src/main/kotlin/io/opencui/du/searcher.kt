@@ -393,7 +393,9 @@ data class ExpressionSearcher(val agent: DUMeta) {
             {
                 val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
                 var typeName = agent.getSlotType(owner, slotName)
-                if (typeName.isEmpty()) typeName = "WrongName"
+                if (typeName.isEmpty()) {
+                    typeName = "WrongName"
+                }
                 "< $typeName >"
             }
         }
