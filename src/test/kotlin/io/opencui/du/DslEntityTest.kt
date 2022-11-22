@@ -217,7 +217,7 @@ class DslEntityTest() : DuTestHelper() {
         val expectations = DialogExpectations(ExpectedFrame("me.test.abstractEntity_1007.FoodOrdering"))
         val frameEvents = stateTracker.convert("s", "change item to chicken wings", expectations)
         println("frame events: $frameEvents")
-        assertEquals(frameEvents.size, 0)
+        assertEquals(frameEvents.size, 1)
         // val entityEvents = frameEvents[0].activeSlots
         // assertEquals(entityEvents.size, 1 )
     }
