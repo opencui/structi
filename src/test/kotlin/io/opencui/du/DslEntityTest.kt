@@ -27,9 +27,9 @@ class DslEntityTest() : DuTestHelper() {
                 }
                 utterance("Great, let's make a transfer.")
 
-                utterance("Make a transfer to ${'$'}recipient_account_name${'$'}")
+                utterance("Make a transfer to <recipient_account_name>")
                 utterance("I wanna make a transfer")
-                utterance("send ${'$'}amount${'$'} and give it to ${'$'}recipient_account_name${'$'} and go with the ${'$'}account_type${'$'} account") {
+                utterance("send <amount> and give it to <recipient_account_name> and go with the <account_type> account") {
                     context("Banks_1.TransferMoney", "amount")
                     label("negation")
 
@@ -215,7 +215,7 @@ class DslEntityTest() : DuTestHelper() {
     @Test
     fun testMatchUpdate() {
         val expectations = DialogExpectations(ExpectedFrame("me.test.abstractEntity_1007.FoodOrdering"))
-        val frameEvents = stateTracker.convert("s", "change item to chicken wings", expectations)
+        val frameEvents = stateTracker.convert("s", "change dish item to chicken wings", expectations)
         println("frame events: $frameEvents")
         assertEquals(frameEvents.size, 1)
         // val entityEvents = frameEvents[0].activeSlots
