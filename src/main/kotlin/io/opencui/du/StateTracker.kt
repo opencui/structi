@@ -397,7 +397,7 @@ data class BertStateTracker(
 
         // Of course, there are another dimension: whether we have expectation.
         val recognizedFrameType: String? = bestCandidate.ownerFrame
-        logger.debug("best matched frame: $recognizedFrameType, utterance: ${bestCandidate.utterance}")
+        logger.debug("best matched frame: $recognizedFrameType, utterance: ${bestCandidate.typedExpression}")
         if (!recognizedFrameType.isNullOrEmpty()) {
             // 6. matched a new intent
             val slotsInExpr = bestCandidate.slots.split(',')
@@ -821,7 +821,7 @@ data class BertStateTracker(
                 // we need to rewrite the slot map to replace all the T into actual slot type.
                 for ((key, slotMeta) in slotMapBef) {
                     if (slotMeta.label == StateTracker.SlotUpdateOriginalSlot) continue
-                    if (slotMeta.type == StateTracker.SlotUpdateGenericType) {
+                    if (slotMeta.isGenericTyped()) {
                         slotMapAft[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
                     } else {
                         slotMapAft[key] = slotMeta

@@ -2,10 +2,7 @@ package io.opencui.du
 
 import io.opencui.core.Dispatcher
 import io.opencui.serialization.*
-import org.apache.lucene.document.Document
-import org.apache.lucene.document.Field
-import org.apache.lucene.document.StringField
-import org.apache.lucene.document.TextField
+import org.apache.lucene.document.*
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
@@ -136,14 +133,14 @@ data class ExpressionSearcher(val agent: DUMeta) {
             // Instead of embedding into expression, use StringField.
             val slotTypes = buildSlotTypes()
             for (slotType in slotTypes) {
-                doc.add(StringField(ScoredDocument.SLOTTYPE, slotType, Field.Store.YES))
+                doc.add(StoredField(ScoredDocument.SLOTTYPE, slotType))
             }
 
             // "probe" is saved for retrieval and request intent model
-            doc.add(TextField(ScoredDocument.PROBE, probe, Field.Store.YES))
+            doc.add(StoredField(ScoredDocument.PROBE, probe))
             // "expression" is just for searching
             doc.add(TextField(ScoredDocument.EXPRESSION, expression, Field.Store.YES))
-            doc.add(TextField(ScoredDocument.UTTERANCE, expr.utterance, Field.Store.YES))
+            doc.add(StoredField(ScoredDocument.UTTERANCE, expr.utterance))
 
 
             // We assume that expression will be retrieved based on the context.
@@ -160,11 +157,11 @@ data class ExpressionSearcher(val agent: DUMeta) {
 
             if (context?.slot != null) {
                 logger.info("context slot ${context.slot}")
-                doc.add(StringField(ScoredDocument.CONTEXTFRAME, context.frame, Field.Store.YES))
-                doc.add(StringField(ScoredDocument.CONTEXTSLOT, context.slot, Field.Store.YES))
+                doc.add(StoredField(ScoredDocument.CONTEXTFRAME, context.frame))
+                doc.add(StoredField(ScoredDocument.CONTEXTSLOT, context.slot))
             }
-            doc.add(StringField(ScoredDocument.OWNER, expr.owner, Field.Store.YES))
-            doc.add(StringField(ScoredDocument.SLOTS, slots, Field.Store.YES))
+            doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
+            doc.add(StoredField(ScoredDocument.SLOTS, slots))
 
 
             if (partialApplications != null) {
@@ -215,7 +212,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
 
     }
 
-    val parser = QueryParser("expression", analyzer)
+    val parser = QueryParser(ScoredDocument.EXPRESSION, analyzer)
 
     /**
      * We assume each agent has its separate index.
@@ -229,8 +226,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
 
 
         logger.info("search with expression: $searchQuery")
-        val query = parser.parse(searchQuery)
-
+        val query = parser.parse("expression:$searchQuery")
 
         // first build the expectation boolean it should be or query.
         // always add "default" for context filtering.
@@ -252,19 +248,6 @@ data class ExpressionSearcher(val agent: DUMeta) {
         queryBuilder.add(query, BooleanClause.Occur.MUST)
         queryBuilder.add(contextQueryBuilder.build(), BooleanClause.Occur.MUST)
 
-        // TODO(sean): Do we really need to search by slot type?
-        // The introduction of entity type hierarchy makes this not as effective as it.
-        if (emap != null && slotSearch) {
-            val entityQueryBuilder = BooleanQuery.Builder()
-            if (emap != null) {
-                for (entityType in emap.keys) {
-                    entityQueryBuilder.add(TermQuery(Term(ScoredDocument.SLOTTYPE, entityType)), BooleanClause.Occur.SHOULD)
-                    logger.info("search with slotType: $entityType")
-                }
-            }
-            queryBuilder.add(entityQueryBuilder.build(), BooleanClause.Occur.SHOULD)
-        }
-        
         val results = searcher.search(queryBuilder.build(), k).scoreDocs.toList()
 
         logger.info("got ${results.size} raw results for ${query}")
@@ -274,14 +257,16 @@ data class ExpressionSearcher(val agent: DUMeta) {
         val res = ArrayList<ScoredDocument>()
         val keyCounts = mutableMapOf<String, Int>()
         val topScore = results[0].score
+        var lastScore = topScore
         for (result in results) {
             val doc = ScoredDocument(result.score / topScore, reader.document(result.doc))
             val count = keyCounts.getOrDefault(doc.ownerFrame, 0)
             keyCounts[doc.ownerFrame] = count + 1
-            if (keyCounts[doc.ownerFrame]!! <= maxFromSame) {
+            if (keyCounts[doc.ownerFrame]!! <= maxFromSame || doc.score == lastScore) {
                 logger.info(doc.toString())
                 res.add(doc)
             }
+            lastScore = doc.score
         }
 
         logger.info("got ${res.size} results for ${query}")

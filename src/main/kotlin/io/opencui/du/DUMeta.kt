@@ -29,6 +29,10 @@ data class DUSlotMeta(
         meta.suffixes = suffixes
         return meta
     }
+
+    fun isGenericTyped(): Boolean {
+        return type == "T"
+    }
 }
 
 
