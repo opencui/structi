@@ -17,12 +17,12 @@ class DslEntityTest() : DuTestHelper() {
     object En : LangPack {
         override val frames = listOf(
             frame("Banks_1.TransferMoney") {
-                utterance("${'$'}date_time_slot${'$'}")
+                utterance("<date_time_slot>")
                 utterance("Yes, please make a transfer.")
                 utterance("Okay, please make a transfer for me.")
                 utterance("Please help me make a money transfer")
                 utterance("Okay thats cool please make a fund transfer")
-                utterance("Make a transfer of ${'$'}amount${'$'}.") {
+                utterance("Make a transfer of <amount>.") {
                     context("Banks_1.TransferMoney")
                 }
                 utterance("Great, let's make a transfer.")
@@ -42,10 +42,42 @@ class DslEntityTest() : DuTestHelper() {
                 }
                 utterance("whatever frame")
             },
+            frame("io.opencui.core.SlotUpdate") {
+                utterance("""change <originalSlot>""") {
+                }
+                utterance("""change from <oldValue>""") {
+                }
+                utterance("""change to <newValue>""") {
+                }
+                utterance("""change <index> value""") {
+                }
+                utterance("""change <originalSlot> to <newValue>""") {
+                }
+                utterance("""change <oldValue> to <newValue>""") {
+                }
+                utterance("""change <index> <originalSlot>""") {
+                }
+                utterance("""change <originalSlot> from <oldValue> to <newValue>""") {
+                }
+                utterance("""change <index> value from <oldValue> to <newValue>""") {
+                }
+                utterance("""change <index> <originalSlot> to <newValue>""") {
+                }
+                utterance("""change <index> <originalSlot> from <oldValue> to <newValue>""") {
+                }
+                utterance("""change <index> <originalSlot> from <oldValue>""") {
+                }
+                utterance("""change <originalSlot> from <oldValue>""") {
+                }
+                utterance("""change <index> value to <newValue>""") {
+                }
+                utterance("""change <index> value of <oldValue>""") {
+                }
+              },
             frame("me.test.abstractEntity_1007.FoodOrdering") {
                 utterance("""test""") {
                 }
-                utterance("""order ${'$'}dish${'$'}""") {
+                utterance("""order <dish>""") {
                 }
             }
         )
@@ -56,7 +88,9 @@ class DslEntityTest() : DuTestHelper() {
                 entity("beijing", "bei jing", "shou du")
                 entity("label", "expr1", "expr2")
             },
-
+            "io.opencui.core.SlotType" to entityType("io.opencui.core.SlotType") {
+                recognizer("ListRecognizer")
+            },
             "me.test.abstractEntity_1007.Dish" to entityType("me.test.abstractEntity_1007.Dish") {
                 children(listOf("me.test.abstractEntity_1007.ChickenDish",
                     "me.test.abstractEntity_1007.HouseSpecial", ))
@@ -86,7 +120,19 @@ class DslEntityTest() : DuTestHelper() {
                     label = "dish", isMultiValue = false, type = "me.test.abstractEntity_1007.Dish",
                     isHead = false, triggers = listOf("dish item", )
                 )
-            )
+            ),
+            "io.opencui.core.SlotUpdate" to listOf(
+                DUSlotMeta(label = "originalSlot", isMultiValue = false, type = "io.opencui.core.SlotType",
+                  isHead = false, triggers = listOf("one", )),
+                DUSlotMeta(label = "oldValue", isMultiValue = false, type = "T", isHead = false, triggers =
+                  listOf()),
+                DUSlotMeta(label = "index", isMultiValue = false, type = "io.opencui.core.Ordinal", isHead =
+                  false, triggers = listOf("index", )),
+                DUSlotMeta(label = "newValue", isMultiValue = false, type = "T", isHead = false, triggers =
+                  listOf()),
+                DUSlotMeta(label = "confirm", isMultiValue = false, type =
+                  "io.opencui.core.confirmation.IStatus", isHead = false, triggers = listOf()),
+                ),
         )
 
         override val typeAlias: Map<String, List<String>> = mapOf(
@@ -164,6 +210,16 @@ class DslEntityTest() : DuTestHelper() {
         assertEquals(entityEvents.size, 1 )
         val longForm = """EntityEvent(value="me.test.abstractEntity_1007.HouseSpecial", attribute=dish, isLeaf=false, type=me.test.abstractEntity_1007.VirtualDish)"""
         assertEquals(entityEvents[0].toLongForm(), longForm)
+    }
+
+    @Test
+    fun testMatchUpdate() {
+        val expectations = DialogExpectations(ExpectedFrame("me.test.abstractEntity_1007.FoodOrdering"))
+        val frameEvents = stateTracker.convert("s", "change item to chicken wings", expectations)
+        println("frame events: $frameEvents")
+        assertEquals(frameEvents.size, 1)
+        // val entityEvents = frameEvents[0].activeSlots
+        // assertEquals(entityEvents.size, 1 )
     }
 }
 

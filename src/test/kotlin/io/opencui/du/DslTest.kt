@@ -167,7 +167,7 @@ class DslTest() : DuTestHelper() {
         for (result in results) {
             println("${result.probes} by ${result.ownerFrame} with ${result.score}")
         }
-        assertEquals(4, results.size)
+        assertEquals(5, results.size)
     }
 
     @Test
@@ -178,7 +178,7 @@ class DslTest() : DuTestHelper() {
         for (result in results) {
             println("${result.probes} by ${result.ownerFrame} with ${result.score}")
         }
-        assertEquals(4, results.size)
+        assertEquals(5, results.size)
     }
 
     @Test
