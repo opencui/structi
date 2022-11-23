@@ -101,7 +101,6 @@ data class ExpressionContext(val frame: String, val slot: String?)
 data class Expression(
         val owner: String,
         val context: ExpressionContext?,
-        val functionSlot: String?,
         val label: String?,
         val utterance: String,
         val partialApplications: List<String>?,

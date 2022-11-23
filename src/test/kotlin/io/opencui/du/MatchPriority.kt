@@ -28,23 +28,6 @@ class MatchPriorityTest : DuTestHelper() {
             return "master"
         }
 
-        override fun getFrameExpressions(): JsonArray {
-            return IChatbot.parseByFrame("""
-                    {
-                      "agent_id": "a",
-                      "expressions": [
-                        {
-                          "owner_id": "io.opencui.core.Greeting",
-                          "expressions": [
-                            {"utterance": "long time no see"},
-                            {"utterance": "good day"}
-                          ]
-                        }
-                      ]
-                    }
-                """.trimIndent())
-        }
-
         override fun getEntityMeta(name:String): EntityMeta? {
             return mapOf<String, EntityMeta>()[name]
         }

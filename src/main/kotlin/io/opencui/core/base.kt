@@ -249,8 +249,6 @@ abstract class IChatbot : Component {
 
         fun loadDUMeta(classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
             return object : JsonDUMeta() {
-                val agentJsonExpressions = parseByFrame(
-                    classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
                 override val entityMetas = Json.decodeFromString<Map<String, EntityMeta>>(
                     classLoader.getResourceAsStream(EntityMetaPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
                 val agentEntities = Json.decodeFromString<Map<String, String>>(
@@ -276,10 +274,6 @@ abstract class IChatbot : Component {
                 override fun getBranch(): String = branch
                 override fun getTimezone(): String = timezone
 
-                override fun getFrameExpressions(): JsonArray {
-                    return agentJsonExpressions
-                }
-
                 override fun getEntityInstances(name: String): Map<String, List<String>> {
                     return entityContentMap[name] ?: mapOf()
                 }
@@ -292,7 +286,6 @@ abstract class IChatbot : Component {
 
         fun loadDUMetaDsl(langPack: LangPack, classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
             return object : DslDUMeta() {
-                val agentJsonExpressions = Json.makeArray(langPack.frames)
                 override val entityTypes = langPack.entityTypes
                 override val slotMetaMap = langPack.frameSlotMetas
                 override val aliasMap = langPack.typeAlias
@@ -309,9 +302,6 @@ abstract class IChatbot : Component {
                 override fun getBranch(): String = branch
                 override fun getTimezone(): String = timezone
 
-                override fun getFrameExpressions(): JsonArray {
-                    return agentJsonExpressions
-                }
                 override fun getEntityInstances(name: String): Map<String, List<String>> {
                     return langPack.entityTypes[name]!!.entities
                 }

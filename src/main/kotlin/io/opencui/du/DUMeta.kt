@@ -135,11 +135,10 @@ interface DUMeta : ExtractiveMeta {
                     val contextObject = exprObject["context"] as JsonObject?
                     val context = parseContext(contextObject)
                     val utterance = getContent(exprObject["utterance"])!!
-                    val functionSlot = getContent(exprObject["function_slot"])
                     val partialApplicationsObject = exprObject["partial_application"] as JsonArray?
                     val partialApplications = parsePartialApplications(partialApplicationsObject)
                     val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
-                    res.add(Expression(ownerId, context, functionSlot, label, toLowerProperly(utterance), partialApplications, bot))
+                    res.add(Expression(ownerId, context, label, toLowerProperly(utterance), partialApplications, bot))
                 }
                 resmap[ownerId] = res.apply { trimToSize() }
             }
