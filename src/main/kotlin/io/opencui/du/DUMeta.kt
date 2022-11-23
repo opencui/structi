@@ -2,7 +2,6 @@ package io.opencui.du
 
 import io.opencui.serialization.*
 import java.util.*
-import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
@@ -37,7 +36,6 @@ data class DUSlotMeta(
         return type == "T"
     }
 }
-
 
 fun extractSlotSurroundingWords(exprOwners: JsonArray, entities: Set<String>):
         Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
@@ -92,6 +90,8 @@ interface ExtractiveMeta : LangBase {
     fun getEntityMeta(name: String): IEntityMeta? // string encoding of JsonArray of JsonObject
 
     fun getSlotTrigger(): Map<String, List<String>> = emptyMap()
+
+    val expressionsByFrame: Map<String, List<Expression>>
 }
 
 interface DUMeta : ExtractiveMeta {
@@ -123,9 +123,8 @@ interface DUMeta : ExtractiveMeta {
         const val TYPEID = "frame_id" // this is type id.
         const val UTTERANCE = "utterance"
         private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
-
-
-                    /**
+        
+        /**
          * This parses expression json file content into list of expressions, so that we
          * can index them one by one.
          */

@@ -261,25 +261,8 @@ abstract class IChatbot : Component {
                 val entityContentMap: MutableMap<String, Map<String, List<String>>> = mutableMapOf()
 
                 init {
-                    val surroundings = extractSlotSurroundingWords(agentJsonExpressions, entityMetas.keys)
-                    for ((frame, slots) in slotMetaMap) {
-                        for (slot in slots) {
-                            slot.prefixes = surroundings.first["$frame#${slot.label}"]
-                            slot.suffixes = surroundings.second["$frame#${slot.label}"]
-                        }
-                    }
-
                     for (entity in agentEntities.entries) {
                         entityContentMap[entity.key] = parseEntityToMapByNT(entity.key, entity.value)
-                    }
-
-                    // TODO(xiaobo): move subtype into a different file so that we do not have to parse this twice.
-                    val exprOwners = getFrameExpressions()
-                    for (owner in exprOwners) {
-                        owner as JsonObject
-                        val ownerId = (owner["owner_id"] as JsonPrimitive?)?.content()!!
-                        val subtypesJson = owner["sub_types"] ?: continue
-                        subtypes[ownerId] = (subtypesJson as JsonArray).toList().map { (it as JsonPrimitive?)?.content()!! }
                     }
                 }
 
@@ -310,23 +293,6 @@ abstract class IChatbot : Component {
                 override val aliasMap = langPack.typeAlias
 
                 init {
-                    // This should move to code gen.
-                    val surroundings = extractSlotSurroundingWords(agentJsonExpressions, entityTypes.keys)
-                    for ((frame, slots) in slotMetaMap) {
-                        for (slot in slots) {
-                            slot.prefixes = surroundings.first["$frame#${slot.label}"]
-                            slot.suffixes = surroundings.second["$frame#${slot.label}"]
-                        }
-                    }
-
-                    // TODO(xiaobo): move subtype into a different file so that we do not have to parse this twice.
-                    val exprOwners = getFrameExpressions()
-                    for (owner in exprOwners) {
-                        owner as JsonObject
-                        val ownerId = (owner["owner_id"] as JsonPrimitive?)?.content()!!
-                        val subtypesJson = owner["sub_types"] ?: continue
-                        subtypes[ownerId] = (subtypesJson as JsonArray).toList().map { (it as JsonPrimitive?)?.content()!! }
-                    }
                 }
 
                 override fun getSubFrames(fullyQualifiedType: String): List<String> { return subtypes[fullyQualifiedType] ?: emptyList() }
