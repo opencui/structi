@@ -1,7 +1,11 @@
 package io.opencui.du
 
 import io.opencui.serialization.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.io.Serializable
 import java.util.*
+import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
@@ -103,6 +107,11 @@ interface DUMeta : ExtractiveMeta {
     fun getTimezone(): String { return "america/los_angeles" }
 
     fun getSlotMetas(frame: String) : List<DUSlotMeta>
+    fun typeKind(name: String): TypeKind {
+        if (isEntity(name)) return TypeKind.Entity
+        if (name.startsWith("io.opencui.generic.")) return TypeKind.Generic
+        return TypeKind.Frame
+    }
 
     fun isEntity(name: String) : Boolean  // given a name, return true if it's entity
 
@@ -209,6 +218,10 @@ fun DUMeta.getEntitySlotMetaRecursively(frame:String, slot:String): DUSlotMeta? 
     return getSlotMetas(frameType).find { it.label == qualified[qualified.size - 1] }?.copy()
 }
 
+enum class TypeKind {
+    Entity, Frame, Generic
+}
+
 abstract class DslDUMeta() : DUMeta {
     abstract val entityTypes: Map<String, EntityType>
     abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
@@ -301,17 +314,160 @@ fun DUMeta.getEntitySlotTypeRecursively(frame: String, slot: String?): String? {
 interface IEntityMeta {
     val recognizer: List<String>
     val children: List<String>
+    fun getSuper(): String?
 }
 
 data class EntityMeta(
     override val recognizer: List<String>,
     val parents: List<String> = emptyList(),
     override val children: List<String> = emptyList()
-) : java.io.Serializable, IEntityMeta
+) : java.io.Serializable, IEntityMeta {
+    override fun getSuper(): String? {
+        return if (parents.isNullOrEmpty()) null else parents[0]
+    }
+
+}
 
 data class EntityType(
     val label: String,
     override val recognizer: List<String>,
     val entities: Map<String, List<String>>,
     val parent: String? = null,
-    override val children: List<String> = emptyList()): IEntityMeta
+    override val children: List<String> = emptyList()): IEntityMeta {
+    override fun getSuper(): String? {
+        return parent
+    }
+}
+
+data class ExpressionContext(val frame: String, val slot: String?)
+sealed interface TypedExprSegment: Serializable {
+    val start: Int
+    val end: Int
+}
+data class ExprSegment(val expr: String, override val start: Int, override val end: Int): TypedExprSegment
+data class TypeSegment(val type: String, override val start: Int, override val end: Int): TypedExprSegment
+
+data class TypedExprSegments(val frame: String, val typedExpr: String, val segments: List<TypedExprSegment>)
+
+data class Expression(
+        val owner: String,
+        val context: ExpressionContext?,
+        val label: String?,
+        val utterance: String,
+        val partialApplications: List<String>?,
+        val bot: DUMeta) {
+    fun toTypedExpression(): String {
+        return buildTypedExpression(utterance, owner, bot)
+    }
+
+    /**
+     * TODO: Currently, we only use the frame as context, we could consider to use frame and attribute.
+     * This allows for tight control.
+     */
+    fun buildFrameContext(): String {
+        if (context != null) {
+            return """{"frame_id":"${context.frame}"}"""
+        } else {
+            if (frameMap.containsKey(this.owner)) {
+                return """{"frame_id":"${frameMap[this.owner]}"}"""
+            }
+        }
+        return "default"
+    }
+    fun buildSubFrameContext(duMeta: DUMeta): List<String>? {
+        if (context != null) {
+            val subtypes = duMeta.getSubFrames(context.frame)
+            if (subtypes.isNullOrEmpty()) return null
+            return subtypes.map {"""{"frame_id":"$it"}"""}
+        }
+        return null
+    }
+
+    fun buildSlotTypes(): List<String> {
+        return AngleSlotRegex
+                .findAll(utterance)
+                .map { it.value.substring(1, it.value.length - 1) }
+                .map { bot.getSlotType(owner, it) }
+                .toList()
+    }
+
+    companion object {
+        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
+        private val AngleSlotRegex = AngleSlotPattern.toRegex()
+        val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
+
+        /**
+         * Currently, we append entity type to user utterance, so that we can retrieve back
+         * the expression that contains both triggering and slot.
+         * I think the better way of doing this is to use extra field. This way, we do not
+         * have to parse things around.
+         */
+        @JvmStatic
+        fun buildTypedExpression(utterance: String, owner: String, agent: DUMeta): String {
+            return AngleSlotRegex.replace(utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                var typeName = agent.getSlotType(owner, slotName)
+                if (typeName.isEmpty()) {
+                    typeName = "WrongName"
+                }
+                "< $typeName >"
+            }
+        }
+                // "I need $dish$" -> "I need < dish.trigger in the natural language >"
+        val angleSlotTriggerParser = { expr: Expression ->
+            AngleSlotRegex.replace(expr.utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
+                if (triggers.isNullOrEmpty()) {
+                    // there are templated expressions that does not have trigger before application.
+                    "< $slotName >"
+                } else {
+                    "< ${triggers[0]} >"
+                }
+            }
+        }
+
+        var probeBuilder: (Expression) -> String = angleSlotTriggerParser
+
+        /**
+         * We assume the slot names are in form of a.b.c.
+         */
+        @JvmStatic
+        fun parseQualifiedSlotNames(utterance: String): String {
+            val res = AngleSlotRegex
+                    .findAll(utterance)
+                    .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
+                    .toList()
+            return res.joinToString(",")
+        }
+
+        fun segmentTypedExpr(expression: String, owner: String): TypedExprSegments {
+            val matcher = AngleSlotPattern.matcher(expression)
+            val result = mutableListOf<TypedExprSegment>()
+            var lastStart = 0
+
+            while(matcher.find()) {
+                val start = matcher.start()
+                val end = matcher.end()
+                if (start > lastStart) result.add(ExprSegment(expression.substring(lastStart, start).trim(), lastStart, start))
+                lastStart = end
+                result.add(TypeSegment(expression.substring(start+1, end-1).trim(), start, end))
+            }
+
+            if (lastStart < expression.length) result.add(ExprSegment(expression.substring(lastStart, expression.length).trim(), lastStart, expression.length))
+            return TypedExprSegments(owner, expression, result)
+        }
+
+        // TODO(sean.wu): this should be handled in a more generic fashion.
+        private val frameMap = mapOf(
+            "io.opencui.core.confirmation.No" to "io.opencui.core.Confirmation",
+            "io.opencui.core.confirmation.Yes" to "io.opencui.core.Confirmation",
+            "io.opencui.core.hasMore.No" to "io.opencui.core.HasMore",
+            "io.opencui.core.hasMore.Yes" to "io.opencui.core.HasMore",
+            "io.opencui.core.booleanGate.No" to "io.opencui.core.BoolGate",
+            "io.opencui.core.booleanGate.Yes" to "io.opencui.core.BoolGate",
+        )
+    }
+}

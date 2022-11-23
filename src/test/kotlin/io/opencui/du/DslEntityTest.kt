@@ -215,12 +215,11 @@ class DslEntityTest() : DuTestHelper() {
     @Test
     fun testTypeExprSegment() {
         val expressions = duMeta.expressionsByFrame["io.opencui.core.SlotUpdate"]!!
-        val expr = expressions[4]!!
-        assertEquals(expr.segmentTypedExpr().toString(),
-            """[ExprSegment(expr=change), TypeSegment(type=io.opencui.core.SlotType), ExprSegment(expr=to), TypeSegment(type=T)]""")
-
+        val expr = Expression.segmentTypedExpr(expressions[4].toTypedExpression(), "io.opencui.core.SlotUpdate")
+        println(expr)
+        assertEquals(expr.frame, "io.opencui.core.SlotUpdate")
+        assertEquals(expr.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), TypeSegment(type=io.opencui.core.SlotType, start=7, end=35), ExprSegment(expr=to, start=35, end=39), TypeSegment(type=T, start=39, end=44)]")
     }
-
 
     @Test
     fun testMatchUpdate() {
