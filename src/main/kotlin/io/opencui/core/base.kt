@@ -4,6 +4,7 @@ import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.UserInfo
 import io.opencui.du.*
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
@@ -282,6 +283,10 @@ abstract class IChatbot : Component {
                 override fun getEntityInstances(name: String): Map<String, List<String>> {
                     return entityContentMap[name] ?: mapOf()
                 }
+
+                override val expressionsByFrame: Map<String, List<Expression>>
+                    get() = parseExpressions(
+                        parseByFrame(classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() }), this)
             }
         }
 
@@ -310,6 +315,9 @@ abstract class IChatbot : Component {
                 override fun getEntityInstances(name: String): Map<String, List<String>> {
                     return langPack.entityTypes[name]!!.entities
                 }
+
+                override val expressionsByFrame: Map<String, List<Expression>>
+                    get() = parseExpressions(Json.makeArray(langPack.frames), this)
             }
         }
 

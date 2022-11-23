@@ -102,19 +102,12 @@ interface DUMeta : ExtractiveMeta {
     fun getOrg(): String { return "" }
     fun getTimezone(): String { return "america/los_angeles" }
 
-    fun getFrameExpressions(): JsonArray
-
     fun getSlotMetas(frame: String) : List<DUSlotMeta>
 
     fun isEntity(name: String) : Boolean  // given a name, return true if it's entity
 
     // TODO(xiaobo): to support head on frame, just make this this function work with entity type.
     fun getSubFrames(fullyQualifiedType: String): List<String> { return emptyList() }
-
-    fun getExpressionByFrame(): Map<String, List<Expression>> {
-        val expressions = getFrameExpressions()
-        return parseExpressions(expressions, this)
-    }
 
     companion object {
         const val OWNERID = "owner_id"
@@ -123,7 +116,7 @@ interface DUMeta : ExtractiveMeta {
         const val TYPEID = "frame_id" // this is type id.
         const val UTTERANCE = "utterance"
         private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
-        
+
         /**
          * This parses expression json file content into list of expressions, so that we
          * can index them one by one.

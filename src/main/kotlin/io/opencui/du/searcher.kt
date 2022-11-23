@@ -360,7 +360,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
         }
 
         fun buildIndexRaw(agent: DUMeta, dir: Directory) {
-            val expressions = parseExpressions(agent.getFrameExpressions(), agent).values.flatten()
+            val expressions = agent.expressionsByFrame.values.flatten()
             logger.info("[ExpressionSearch] build index for ${agent.getLabel()}")
             val indexBuilder = IndexBuilder(dir, agent.getLang())
             expressions.map { indexBuilder.index(it.toDoc()) }

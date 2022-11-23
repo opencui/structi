@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import kotlin.test.assertEquals
@@ -18,15 +19,13 @@ class SlotExpressionTest() : DuTestHelper() {
         override fun getLabel(): String { return "Banks" }
         override fun getVersion(): String { return "" }
 
-
-        override fun getFrameExpressions(): JsonArray {
-            return expressionJson
-        }
-
         override fun getEntityMeta(name:String): EntityMeta? {
             return Json.decodeFromString<Map<String, EntityMeta>>(
                 """{"lib_yige.test_slot_expression_copy.v_bf6ae74df2e52a2ebd2788ba209d994b.ent":{"recognizer":["DucklingRecognizer"]}}""")[name]
         }
+
+        override val expressionsByFrame: Map<String, List<Expression>>
+            get() = parseExpressions(expressionJson, this)
 
         override fun getEntities(): Set<String> {
             return setOf("account_type", "account", "recipient", "date_time", "lib_yige.test_slot_expression_copy.v_bf6ae74df2e52a2ebd2788ba209d994b.ent")

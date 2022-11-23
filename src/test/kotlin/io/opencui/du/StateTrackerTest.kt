@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import org.junit.Test
@@ -121,15 +122,14 @@ class StateTrackerTest : DuTestHelper() {
             return ""
         }
 
-        override fun getFrameExpressions(): JsonArray {
-            return IChatbot.parseByFrame(expressionJson)
-        }
-
         override fun getEntityMeta(name:String): EntityMeta? {
             return Json.decodeFromString<Map<String, EntityMeta>> ("""{
                     "io.opencui.core.Ordinal":{"recognizer":["DucklingRecognizer"]}
                   }""".trimMargin())[name]
         }
+
+        override val expressionsByFrame: Map<String, List<Expression>>
+            get() = parseExpressions(IChatbot.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
             return setOf("org.Banks_1.account_type", "org.Banks_1.city", "io.opencui.core.Ordinal")
