@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import org.apache.lucene.document.Document
@@ -105,7 +106,6 @@ class DslTest() : DuTestHelper() {
     val agent = object: DUMeta {
         override fun getLang(): String { return "en" }
         override fun getLabel(): String { return "Banks" }
-
 
         override fun getFrameExpressions(): JsonArray {
             return Json.makeArray(En.frames)
@@ -284,14 +284,14 @@ class DslTest() : DuTestHelper() {
     fun testBuildUtterance() {
         assertEquals(
                 "my phone is <PhoneNumber> and email is <EEE>",
-                ExpressionSearcher.toLowerProperly("My Phone is <PhoneNumber> and Email is <EEE>"))
+                DUMeta.toLowerProperly("My Phone is <PhoneNumber> and Email is <EEE>"))
         assertEquals(
                 "<Phone> is my phone number",
-                ExpressionSearcher.toLowerProperly("<Phone> Is My Phone Number")
+                DUMeta.toLowerProperly("<Phone> Is My Phone Number")
         )
         assertEquals(
                 "<Phone><PPP> is my phone number",
-                ExpressionSearcher.toLowerProperly("<Phone><PPP> Is My Phone Number")
+                DUMeta.toLowerProperly("<Phone><PPP> Is My Phone Number")
         )
     }
 }

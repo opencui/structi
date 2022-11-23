@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.Dispatcher
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
 import org.apache.lucene.document.*
 import org.apache.lucene.index.DirectoryReader
@@ -333,69 +334,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
         val logger: Logger = LoggerFactory.getLogger(ExpressionSearcher::class.java)
         private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
 
-        /**
-         * This parses expression json file content into list of expressions, so that we
-         * can index them one by one.
-         */
-        @JvmStatic
-        private fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): List<Expression> {
-            val res = ArrayList<Expression>()
-            for (owner in exprOwners) {
-                owner as JsonObject
-                val ownerId = getContent(owner["owner_id"])!!
-                val expressions = owner["expressions"] ?: continue
-                expressions as JsonArray
-                for (expression in expressions) {
-                    val exprObject = expression as JsonObject
-                    val contextObject = exprObject["context"] as JsonObject?
-                    val context = parseContext(contextObject)
-                    val utterance = getContent(exprObject["utterance"])!!
-                    val functionSlot = getContent(exprObject["function_slot"])
-                    val partialApplicationsObject = exprObject["partial_application"] as JsonArray?
-                    val partialApplications = parsePartialApplications(partialApplicationsObject)
-                    val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
-                    res.add(Expression(ownerId, context, functionSlot, label, toLowerProperly(utterance), partialApplications, bot))
-                }
-            }
-            return res
-        }
 
-        private fun parseContext(context: JsonObject?) : ExpressionContext? {
-            if (context == null) return null
-            val frame = getContent(context["frame_id"])!!
-            val slot = getContent(context["slot_id"])
-            return ExpressionContext(frame, slot)
-        }
-
-        private fun parsePartialApplications(context: JsonArray?) : List<String>? {
-            if (context == null) return null
-            val list = mutableListOf<String>()
-            for (index in 0 until context.size()) {
-                list.add(getContent(context.get(index))!!)
-            }
-            return list
-        }
-
-        // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
-        fun toLowerProperly(utterance: String): String {
-            val parts = utterance.split(LessGreaterThanRegex)
-            val lowerCasedUtterance = StringBuffer()
-            var lowerCase = true
-            for (part in parts) {
-                if (part == ">") lowerCase = true
-                if (!lowerCase) {
-                    lowerCasedUtterance.append(part)
-                } else {
-                    lowerCasedUtterance.append(part.lowercase(Locale.getDefault()))
-                }
-                if (part == "<") lowerCase = false
-            }
-            return lowerCasedUtterance.toString()
-        }
-
-        private fun getContent(primitive: JsonElement?): String? {
-            return (primitive as JsonPrimitive?)?.content()
-        }
 
         @JvmStatic
         fun buildIndex(agent: DUMeta): Directory {
@@ -421,7 +360,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
         }
 
         fun buildIndexRaw(agent: DUMeta, dir: Directory) {
-            val expressions = parseExpressions(agent.getFrameExpressions(), agent)
+            val expressions = parseExpressions(agent.getFrameExpressions(), agent).values.flatten()
             logger.info("[ExpressionSearch] build index for ${agent.getLabel()}")
             val indexBuilder = IndexBuilder(dir, agent.getLang())
             expressions.map { indexBuilder.index(it.toDoc()) }

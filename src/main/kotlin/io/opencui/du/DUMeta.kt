@@ -1,7 +1,9 @@
 package io.opencui.du
 
 import io.opencui.serialization.*
+import java.util.*
 import java.util.regex.Pattern
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
@@ -109,15 +111,87 @@ interface DUMeta : ExtractiveMeta {
     // TODO(xiaobo): to support head on frame, just make this this function work with entity type.
     fun getSubFrames(fullyQualifiedType: String): List<String> { return emptyList() }
 
+    fun getExpressionByFrame(): Map<String, List<Expression>> {
+        val expressions = getFrameExpressions()
+        return parseExpressions(expressions, this)
+    }
+
     companion object {
         const val OWNERID = "owner_id"
         const val EXPRESSIONS = "expressions"
         const val CONTEXT = "context"
         const val TYPEID = "frame_id" // this is type id.
         const val UTTERANCE = "utterance"
+        private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
+
+
+                    /**
+         * This parses expression json file content into list of expressions, so that we
+         * can index them one by one.
+         */
+        @JvmStatic
+        fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Expression>> {
+            val resmap = mutableMapOf<String, List<Expression>>()
+            for (owner in exprOwners) {
+                val res = ArrayList<Expression>()
+                owner as JsonObject
+                val ownerId = getContent(owner["owner_id"])!!
+                val expressions = owner["expressions"] ?: continue
+                expressions as JsonArray
+                for (expression in expressions) {
+                    val exprObject = expression as JsonObject
+                    val contextObject = exprObject["context"] as JsonObject?
+                    val context = parseContext(contextObject)
+                    val utterance = getContent(exprObject["utterance"])!!
+                    val functionSlot = getContent(exprObject["function_slot"])
+                    val partialApplicationsObject = exprObject["partial_application"] as JsonArray?
+                    val partialApplications = parsePartialApplications(partialApplicationsObject)
+                    val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
+                    res.add(Expression(ownerId, context, functionSlot, label, toLowerProperly(utterance), partialApplications, bot))
+                }
+                resmap[ownerId] = res.apply { trimToSize() }
+            }
+            return resmap
+        }
+
+        private fun parseContext(context: JsonObject?) : ExpressionContext? {
+            if (context == null) return null
+            val frame = getContent(context["frame_id"])!!
+            val slot = getContent(context["slot_id"])
+            return ExpressionContext(frame, slot)
+        }
+
+        private fun parsePartialApplications(context: JsonArray?) : List<String>? {
+            if (context == null) return null
+            val list = mutableListOf<String>()
+            for (index in 0 until context.size()) {
+                list.add(getContent(context.get(index))!!)
+            }
+            return list
+        }
+
+        // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
+        fun toLowerProperly(utterance: String): String {
+            val parts = utterance.split(LessGreaterThanRegex)
+            val lowerCasedUtterance = StringBuffer()
+            var lowerCase = true
+            for (part in parts) {
+                if (part == ">") lowerCase = true
+                if (!lowerCase) {
+                    lowerCasedUtterance.append(part)
+                } else {
+                    lowerCasedUtterance.append(part.lowercase(Locale.getDefault()))
+                }
+                if (part == "<") lowerCase = false
+            }
+            return lowerCasedUtterance.toString()
+        }
+
+        private fun getContent(primitive: JsonElement?): String? {
+            return (primitive as JsonPrimitive?)?.content()
+        }
     }
 }
-
 
 
 fun DUMeta.getSlotMeta(frame:String, slot:String) : DUSlotMeta? {
@@ -149,6 +223,7 @@ abstract class DslDUMeta() : DUMeta {
     abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
     abstract val aliasMap: Map<String, List<String>>
     val subtypes: MutableMap<String, List<String>> = mutableMapOf()
+
     override fun getSubFrames(fullyQualifiedType: String): List<String> {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
@@ -190,6 +265,7 @@ abstract class JsonDUMeta() : DUMeta {
     abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
     abstract val aliasMap: Map<String, List<String>>
     val subtypes: MutableMap<String, List<String>> = mutableMapOf()
+
     override fun getSubFrames(fullyQualifiedType: String): List<String> {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
