@@ -1,8 +1,6 @@
 package io.opencui.du
 
 import io.opencui.core.Dispatcher
-import io.opencui.du.DUMeta.Companion.parseExpressions
-import io.opencui.serialization.*
 import org.apache.lucene.document.*
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
@@ -31,7 +29,7 @@ import kotlin.collections.ArrayList
  * to go through.
  *
  * Expression: "I like to watch a <Moive>"
- * context: Frame that we r in, some expression are weak, and only be triggered where context is right.
+ * context: Frame that we are in, some expression are weak, and only be triggered where context is right.
  * target: the frame that this expression is attached too, payload
  *
  * if context is default, but target is not null, expression is triggering
@@ -105,6 +103,30 @@ data class Expression(
         val utterance: String,
         val partialApplications: List<String>?,
         val bot: DUMeta) {
+
+    fun segmentTypedExpr(): List<TypedExprSegment> {
+        val expression = buildTypedExpression(utterance, owner, bot).trim()
+
+        val matcher = AngleSlotPattern.matcher(expression)
+
+        val result = mutableListOf<TypedExprSegment>()
+        var lastStart = 0
+
+        while(matcher.find()) {
+            val start = matcher.start()
+            val end = matcher.end()
+            if (start > lastStart) result.add(ExprSegment(expression.substring(lastStart, start).trim()))
+            lastStart = end
+            result.add(TypeSegment(expression.substring(start+1, end-1).trim()))
+        }
+
+        if (lastStart < expression.length) result.add(ExprSegment(expression.substring(lastStart, expression.length).trim()))
+        return result
+    }
+
+    fun toTypedExpression(): String {
+        return buildTypedExpression(utterance, owner, bot)
+    }
 
     fun toDoc() : Document {
         val expr = this
@@ -193,7 +215,8 @@ data class Expression(
     }
 
     companion object {
-        private val AngleSlotRegex = Pattern.compile("""<(.+?)>""").toRegex()
+        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
+        private val AngleSlotRegex = AngleSlotPattern.toRegex()
         val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
 
         /**

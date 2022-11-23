@@ -196,5 +196,4 @@ class RecognizerTest : DuTestHelper() {
         println(nzone)
         assertEquals(ozone, nzone)
     }
-
 }

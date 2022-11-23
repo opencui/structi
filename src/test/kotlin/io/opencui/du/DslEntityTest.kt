@@ -213,6 +213,16 @@ class DslEntityTest() : DuTestHelper() {
     }
 
     @Test
+    fun testTypeExprSegment() {
+        val expressions = duMeta.expressionsByFrame["io.opencui.core.SlotUpdate"]!!
+        val expr = expressions[4]!!
+        assertEquals(expr.segmentTypedExpr().toString(),
+            """[ExprSegment(expr=change), TypeSegment(type=io.opencui.core.SlotType), ExprSegment(expr=to), TypeSegment(type=T)]""")
+
+    }
+
+
+    @Test
     fun testMatchUpdate() {
         val expectations = DialogExpectations(ExpectedFrame("me.test.abstractEntity_1007.FoodOrdering"))
         val frameEvents = stateTracker.convert("s", "change dish item to chicken wings", expectations)
