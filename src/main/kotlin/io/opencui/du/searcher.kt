@@ -95,8 +95,164 @@ data class IndexBuilder(val dir: Directory, val lang: String) {
         writer.close()
     }
 }
+data class ExpressionContext(val frame: String, val slot: String?)
+
+data class Expression(
+        val owner: String,
+        val context: ExpressionContext?,
+        val functionSlot: String?,
+        val label: String?,
+        val utterance: String,
+        val partialApplications: List<String>?,
+        val bot: DUMeta) {
+
+    fun toDoc() : Document {
+        val expr = this
+        val doc = Document()
+        // Use the trigger based probes so that it works for multilingual.
+        val probe = probeBuilder.invoke(expr)
+        val slots = parseQualifiedSlotNames(expr.utterance)
+        val expression = buildTypedExpression(expr.utterance, expr.owner, expr.bot)
+
+        // Instead of embedding into expression, use StringField.
+        val slotTypes = buildSlotTypes()
+        for (slotType in slotTypes) {
+            doc.add(StoredField(ScoredDocument.SLOTTYPE, slotType))
+        }
+
+        // "probe" is saved for retrieval and request intent model
+        doc.add(StoredField(ScoredDocument.PROBE, probe))
+        // "expression" is just for searching
+        doc.add(TextField(ScoredDocument.EXPRESSION, expression, Field.Store.YES))
+        doc.add(StoredField(ScoredDocument.UTTERANCE, expr.utterance))
 
 
+        // We assume that expression will be retrieved based on the context.
+        // this assume that there are different values for context:
+        // default, active frame, active frame + requested slot.
+        logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.utterance.lowercase(Locale.getDefault())}")
+        doc.add(StringField(ScoredDocument.CONTEXT, buildFrameContext(), Field.Store.YES))
+        val subFrameContext = buildSubFrameContext(bot)
+        if (!subFrameContext.isNullOrEmpty()) {
+            for (frame in subFrameContext) {
+                doc.add(StringField(ScoredDocument.CONTEXT, frame, Field.Store.YES))
+            }
+        }
+
+        if (context?.slot != null) {
+            logger.info("context slot ${context.slot}")
+            doc.add(StoredField(ScoredDocument.CONTEXTFRAME, context.frame))
+            doc.add(StoredField(ScoredDocument.CONTEXTSLOT, context.slot))
+        }
+        doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
+        doc.add(StoredField(ScoredDocument.SLOTS, slots))
+
+
+        if (partialApplications != null) {
+            logger.info("entailed slots: ${partialApplications.joinToString(",")}")
+            for (entailedSlot in partialApplications) {
+                doc.add(StringField(ScoredDocument.PARTIALEXPRESSION, entailedSlot, Field.Store.YES))
+            }
+        }
+
+        if (!expr.label.isNullOrEmpty())
+            doc.add(StringField(ScoredDocument.LABEL, expr.label, Field.Store.YES))
+        return doc
+    }
+
+    /**
+     * TODO: Currently, we only use the frame as context, we could consider to use frame and attribute.
+     * This allows for tight control.
+     */
+    private fun buildFrameContext(): String {
+        if (context != null) {
+            return """{"frame_id":"${context.frame}"}"""
+        } else {
+            if (frameMap.containsKey(this.owner)) {
+                return """{"frame_id":"${frameMap[this.owner]}"}"""
+            }
+        }
+        return "default"
+    }
+
+    private fun buildSubFrameContext(duMeta: DUMeta): List<String>? {
+        if (context != null) {
+            val subtypes = duMeta.getSubFrames(context.frame)
+            if (subtypes.isNullOrEmpty()) return null
+            return subtypes.map {"""{"frame_id":"$it"}"""}
+        }
+        return null
+    }
+
+    private fun buildSlotTypes(): List<String> {
+        return AngleSlotRegex
+                .findAll(utterance)
+                .map { it.value.substring(1, it.value.length - 1) }
+                .map { bot.getSlotType(owner, it) }
+                .toList()
+    }
+
+    companion object {
+        private val AngleSlotRegex = Pattern.compile("""<(.+?)>""").toRegex()
+        val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
+
+        /**
+         * Currently, we append entity type to user utterance, so that we can retrieve back
+         * the expression that contains both triggering and slot.
+         * I think the better way of doing this is to use extra field. This way, we do not
+         * have to parse things around.
+         */
+        @JvmStatic
+        fun buildTypedExpression(utterance: String, owner: String, agent: DUMeta): String {
+            return AngleSlotRegex.replace(utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                var typeName = agent.getSlotType(owner, slotName)
+                if (typeName.isEmpty()) {
+                    typeName = "WrongName"
+                }
+                "< $typeName >"
+            }
+        }
+                // "I need $dish$" -> "I need < dish.trigger in the natural language >"
+        val angleSlotTriggerParser = { expr: Expression ->
+            AngleSlotRegex.replace(expr.utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
+                if (triggers.isNullOrEmpty()) {
+                    // there are templated expressions that does not have trigger before application.
+                    "< $slotName >"
+                } else {
+                    "< ${triggers[0]} >"
+                }
+            }
+        }
+
+        var probeBuilder: (Expression) -> String = angleSlotTriggerParser
+
+        /**
+         * We assume the slot names are in form of a.b.c.
+         */
+        @JvmStatic
+        private fun parseQualifiedSlotNames(utterance: String): String {
+            val res = AngleSlotRegex
+                    .findAll(utterance)
+                    .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
+                    .toList()
+            return res.joinToString(",")
+        }
+
+        private val frameMap = mapOf(
+            "io.opencui.core.confirmation.No" to "io.opencui.core.Confirmation",
+            "io.opencui.core.confirmation.Yes" to "io.opencui.core.Confirmation",
+            "io.opencui.core.hasMore.No" to "io.opencui.core.HasMore",
+            "io.opencui.core.hasMore.Yes" to "io.opencui.core.HasMore",
+            "io.opencui.core.booleanGate.No" to "io.opencui.core.BoolGate",
+            "io.opencui.core.booleanGate.Yes" to "io.opencui.core.BoolGate",
+        )
+    }
+}
 /**
  * There three type of expressions:`
  * Slot label expression: We want to go to <destination>
@@ -110,108 +266,6 @@ data class ExpressionSearcher(val agent: DUMeta) {
     private val analyzer = LanguageAnalzyer.get(agent.getLang())
     private val reader: DirectoryReader = DirectoryReader.open(buildIndex(agent))
     private val searcher = IndexSearcher(reader)
-    private val slotSearch: Boolean = false
-
-    data class ExpressionContext(val frame: String, val slot: String?)
-
-    data class Expression(
-            val owner: String,
-            val context: ExpressionContext?,
-            val functionSlot: String?,
-            val label: String?,
-            val utterance: String,
-            val partialApplications: List<String>?,
-            val bot: DUMeta) {
-
-        fun toDoc() : Document {
-            val expr = this
-            val doc = Document()
-            // Use the trigger based probes so that it works for multilingual.
-            val probe = probeBuilder.invoke(expr)
-            val slots = parseQualifiedSlotNames(expr.utterance)
-            val expression = buildTypedExpression(expr.utterance, expr.owner, expr.bot)
-
-            // Instead of embedding into expression, use StringField.
-            val slotTypes = buildSlotTypes()
-            for (slotType in slotTypes) {
-                doc.add(StoredField(ScoredDocument.SLOTTYPE, slotType))
-            }
-
-            // "probe" is saved for retrieval and request intent model
-            doc.add(StoredField(ScoredDocument.PROBE, probe))
-            // "expression" is just for searching
-            doc.add(TextField(ScoredDocument.EXPRESSION, expression, Field.Store.YES))
-            doc.add(StoredField(ScoredDocument.UTTERANCE, expr.utterance))
-
-
-            // We assume that expression will be retrieved based on the context.
-            // this assume that there are different values for context:
-            // default, active frame, active frame + requested slot.
-            logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.utterance.lowercase(Locale.getDefault())}")
-            doc.add(StringField(ScoredDocument.CONTEXT, buildFrameContext(), Field.Store.YES))
-            val subFrameContext = buildSubFrameContext(bot)
-            if (!subFrameContext.isNullOrEmpty()) {
-                for (frame in subFrameContext) {
-                    doc.add(StringField(ScoredDocument.CONTEXT, frame, Field.Store.YES))
-                }
-            }
-
-            if (context?.slot != null) {
-                logger.info("context slot ${context.slot}")
-                doc.add(StoredField(ScoredDocument.CONTEXTFRAME, context.frame))
-                doc.add(StoredField(ScoredDocument.CONTEXTSLOT, context.slot))
-            }
-            doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
-            doc.add(StoredField(ScoredDocument.SLOTS, slots))
-
-
-            if (partialApplications != null) {
-                logger.info("entailed slots: ${partialApplications.joinToString(",")}")
-                for (entailedSlot in partialApplications) {
-                    doc.add(StringField(ScoredDocument.PARTIALEXPRESSION, entailedSlot, Field.Store.YES))
-                }
-            }
-
-            if (!expr.functionSlot.isNullOrEmpty())
-                doc.add(StringField(ScoredDocument.FUNCTION_SLOT, expr.functionSlot, Field.Store.YES))
-            if (!expr.label.isNullOrEmpty())
-                doc.add(StringField(ScoredDocument.LABEL, expr.label, Field.Store.YES))
-            return doc
-        }
-
-        /**
-         * TODO: Currently, we only use the frame as context, we could consider to use frame and attribute.
-         * This allows for tight control.
-         */
-        private fun buildFrameContext(): String {
-            if (context != null) {
-                return """{"frame_id":"${context.frame}"}"""
-            } else {
-                if (frameMap.containsKey(this.owner)) {
-                    return """{"frame_id":"${frameMap[this.owner]}"}"""
-                }
-            }
-            return "default"
-        }
-
-        private fun buildSubFrameContext(duMeta: DUMeta): List<String>? {
-            if (context != null) {
-                val subtypes = duMeta.getSubFrames(context.frame)
-                if (subtypes.isNullOrEmpty()) return null
-                return subtypes.map {"""{"frame_id":"$it"}"""}
-            }
-            return null
-        }
-
-        private fun buildSlotTypes(): List<String> {
-            return AngleSlotRegex
-                    .findAll(utterance)
-                    .map { it.value.substring(1, it.value.length - 1) }
-                    .map { bot.getSlotType(owner, it) }
-                    .toList()
-        }
-
-    }
 
     val parser = QueryParser(ScoredDocument.EXPRESSION, analyzer)
 
@@ -279,51 +333,6 @@ data class ExpressionSearcher(val agent: DUMeta) {
         val logger: Logger = LoggerFactory.getLogger(ExpressionSearcher::class.java)
         private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
 
-        private val frameMap = mapOf(
-            "io.opencui.core.confirmation.No" to "io.opencui.core.Confirmation",
-            "io.opencui.core.confirmation.Yes" to "io.opencui.core.Confirmation",
-            "io.opencui.core.hasMore.No" to "io.opencui.core.HasMore",
-            "io.opencui.core.hasMore.Yes" to "io.opencui.core.HasMore",
-            "io.opencui.core.booleanGate.No" to "io.opencui.core.BoolGate",
-            "io.opencui.core.booleanGate.Yes" to "io.opencui.core.BoolGate",
-        )
-
-
-        // "I need $dish$" -> "I need [MASK]"
-        // TODO(sean): this might be a good idea to try out.
-        val maskParser = { expr: Expression ->
-            AngleSlotRegex.split(expr.utterance).joinToString(separator = " [MASK] ")
-        }
-
-        // "I need $dish$" -> "I need < dish.trigger in the natural language >"
-        val angleSlotTriggerParser = { expr: Expression ->
-            AngleSlotRegex.replace(expr.utterance)
-            {
-                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-                val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
-                if (triggers.isNullOrEmpty()) {
-                    // there are templated expressions that does not have trigger before application.
-                    "< $slotName >"
-                } else {
-                    "< ${triggers[0]} >"
-                }
-            }
-        }
-
-        var probeBuilder: (Expression) -> String = angleSlotTriggerParser
-
-        /**
-         * We assume the slot names are in form of a.b.c.
-         */
-        @JvmStatic
-        private fun parseQualifiedSlotNames(utterance: String): String {
-            val res = AngleSlotRegex
-                    .findAll(utterance)
-                    .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
-                    .toList()
-            return res.joinToString(",")
-        }
-
         /**
          * This parses expression json file content into list of expressions, so that we
          * can index them one by one.
@@ -365,25 +374,6 @@ data class ExpressionSearcher(val agent: DUMeta) {
                 list.add(getContent(context.get(index))!!)
             }
             return list
-        }
-
-        /**
-         * Currently, we append entity type to user utterance, so that we can retrieve back
-         * the expression that contains both triggering and slot.
-         * I think the better way of doing this is to use extra field. This way, we do not
-         * have to parse things around.
-         */
-        @JvmStatic
-        fun buildTypedExpression(utterance: String, owner: String, agent: DUMeta): String {
-            return AngleSlotRegex.replace(utterance)
-            {
-                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-                var typeName = agent.getSlotType(owner, slotName)
-                if (typeName.isEmpty()) {
-                    typeName = "WrongName"
-                }
-                "< $typeName >"
-            }
         }
 
         // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"

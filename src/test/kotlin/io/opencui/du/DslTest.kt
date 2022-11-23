@@ -269,7 +269,7 @@ class DslTest() : DuTestHelper() {
 
     @Test
     fun testBuildExpression() {
-        val expression = ExpressionSearcher.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
+        val expression = Expression.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
         assertEquals("The account has < AmountOfMoney > money", expression)
     }
 
