@@ -8,7 +8,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import kotlinx.coroutines.async
-import org.jetbrains.kotlin.resolve.compatibilityTypeMap
 import java.lang.IllegalStateException
 import java.util.*
 import kotlin.collections.ArrayList
@@ -256,10 +255,10 @@ data class DUContext(val session: String, val utterance: String, val expectation
         if (expectations.activeFrames.isEmpty()) return listOf()
         // TODO: handle the a.b.c case
         val reslist = mutableListOf<String>()
-        val expectedType = bot.getEntitySlotTypeRecursively(expectations.expected!!.frame, expectations.expected.slot)
+        val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected.slot)
         if (expectedType != null) reslist.add(expectedType)
         for (active in expectations.activeFrames) {
-            val activeType = bot.getEntitySlotTypeRecursively(active.frame, active.slot)
+            val activeType = bot.getSlotType(active.frame, active.slot)
             if (activeType != null) reslist.add(activeType)
         }
         return reslist
@@ -624,19 +623,25 @@ data class BertStateTracker(
      * to handle these. For now, we assume all the top level slots are also required. This assumption
      * can be changed down the road.
      */
-    private fun getEntitySlotMetasRecursively(
+    private fun getSlotMetas(
         frame: String,
         required: List<String> = emptyList()
     ): Map<String, DUSlotMeta> {
         // Including all the top level slots.
         val slotsMetaMap = agentMeta.getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
+
+        // We will test the nested slot as well.
+        for (slot in slotsMetaMap.keys) {
+            val slotMeta = agentMeta.getSlotMeta(frame, slot)
+            if (slotMeta?.isHead == true) {
+                val nestedMetas = agentMeta.getSlotMetas(slotMeta.type!!)
+                nestedMetas.map{ slotsMetaMap["$slot.${it.label}"] = it }
+            }
+        }
+        
         // include all the required slot matas.
         for (slot in required) {
-            val meta = agentMeta.getEntitySlotMetaRecursively(frame, slot)
-            if (meta != null) {
-                meta.isMentioned = true
-                slotsMetaMap[slot] = meta
-            }
+            slotsMetaMap[slot]?.isMentioned = true
         }
         return slotsMetaMap
     }
@@ -781,7 +786,7 @@ data class BertStateTracker(
     ): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotMap = getEntitySlotMetasRecursively(topLevelFrameType, qualifiedSlotNamesInExpr)
+        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr)
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
         val slotProbes = slotMap.values.filter{ it.triggers.isNotEmpty() }.map { it.triggers[0] }.toList()
         logger.info("slot model, utterance: $utterance, probes: $slotProbes, frame: $topLevelFrameType, slots: $focusedSlot, $qualifiedSlotNamesInExpr")
@@ -806,7 +811,7 @@ data class BertStateTracker(
         val utterance = ducontext.utterance
         val slotTypeSpanInfos = ducontext.entityTypeToSpanInfoMap[StateTracker.SlotType]!!
         val slotsInExpr = ducontext.bestCandidate!!.slots.split(',').filter{it != StateTracker.SlotUpdateOriginalSlot}
-        val slotMapBef = getEntitySlotMetasRecursively(StateTracker.SlotUpdate, slotsInExpr)
+        val slotMapBef = getSlotMetas(StateTracker.SlotUpdate, slotsInExpr)
         val slotMapAft = mutableMapOf<String, DUSlotMeta>()
 
 

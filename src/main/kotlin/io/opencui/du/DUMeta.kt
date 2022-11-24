@@ -198,24 +198,8 @@ fun DUMeta.getSlotMeta(frame:String, slot:String) : DUSlotMeta? {
     return getSlotMetas(frame).firstOrNull {it.label == slot}
 }
 
-fun DUMeta.getSlotType(frame: String, slot:String) : String {
+fun DUMeta.getSlotType(frame: String, slot:String?) : String {
     return getSlotMetas(frame).firstOrNull {it.label == slot}?.type ?: ""
-}
-
-
-fun DUMeta.getEntitySlotMetaRecursively(frame:String, slot:String): DUSlotMeta? {
-    // Including all the top level slots.
-    val slotsMetaMap = getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
-    if (!slotsMetaMap.containsKey(slot)) return null
-
-    // We now handle the qualified ones here (a.b.c)
-    val qualified = slot.split(".")
-    var frameType = frame
-    for (simpleName in qualified.subList(0, qualified.size - 1)) {
-        frameType = getSlotType(frameType, simpleName)
-        if (frameType == "") return null
-    }
-    return getSlotMetas(frameType).find { it.label == qualified[qualified.size - 1] }?.copy()
 }
 
 enum class TypeKind {
@@ -304,12 +288,6 @@ abstract class JsonDUMeta() : DUMeta {
         return results
     }
 }
-
-fun DUMeta.getEntitySlotTypeRecursively(frame: String, slot: String?): String? {
-    if (slot == null) return null
-    return getEntitySlotMetaRecursively(frame, slot)?.type
-}
-
 
 interface IEntityMeta {
     val recognizer: List<String>
