@@ -4,6 +4,7 @@ import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.UserInfo
 import io.opencui.du.*
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
@@ -248,8 +249,6 @@ abstract class IChatbot : Component {
 
         fun loadDUMeta(classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
             return object : JsonDUMeta() {
-                val agentJsonExpressions = parseByFrame(
-                    classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
                 override val entityMetas = Json.decodeFromString<Map<String, EntityMeta>>(
                     classLoader.getResourceAsStream(EntityMetaPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
                 val agentEntities = Json.decodeFromString<Map<String, String>>(
@@ -261,25 +260,8 @@ abstract class IChatbot : Component {
                 val entityContentMap: MutableMap<String, Map<String, List<String>>> = mutableMapOf()
 
                 init {
-                    val surroundings = extractSlotSurroundingWords(agentJsonExpressions, entityMetas.keys)
-                    for ((frame, slots) in slotMetaMap) {
-                        for (slot in slots) {
-                            slot.prefixes = surroundings.first["$frame#${slot.label}"]
-                            slot.suffixes = surroundings.second["$frame#${slot.label}"]
-                        }
-                    }
-
                     for (entity in agentEntities.entries) {
                         entityContentMap[entity.key] = parseEntityToMapByNT(entity.key, entity.value)
-                    }
-
-                    // TODO(xiaobo): move subtype into a different file so that we do not have to parse this twice.
-                    val exprOwners = getFrameExpressions()
-                    for (owner in exprOwners) {
-                        owner as JsonObject
-                        val ownerId = (owner["owner_id"] as JsonPrimitive?)?.content()!!
-                        val subtypesJson = owner["sub_types"] ?: continue
-                        subtypes[ownerId] = (subtypesJson as JsonArray).toList().map { (it as JsonPrimitive?)?.content()!! }
                     }
                 }
 
@@ -292,41 +274,23 @@ abstract class IChatbot : Component {
                 override fun getBranch(): String = branch
                 override fun getTimezone(): String = timezone
 
-                override fun getFrameExpressions(): JsonArray {
-                    return agentJsonExpressions
-                }
-
                 override fun getEntityInstances(name: String): Map<String, List<String>> {
                     return entityContentMap[name] ?: mapOf()
                 }
+
+                override val expressionsByFrame: Map<String, List<Expression>>
+                    get() = parseExpressions(
+                        parseByFrame(classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() }), this)
             }
         }
 
         fun loadDUMetaDsl(langPack: LangPack, classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
             return object : DslDUMeta() {
-                val agentJsonExpressions = Json.makeArray(langPack.frames)
                 override val entityTypes = langPack.entityTypes
                 override val slotMetaMap = langPack.frameSlotMetas
                 override val aliasMap = langPack.typeAlias
 
                 init {
-                    // This should move to code gen.
-                    val surroundings = extractSlotSurroundingWords(agentJsonExpressions, entityTypes.keys)
-                    for ((frame, slots) in slotMetaMap) {
-                        for (slot in slots) {
-                            slot.prefixes = surroundings.first["$frame#${slot.label}"]
-                            slot.suffixes = surroundings.second["$frame#${slot.label}"]
-                        }
-                    }
-
-                    // TODO(xiaobo): move subtype into a different file so that we do not have to parse this twice.
-                    val exprOwners = getFrameExpressions()
-                    for (owner in exprOwners) {
-                        owner as JsonObject
-                        val ownerId = (owner["owner_id"] as JsonPrimitive?)?.content()!!
-                        val subtypesJson = owner["sub_types"] ?: continue
-                        subtypes[ownerId] = (subtypesJson as JsonArray).toList().map { (it as JsonPrimitive?)?.content()!! }
-                    }
                 }
 
                 override fun getSubFrames(fullyQualifiedType: String): List<String> { return subtypes[fullyQualifiedType] ?: emptyList() }
@@ -338,12 +302,12 @@ abstract class IChatbot : Component {
                 override fun getBranch(): String = branch
                 override fun getTimezone(): String = timezone
 
-                override fun getFrameExpressions(): JsonArray {
-                    return agentJsonExpressions
-                }
                 override fun getEntityInstances(name: String): Map<String, List<String>> {
                     return langPack.entityTypes[name]!!.entities
                 }
+
+                override val expressionsByFrame: Map<String, List<Expression>>
+                    get() = parseExpressions(Json.makeArray(langPack.frames), this)
             }
         }
 

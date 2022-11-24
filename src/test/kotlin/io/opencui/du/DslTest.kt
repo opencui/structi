@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import org.apache.lucene.document.Document
@@ -106,14 +107,12 @@ class DslTest() : DuTestHelper() {
         override fun getLang(): String { return "en" }
         override fun getLabel(): String { return "Banks" }
 
-
-        override fun getFrameExpressions(): JsonArray {
-            return Json.makeArray(En.frames)
-        }
-
         override fun getEntityMeta(name: String): EntityMeta? {
             return mapOf<String, EntityMeta>()[name]
         }
+
+        override val expressionsByFrame: Map<String, List<Expression>>
+            get() = parseExpressions(Json.makeArray(En.frames), this)
 
         override fun getEntities(): Set<String> {
             return setOf("account_type", "account", "recipient", "date_time")
@@ -269,7 +268,7 @@ class DslTest() : DuTestHelper() {
 
     @Test
     fun testBuildExpression() {
-        val expression = ExpressionSearcher.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
+        val expression = Expression.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
         assertEquals("The account has < AmountOfMoney > money", expression)
     }
 
@@ -284,14 +283,14 @@ class DslTest() : DuTestHelper() {
     fun testBuildUtterance() {
         assertEquals(
                 "my phone is <PhoneNumber> and email is <EEE>",
-                ExpressionSearcher.toLowerProperly("My Phone is <PhoneNumber> and Email is <EEE>"))
+                DUMeta.toLowerProperly("My Phone is <PhoneNumber> and Email is <EEE>"))
         assertEquals(
                 "<Phone> is my phone number",
-                ExpressionSearcher.toLowerProperly("<Phone> Is My Phone Number")
+                DUMeta.toLowerProperly("<Phone> Is My Phone Number")
         )
         assertEquals(
                 "<Phone><PPP> is my phone number",
-                ExpressionSearcher.toLowerProperly("<Phone><PPP> Is My Phone Number")
+                DUMeta.toLowerProperly("<Phone><PPP> Is My Phone Number")
         )
     }
 }

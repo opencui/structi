@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.JsonArray
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -27,8 +28,12 @@ class MatchPriorityTest : DuTestHelper() {
             return "master"
         }
 
-        override fun getFrameExpressions(): JsonArray {
-            return IChatbot.parseByFrame("""
+        override fun getEntityMeta(name:String): EntityMeta? {
+            return mapOf<String, EntityMeta>()[name]
+        }
+
+        override val expressionsByFrame: Map<String, List<Expression>>
+            get() = parseExpressions(IChatbot.parseByFrame("""
                     {
                       "agent_id": "a",
                       "expressions": [
@@ -41,12 +46,7 @@ class MatchPriorityTest : DuTestHelper() {
                         }
                       ]
                     }
-                """.trimIndent())
-        }
-
-        override fun getEntityMeta(name:String): EntityMeta? {
-            return mapOf<String, EntityMeta>()[name]
-        }
+                """.trimIndent()), this)
 
         override fun getEntities(): Set<String> {
             return setOf("org.a.any")

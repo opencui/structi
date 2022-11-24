@@ -1,6 +1,12 @@
 package io.opencui.du
 
 import io.opencui.serialization.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.io.Serializable
+import java.util.*
+import java.util.regex.Pattern
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
@@ -34,7 +40,6 @@ data class DUSlotMeta(
         return type == "T"
     }
 }
-
 
 fun extractSlotSurroundingWords(exprOwners: JsonArray, entities: Set<String>):
         Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
@@ -89,6 +94,8 @@ interface ExtractiveMeta : LangBase {
     fun getEntityMeta(name: String): IEntityMeta? // string encoding of JsonArray of JsonObject
 
     fun getSlotTrigger(): Map<String, List<String>> = emptyMap()
+
+    val expressionsByFrame: Map<String, List<Expression>>
 }
 
 interface DUMeta : ExtractiveMeta {
@@ -99,9 +106,12 @@ interface DUMeta : ExtractiveMeta {
     fun getOrg(): String { return "" }
     fun getTimezone(): String { return "america/los_angeles" }
 
-    fun getFrameExpressions(): JsonArray
-
     fun getSlotMetas(frame: String) : List<DUSlotMeta>
+    fun typeKind(name: String): TypeKind {
+        if (isEntity(name)) return TypeKind.Entity
+        if (name.startsWith("io.opencui.generic.")) return TypeKind.Generic
+        return TypeKind.Frame
+    }
 
     fun isEntity(name: String) : Boolean  // given a name, return true if it's entity
 
@@ -114,31 +124,86 @@ interface DUMeta : ExtractiveMeta {
         const val CONTEXT = "context"
         const val TYPEID = "frame_id" // this is type id.
         const val UTTERANCE = "utterance"
+        private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
+
+        /**
+         * This parses expression json file content into list of expressions, so that we
+         * can index them one by one.
+         */
+        @JvmStatic
+        fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Expression>> {
+            val resmap = mutableMapOf<String, List<Expression>>()
+            for (owner in exprOwners) {
+                val res = ArrayList<Expression>()
+                owner as JsonObject
+                val ownerId = getContent(owner["owner_id"])!!
+                val expressions = owner["expressions"] ?: continue
+                expressions as JsonArray
+                for (expression in expressions) {
+                    val exprObject = expression as JsonObject
+                    val contextObject = exprObject["context"] as JsonObject?
+                    val context = parseContext(contextObject)
+                    val utterance = getContent(exprObject["utterance"])!!
+                    val partialApplicationsObject = exprObject["partial_application"] as JsonArray?
+                    val partialApplications = parsePartialApplications(partialApplicationsObject)
+                    val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
+                    res.add(Expression(ownerId, context, label, toLowerProperly(utterance), partialApplications, bot))
+                }
+                resmap[ownerId] = res.apply { trimToSize() }
+            }
+            return resmap
+        }
+
+        private fun parseContext(context: JsonObject?) : ExpressionContext? {
+            if (context == null) return null
+            val frame = getContent(context["frame_id"])!!
+            val slot = getContent(context["slot_id"])
+            return ExpressionContext(frame, slot)
+        }
+
+        private fun parsePartialApplications(context: JsonArray?) : List<String>? {
+            if (context == null) return null
+            val list = mutableListOf<String>()
+            for (index in 0 until context.size()) {
+                list.add(getContent(context.get(index))!!)
+            }
+            return list
+        }
+
+        // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
+        fun toLowerProperly(utterance: String): String {
+            val parts = utterance.split(LessGreaterThanRegex)
+            val lowerCasedUtterance = StringBuffer()
+            var lowerCase = true
+            for (part in parts) {
+                if (part == ">") lowerCase = true
+                if (!lowerCase) {
+                    lowerCasedUtterance.append(part)
+                } else {
+                    lowerCasedUtterance.append(part.lowercase(Locale.getDefault()))
+                }
+                if (part == "<") lowerCase = false
+            }
+            return lowerCasedUtterance.toString()
+        }
+
+        private fun getContent(primitive: JsonElement?): String? {
+            return (primitive as JsonPrimitive?)?.content()
+        }
     }
 }
+
 
 fun DUMeta.getSlotMeta(frame:String, slot:String) : DUSlotMeta? {
     return getSlotMetas(frame).firstOrNull {it.label == slot}
 }
 
-fun DUMeta.getSlotType(frame: String, slot:String) : String {
+fun DUMeta.getSlotType(frame: String, slot:String?) : String {
     return getSlotMetas(frame).firstOrNull {it.label == slot}?.type ?: ""
 }
 
-
-fun DUMeta.getEntitySlotMetaRecursively(frame:String, slot:String): DUSlotMeta? {
-    // Including all the top level slots.
-    val slotsMetaMap = getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
-    if (!slotsMetaMap.containsKey(slot)) return null
-
-    // We now handle the qualified ones here (a.b.c)
-    val qualified = slot.split(".")
-    var frameType = frame
-    for (simpleName in qualified.subList(0, qualified.size - 1)) {
-        frameType = getSlotType(frameType, simpleName)
-        if (frameType == "") return null
-    }
-    return getSlotMetas(frameType).find { it.label == qualified[qualified.size - 1] }?.copy()
+enum class TypeKind {
+    Entity, Frame, Generic
 }
 
 abstract class DslDUMeta() : DUMeta {
@@ -146,6 +211,7 @@ abstract class DslDUMeta() : DUMeta {
     abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
     abstract val aliasMap: Map<String, List<String>>
     val subtypes: MutableMap<String, List<String>> = mutableMapOf()
+
     override fun getSubFrames(fullyQualifiedType: String): List<String> {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
@@ -187,6 +253,7 @@ abstract class JsonDUMeta() : DUMeta {
     abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
     abstract val aliasMap: Map<String, List<String>>
     val subtypes: MutableMap<String, List<String>> = mutableMapOf()
+
     override fun getSubFrames(fullyQualifiedType: String): List<String> {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
@@ -222,26 +289,163 @@ abstract class JsonDUMeta() : DUMeta {
     }
 }
 
-fun DUMeta.getEntitySlotTypeRecursively(frame: String, slot: String?): String? {
-    if (slot == null) return null
-    return getEntitySlotMetaRecursively(frame, slot)?.type
-}
-
-
 interface IEntityMeta {
     val recognizer: List<String>
     val children: List<String>
+    fun getSuper(): String?
 }
 
 data class EntityMeta(
     override val recognizer: List<String>,
     val parents: List<String> = emptyList(),
     override val children: List<String> = emptyList()
-) : java.io.Serializable, IEntityMeta
+) : java.io.Serializable, IEntityMeta {
+    override fun getSuper(): String? {
+        return if (parents.isNullOrEmpty()) null else parents[0]
+    }
+
+}
 
 data class EntityType(
     val label: String,
     override val recognizer: List<String>,
     val entities: Map<String, List<String>>,
     val parent: String? = null,
-    override val children: List<String> = emptyList()): IEntityMeta
+    override val children: List<String> = emptyList()): IEntityMeta {
+    override fun getSuper(): String? {
+        return parent
+    }
+}
+
+data class ExpressionContext(val frame: String, val slot: String?)
+sealed interface TypedExprSegment: Serializable {
+    val start: Int
+    val end: Int
+}
+data class ExprSegment(val expr: String, override val start: Int, override val end: Int): TypedExprSegment
+data class TypeSegment(val type: String, override val start: Int, override val end: Int): TypedExprSegment
+
+data class TypedExprSegments(val frame: String, val typedExpr: String, val segments: List<TypedExprSegment>)
+
+data class Expression(
+        val owner: String,
+        val context: ExpressionContext?,
+        val label: String?,
+        val utterance: String,
+        val partialApplications: List<String>?,
+        val bot: DUMeta) {
+    fun toTypedExpression(): String {
+        return buildTypedExpression(utterance, owner, bot)
+    }
+
+    /**
+     * TODO: Currently, we only use the frame as context, we could consider to use frame and attribute.
+     * This allows for tight control.
+     */
+    fun buildFrameContext(): String {
+        if (context != null) {
+            return """{"frame_id":"${context.frame}"}"""
+        } else {
+            if (frameMap.containsKey(this.owner)) {
+                return """{"frame_id":"${frameMap[this.owner]}"}"""
+            }
+        }
+        return "default"
+    }
+    fun buildSubFrameContext(duMeta: DUMeta): List<String>? {
+        if (context != null) {
+            val subtypes = duMeta.getSubFrames(context.frame)
+            if (subtypes.isNullOrEmpty()) return null
+            return subtypes.map {"""{"frame_id":"$it"}"""}
+        }
+        return null
+    }
+
+    fun buildSlotTypes(): List<String> {
+        return AngleSlotRegex
+                .findAll(utterance)
+                .map { it.value.substring(1, it.value.length - 1) }
+                .map { bot.getSlotType(owner, it) }
+                .toList()
+    }
+
+    companion object {
+        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
+        private val AngleSlotRegex = AngleSlotPattern.toRegex()
+        val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
+
+        /**
+         * Currently, we append entity type to user utterance, so that we can retrieve back
+         * the expression that contains both triggering and slot.
+         * I think the better way of doing this is to use extra field. This way, we do not
+         * have to parse things around.
+         */
+        @JvmStatic
+        fun buildTypedExpression(utterance: String, owner: String, agent: DUMeta): String {
+            return AngleSlotRegex.replace(utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                var typeName = agent.getSlotType(owner, slotName)
+                if (typeName.isEmpty()) {
+                    typeName = "WrongName"
+                }
+                "< $typeName >"
+            }
+        }
+                // "I need $dish$" -> "I need < dish.trigger in the natural language >"
+        val angleSlotTriggerParser = { expr: Expression ->
+            AngleSlotRegex.replace(expr.utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
+                if (triggers.isNullOrEmpty()) {
+                    // there are templated expressions that does not have trigger before application.
+                    "< $slotName >"
+                } else {
+                    "< ${triggers[0]} >"
+                }
+            }
+        }
+
+        var probeBuilder: (Expression) -> String = angleSlotTriggerParser
+
+        /**
+         * We assume the slot names are in form of a.b.c.
+         */
+        @JvmStatic
+        fun parseQualifiedSlotNames(utterance: String): String {
+            val res = AngleSlotRegex
+                    .findAll(utterance)
+                    .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
+                    .toList()
+            return res.joinToString(",")
+        }
+
+        fun segmentTypedExpr(expression: String, owner: String): TypedExprSegments {
+            val matcher = AngleSlotPattern.matcher(expression)
+            val result = mutableListOf<TypedExprSegment>()
+            var lastStart = 0
+
+            while(matcher.find()) {
+                val start = matcher.start()
+                val end = matcher.end()
+                if (start > lastStart) result.add(ExprSegment(expression.substring(lastStart, start).trim(), lastStart, start))
+                lastStart = end
+                result.add(TypeSegment(expression.substring(start+1, end-1).trim(), start, end))
+            }
+
+            if (lastStart < expression.length) result.add(ExprSegment(expression.substring(lastStart, expression.length).trim(), lastStart, expression.length))
+            return TypedExprSegments(owner, expression, result)
+        }
+
+        // TODO(sean.wu): this should be handled in a more generic fashion.
+        private val frameMap = mapOf(
+            "io.opencui.core.confirmation.No" to "io.opencui.core.Confirmation",
+            "io.opencui.core.confirmation.Yes" to "io.opencui.core.Confirmation",
+            "io.opencui.core.hasMore.No" to "io.opencui.core.HasMore",
+            "io.opencui.core.hasMore.Yes" to "io.opencui.core.HasMore",
+            "io.opencui.core.booleanGate.No" to "io.opencui.core.BoolGate",
+            "io.opencui.core.booleanGate.Yes" to "io.opencui.core.BoolGate",
+        )
+    }
+}

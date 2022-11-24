@@ -386,7 +386,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
                     updateMentionIndex(mentionId, labelId, typeId, leaf)
 
                     // Handle partial match.
-                    val tokens = tokenize(key)
+                    val tokens =analyzer!!.tokenize(key).map{it.token}
                     for (token in tokens) {
                         val tokenId = tokenTable.put(token)
                         updateTokenIndex(tokenId, mentionId, typeId)
@@ -430,41 +430,16 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
         }
     }
 
-    fun tokenize(text: String) : List<String> {
-        val tokenStream = analyzer!!.tokenStream(QUERY, text)
-        val attr = tokenStream.addAttribute(CharTermAttribute::class.java)
-        tokenStream.reset()
-        val result = ArrayList<String>()
-        while(tokenStream.incrementToken()) {
-            result.add(attr.toString())
-        }
-        tokenStream.close()
-        return result
-    }
-
-
     // TODO(sean) we need to make sure input is simple space separated for en.
     override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
-        val tokenStream = analyzer!!.tokenStream(QUERY, input)
-        val attr = tokenStream.addAttribute(OffsetAttribute::class.java)
-        tokenStream.reset()
-        val spanlist = ArrayList<Pair<Int, Int>>()
-        // Add all the tokens
-        while (tokenStream.incrementToken()) {
-            val start = attr.startOffset()
-            val end = attr.endOffset()
-            spanlist.add(Pair(start, end))
-        }
-
-        tokenStream.close()
-
+        val spanlist = analyzer!!.tokenize(input)
         // We should try the longest match.
         val typedSpans = HashMap<Int, MutableList<Pair<Int, Int>>>()
         val partialMatch = mutableListOf<SpanInfo>()
         for (i in 0..spanlist.size) {
             for (k in 0..maxNgramSize) {
                 if ( i + k >= spanlist.size) continue
-                val range = IntRange(spanlist[i].first, spanlist[i+k].second-1)
+                val range = IntRange(spanlist[i].start, spanlist[i+k].end - 1)
                 val key = input.slice(range)
 
                 val mentionId = mentionTable.getId(key)
@@ -485,8 +460,8 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
                            typedSpans[typeId] = mutableListOf()
                         }
 
-                        typedSpans[typeId]!!.add(Pair(spanlist[i].first, spanlist[i + k].second))
-                        emap[type]!!.add(SpanInfo(type, spanlist[i].first, spanlist[i + k].second, false, label, this, leaf))
+                        typedSpans[typeId]!!.add(Pair(spanlist[i].start, spanlist[i + k].end))
+                        emap[type]!!.add(SpanInfo(type, spanlist[i].start, spanlist[i + k].end, false, label, this, leaf))
                     }
                 }  else {
                     // when this is not mention match
@@ -500,8 +475,8 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
                             partialMatch.add(
                                 SpanInfo(
                                     type,
-                                    spanlist[i].first,
-                                    spanlist[i + k].second,
+                                    spanlist[i].start,
+                                    spanlist[i + k].end,
                                     false,
                                     label,
                                     this,

@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.JsonArray
 import kotlin.test.assertEquals
 
@@ -17,13 +18,12 @@ class ZhSearchTest() : DuTestHelper() {
         override fun getLabel(): String { return "CarFinanceSimple" }
         override fun getVersion(): String { return "v_04a227a81a6b025230d9ac2882267507" }
 
-        override fun getFrameExpressions(): JsonArray {
-            return IChatbot.parseByFrame(expressionJson)
-        }
-
         override fun getEntityMeta(name:String): EntityMeta? {
             return mapOf<String, EntityMeta>()[name]
         }
+
+        override val expressionsByFrame: Map<String, List<Expression>>
+            get() = parseExpressions(IChatbot.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
             return setOf("account_type", "account", "recipient","date_time")

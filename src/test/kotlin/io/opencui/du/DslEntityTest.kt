@@ -27,9 +27,9 @@ class DslEntityTest() : DuTestHelper() {
                 }
                 utterance("Great, let's make a transfer.")
 
-                utterance("Make a transfer to ${'$'}recipient_account_name${'$'}")
+                utterance("Make a transfer to <recipient_account_name>")
                 utterance("I wanna make a transfer")
-                utterance("send ${'$'}amount${'$'} and give it to ${'$'}recipient_account_name${'$'} and go with the ${'$'}account_type${'$'} account") {
+                utterance("send <amount> and give it to <recipient_account_name> and go with the <account_type> account") {
                     context("Banks_1.TransferMoney", "amount")
                     label("negation")
 
@@ -213,9 +213,18 @@ class DslEntityTest() : DuTestHelper() {
     }
 
     @Test
+    fun testTypeExprSegment() {
+        val expressions = duMeta.expressionsByFrame["io.opencui.core.SlotUpdate"]!!
+        val expr = Expression.segmentTypedExpr(expressions[4].toTypedExpression(), "io.opencui.core.SlotUpdate")
+        println(expr)
+        assertEquals(expr.frame, "io.opencui.core.SlotUpdate")
+        assertEquals(expr.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), TypeSegment(type=io.opencui.core.SlotType, start=7, end=35), ExprSegment(expr=to, start=35, end=39), TypeSegment(type=T, start=39, end=44)]")
+    }
+
+    @Test
     fun testMatchUpdate() {
         val expectations = DialogExpectations(ExpectedFrame("me.test.abstractEntity_1007.FoodOrdering"))
-        val frameEvents = stateTracker.convert("s", "change item to chicken wings", expectations)
+        val frameEvents = stateTracker.convert("s", "change dish item to chicken wings", expectations)
         println("frame events: $frameEvents")
         assertEquals(frameEvents.size, 1)
         // val entityEvents = frameEvents[0].activeSlots

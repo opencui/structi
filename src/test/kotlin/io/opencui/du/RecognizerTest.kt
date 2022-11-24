@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
+import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
 import org.junit.Test
 import java.io.File
@@ -15,10 +16,6 @@ class RecognizerTest : DuTestHelper() {
         override fun getLang(): String { return "en" }
         override fun getLabel(): String { return "Banks" }
         override fun getVersion(): String { return "" }
-
-        override fun getFrameExpressions(): JsonArray {
-            return IChatbot.parseByFrame(File("../agents/Banks/expression.json").readText())
-        }
 
         override fun getEntityInstances(name: String): Map<String, List<String>> {
             return IChatbot.parseEntityToMapByNT(
@@ -55,6 +52,9 @@ class RecognizerTest : DuTestHelper() {
             return entityMetas[name]
         }
 
+        override val expressionsByFrame: Map<String, List<Expression>>
+            get() = parseExpressions(IChatbot.parseByFrame(File("../agents/Banks/expression.json").readText()), this)
+
         override fun getEntities(): Set<String> {
             return entityMetas.keys
         }
@@ -90,10 +90,6 @@ class RecognizerTest : DuTestHelper() {
                 TODO("Not yet implemented")
             }
 
-            override fun getFrameExpressions(): JsonArray {
-                return IChatbot.parseByFrame("""{"expressions":[]}""")
-            }
-
             override fun getEntityInstances(name: String): Map<String, List<String>> {
                 return IChatbot.parseEntityToMapByNT(
                     name, when (name) {
@@ -106,6 +102,9 @@ class RecognizerTest : DuTestHelper() {
             override fun getEntityMeta(name: String): EntityMeta? {
                 return Json.decodeFromString<Map<String, EntityMeta>>("""{"java.time.LocalDateTime":{"recognizer":["DucklingRecognizer"]}}""".trimMargin())[name]
             }
+
+            override val expressionsByFrame: Map<String, List<Expression>>
+                get() = parseExpressions(IChatbot.parseByFrame("""{"expressions":[]}"""), this)
 
             override fun getEntities(): Set<String> {
                 return setOf("city", "java.time.LocalDateTime")
@@ -197,5 +196,4 @@ class RecognizerTest : DuTestHelper() {
         println(nzone)
         assertEquals(ozone, nzone)
     }
-
 }

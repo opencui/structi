@@ -67,6 +67,11 @@ class FrameExemplarBuilder (val owner_id: String){
         expressions.add(s.content)
     }
 
+    // We need to add this so that we make figure out where is the subtype.
+    fun subTypes(vararg types: String) {
+        subTypes.addAll(types)
+    }
+
     fun toJsonObject() : JsonObject {
         val content = Json.makeObject()
         content.put(OWNERID, owner_id)
