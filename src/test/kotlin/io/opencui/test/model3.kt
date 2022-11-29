@@ -29,7 +29,7 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
                     EndSlot(this, null, false),
                     UserDefinedInform(
                         this,
-                        simpleTemplates({ """we don't have choices that meet your requirements, intent terminated""" })
+                        templateOf("""we don't have choices that meet your requirements, intent terminated""")
                     )
                 )
             )
@@ -57,7 +57,14 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
-        { SlotConfirm(this, "", "io.opencui.test.SoftEarlyTerminationIntent", listOf(this), simpleTemplates(Prompt { """r u sure of this intent and f.a value ${f?.a}""" })) })
+        {
+            SlotConfirm(
+                this,
+                "",
+                "io.opencui.test.SoftEarlyTerminationIntent",
+                listOf(this),
+                templateOf("""r u sure of this intent and f.a value ${f?.a}""")
+            ) })
 
     override fun searchConfirmation(slot: String): IFrame? {
         return when (slot) {
@@ -70,11 +77,14 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
 
 data class SoftEarlyTerminationIntent_0(
     val frame: SoftEarlyTerminationIntent
-) : UserDefinedInform<SoftEarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""Hi, a = ${f?.a}""" }}))
+) : UserDefinedInform<SoftEarlyTerminationIntent>(frame, templateOf(with(frame) { """Hi, a = ${f?.a}""" }))
 
 data class SoftEarlyTerminationIntent_1(
     val frame: SoftEarlyTerminationIntent
-) : UserDefinedInform<SoftEarlyTerminationIntent>(frame, simpleTemplates({with(frame) {"""soft early terminated response, should appear""" }}))
+) : UserDefinedInform<SoftEarlyTerminationIntent>(
+    frame,
+    templateOf(with(frame) { """soft early terminated response, should appear""" })
+)
 
 
 @JsonSerialize(using = InterfaceInternalEntitySerializer::class)
@@ -284,16 +294,16 @@ data class AbstractEntityIntent(
     @JsonIgnore
     val recommendation = PagedSelectable<Dish>(
         session, {dishService.recDish()}, { Dish::class },
-        {offers -> SlotOffer(offers, "dish", "io.opencui.test.Dish",
-            simpleTemplates(Prompt {
-                with(session) {
+        {offers ->
+            SlotOffer(offers, "dish", "io.opencui.test.Dish",
+                templateOf(with(session) {
                     """We have following ${offers.size} choices: ${
                         offers.joinToString(", ") {
                             "(${it.value})"
                         }
                     }."""
-                }
-            }))
+                })
+            )
         },
         pageSize = 5, target = this, slot = "dish")
     override fun annotations(path: String): List<Annotation> = when(path) {
@@ -303,7 +313,7 @@ data class AbstractEntityIntent(
                     SlotRequest(
                         "dish",
                         "io.opencui.test.Dish",
-                        simpleTemplates({ "What would u like?" })
+                        templateOf("What would u like?")
                     )
                 )
             ),
@@ -313,7 +323,10 @@ data class AbstractEntityIntent(
     }
 
     override fun searchResponse(): Action? = when {
-        else -> UserDefinedInform(this, simpleTemplates(Prompt { """abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""" }))
+        else -> UserDefinedInform(
+            this,
+            templateOf("""abstract entity type is ${dish!!::class.qualifiedName}; value is ${dish?.value}""")
+        )
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {

@@ -13,7 +13,7 @@ import kotlin.reflect.full.isSubclassOf
 
 data class IDonotGetIt(override var session: UserSession? = null) : IIntent {
     override fun searchResponse(): Action? = when {
-        else -> UserDefinedInform(this, simpleTemplates(Prompt { """I did not get that.""" } ))
+        else -> UserDefinedInform(this, templateOf("""I did not get that."""))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -48,9 +48,16 @@ data class IntentSuggestion(override var session: UserSession? = null
     @JsonIgnore
     var recommendation: PagedSelectable<IntentSuggestion> = PagedSelectable(
         session, {getSuggestions()}, { IntentSuggestion::class },
-        {offers -> SlotOffer(offers, "this", "io.opencui.core.IntentSuggestion",
-                simpleTemplates({"""We have following ${offers.size} choices for intents : ${offers.joinToString(", ") {
-            "(${it.intentPackage}, ${it.intentName})" }}."""}))
+        {offers ->
+            SlotOffer(offers, "this", "io.opencui.core.IntentSuggestion",
+                templateOf(
+                    """We have following ${offers.size} choices for intents : ${
+                        offers.joinToString(", ") {
+                            "(${it.intentPackage}, ${it.intentName})"
+                        }
+                    }."""
+                )
+            )
         },
         target = this, slot = "")
 
@@ -61,7 +68,7 @@ data class IntentSuggestion(override var session: UserSession? = null
                     SlotRequest(
                         "intentPackage",
                         "kotlin.String",
-                        simpleTemplates(Prompt { "Which package?" })
+                        templateOf("Which package?")
                     )
                 )
             ),
@@ -73,7 +80,7 @@ data class IntentSuggestion(override var session: UserSession? = null
                     SlotRequest(
                         "intentName",
                         "kotlin.String",
-                        simpleTemplates(Prompt { "Which intent?" })
+                        templateOf("Which intent?")
                     )
                 )
             )
@@ -114,7 +121,7 @@ data class IDonotKnowWhatToDo(override var session: UserSession? = null
 
     override fun searchResponse(): Action? {
         return when {
-            else -> UserDefinedInform(this, simpleTemplates(Prompt { """I do not know what to do now.""" } ))
+            else -> UserDefinedInform(this, templateOf("""I do not know what to do now."""))
         }
     }
 }
@@ -127,9 +134,17 @@ data class IntentName(@get:JsonIgnore override var value: String): InternalEntit
 
 data class AbortIntent(override var session: UserSession? = null): AbstractAbortIntent(session) {
     override val builder: (String) -> InternalEntity? = { Json.decodeFromString<IntentName>(it)}
-    override val defaultFailPrompt: (() -> DialogAct)? = { UserDefinedInform(this, simpleTemplates(Prompt { """Failed to abort!""" })) }
-    override val defaultSuccessPrompt: (() -> DialogAct)? = { UserDefinedInform(this, simpleTemplates(Prompt { with(session!!) {"""${intent?.typeName()} is Aborted successfully!"""} })) }
-    override val defaultFallbackPrompt: (() -> DialogAct)? = { UserDefinedInform(this, simpleTemplates(Prompt { """Aborted ancestor intent""" })) }
+    override val defaultFailPrompt: (() -> DialogAct)? = { UserDefinedInform(this, templateOf("""Failed to abort!""")) }
+    override val defaultSuccessPrompt: (() -> DialogAct)? = {
+        UserDefinedInform(
+            this,
+            templateOf(with(session!!) { """${intent?.typeName()} is Aborted successfully!""" })
+        ) }
+    override val defaultFallbackPrompt: (() -> DialogAct)? = {
+        UserDefinedInform(
+            this,
+            templateOf("""Aborted ancestor intent""")
+        ) }
 }
 
 data class ValueClarification<T: Any>(
@@ -145,9 +160,16 @@ data class ValueClarification<T: Any>(
     @JsonIgnore
     override fun _rec_target(it: T?): PagedSelectable<T> = PagedSelectable(
         session,  {source}, getClass,
-        {offers -> SlotOffer(offers, "target", getClass().qualifiedName!!,
-                    simpleTemplates({with(session!!){"""by ${targetSlotAlias()}, which do you mean: ${offers.joinToString(", ") {
-                        "(${it.name()})" }}."""}}))
+        {offers ->
+            SlotOffer(offers, "target", getClass().qualifiedName!!,
+                templateOf(with(session!!) {
+                    """by ${targetSlotAlias()}, which do you mean: ${
+                        offers.joinToString(", ") {
+                            "(${it.name()})"
+                        }
+                    }."""
+                })
+            )
         },
         pageSize = 5, target = this, slot = "target")
 
@@ -155,7 +177,7 @@ data class ValueClarification<T: Any>(
         "target" -> listOf(
             SlotPromptAnnotation(
                 listOf(
-                    SlotRequest("target", getClass().qualifiedName!!, simpleTemplates(Prompt { "target?" }))
+                    SlotRequest("target", getClass().qualifiedName!!, templateOf("target?"))
                 )
             ),
             TypedValueRecAnnotation<T>({ _rec_target(this) })
@@ -184,7 +206,9 @@ data class ResumeIntent(override var session: UserSession? = null
     override fun searchResponse(): Action? {
         return when {
             else -> UserDefinedInform(
-                this, simpleTemplates(Prompt { with(session!!){"We are in the middle of ${intent?.typeName()} already, let's continue with the current process."} } ))
+                this,
+                templateOf(with(session!!) { "We are in the middle of ${intent?.typeName()} already, let's continue with the current process." })
+            )
         }
     }
 }

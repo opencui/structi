@@ -2,7 +2,6 @@ package io.opencui.test
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
-import io.opencui.core.Annotation
 import io.opencui.core.da.UserDefinedInform
 import kotlin.reflect.KMutableProperty0
 
@@ -34,10 +33,9 @@ public data class HelloWorldService(
       listOf(
           UserDefinedInform(
               this, "me.test.testApp_1012.HelloWorld",
-              simpleTemplates(
-                  with(frame) {
-                      """component_0915.testFuncton：${component_0915.testFunction(":)")}""".trimMargin()
-                  }
+              templateOf(with(frame) {
+                  """component_0915.testFuncton：${component_0915.testFunction(":)")}""".trimMargin()
+              }
               )
           )
       )

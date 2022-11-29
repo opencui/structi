@@ -13,7 +13,7 @@ interface DialogAct: Serializable, SchemaAction {
         val success = true
         return ActionResult(
             listOf(this),
-            createLog(templates.pick().invoke()),
+            createLog(templates.pick()),
             success
         )
     }

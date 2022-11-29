@@ -567,7 +567,7 @@ data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
         }
         return ActionResult(
             prompts,
-            createLog(prompts.map { it.templates.pick().invoke() }.joinToString { it }), true)
+            createLog(prompts.map { it.templates.pick() }.joinToString { it }), true)
     }
 }
 

@@ -29,16 +29,16 @@ data class PayMethod(@get:JsonIgnore var value: String): Serializable {
 
         fun createRecFrame(session: UserSession, target: IFrame? = null, slot: String? = null): PagedSelectable<PayMethod> {
             return PagedSelectable(session, { getAllInstances() },  { PayMethod::class },
-                {offers -> SlotOffer(offers, "this", "io.opencui.test.PayMethod",
-                        simpleTemplates(Prompt {
-                            with(session) {
-                                """We have following ${offers.size} choices for PayMethod : ${
-                                    offers.joinToString(
-                                        ", "
-                                    ) { it.name() }
-                                }."""
-                            }
-                        }))
+                {offers ->
+                    SlotOffer(offers, "this", "io.opencui.test.PayMethod",
+                        templateOf(with(session) {
+                            """We have following ${offers.size} choices for PayMethod : ${
+                                offers.joinToString(
+                                    ", "
+                                ) { it.name() }
+                            }."""
+                        })
+                    )
                 },
                 target = target, slot = slot, implicit = false)
         }
@@ -76,17 +76,17 @@ data class Fever(override var session: UserSession? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
         "duration" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("duration", "kotlin.Int", simpleTemplates({ "How long did it last?" }))
+                SlotRequest("duration", "kotlin.Int", templateOf("How long did it last?"))
             )
         )
         "degree" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("degree", "kotlin.Int", simpleTemplates({ "What is your temperature?" }))
+                SlotRequest("degree", "kotlin.Int", templateOf("What is your temperature?"))
             )
         )
         "cause" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("cause", "kotlin.String", simpleTemplates({ "what is the cause for it?" }))
+                SlotRequest("cause", "kotlin.String", templateOf("what is the cause for it?"))
             )
         )
         else -> listOf()
@@ -117,17 +117,17 @@ data class Headache(override var session: UserSession? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
         "duration" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("duration", "kotlin.Int", simpleTemplates({ "How long did it last?" }))
+                SlotRequest("duration", "kotlin.Int", templateOf("How long did it last?"))
             )
         )
         "cause" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("cause", "kotlin.String", simpleTemplates({ "What is the cause for it?" }))
+                SlotRequest("cause", "kotlin.String", templateOf("What is the cause for it?"))
             )
         )
         "part" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("part", "kotlin.String", simpleTemplates({ "which part of head?" }))
+                SlotRequest("part", "kotlin.String", templateOf("which part of head?"))
             )
         )
         else -> listOf()
@@ -159,19 +159,19 @@ data class Person(override var session: UserSession? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
         "name" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("name", "kotlin.String", simpleTemplates({ "What is your name?" }))
+                SlotRequest("name", "kotlin.String", templateOf("What is your name?"))
             )
         )
 
         "age" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("age", "kotlin.Int", simpleTemplates({ "How old are you?" }))
+                SlotRequest("age", "kotlin.Int", templateOf("How old are you?"))
             )
         )
 
         "height" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("height", "kotlin.Int", simpleTemplates({ "How tall are you?" }))
+                SlotRequest("height", "kotlin.Int", templateOf("How tall are you?"))
             )
         )
 
@@ -208,24 +208,23 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
     var recommendation: PagedSelectable<MobileWithAdvances> = PagedSelectable(
         session, {mobileService.search_cellphone(name).map { MobileWithAdvances.from(it) }},
         { MobileWithAdvances::class },
-        {offers -> SlotOffer(offers, "cellphone", "kotlin.String",
-                simpleTemplates(
-                    Prompt {
-                        with(session) {
-                            """We have following ${offers.size} choices for cellphones : ${
-                                offers.joinToString(", ") {
-                                    "(${it.id}, ${it.cellphone})"
-                                }
-                            }."""
+        {offers ->
+            SlotOffer(offers, "cellphone", "kotlin.String",
+                templateOf(with(session) {
+                    """We have following ${offers.size} choices for cellphones : ${
+                        offers.joinToString(", ") {
+                            "(${it.id}, ${it.cellphone})"
                         }
-                }))
+                    }."""
+                })
+            )
         },
             target = this, slot = "", hard = true)
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "id" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("id", "kotlin.Int", simpleTemplates({ "What is your id?" }))
+                SlotRequest("id", "kotlin.Int", templateOf("What is your id?"))
             )
         )
         "cellphone" -> listOf(
@@ -233,14 +232,14 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
                 SlotRequest(
                     "cellphone",
                     "kotlin.String",
-                    simpleTemplates({ "What is your cell number? (MobileWithAdvances)" })
+                    templateOf("What is your cell number? (MobileWithAdvances)")
                 )
             ),
             ValueRecAnnotation({ recommendation }, false)
         )
         "name" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("name", "kotlin.String", simpleTemplates({ "What is your name (MobileWithAdvances)?" }))
+                SlotRequest("name", "kotlin.String", templateOf("What is your name (MobileWithAdvances)?"))
             ),
             ValueCheckAnnotation({OldValueCheck(session,
                 { mobileService.search_cellphone(name).isNotEmpty() },
@@ -251,7 +250,7 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
                         "name",
                         "kotlin.String",
                         FailType.VC,
-                        simpleTemplates(Prompt { "your name has not been attached to a cellphone, let's try it again." })
+                        templateOf("your name has not been attached to a cellphone, let's try it again.")
                     )
                 }
             )})
@@ -305,29 +304,28 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
         session,
         {mobileService.search_mobile(cellphone)},
         {Mobile::class},
-        {offers -> SlotOffer(offers, "amount", "kotlin.Float",
-                simpleTemplates(
-                    Prompt {
-                        with(session) {
-                            """We have following ${offers.size} choices: ${
-                                offers.joinToString(", ") {
-                                    "(${it.id}, ${it.amount})"
-                                }
-                            }."""
+        {offers ->
+            SlotOffer(offers, "amount", "kotlin.Float",
+                templateOf(with(session) {
+                    """We have following ${offers.size} choices: ${
+                        offers.joinToString(", ") {
+                            "(${it.id}, ${it.amount})"
                         }
-                }))
+                    }."""
+                })
+            )
         },
         target = this, slot = "")
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "id" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("id", "kotlin.String", simpleTemplates({ "What is your id?" }))
+                SlotRequest("id", "kotlin.String", templateOf("What is your id?"))
             )
         )
         "cellphone" -> listOf(
             SlotPromptAnnotation(
-                SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?"))
+                SlotRequest("cellphone", "kotlin.String", templateOf("What is your cell number?"))
             ),
             ValueCheckAnnotation({OldValueCheck(session,
                 { mobileService.search_mobile(cellphone).isNotEmpty() },
@@ -338,7 +336,7 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
                         "cellphone",
                         "kotlin.String",
                         FailType.VC,
-                        simpleTemplates(Prompt { "your cellphone number is not correct, let's try it again." })
+                        templateOf("your cellphone number is not correct, let's try it again.")
                     )
                 }
             )}))
@@ -348,7 +346,7 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
                     SlotRequest(
                         "amount",
                         "kotlin.Float",
-                        simpleTemplates("What much do you want?")
+                        templateOf("What much do you want?")
                     )
                 )
             ),
@@ -421,22 +419,21 @@ data class Hotel(override var session: UserSession? = null
     var pagedSelectable: String?.() -> PagedSelectable<String> = {PagedSelectable(
         session, JsonFrameBuilder("""{"@class": "io.opencui.test.HotelSuggestionIntent"}""", constructorParameters = listOf(session), slotAssignments = mapOf("city" to {city}, "hotel" to {this})),
         {String::class},
-        {offers -> SlotOffer(offers, "hotel", "kotlin.String",
-                simpleTemplates(
-                    Prompt {
-                    with(session) {
-                        """We have following ${offers.size} choices: ${
-                            offers.joinToString(", ") {
-                                "(${it})"
-                            }
-                        }."""
-                    }
-                }))
+        {offers ->
+            SlotOffer(offers, "hotel", "kotlin.String",
+                templateOf(with(session) {
+                    """We have following ${offers.size} choices: ${
+                        offers.joinToString(", ") {
+                            "(${it})"
+                        }
+                    }."""
+                })
+            )
         },
             pageSize = 2, target = this@Hotel, slot = "hotel", hard = true)}
     override fun annotations(path: String): List<Annotation> = when(path) {
         "city" -> listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("city", "kotlin.String", simpleTemplates("""Which city?""")))),
+            SlotPromptAnnotation(listOf(SlotRequest("city", "kotlin.String", templateOf("""Which city?""")))),
             ValueCheckAnnotation({OldValueCheck(session,
                 { vacationService.searchHotelByCity(city).isNotEmpty() },
                 listOf(Pair(this, "city")),
@@ -446,12 +443,12 @@ data class Hotel(override var session: UserSession? = null
                         "city",
                         "kotlin.String",
                         FailType.VC,
-                        simpleTemplates(Prompt { "No hotel available for the city you have chosen." })
+                        templateOf("No hotel available for the city you have chosen.")
                     )
                 }
             )}))
         "hotel" -> listOf(
-            SlotPromptAnnotation(listOf(SlotRequest("hotel", "kotlin.String", simpleTemplates("""Which hotel?""")))),
+            SlotPromptAnnotation(listOf(SlotRequest("hotel", "kotlin.String", templateOf("""Which hotel?""")))),
             TypedValueRecAnnotation<String>({ pagedSelectable(this) }, false)
         )
         else -> listOf()
@@ -492,13 +489,15 @@ data class PreDiagnosis(override var session: UserSession? = null
                     LazyAction {
                         if (headaches!!.isEmpty())
                             SlotRequest(
-                                "headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(
-                                    Prompt { "What kind of headache do you have?" })
+                                "headaches",
+                                "kotlin.collections.List<io.opencui.test.Headache>",
+                                templateOf("What kind of headache do you have?")
                             )
                         else
                             SlotRequestMore(
-                                "headaches", "kotlin.collections.List<io.opencui.test.Headache>", simpleTemplates(
-                                    Prompt { "What kind of headache do you still have?" })
+                                "headaches",
+                                "kotlin.collections.List<io.opencui.test.Headache>",
+                                templateOf("What kind of headache do you still have?")
                             )
                     })
             )
@@ -509,13 +508,15 @@ data class PreDiagnosis(override var session: UserSession? = null
                     LazyAction {
                         if (symptoms!!.isEmpty())
                             SlotRequest(
-                                "symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(
-                                    Prompt { "What symptom do you have?" })
+                                "symptoms",
+                                "kotlin.collections.List<io.opencui.test.ISymptom>",
+                                templateOf("What symptom do you have?")
                             )
                         else
                             SlotRequestMore(
-                                "symptoms", "kotlin.collections.List<io.opencui.test.ISymptom>", simpleTemplates(
-                                    Prompt { "What symptom do you still have?" })
+                                "symptoms",
+                                "kotlin.collections.List<io.opencui.test.ISymptom>",
+                                templateOf("What symptom do you still have?")
                             )
                     })
             )
@@ -528,13 +529,13 @@ data class PreDiagnosis(override var session: UserSession? = null
                             SlotRequest(
                                 "indexes",
                                 "kotlin.collections.List<kotlin.Int>",
-                                simpleTemplates(Prompt { "What id do you have?" })
+                                templateOf("What id do you have?")
                             )
                         else
                             SlotRequestMore(
                                 "indexes",
                                 "kotlin.collections.List<kotlin.Int>",
-                                simpleTemplates(Prompt { "What id do you still have?" })
+                                templateOf("What id do you still have?")
                             )
                     })
             )
@@ -545,7 +546,7 @@ data class PreDiagnosis(override var session: UserSession? = null
                     SlotRequest(
                         "indexes._item",
                         "kotlin.Int",
-                        simpleTemplates("what is the id?")
+                        templateOf("what is the id?")
                     )
                 )
             ),
@@ -556,7 +557,7 @@ data class PreDiagnosis(override var session: UserSession? = null
                     SlotRequest(
                         "method",
                         "io.opencui.test.PayMethod",
-                        simpleTemplates("What pay method do you perfer?")
+                        templateOf("What pay method do you perfer?")
                     )
                 )
             ),
@@ -622,7 +623,7 @@ data class Hi(override var session: UserSession? = null
                     SlotRequest(
                         "symptom",
                         "io.opencui.test.ISymptom",
-                        simpleTemplates("What symptom do you have?")
+                        templateOf("What symptom do you have?")
                     )
                 )
             )
@@ -695,25 +696,24 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
 
     @JsonIgnore
     var recommendation: PagedSelectable<String> = PagedSelectable(session, {vacationService.search_flight(origin, destination)}, {String::class},
-            {offers -> SlotOffer(offers, "this", "io.opencui.test.PayMethod",
-                    simpleTemplates(
-                        Prompt {
-                        with(session) {
-                            """We have following ${offers.size} choices: ${
-                                offers.joinToString(", ") {
-                                    "(${it})"
-                                }
-                            }."""
-                        }
-                    }))
+            {offers ->
+                SlotOffer(offers, "this", "io.opencui.test.PayMethod",
+                    templateOf(with(session) {
+                        """We have following ${offers.size} choices: ${
+                            offers.joinToString(", ") {
+                                "(${it})"
+                            }
+                        }."""
+                    })
+                )
             },
             target = this, slot = "flight", hard = true)
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "depart_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When will you depart?""" })))
-        "return_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When will you return?""" })))
-        "origin" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """From where?""" })))
+        "depart_date" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""When will you depart?""")))
+        "return_date" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""When will you return?""")))
+        "origin" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""From where?""")))
         "destination" -> listOf<Annotation>(
-            SlotPromptAnnotation(simpleTemplates(Prompt { """-> where?""" })),
+            SlotPromptAnnotation(templateOf("""-> where?""")),
             ValueCheckAnnotation({OldValueCheck(session,
                 { vacationService.search_flight(origin, destination).isNotEmpty() },
                 listOf(Pair(this, "destination")),
@@ -723,12 +723,12 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
                         "destination",
                         "kotlin.String",
                         FailType.VC,
-                        simpleTemplates(Prompt { "No flight available for your origin and destination." })
+                        templateOf("No flight available for your origin and destination.")
                     )
                 }
             )}))
         "flight" -> listOf<Annotation>(
-            SlotPromptAnnotation(simpleTemplates(Prompt { """Which flight?""" })),
+            SlotPromptAnnotation(templateOf("""Which flight?""")),
             ValueRecAnnotation({ recommendation }, false)
         )
         "extra" -> listOf(NeverAsk())
@@ -738,7 +738,13 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
-            prompts = { SlotInform(this, "this", "io.opencui.test.BookFlight", simpleTemplates(Prompt { """flight $flight is booked for you""" })) },
+            prompts = {
+                SlotInform(
+                    this,
+                    "this",
+                    "io.opencui.test.BookFlight",
+                    templateOf("""flight $flight is booked for you""")
+                ) },
             true)
 
     override fun searchConfirmation(slot: String): IFrame? {
@@ -779,16 +785,22 @@ data class BookHotel(override var session: UserSession? = null
     var hotel: Hotel? = Hotel(session)
     var placeHolder: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "checkin_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When to checkin?""" })))
-        "checkout_date" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """When to checkout?""" })))
-        "placeHolder" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """ask placeholder""" })))
+        "checkin_date" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""When to checkin?""")))
+        "checkout_date" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""When to checkout?""")))
+        "placeHolder" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""ask placeholder""")))
         "this" -> listOf(ConfirmationAnnotation({ searchConfirmation("this") }))
         else -> listOf()
     }
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
-            { SlotConfirm(this, "this", "io.opencui.test.BookHotel", simpleTemplates(Prompt { """Are u sure of the hotel booking? hotel ${hotel?.hotel}""" })) }
+            {
+                SlotConfirm(
+                    this,
+                    "this",
+                    "io.opencui.test.BookHotel",
+                    templateOf("""Are u sure of the hotel booking? hotel ${hotel?.hotel}""")
+                ) }
     )
 
     override fun searchConfirmation(slot: String): IFrame? {
@@ -835,7 +847,7 @@ data class HotelAddress(override var session: UserSession? = null
 
     var address: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "unimportant" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """unimportant?""" })))
+        "unimportant" -> listOf(SlotPromptAnnotation(templateOf("""unimportant?""")))
         "createUnimportant" -> listOf()
         "address" -> listOf(NeverAsk())
         else -> listOf()
@@ -884,7 +896,7 @@ data class HotelAddress(override var session: UserSession? = null
 data class FirstLevelQuestion(override var session: UserSession? = null) : IIntent {
     var need_hotel: Boolean? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "need_hotel" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """Do you need to book hotel?""" })))
+        "need_hotel" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""Do you need to book hotel?""")))
         else -> listOf()
     }
 
@@ -938,7 +950,7 @@ data class CompositeWithIIntent(override var session: UserSession? = null
 ) : IIntent {
     var skill: IIntent? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "skill" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """What do you want to do?""" })))
+        "skill" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""What do you want to do?""")))
         else -> listOf()
     }
 
@@ -968,15 +980,15 @@ data class MoreBasics(override var session: UserSession? = null
     }
 
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "int_condition" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """int condition?""" })))
-        "bool_condition" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """bool condition?""" })))
-        "payMethod" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { """payMethod?""" })))
+        "int_condition" -> listOf(SlotPromptAnnotation(templateOf("""int condition?""")))
+        "bool_condition" -> listOf(SlotPromptAnnotation(templateOf("""bool condition?""")))
+        "payMethod" -> listOf(SlotPromptAnnotation(templateOf("""payMethod?""")))
         "associateSlot" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { """associate slot?""" })),
+            SlotPromptAnnotation(templateOf("""associate slot?""")),
             SlotInitAnnotation(FillActionBySlot({ associateClosure() }, this, "associateSlot"))
         )
         "conditional_slot" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { """condition met and ask conditional slot""" })),
+            SlotPromptAnnotation(templateOf("""condition met and ask conditional slot""")),
             ConditionalAsk(
                 Condition { int_condition != null && int_condition!! > 3 && bool_condition == true })
         )
@@ -1010,23 +1022,29 @@ data class IntentNeedConfirm(override var session: UserSession? = null
     var boolVar: Boolean? = null
     var stringVal: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "intVar" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """intVar?""" })))
+        "intVar" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""intVar?""")))
         "boolVar" -> listOf<Annotation>(
-            SlotPromptAnnotation(simpleTemplates(Prompt { """boolVar?""" })),
+            SlotPromptAnnotation(templateOf("""boolVar?""")),
             ConfirmationAnnotation({ searchConfirmation("boolVar") })
         )
-        "stringVal" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """stringVal?""" })))
+        "stringVal" -> listOf<Annotation>(SlotPromptAnnotation(templateOf("""stringVal?""")))
         "this" -> listOf(ConfirmationAnnotation { searchConfirmation("this") })
         else -> listOf()
     }
 
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
-            { SlotConfirm(this, "this", "io.opencui.test.IntentNeedConfirm", simpleTemplates(Prompt { """r u sure of the frame values $intVar $boolVar $stringVal""" })) }
+            {
+                SlotConfirm(
+                    this,
+                    "this",
+                    "io.opencui.test.IntentNeedConfirm",
+                    templateOf("""r u sure of the frame values $intVar $boolVar $stringVal""")
+                ) }
     )
     @JsonIgnore
     var confirmboolVar: Confirmation = Confirmation(session, this, "boolVar",
-            { SlotConfirm(boolVar, "boolVar", "kotlin.Boolean", simpleTemplates(Prompt { """r u sure of bool value $boolVar""" })) }
+            { SlotConfirm(boolVar, "boolVar", "kotlin.Boolean", templateOf("""r u sure of bool value $boolVar""")) }
     )
 
     override fun searchConfirmation(slot: String): IFrame? {
@@ -1061,24 +1079,23 @@ data class WeakRecommendation(override var session: UserSession? = null
 ) : IIntent {
     @JsonIgnore
     var recommendation: PagedSelectable<WeakRecommendation> = PagedSelectable(session, {getSuggestions()}, {WeakRecommendation::class},
-            {offers -> SlotOffer(offers, "this", "io.opencui.test.WeakRecommendation",
-                    simpleTemplates(
-                        Prompt {
-                        with(session) {
-                            """We have following ${offers.size} choices for intents : ${
-                                offers.joinToString(", ") {
-                                    "${it.slotForWeakRec}"
-                                }
-                            }."""
-                        }
-                    }))
+            {offers ->
+                SlotOffer(offers, "this", "io.opencui.test.WeakRecommendation",
+                    templateOf(with(session) {
+                        """We have following ${offers.size} choices for intents : ${
+                            offers.joinToString(", ") {
+                                "${it.slotForWeakRec}"
+                            }
+                        }."""
+                    })
+                )
             }, target = this, slot = "")
     @JsonIgnore
     val recPayMethod = PayMethod.createRecFrame(session!!, this, "payMethod")
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "slotForWeakRec" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "weak rec slot?" })))
+        "slotForWeakRec" -> listOf(SlotPromptAnnotation(templateOf("weak rec slot?")))
         "payMethod" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { "payMethod?" })),
+            SlotPromptAnnotation(templateOf("payMethod?")),
             ValueRecAnnotation({ recPayMethod }, false)
         )
 
@@ -1127,7 +1144,10 @@ data class WeakRecommendation(override var session: UserSession? = null
 
     override fun searchResponse(): Action? {
         return when {
-            else -> UserDefinedInform(this, simpleTemplates(Prompt { """weak rec value is ${slotForWeakRec}, payMethod is ${payMethod}""" }))
+            else -> UserDefinedInform(
+                this,
+                templateOf("""weak rec value is ${slotForWeakRec}, payMethod is ${payMethod}""")
+            )
         }
     }
 }
@@ -1139,8 +1159,8 @@ interface IContractFrame: IFrame {
 
 data class ContractBasedIntentA(override var session: UserSession? = null): IIntent, IContractFrame {
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "a" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "a?" })))
-        "contractId" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
+        "a" -> listOf(SlotPromptAnnotation(templateOf("a?")))
+        "contractId" -> listOf(SlotPromptAnnotation(templateOf("contractId?")))
         else -> listOf()
     }
 
@@ -1167,17 +1187,14 @@ data class ContractBasedIntentA(override var session: UserSession? = null): IInt
 }
 
 data class ContractBasedIntentA_0(
-    val frame: ContractBasedIntentA) : UserDefinedInform<ContractBasedIntentA>(frame, simpleTemplates(Prompt {
-    with(
-        frame
-    ) { """Hi, a=$a; contractId=$contractId""" }
-}))
+    val frame: ContractBasedIntentA) :
+    UserDefinedInform<ContractBasedIntentA>(frame, templateOf(with(frame) { """Hi, a=$a; contractId=$contractId""" }))
 
 
 data class ContractBasedIntentB(override var session: UserSession? = null): IIntent, IContractFrame {
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "b" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "b?" })))
-        "contractId" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "contractId?" })))
+        "b" -> listOf(SlotPromptAnnotation(templateOf("b?")))
+        "contractId" -> listOf(SlotPromptAnnotation(templateOf("contractId?")))
         else -> listOf()
     }
 
@@ -1205,16 +1222,16 @@ data class ContractBasedIntentB(override var session: UserSession? = null): IInt
 
 data class ContractBasedIntentB_0(
         val frame: ContractBasedIntentB
-) : UserDefinedInform<ContractBasedIntentB>(frame, simpleTemplates(Prompt { with(frame) { """Hi, a=$b; contractId=$contractId""" } }))
+) : UserDefinedInform<ContractBasedIntentB>(frame, templateOf(with(frame) { """Hi, a=$b; contractId=$contractId""" }))
 
 
 data class RecoverTestIntent(override var session: UserSession? = null): IIntent {
     override fun annotations(path: String): List<Annotation> = when(path) {
         "aaa" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { "aaa?" }))
+            SlotPromptAnnotation(templateOf("aaa?"))
         )
         "bbb" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { throw Exception("exception") })),
+            SlotPromptAnnotation(templateOf("exception")),
             ConditionalAsk(Condition { aaa == "aaa" })
         )
         else -> listOf()
@@ -1244,12 +1261,12 @@ data class RecoverTestIntent(override var session: UserSession? = null): IIntent
 
 data class RecoverTestIntent_0(
         val frame: RecoverTestIntent
-) : UserDefinedInform<RecoverTestIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, aaa=$aaa; bbb=$bbb""" } }))
+) : UserDefinedInform<RecoverTestIntent>(frame, templateOf(with(frame) { """Hi, aaa=$aaa; bbb=$bbb""" }))
 
 data class AssociationTestFrame(override var session: UserSession? = null): IFrame {
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "aaa" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame aaa?" })))
-        "bbb" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "frame bbb?" })))
+        "aaa" -> listOf(SlotPromptAnnotation(templateOf("frame aaa?")))
+        "bbb" -> listOf(SlotPromptAnnotation(templateOf("frame bbb?")))
         "this" -> listOf(SlotInitAnnotation(FillActionBySlot({ associationSource() }, this, "")))
         else -> listOf()
     }
@@ -1281,10 +1298,10 @@ data class AssociationTestFrame(override var session: UserSession? = null): IFra
 data class AssociationTestIntent(override var session: UserSession? = null): IIntent {
     override fun annotations(path: String): List<Annotation> = when(path) {
         "aaa" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { "intent aaa?" })),
+            SlotPromptAnnotation(templateOf("intent aaa?")),
             SlotInitAnnotation(FillActionBySlot({ associationFrameA?.associationSource()?.aaa }, this, "aaa"))
         )
-        "bbb" -> listOf(SlotPromptAnnotation(simpleTemplates(Prompt { "intent bbb?" })))
+        "bbb" -> listOf(SlotPromptAnnotation(templateOf("intent bbb?")))
         "associationFrameB" -> listOf(
             SlotInitAnnotation(
                 FillActionBySlot(
@@ -1332,7 +1349,10 @@ data class AssociationTestIntent(override var session: UserSession? = null): IIn
 
 data class AssociationTestIntent_0(
         val frame: AssociationTestIntent
-) : UserDefinedInform<AssociationTestIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" } }))
+) : UserDefinedInform<AssociationTestIntent>(
+    frame,
+    templateOf(with(frame) { """Hi, aaa=$aaa; bbb=$bbb; Aaaa=${associationFrameA?.aaa}; Abbb=${associationFrameA?.bbb}; Baaa=${associationFrameB?.aaa}; Bbbb=${associationFrameB?.bbb}""" })
+)
 
 data class ValueRecInteractionFrame(override var session: UserSession? = null): IFrame {
     var b: Int? = null
@@ -1340,12 +1360,12 @@ data class ValueRecInteractionFrame(override var session: UserSession? = null): 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "b" -> listOf(
             SlotPromptAnnotation(
-                simpleTemplates(Prompt { "b?" })
+                templateOf("b?")
             )
         )
         "c" -> listOf(
             SlotPromptAnnotation(
-                simpleTemplates(Prompt { "c?" })
+                templateOf("c?")
             )
         )
         else -> listOf()
@@ -1400,29 +1420,37 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
     @JsonIgnore
     var _rec_frame: PagedSelectable<ValueRecInteractionFrame> = PagedSelectable(
         session,  {recData()}, {ValueRecInteractionFrame::class},
-            {offers -> SlotOffer(offers, "targetFrame", "io.opencui.test.ValueRecInteractionFrame",
-                    simpleTemplates(
-                        Prompt {
-                        with(session) {
-                            """We have following ${offers.size} choices: ${
-                                offers.joinToString(
-                                    ", "
-                                ) { "(${it.b}; ${it.c})" }
-                            }."""
-                        }
-                    }))
+            {offers ->
+                SlotOffer(offers, "targetFrame", "io.opencui.test.ValueRecInteractionFrame",
+                    templateOf(with(session) {
+                        """We have following ${offers.size} choices: ${
+                            offers.joinToString(
+                                ", "
+                            ) { "(${it.b}; ${it.c})" }
+                        }."""
+                    })
+                )
             },
         target = this, slot = "targetFrame", hard = false,
-        zeroEntryActions = listOf(SlotOfferZepInform("targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(
-            Prompt { """no values for b and c while a=${a}""" }))),
-        singleEntryPrompt = { SlotOfferSepInform(it, "targetFrame", "io.opencui.test.ValueRecInteractionFrame", simpleTemplates(
-            Prompt { """b=${it.b}; c=${it.c}; contextB=${targetFrame?.b} are applied""" })) },
+        zeroEntryActions = listOf(
+            SlotOfferZepInform(
+                "targetFrame",
+                "io.opencui.test.ValueRecInteractionFrame",
+                templateOf("""no values for b and c while a=${a}""")
+            )),
+        singleEntryPrompt = {
+            SlotOfferSepInform(
+                it,
+                "targetFrame",
+                "io.opencui.test.ValueRecInteractionFrame",
+                templateOf("""b=${it.b}; c=${it.c}; contextB=${targetFrame?.b} are applied""")
+            ) },
         implicit = true
     )
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "a" -> listOf(
-            SlotPromptAnnotation(simpleTemplates(Prompt { "a?" }))
+            SlotPromptAnnotation(templateOf("a?"))
         )
         "targetFrame" -> listOf(
             ValueRecAnnotation({ _rec_frame }, false),
@@ -1433,8 +1461,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
                         "targetFrame",
                         "io.opencui.test.ValueRecInteractionFrame",
                         FailType.VC,
-                        simpleTemplates(
-                            Prompt { "b=${targetFrame?.b}; c=${targetFrame?.c}; value check failed" })
+                        templateOf("b=${targetFrame?.b}; c=${targetFrame?.c}; value check failed")
                     )
                 }
             )}))
@@ -1463,20 +1490,23 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
 
 data class ValueRecInteractionIntent_0(
     val frame: ValueRecInteractionIntent
-) : UserDefinedInform<ValueRecInteractionIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" } }))
+) : UserDefinedInform<ValueRecInteractionIntent>(
+    frame,
+    templateOf(with(frame) { """Hi, a=$a; b=${targetFrame?.b}; c=${targetFrame?.c}""" })
+)
 
 data class CustomizedRecommendationIntent(override var session: UserSession? = null): IIntent {
     var recommendation: PagedSelectable<Hotel> = PagedSelectable(session,  {recData()}, {Hotel::class},
-            {offers -> SlotOffer(offers, "hotel", "io.opencui.test.Hotel",
-                    simpleTemplates(Prompt {
-                        with(session) {
-                            """We have following ${offers.size} choices: ${
-                                offers.joinToString(", ") {
-                                    "(${it.city}; ${it.hotel})"
-                                }
-                            }."""
-                        }
-                    }))
+            {offers ->
+                SlotOffer(offers, "hotel", "io.opencui.test.Hotel",
+                    templateOf(with(session) {
+                        """We have following ${offers.size} choices: ${
+                            offers.joinToString(", ") {
+                                "(${it.city}; ${it.hotel})"
+                            }
+                        }."""
+                    })
+                )
             },
             target = this, slot = "hotel")
 
@@ -1521,13 +1551,16 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
 
 data class CustomizedRecommendation_0(
     val frame: CustomizedRecommendationIntent
-) : UserDefinedInform<CustomizedRecommendationIntent>(frame, simpleTemplates(Prompt { with(frame) { """Hi, city=${hotel?.city}; hotel=${hotel?.hotel}""" } }))
+) : UserDefinedInform<CustomizedRecommendationIntent>(
+    frame,
+    templateOf(with(frame) { """Hi, city=${hotel?.city}; hotel=${hotel?.hotel}""" })
+)
 
 data class Greeting(
     override var session: UserSession? = null
 ) : IIntent {
     override fun searchResponse(): Action? = when {
-        else -> UserDefinedInform(this, simpleTemplates(Prompt { """Good day!""" }))
+        else -> UserDefinedInform(this, templateOf("""Good day!"""))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1545,7 +1578,7 @@ data class Goodbye(
     override var session: UserSession? = null
 ) : IIntent {
     override fun searchResponse(): Action? = when {
-        else -> UserDefinedInform(this, simpleTemplates(Prompt { """Have a nice day! """ }))
+        else -> UserDefinedInform(this, templateOf("""Have a nice day! """))
     }
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
@@ -1573,25 +1606,25 @@ data class Main(
         get() = session!!.getExtension<IIntentSuggestionService>() as IIntentSuggestionService
 
     var recommendation: PagedSelectable<IIntent> = PagedSelectable(session, {searchIntentsService.searchIntents()}, {IIntent::class},
-            {offers -> SlotOffer(offers, "skills", "kotlin.collections.List<io.opencui.core.IIntent>",
-                    simpleTemplates(
-                        Prompt {
-                        with(session!!) {
-                            """We have following ${offers.size} choices: ${
-                                offers.joinToString(", ") {
-                                    "(${it.typeName()})"
-                                }
-                            }."""
-                        }
-                    }))
+            {offers ->
+                SlotOffer(offers, "skills", "kotlin.collections.List<io.opencui.core.IIntent>",
+                    templateOf(with(session!!) {
+                        """We have following ${offers.size} choices: ${
+                            offers.joinToString(", ") {
+                                "(${it.typeName()})"
+                            }
+                        }."""
+                    })
+                )
             },
             target = this, slot = "skills")
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "skills" -> listOf(
             SlotConditionalPromptAnnotation{
-                if (skills!!.isEmpty()) simpleTemplates(Prompt { """What can I do for you? (Main)""" }) else simpleTemplates(
-                    Prompt { """What else can I do for you? (Main)""" })
+                if (skills!!.isEmpty()) templateOf("""What can I do for you? (Main)""") else templateOf(
+                    """What else can I do for you? (Main)"""
+                )
             },
             ValueRecAnnotation({ recommendation }, false)
         )
