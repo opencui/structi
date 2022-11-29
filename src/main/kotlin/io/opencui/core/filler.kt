@@ -593,7 +593,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         }
 
     fun initCheckFiller(): AnnotatedWrapperFiller? {
-        val checkFrame = path!!.find<ValueCheckAnnotation>()?.checkFrame ?: return null
+        val checkFrame = path!!.find<ValueCheckAnnotation>()?.checkFrame?.invoke() ?: return null
         return (checkFrame.createBuilder().invoke(path!!.join("$attribute._check", checkFrame)) as FrameFiller<*>).let {
             val res = AnnotatedWrapperFiller(it, false)
             res.parent = this@AnnotatedWrapperFiller

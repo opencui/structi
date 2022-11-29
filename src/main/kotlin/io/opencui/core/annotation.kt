@@ -13,11 +13,11 @@ import java.io.Serializable
  * For rest of the annotation, dm is used to carry out the conversation based on the user
  * input and developer supplied annotation, predefined system rules.
  */
-
 interface Annotation: Serializable {
     val switch: () -> Boolean
         get() = {true}
 }
+
 
 // It seems that prompt can be language dependent, but DialogAct should not be language
 // dependent.
@@ -160,7 +160,7 @@ data class TypedValueRecAnnotation<T>(val recFrameGen: T?.() -> IFrame, val show
 
 data class ConfirmationAnnotation(val confirmFrameGetter: ()->IFrame?): Annotation
 
-data class ValueCheckAnnotation(val checkFrame: IFrame, override val switch: () -> Boolean = {true}): Annotation
+data class ValueCheckAnnotation(val checkFrame: () -> IFrame, override val switch: () -> Boolean = {true}): Annotation
 
 data class MinMaxAnnotation(val min: Int, val minGen: () -> DialogAct, val max: Int, val maxGen: () -> DialogAct): Annotation
 
