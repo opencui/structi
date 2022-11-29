@@ -125,7 +125,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     private fun convertBotUtteranceToText(session: UserSession, results: List<ActionResult>, targetChannels: List<String>): Map<String, List<String>> {
         val responses : List<DialogAct> = results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
         val rewrittenResponses = session.rewriteDialogAct(responses)
-        return targetChannels.associateWith { k -> rewrittenResponses.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k).invoke()}"""} }
+        return targetChannels.associateWith { k -> rewrittenResponses.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
 
     /**

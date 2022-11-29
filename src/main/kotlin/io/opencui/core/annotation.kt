@@ -38,18 +38,12 @@ interface Annotation: Serializable {
 // There are map from channel to string generator, string generator has types (dialog act).
 // Actions are language independent.
 
-data class Prompt(
-    private val f: () -> String
-) : () -> String, Serializable {
-    override fun invoke(): String = f()
-}
-
 data class Condition(private val f: () -> Boolean): () -> Boolean, Serializable {
     override fun invoke(): Boolean = f()
 }
 
-data class Prompts(val prompts: List<Prompt>) : Serializable {
-    constructor(vararg prompts: () -> String) : this(prompts.toList().map{Prompt(it)})
+data class Prompts(val prompts: List<String>) : Serializable {
+    constructor(vararg prompts: String) : this(prompts.toList())
 
     fun isNotEmpty() = prompts.isNotEmpty()
     fun random() = prompts.random()
@@ -58,22 +52,16 @@ data class Prompts(val prompts: List<Prompt>) : Serializable {
 
 // This has two sides: how it is used and how it is created, and also just a type.
 data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
-    constructor(prompts: Prompts): this(mapOf(SideEffect.RESTFUL to prompts))
-    constructor(vararg prompts:Prompt): this(mapOf(SideEffect.RESTFUL to Prompts(prompts.toList())))
-    constructor(vararg prompts: () -> String): this(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
-
-    fun pick(channel: String = SideEffect.RESTFUL): Prompt {
-        val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return Prompt { "" }
-        return if (prompts.isNotEmpty()) prompts.random() else Prompt { "" }
+    fun pick(channel: String = SideEffect.RESTFUL): String {
+        val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return ""
+        return if (prompts.isNotEmpty()) prompts.random() else ""
     }
 }
 
 fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(if (pairs.size > 0) pairs.toMap() else emptyMap())
+fun templateOf(vararg prompts: String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
 
 fun defaultTemplate() = Templates(mapOf())
-fun simpleTemplates(vararg pprompts: Prompt) = Templates(Prompts(pprompts.asList()))
-fun simpleTemplates(vararg ops: () -> String) = Templates(Prompts(*ops))
-fun simpleTemplates(vararg strs: String) = Templates(Prompts(strs.toList().map{Prompt { it }}))
 
 fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
     return {dialogActGen(source())}

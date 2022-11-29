@@ -466,7 +466,7 @@ class RuntimeTest {
         // if (target.channelType != null && target.channelLabel != null)  to closeSession.
         val recoverTestCase = listOf(
             """>{"query": "1", "frames": [{"type": "RecoverTestIntent", "slots": [{"value" : "\"aaa\"", "attribute" : "aaa"}]}]}""",
-            """<{"type":"Exception","payload":""}""",
+            """<{"type":"SlotAskAction","payload":"exception"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.RecoverTestIntent","slot":"bbb"}],"status":"OPEN"}""",
             """>{"query": "2", "frames": [{"type": "CleanSession", "packageName": "io.opencui.core", "slots": []}]}""",
             """<{"type":"CloseSession","payload":"CLEAN SESSION"}""",
@@ -1415,7 +1415,7 @@ class RuntimeTest {
                 """<{"type":"SlotAskAction","payload":"a?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.ValueRecheckTestIntent","slot":"a"}],"status":"OPEN"}""",
                 """>{"query": "3", "frames": [{"type": "ValueRecheckTestIntent", "slots": [{"value" : "2", "attribute" : "a"}], "packageName": "io.opencui.test"}]}""",
-                """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"b fails"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=b"}]}""",
+                """<{"type":"SeqAction","payload":[{"type":"SlotNotifyFailure","payload":"b b fails"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.ValueRecheckTestIntent&slot=b"}]}""",
                 """<{"type":"SlotAskAction","payload":"b?"}""",
                 """<{"activeFrames":[{"frame":"io.opencui.test.ValueRecheckTestIntent","slot":"b"}],"status":"OPEN"}""",
                 """>{"query": "4", "frames": [{"type": "ValueRecheckTestIntent", "slots": [{"value" : "\"a\"", "attribute" : "b"}], "packageName": "io.opencui.test"}]}""",
@@ -1694,7 +1694,7 @@ class RuntimeTest {
             val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
             val rewrittenReplies = session.rewriteDialogAct(replies)
             for (reply in rewrittenReplies) {
-                println("reply = ${reply.templates.pick().invoke()}")
+                println("reply = ${reply.templates.pick()}")
             }
 
             val replyTextList = responses.filter { it.actionLog != null && it.actionLog!!.isTestable }.map { Json.encodeToString(it.actionLog!!) }
