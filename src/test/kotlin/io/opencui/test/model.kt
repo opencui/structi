@@ -242,7 +242,7 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
             SlotPromptAnnotation(
                 SlotRequest("name", "kotlin.String", simpleTemplates({ "What is your name (MobileWithAdvances)?" }))
             ),
-            ValueCheckAnnotation(OldValueCheck(session,
+            ValueCheckAnnotation({OldValueCheck(session,
                 { mobileService.search_cellphone(name).isNotEmpty() },
                 listOf(Pair(this, "name")),
                 {
@@ -254,7 +254,7 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
                         simpleTemplates(Prompt { "your name has not been attached to a cellphone, let's try it again." })
                     )
                 }
-            ))
+            )})
         )
         else -> listOf()
     }
@@ -329,7 +329,7 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
             SlotPromptAnnotation(
                 SlotRequest("cellphone", "kotlin.String", simpleTemplates("What is your cell number?"))
             ),
-            ValueCheckAnnotation(OldValueCheck(session,
+            ValueCheckAnnotation({OldValueCheck(session,
                 { mobileService.search_mobile(cellphone).isNotEmpty() },
                 listOf(Pair(this, "cellphone")),
                 {
@@ -341,7 +341,7 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
                         simpleTemplates(Prompt { "your cellphone number is not correct, let's try it again." })
                     )
                 }
-            )))
+            )}))
         "amount" -> listOf(
             SlotPromptAnnotation(
                 listOf(
@@ -437,7 +437,7 @@ data class Hotel(override var session: UserSession? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
         "city" -> listOf(
             SlotPromptAnnotation(listOf(SlotRequest("city", "kotlin.String", simpleTemplates("""Which city?""")))),
-            ValueCheckAnnotation(OldValueCheck(session,
+            ValueCheckAnnotation({OldValueCheck(session,
                 { vacationService.searchHotelByCity(city).isNotEmpty() },
                 listOf(Pair(this, "city")),
                 {
@@ -449,7 +449,7 @@ data class Hotel(override var session: UserSession? = null
                         simpleTemplates(Prompt { "No hotel available for the city you have chosen." })
                     )
                 }
-            )))
+            )}))
         "hotel" -> listOf(
             SlotPromptAnnotation(listOf(SlotRequest("hotel", "kotlin.String", simpleTemplates("""Which hotel?""")))),
             TypedValueRecAnnotation<String>({ pagedSelectable(this) }, false)
@@ -714,7 +714,7 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
         "origin" -> listOf<Annotation>(SlotPromptAnnotation(simpleTemplates(Prompt { """From where?""" })))
         "destination" -> listOf<Annotation>(
             SlotPromptAnnotation(simpleTemplates(Prompt { """-> where?""" })),
-            ValueCheckAnnotation(OldValueCheck(session,
+            ValueCheckAnnotation({OldValueCheck(session,
                 { vacationService.search_flight(origin, destination).isNotEmpty() },
                 listOf(Pair(this, "destination")),
                 {
@@ -726,7 +726,7 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
                         simpleTemplates(Prompt { "No flight available for your origin and destination." })
                     )
                 }
-            )))
+            )}))
         "flight" -> listOf<Annotation>(
             SlotPromptAnnotation(simpleTemplates(Prompt { """Which flight?""" })),
             ValueRecAnnotation({ recommendation }, false)
@@ -1426,7 +1426,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
         )
         "targetFrame" -> listOf(
             ValueRecAnnotation({ _rec_frame }, false),
-            ValueCheckAnnotation(OldValueCheck(session, { checkData() }, listOf(Pair(this, "targetFrame")),
+            ValueCheckAnnotation({OldValueCheck(session, { checkData() }, listOf(Pair(this, "targetFrame")),
                 {
                     SlotNotifyFailure(
                         targetFrame,
@@ -1437,7 +1437,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
                             Prompt { "b=${targetFrame?.b}; c=${targetFrame?.c}; value check failed" })
                     )
                 }
-            )))
+            )}))
         else -> listOf()
     }
 

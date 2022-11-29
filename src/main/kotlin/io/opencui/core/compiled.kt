@@ -146,12 +146,12 @@ data class HasMore(
             STATUS -> listOf(
                 SlotPromptAnnotation(promptActions),
                 ValueCheckAnnotation(
-                    OldValueCheck(
+                    {OldValueCheck(
                         session,
                         { status !is No || minChecker() },
                         listOf(Pair(this, STATUS)),
                         minPrompts
-                    )
+                    )}
                 )
             )
             else -> listOf()
@@ -1116,7 +1116,7 @@ data class PagedSelectable<T: Any> (
             SlotPromptAnnotation(listOf(LazyAction(convertDialogActGen({ payload }, promptTemplate)))),
             ConditionalAsk(Condition { candidates.isNotEmpty() || outlierValue() }),
             SlotInitAnnotation(FillActionBySlot({ generateAutoFillIndex() }, this, "index")),
-            ValueCheckAnnotation(_check_index),
+            ValueCheckAnnotation({_check_index}),
             ConfirmationAnnotation { searchConfirmation("index") }
         )
         "conditionMap" -> listOf(NeverAsk())
@@ -1400,7 +1400,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         "newValue" -> listOf(NeverAsk())
         "index" -> listOf(
             ConditionalAsk(Condition { isMV() }),
-            ValueCheckAnnotation(_check_index),
+            ValueCheckAnnotation({_check_index}),
             TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
             SlotPromptAnnotation(listOf(LazyAction(askIndexPrompt))))
         "originalValue" -> listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue")))

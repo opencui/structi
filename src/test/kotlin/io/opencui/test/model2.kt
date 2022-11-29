@@ -249,7 +249,7 @@ data class MultiValueValueCheck(override var session: UserSession? = null): IInt
                 if (payMethodList!!.isEmpty()) simpleTemplates({ "payMethod?" })
                 else simpleTemplates({ "any payMethod else?" })
             },
-            ValueCheckAnnotation(OldValueCheck(session, { checker() }, listOf(Pair(this, "payMethodList")),
+            ValueCheckAnnotation({OldValueCheck(session, { checker() }, listOf(Pair(this, "payMethodList")),
                 {
                     SlotNotifyFailure(
                         payMethodList,
@@ -260,7 +260,7 @@ data class MultiValueValueCheck(override var session: UserSession? = null): IInt
                             Prompt { "payMethodList check failed, size = ${payMethodList!!.size}" })
                     )
                 }
-            )))
+            )}))
         else -> listOf()
     }
 
@@ -466,7 +466,7 @@ data class MultiValueMinMax(override var session: UserSession? = null): IIntent 
                         simpleTemplates({ "size = ${payMethodList!!.size} greater than 2" })
                     )
                 }),
-            ValueCheckAnnotation(MaxValueCheck(session, { payMethodList }, 2,
+            ValueCheckAnnotation({MaxValueCheck(session, { payMethodList }, 2,
                 {
                     SlotNotifyFailure(
                         payMethodList,
@@ -476,7 +476,7 @@ data class MultiValueMinMax(override var session: UserSession? = null): IIntent 
                         simpleTemplates({ "size = ${payMethodList!!.size} greater than 2" })
                     )
                 }
-            ))
+            )})
         )
         else -> listOf()
     }
@@ -558,7 +558,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
                     )
                 }
             ),
-            ValueCheckAnnotation(MaxValueCheck(session, { payMethodList }, 3,
+            ValueCheckAnnotation({MaxValueCheck(session, { payMethodList }, 3,
                 {
                     SlotNotifyFailure(
                         payMethodList,
@@ -569,7 +569,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
                             Prompt { "size = ${payMethodList!!.size} greater than 3" })
                     )
                 }
-            )),
+            )}),
             ValueRecAnnotation({ rec })
         )
         else -> listOf()
@@ -610,8 +610,8 @@ data class ValueCheckSwitchTest(override var session: UserSession? = null): IInt
             { SlotNotifyFailure(b, "b", "kotlin.Boolean", FailType.VC, simpleTemplates(Prompt { """no such combination of a = ${a} b = ${b}""" })) }
     )
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "a" -> listOf(SlotPromptAnnotation(simpleTemplates({ """a?""" })), ValueCheckAnnotation(valueCheck_a))
-        "b" -> listOf(SlotPromptAnnotation(simpleTemplates({ """b?""" })), ValueCheckAnnotation(valueCheck_ab))
+        "a" -> listOf(SlotPromptAnnotation(simpleTemplates({ """a?""" })), ValueCheckAnnotation({valueCheck_a}))
+        "b" -> listOf(SlotPromptAnnotation(simpleTemplates({ """b?""" })), ValueCheckAnnotation({valueCheck_ab}))
         "c" -> listOf(SlotPromptAnnotation(simpleTemplates({ """c?""" })))
         else -> listOf()
     }
@@ -1519,10 +1519,10 @@ data class VCTestIntent(override var session: UserSession? = null): IIntent {
             SlotPromptAnnotation(simpleTemplates({ "a?" }))
         )
         "b" -> listOf(
-            SlotPromptAnnotation(simpleTemplates({ "b?" })), ValueCheckAnnotation(_check_ab)
+            SlotPromptAnnotation(simpleTemplates({ "b?" })), ValueCheckAnnotation({_check_ab})
         )
         "c" -> listOf(
-            SlotPromptAnnotation(simpleTemplates({ "c?" })), ValueCheckAnnotation(_check_abc)
+            SlotPromptAnnotation(simpleTemplates({ "c?" })), ValueCheckAnnotation({_check_abc})
         )
         "d" -> listOf(
             SlotPromptAnnotation(simpleTemplates({ "d?" }))
@@ -1584,8 +1584,8 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "a" -> listOf(SlotPromptAnnotation(simpleTemplates({ "a?" })))
-        "b" -> listOf(SlotPromptAnnotation(simpleTemplates({ "b?" })), ValueCheckAnnotation(_check_ab))
-        "c" -> listOf(SlotPromptAnnotation(simpleTemplates({ "c?" })), ValueCheckAnnotation(_check_ac))
+        "b" -> listOf(SlotPromptAnnotation(simpleTemplates({ "b?" })), ValueCheckAnnotation({_check_ab}))
+        "c" -> listOf(SlotPromptAnnotation(simpleTemplates({ "c?" })), ValueCheckAnnotation({_check_ac}))
         "d" -> listOf(SlotPromptAnnotation(simpleTemplates({ "d?" })))
         else -> listOf()
     }
