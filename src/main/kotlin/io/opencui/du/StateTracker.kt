@@ -786,9 +786,9 @@ data class BertStateTracker(
     ): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr)
+        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr).filter { it.value.triggers.isNotEmpty() }
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
-        val slotProbes = slotMap.values.filter{ it.triggers.isNotEmpty() }.map { it.triggers[0] }.toList()
+        val slotProbes = slotMap.values.map { it.triggers[0] }.toList()
         logger.info("slot model, utterance: $utterance, probes: $slotProbes, frame: $topLevelFrameType, slots: $focusedSlot, $qualifiedSlotNamesInExpr")
 
         var spredict: Deferred<UnifiedModelResult>? = null
@@ -825,6 +825,8 @@ data class BertStateTracker(
                     agentMeta.getSlotMetas(contextFrame).find{ it.label == slotName } ?: continue
                 // we need to rewrite the slot map to replace all the T into actual slot type.
                 for ((key, slotMeta) in slotMapBef) {
+                    // We can not fill slot without triggers.
+                    if (slotMeta.triggers.isEmpty()) continue
                     if (slotMeta.label == StateTracker.SlotUpdateOriginalSlot) continue
                     if (slotMeta.isGenericTyped()) {
                         slotMapAft[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
@@ -836,7 +838,7 @@ data class BertStateTracker(
         }
 
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
-        val slotProbes = slotMapAft.values.filter{ it.triggers.isNotEmpty() }.map { it.triggers[0] }.toList()
+        val slotProbes = slotMapAft.values.map { it.triggers[0] }.toList()
         logger.info("slot model, utterance: $utterance, probes: $slotProbes, frame: $contextFrame, $qualifiedSlotNamesInExpr")
 
         var spredict: Deferred<UnifiedModelResult>? = null

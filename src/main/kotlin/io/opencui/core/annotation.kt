@@ -58,10 +58,10 @@ data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
     }
 }
 
-fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(if (pairs.size > 0) pairs.toMap() else emptyMap())
+fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(pairs.toMap())
 fun templateOf(vararg prompts: String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
 
-fun defaultTemplate() = Templates(mapOf())
+fun emptyTemplate() = Templates(mapOf())
 
 fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
     return {dialogActGen(source())}
