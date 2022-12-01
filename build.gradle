@@ -16,6 +16,7 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "$kotlin_version"
     id "idea"
     id "java"
+    id "maven-publish"
 }
 
 group 'io.opencui'

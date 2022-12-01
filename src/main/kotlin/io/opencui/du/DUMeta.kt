@@ -41,37 +41,27 @@ data class DUSlotMeta(
     }
 }
 
-fun extractSlotSurroundingWords(exprOwners: JsonArray, entities: Set<String>):
+// Compute the surrounding words so that we can help extraction.
+fun extractSlotSurroundingWords(
+    exprByOwners: Map<String, List<Expression>>, entities: Set<String>):
         Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
     // frame#slot: prefixes
     val slotPrefixes : MutableMap<String, MutableSet<String>> = HashMap()
     // frame#slot: suffixes
     val slotSuffixes : MutableMap<String, MutableSet<String>> = HashMap()
     // frame dontcare annotations
-    for (owner in exprOwners) {
-        val ownerId = ((owner as JsonObject).get("owner_id")as JsonPrimitive).content()
-        if( !entities.contains(ownerId)) continue
+    for ((ownerId, expressions) in exprByOwners) {
+        if(!entities.contains(ownerId)) continue
         // entity dontcare annotations has been processed in above loop
-        val expressions = owner["expressions"]!! as JsonArray
         for (expression in expressions) {
-            val exprObject = expression as JsonObject
-            val utterance = (exprObject.get("utterance")!! as JsonPrimitive).content().removeSuffix(".")
-            val contextObject = exprObject.get("context")!! as JsonObject
-            val frame_id = (contextObject.get("frame_id")!! as JsonPrimitive).content()
-            val attribute_id = (contextObject.get("attribute_id")!! as JsonPrimitive).content()
-            val parts = utterance.split(' ')
-            for ((i, part) in parts.withIndex()) {
-                if (part.length > 2 && part.startsWith('$') && part.endsWith('$')) {
-                    val key = "$frame_id#$attribute_id"
-                    if (i > 0 && !parts[i-1].startsWith('$')) {
-                        if (!slotPrefixes.containsKey(key)) slotPrefixes[key] = mutableSetOf()
-                        slotPrefixes[key]!!.add(parts[i-1])
-                    }
-                    if (i < parts.size-1 && !parts[i+1].startsWith('$')) {
-                        if (!slotSuffixes.containsKey(key)) slotSuffixes[key] = mutableSetOf()
-                        slotSuffixes[key]!!.add(parts[i+1])
-                    }
+            val typedSegments = Expression.segment(expression.utterance, ownerId)
+            if (typedSegments.segments.size <= 1) continue
+            val utterance = expression.utterance
+            for ((i, part) in typedSegments.segments.withIndex()) {
+                if (part is ExprSegment) {
+                    
                 }
+
             }
         }
     }
@@ -421,7 +411,7 @@ data class Expression(
             return res.joinToString(",")
         }
 
-        fun segmentTypedExpr(expression: String, owner: String): TypedExprSegments {
+        fun segment(expression: String, owner: String): TypedExprSegments {
             val matcher = AngleSlotPattern.matcher(expression)
             val result = mutableListOf<TypedExprSegment>()
             var lastStart = 0
