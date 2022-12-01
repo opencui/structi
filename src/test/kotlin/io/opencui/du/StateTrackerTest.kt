@@ -554,10 +554,12 @@ class StateTrackerTest : DuTestHelper() {
         // expected slot: null
         // with prefix suffix bonus, shanghai should fill from, beijing to
         // should fill both from and to: {from: shanghai, to: beijing}
+        val context = DUContext("", originalInput).apply{putAll(recognizedEntities)}
+        context.updateTokens(LanguageAnalyzer.get("en", stop = false)!!.tokenize(originalInput))
         assertEquals(
                 "{=[EntityEvent(value=shanghai, attribute=from), EntityEvent(value=beijing, attribute=to)]}",
                 stateTracker.extractSlotValues(
-                        DUContext("", originalInput).apply{putAll(recognizedEntities)},
+                        context,
                         "",
                         slotMap,
                         prediction).toString(),
