@@ -9,18 +9,22 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 import java.util.*
 
-
 /**
  * This is the central place to manage all the analyzers.
  */
-object LanguageAnalzyer {
+object LanguageAnalyzer {
     val analyzers = mapOf(
             "en" to EnglishAnalyzer(),
             "zh" to SmartChineseAnalyzer()
     )
 
-    fun get(lang: String) : Analyzer? {
-        return analyzers[lang.lowercase(Locale.getDefault())]
+    // Assume overlapping is false.
+    fun get(lang: String, stop: Boolean = true) : Analyzer? {
+        return if (stop) {
+            analyzers[lang.lowercase(Locale.getDefault())]
+        } else {
+            getUnstoppedAnalyzer(lang)
+        }
     }
 
     fun  getUnstoppedAnalyzer(lang: String): Analyzer? {

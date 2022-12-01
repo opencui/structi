@@ -3,7 +3,6 @@ package io.opencui.du
 import com.sun.jna.platform.mac.SystemB.Timezone
 import io.opencui.core.RuntimeConfig
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.net.http.HttpClient
@@ -16,7 +15,6 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import io.opencui.serialization.*
 import org.apache.lucene.analysis.CharArraySet
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import java.util.*
 
 /**
@@ -324,8 +322,8 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
         tokenIndex[tokenId].add(TypedMention(typeId, mentionId))
     }
 
-    private val analyzer: Analyzer? = LanguageAnalzyer.getUnstoppedAnalyzer(agent.getLang())
-    private val stopwords: CharArraySet? = LanguageAnalzyer.getStopSet(agent.getLang())
+    private val analyzer: Analyzer? = LanguageAnalyzer.getUnstoppedAnalyzer(agent.getLang())
+    private val stopwords: CharArraySet? = LanguageAnalyzer.getStopSet(agent.getLang())
 
     // This method is used to handle the extractive frame like DontCare and That
     fun collectExtractiveFrame(owner: JsonObject, type: String, processed: HashMap<String, ArrayList<String>>) {

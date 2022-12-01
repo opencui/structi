@@ -651,6 +651,7 @@ class StateTrackerTest : DuTestHelper() {
     @Test
     fun testSlotModel() {
         val utterance = "march"
+        val ducontext = DUContext("s", utterance, DialogExpectations())
         val probes = listOf("departure?")
         val predictions = stateTracker.nluModel.predictSlot("en", utterance, probes)
         print("request slot model, utterance: $utterance, probes: $probes")
@@ -665,7 +666,7 @@ class StateTrackerTest : DuTestHelper() {
             if (index >= predictions.startLogitss.size) continue
             if (predictions.classLogits[index * 3 + 1] > stateTracker.slot_threshold) {
                 val span = stateTracker.extractValue(
-                        utterance,
+                        ducontext,
                         DUSlotMeta("slot"),
                         predictions.get(index)
                 )

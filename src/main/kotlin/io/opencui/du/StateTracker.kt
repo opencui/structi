@@ -198,6 +198,22 @@ data class DUContext(val session: String, val utterance: String, val expectation
     var candidates : List<ScoredDocument>? = null
     var bestCandidate : ScoredDocument? = null
 
+    var tokens : List<BoundToken>? = null
+    val previousTokenByChar = mutableMapOf<Int, Int>()
+    val nextTokenByChar = mutableMapOf<Int, Int>()
+
+    fun updateTokens(tkns: List<BoundToken>) {
+        tokens = tkns
+        for( (index, tkn) in tokens!!.withIndex() ) {
+            if(index >  0) {
+                previousTokenByChar[tkn.start] = index - 1
+            }
+            if(index < tokens!!.size - 1) {
+                nextTokenByChar[tkn.end] = index + 1
+            }
+        }
+    }
+
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
         if (!candidates.isNullOrEmpty()) bestCandidate = candidates!![0]
@@ -351,7 +367,7 @@ data class BertStateTracker(
 
         val ducontext = DUContext(session, utterance, expectations)
         normalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
-
+        ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
         logger.debug("entity recognized: ${ducontext.entityTypeToSpanInfoMap}")
 
         // TODO: support multiple intention in one utterance, abstractively.
@@ -854,7 +870,8 @@ data class BertStateTracker(
             spredict = GlobalScope.async { nluModel.predictSlot(lang, utterance, slotProbes) }
         }
 
-        return extractEntityEvents(ducontext, StateTracker.SlotUpdate, slotMapAft, null, spredict).toMutableList()
+        val result = extractEntityEvents(ducontext, StateTracker.SlotUpdate, slotMapAft, null, spredict).toMutableList()
+        return result
     }
 
 
@@ -873,11 +890,8 @@ data class BertStateTracker(
         // this map is from type to annotation.
         val utterance = ducontext.utterance
 
-        var result: UnifiedModelResult
-        if (dpredict != null) {
-            result = dpredict.await()
-        } else {
-            result = UnifiedModelResult(
+        val result: UnifiedModelResult = dpredict?.await()
+            ?: UnifiedModelResult(
                 listOf(utterance),
                 (1..(3 * requiredSlotMap.size)).map { 0f },
                 (1..(requiredSlotMap.size)).map { listOf(0f) },
@@ -885,7 +899,6 @@ data class BertStateTracker(
                 listOf(),
                 listOf()
             )
-        }
 
         val eventMap = extractSlotValues(ducontext, expectedSlot, requiredSlotMap, result)
 
@@ -933,18 +946,18 @@ data class BertStateTracker(
             val nameParts = slot.split(".")
             val path = nameParts.subList(0, nameParts.size - 1).joinToString(".")
             val slotType = (slotMap[slot] ?: error("slot doesn't exist!")).type
-            if (index >= result.startLogitss.size) continue
+            if (index >= result.startLogitss.size) throw RuntimeException("the probes size and return size does not match")
 
             // (TODO: sean): This implies that we always have DONTCARE at the first entry? Strange.
             // Also, this is not the right way to get multi value to work.
             val recognizedDontCare = emap.containsKey(slotType) && emap[slotType]!![0].value.toString() == DONTCARE
             if (result.classLogits[index * 3 + 1] > slot_threshold || emap.containsKey(slotType) && !recognizedDontCare) {
                 // Find all the occurrences of candidates for this slot.
-                val slotCandidates = extractValue(utterance, slotMap[slot]!!, result.get(index), emap[slotType])
+                val slotCandidates = extractValue(ducontext, slotMap[slot]!!, result.get(index), emap[slotType])
                 if (slotCandidates != null) {
                     if (slot == expectedSlot) slotCandidates.apply { forEach { it.score += expected_slot_bonus } }
-                    candidateSpans.addAll(slotCandidates.filter { it.recongizedEntity }
-                        .apply { forEach { it.attribute = slot } })
+                    slotCandidates.apply { forEach { it.attribute = slot } }
+                    candidateSpans.addAll(slotCandidates)
                 }
             } else if (result.classLogits[index * 3 + 2] > slot_threshold || recognizedDontCare) {
                 // DontCare. Right now, we do not really have the training data for this.
@@ -970,7 +983,7 @@ data class BertStateTracker(
             val nameParts = span.attribute!!.split(".")
             val path = nameParts.subList(0, nameParts.size - 1).joinToString(".")
             val entityLabel = span.norm!!
-            logger.info("handle entity with label00 = $entityLabel")
+            logger.info("handle entity with label = $entityLabel")
             val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
                 EntityEvent(entityLabel, span.attribute!!).apply {
@@ -1034,12 +1047,12 @@ data class BertStateTracker(
     )
 
     fun extractValue(
-        originalInput: String,
+        duContext: DUContext,
         slotMeta: DUSlotMeta,
         prediction: SlotPrediction,
         entities: List<SpanInfo>? = null
     ): List<ScoredSpan>? {
-        logger.info("handle $originalInput for $slotMeta. with ${slotMeta.isMentioned}")
+        logger.info("handle ${duContext.utterance} for $slotMeta. with ${slotMeta.isMentioned}")
         val startIndexes = top(slotValueK, prediction.startLogits)
         val endIndexes = top(slotValueK, prediction.endLogits)
 
@@ -1067,11 +1080,12 @@ data class BertStateTracker(
             }
         }
 
+
         // Now use extractive entity information.
         if (entities != null) {
             for (entity in entities) {
                 val span = IntRange(entity.start, entity.end - 1)
-                val bonus = getSurroundingWordsBonus(slotMeta, originalInput, entity)
+                val bonus = getSurroundingWordsBonus(slotMeta, duContext, entity)
                 if (spans.containsKey(span)) {
                     spans[span]!!.score += entity.score + bonus
                     spans[span]!!.norm = entity.norm()
@@ -1121,7 +1135,7 @@ data class BertStateTracker(
             // fill value
             ret.apply {
                 forEach {
-                    it.value = originalInput.substring(it.start, it.end)
+                    it.value = duContext.utterance.substring(it.start, it.end)
                     if (it.norm.isNullOrEmpty()) it.norm = it.value
                 }
             }
@@ -1130,20 +1144,33 @@ data class BertStateTracker(
     }
 
 
-    private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, utterance: String, entity: SpanInfo): Float {
+
+    private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, ducontext: DUContext, entity: SpanInfo): Float {
         var bonus = 0f
-        val parts = utterance.split(' ')
-        var start = 0
-        for ((i, part) in parts.withIndex()) {
-            if (entity.start == start && entity.value == part) { // recognized this part as some entity
-                // prefix
-                if (i > 0 && slotMeta.prefixes != null && slotMeta.prefixes!!.contains(parts[i - 1])) bonus += prefix_suffix_bonus
-                // suffix
-                if (i < parts.size - 1 && slotMeta.suffixes != null && slotMeta.suffixes!!.contains(parts[i + 1])) bonus += prefix_suffix_bonus
+        var denominator = 0.0000001f
+        val parts = ducontext.tokens ?: return bonus
+        // for now we assume simple unigram model.
+        if (slotMeta.prefixes?.isNotEmpty() == true) {
+            denominator += 1
+            val previousTokenIndex = ducontext.previousTokenByChar[entity.start]
+            if (previousTokenIndex != null) {
+                val tkn = ducontext.tokens!![previousTokenIndex].token
+                if (slotMeta.prefixes!!.contains(tkn)) {
+                    bonus += 1
+                }
             }
-            start += part.length + 1
         }
-        return bonus
+        if (slotMeta.suffixes?.isNotEmpty() == true) {
+            denominator += 1
+            val nextTokenIndex = ducontext.nextTokenByChar[entity.end]
+            if (nextTokenIndex != null) {
+                val tkn = ducontext.tokens!![nextTokenIndex].token
+                if (slotMeta.suffixes!!.contains(tkn)) {
+                    bonus += 1
+                }
+            }
+        }
+        return bonus/denominator
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.

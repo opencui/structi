@@ -918,16 +918,17 @@ class SmallTableDslTest() : DuTestHelper() {
     fun testSlotUpdate() {
         val frameEvents = stateTracker.convert(
             "s",
-            "change time to 17:00pm",
+            "change time to 7:00pm",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
         )
         println(frameEvents)
-        //assertEquals(frameEvents.toString(), """[FrameEvent(type=MakeReservation, slots=[EntityEvent(value="small", attribute=tableType)], frames=[], packageName=me.demo.reservation_v2)]""")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 
     @Test
     fun testSurroundingWords() {
-        val surroundings = extractSlotSurroundingWords(agent.expressionsByFrame, agent.getEntities().toSet())
+        val surroundings = extractSlotSurroundingWords(agent.expressionsByFrame, LanguageAnalyzer.get("en")!!)
+        assertEquals(surroundings.first.size, 10)
     }
 
 }

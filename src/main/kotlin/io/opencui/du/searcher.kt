@@ -18,7 +18,6 @@ import org.apache.lucene.store.RAMDirectory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.io.Serializable
 import java.nio.file.Paths
 import java.util.*
 import java.util.regex.Pattern
@@ -83,7 +82,7 @@ data class ScoredDocument(var score: Float, val document: Document) {
  * This allows us to separate the index logic from parsing logic.
  */
 data class IndexBuilder(val dir: Directory, val lang: String) {
-    val analyzer = LanguageAnalzyer.get(lang)
+    val analyzer = LanguageAnalyzer.get(lang)
     val iwc = IndexWriterConfig(analyzer).apply{openMode = OpenMode.CREATE}
     val writer = IndexWriter(dir, iwc)
 
@@ -160,7 +159,7 @@ fun Expression.toDoc() : Document {
 data class ExpressionSearcher(val agent: DUMeta) {
     val k: Int = 32
     private val maxFromSame: Int = 4
-    private val analyzer = LanguageAnalzyer.get(agent.getLang())
+    private val analyzer = LanguageAnalyzer.get(agent.getLang())
     private val reader: DirectoryReader = DirectoryReader.open(buildIndex(agent))
     private val searcher = IndexSearcher(reader)
 
