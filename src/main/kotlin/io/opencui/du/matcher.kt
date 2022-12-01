@@ -48,7 +48,7 @@ interface Matcher {
 class NestedMatcher : Matcher {
 
     data class InternalMatcher(val utterance: String, val context: MatchContext) {
-        private val analyzer = LanguageAnalzyer.get(context.duMeta.getLang())
+        private val analyzer = LanguageAnalyzer.get(context.duMeta.getLang())
         private val duMeta = context.duMeta
 
 

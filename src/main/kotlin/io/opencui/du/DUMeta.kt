@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.serialization.*
+import org.apache.lucene.analysis.Analyzer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -43,25 +44,38 @@ data class DUSlotMeta(
 
 // Compute the surrounding words so that we can help extraction.
 fun extractSlotSurroundingWords(
-    exprByOwners: Map<String, List<Expression>>, entities: Set<String>):
+    exprByOwners: Map<String, List<Expression>>, analyzer:Analyzer):
         Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
     // frame#slot: prefixes
-    val slotPrefixes : MutableMap<String, MutableSet<String>> = HashMap()
+    val slotPrefixes = mutableMapOf<String, MutableSet<String>>().withDefault { mutableSetOf() }
     // frame#slot: suffixes
-    val slotSuffixes : MutableMap<String, MutableSet<String>> = HashMap()
+    val slotSuffixes = mutableMapOf<String, MutableSet<String>>().withDefault { mutableSetOf() }
     // frame dontcare annotations
     for ((ownerId, expressions) in exprByOwners) {
-        if(!entities.contains(ownerId)) continue
         // entity dontcare annotations has been processed in above loop
         for (expression in expressions) {
             val typedSegments = Expression.segment(expression.utterance, ownerId)
             if (typedSegments.segments.size <= 1) continue
-            val utterance = expression.utterance
+            println("handling ${expression.utterance}")
+            // first get parts tokenized.
+            val tknMap = mutableMapOf<Int, List<BoundToken>>()
             for ((i, part) in typedSegments.segments.withIndex()) {
                 if (part is ExprSegment) {
-                    
+                    tknMap[i] = analyzer.tokenize(part.expr)
                 }
-
+            }
+            for ((i, part) in typedSegments.segments.withIndex()) {
+                if (part is TypeSegment) {
+                    val key = "$ownerId:${part.type}"
+                    if (!slotSuffixes.containsKey(key)) slotSuffixes[key] = mutableSetOf()
+                    if (!slotPrefixes.containsKey(key)) slotPrefixes[key] = mutableSetOf()
+                    if (i > 0 && !tknMap[i - 1].isNullOrEmpty()) {
+                        slotPrefixes[key]!!.add(tknMap[i - 1]!!.last().token)
+                    }
+                    if (i < typedSegments.segments.size - 1 && !tknMap[i+1].isNullOrEmpty()) {
+                        slotSuffixes[key]!!.add(tknMap[i + 1]!!.first().token)
+                    }
+                }
             }
         }
     }
