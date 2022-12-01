@@ -1,12 +1,6 @@
 package io.opencui.du
 
-import io.opencui.core.IChatbot
 import io.opencui.core.IChatbot.Companion.loadDUMetaDsl
-import io.opencui.serialization.Json
-import io.opencui.serialization.JsonArray
-import org.apache.lucene.document.Document
-import org.apache.lucene.document.Field
-import org.apache.lucene.document.StringField
 import kotlin.test.assertEquals
 
 import org.junit.Test
@@ -215,20 +209,14 @@ class DslEntityTest() : DuTestHelper() {
     @Test
     fun testTypeExprSegment() {
         val expressions = duMeta.expressionsByFrame["io.opencui.core.SlotUpdate"]!!
-        val expr = Expression.segmentTypedExpr(expressions[4].toTypedExpression(), "io.opencui.core.SlotUpdate")
+        val expr = Expression.segment(expressions[4].toTypedExpression(), "io.opencui.core.SlotUpdate")
         println(expr)
         assertEquals(expr.frame, "io.opencui.core.SlotUpdate")
         assertEquals(expr.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), TypeSegment(type=io.opencui.core.SlotType, start=7, end=35), ExprSegment(expr=to, start=35, end=39), TypeSegment(type=T, start=39, end=44)]")
-    }
 
-    @Test
-    fun testMatchUpdate() {
-        val expectations = DialogExpectations(ExpectedFrame("me.test.abstractEntity_1007.FoodOrdering"))
-        val frameEvents = stateTracker.convert("s", "change dish item to chicken wings", expectations)
-        println("frame events: $frameEvents")
-        assertEquals(frameEvents.size, 1)
-        // val entityEvents = frameEvents[0].activeSlots
-        // assertEquals(entityEvents.size, 1 )
+        val expr1 = Expression.segment(expressions[4].utterance, "io.opencui.core.SlotUpdate")
+        println(expr1)
+        assertEquals(expr1.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), TypeSegment(type=originalSlot, start=7, end=21), ExprSegment(expr=to, start=21, end=25), TypeSegment(type=newValue, start=25, end=35)]")
     }
 }
 

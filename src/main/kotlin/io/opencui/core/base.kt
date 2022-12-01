@@ -291,6 +291,13 @@ abstract class IChatbot : Component {
                 override val aliasMap = langPack.typeAlias
 
                 init {
+                    val surroundings = extractSlotSurroundingWords(expressionsByFrame, getEntities())
+                    for ((frame, slots) in slotMetaMap) {
+                        for (slot in slots) {
+                            slot.prefixes = surroundings.first["$frame#${slot.label}"]
+                            slot.suffixes = surroundings.second["$frame#${slot.label}"]
+                        }
+                    }
                 }
 
                 override fun getSubFrames(fullyQualifiedType: String): List<String> { return subtypes[fullyQualifiedType] ?: emptyList() }

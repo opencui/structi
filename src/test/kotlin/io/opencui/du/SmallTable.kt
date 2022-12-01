@@ -909,10 +909,25 @@ class SmallTableDslTest() : DuTestHelper() {
     )
 
     @Test
-    fun testMatchIntent() {
+    fun testSmallTable() {
         val frameEvents = stateTracker.convert("s", "I want to book a small table")
         assertEquals(frameEvents.toString(), """[FrameEvent(type=MakeReservation, slots=[EntityEvent(value="small", attribute=tableType)], frames=[], packageName=me.demo.reservation_v2)]""")
     }
 
+    @Test
+    fun testSlotUpdate() {
+        val frameEvents = stateTracker.convert(
+            "s",
+            "change time to 17:00pm",
+            DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
+        )
+        println(frameEvents)
+        //assertEquals(frameEvents.toString(), """[FrameEvent(type=MakeReservation, slots=[EntityEvent(value="small", attribute=tableType)], frames=[], packageName=me.demo.reservation_v2)]""")
+    }
+
+    @Test
+    fun testSurroundingWords() {
+        val surroundings = extractSlotSurroundingWords(agent.expressionsByFrame, agent.getEntities().toSet())
+    }
 
 }

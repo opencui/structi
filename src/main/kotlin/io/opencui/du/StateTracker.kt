@@ -8,7 +8,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import kotlinx.coroutines.async
-import java.lang.IllegalStateException
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -630,7 +629,7 @@ data class BertStateTracker(
         // Including all the top level slots.
         val slotsMetaMap = agentMeta.getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
 
-        // We will test the nested slot as well.
+        // We will test the nested slot at the top level, note that only handles the ones has head.
         for (slot in slotsMetaMap.keys) {
             val slotMeta = agentMeta.getSlotMeta(frame, slot)
             if (slotMeta?.isHead == true) {
@@ -713,11 +712,23 @@ data class BertStateTracker(
             val slotTypeSpanInfo = ducontext.entityTypeToSpanInfoMap[StateTracker.SlotType]
             // Make sure there are slot type entity matches.
             if (slotTypeSpanInfo != null) {
-                // We assume the expectation is stack, with most recent frames on the top,
-                for (activeFrame in ducontext.expectations.activeFrames) {
+                // We assume the expectation is stack, with most recent frames in the end
+                for (activeFrame in ducontext.expectations.activeFrames.reversed()) {
+                    val matchedSlotList = slotTypeSpanInfo
+                        .filter { it.value.toString().startsWith(activeFrame.frame) }
+                    val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
+                    if (matchedSlots.isEmpty()) {
+                        continue
+                    }
+                    if (matchedSlots.size > 1) {
+                        throw RuntimeException("Can not mapping two different slot yet")
+                    }
+
                     // check if the current frame has the slot we cared about and go with that.
-                    val extractedEvents = fillSlotUpdate(ducontext, activeFrame.frame, listOf())
-                    if (!extractedEvents.isNullOrEmpty()) {
+                    val extractedEvents = fillSlotUpdate(ducontext, activeFrame.frame, matchedSlotList, listOf())
+
+                    // null means that we do not have match, empty mean no content match.
+                    if (extractedEvents != null) {
                         return extractedEvents
                     }
                 }
@@ -805,37 +816,31 @@ data class BertStateTracker(
     private fun fillSlotUpdate(
         ducontext: DUContext,
         contextFrame: String,
+        slotTypeSpanInfos: List<SpanInfo>,
         qualifiedSlotNamesInExpr: List<String>,
-    ): List<FrameEvent> {
+    ): List<FrameEvent>? {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotTypeSpanInfos = ducontext.entityTypeToSpanInfoMap[StateTracker.SlotType]!!
-        val slotsInExpr = ducontext.bestCandidate!!.slots.split(',').filter{it != StateTracker.SlotUpdateOriginalSlot}
-        val slotMapBef = getSlotMetas(StateTracker.SlotUpdate, slotsInExpr)
-        val slotMapAft = mutableMapOf<String, DUSlotMeta>()
+        val slotMapBef = getSlotMetas(StateTracker.SlotUpdate)
+        val slotMapTransformmed = mutableMapOf<String, DUSlotMeta>()
 
-
-        for(spanInfo in slotTypeSpanInfos) {
-            // This should not happen
-            val value = spanInfo.value as String ?: throw IllegalStateException("should be in frame.slot format")
-            // We need to create slot meta for value and old value.
-            if (spanInfo.value.startsWith(contextFrame)) {
-                val slotName = spanInfo.value.split(".").last()
-                val targetMeta: DUSlotMeta =
-                    agentMeta.getSlotMetas(contextFrame).find{ it.label == slotName } ?: continue
-                // we need to rewrite the slot map to replace all the T into actual slot type.
-                for ((key, slotMeta) in slotMapBef) {
-                    // We can not fill slot without triggers.
-                    if (slotMeta.triggers.isEmpty()) continue
-                    if (slotMeta.label == StateTracker.SlotUpdateOriginalSlot) continue
-                    if (slotMeta.isGenericTyped()) {
-                        slotMapAft[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
-                    } else {
-                        slotMapAft[key] = slotMeta
-                    }
-                }
+        check(slotTypeSpanInfos.size == 1) {"For now, we only deal with single template type."}
+        val spanInfo = slotTypeSpanInfos[0]
+        val slotName = spanInfo.value.toString().split(".").last()
+        val targetMeta: DUSlotMeta = agentMeta.getSlotMetas(contextFrame).find{ it.label == slotName }!!
+        // we need to rewrite the slot map to replace all the T into actual slot type.
+        for ((key, slotMeta) in slotMapBef) {
+            // We can not fill slot without triggers.
+            if (slotMeta.label == StateTracker.SlotUpdateOriginalSlot) continue
+            if (slotMeta.isGenericTyped()) {
+                slotMapTransformmed[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
+            } else {
+                slotMapTransformmed[key] = slotMeta
             }
         }
+
+        val slotMapAft = slotMapTransformmed.filter {it.value.triggers.isNotEmpty()}
+
 
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
         val slotProbes = slotMapAft.values.map { it.triggers[0] }.toList()
