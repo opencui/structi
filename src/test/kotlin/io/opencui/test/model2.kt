@@ -136,10 +136,10 @@ data class InternalNodeIntent(
         session, {searchIntentsService.searchIntentsByCurrent(current)}, { IIntent::class },
             {offers ->
                 SlotOffer(offers, "skill", "io.opencui.core.IIntent",
-                    templateOf(with(session!!) {
+                    templateOf(with(session!!.rgLang) {
                         """We have following ${offers.size} choices: ${
                             offers.joinToString(", ") {
-                                "(${it.typeName()})"
+                                "(${it.typeExpression()})"
                             }
                         }."""
                     })

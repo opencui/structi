@@ -330,10 +330,7 @@ data class UserSession(
         return listOf()
     }
 
-    @Deprecated("Use typeExpression", ReplaceWith("typeExpression()"))
-    fun <T: Any> T.typeName(): String {
-        return chatbot!!.duMeta.getTriggers(this::class.qualifiedName!!).firstOrNull()?: this::class.qualifiedName!!
-    }
+
 
     @Deprecated("Use expression")
     fun <T: Any> T.name() : String {
