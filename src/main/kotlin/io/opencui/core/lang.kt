@@ -21,40 +21,34 @@ sealed interface RGLang: Serializable {
     val timeFormatter: DateTimeFormatter
     val duMeta: DUMeta
 
-    fun Interactable.typeExpression(): String {
+    fun <T: Any> T.expression(): String? {
         val typeName = this::class.qualifiedName!!
-        return duMeta.getTriggers(typeName).firstOrNull()?: typeName
+        return when(this) {
+            is LocalDateTime -> formatter.format(this)
+            is LocalDate ->  dateFormatter.format(this)
+            is LocalTime -> timeFormatter.format(this)
+            is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
+            else -> null
+        }
     }
 
-    fun IEntity.expression(): String {
-        val typeName = this::class.qualifiedName!!
-        return duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
-    }
-
-    fun LocalDateTime.expression(): String {
-        return formatter.format(this)
-    }
-
-    fun LocalDate.expression(): String {
-        return dateFormatter.format(this)
-    }
-
-    fun LocalTime.expression(): String {
-        return timeFormatter.format(this)
+    fun <T: Any> T.typeExpression() : String? {
+        val typeName = this::class.qualifiedName
+        return duMeta.getTriggers(typeName!!).firstOrNull()?: typeName
     }
 }
 
 data class Zh(override val duMeta: DUMeta) : RGLang {
-    override val locale = Locale.CHINA
-    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS));
-    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS));
-    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS));
+    override val locale = Locale.CHINA!!
+    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
+    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
+    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
 }
 
 data class En(override val duMeta: DUMeta) : RGLang {
-    override val locale = Locale.US
-    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone( ZoneId.of("UTC"));
-    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone( ZoneId.of("UTC"));
-    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone( ZoneId.of("UTC"));
+    override val locale = Locale.US!!
+    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone( ZoneId.of("UTC"))!!
+    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone( ZoneId.of("UTC"))!!
+    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone( ZoneId.of("UTC"))!!
 }
 

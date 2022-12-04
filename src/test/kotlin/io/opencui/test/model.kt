@@ -1608,10 +1608,10 @@ data class Main(
     var recommendation: PagedSelectable<IIntent> = PagedSelectable(session, {searchIntentsService.searchIntents()}, {IIntent::class},
             {offers ->
                 SlotOffer(offers, "skills", "kotlin.collections.List<io.opencui.core.IIntent>",
-                    templateOf(with(session!!) {
+                    templateOf(with(session!!.rgLang) {
                         """We have following ${offers.size} choices: ${
                             offers.joinToString(", ") {
-                                "(${it.typeName()})"
+                                "(${it.typeExpression()})"
                             }
                         }."""
                     })
