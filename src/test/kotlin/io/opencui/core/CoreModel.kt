@@ -162,10 +162,10 @@ data class ValueClarification<T: Any>(
         session,  {source}, getClass,
         {offers ->
             SlotOffer(offers, "target", getClass().qualifiedName!!,
-                templateOf(with(session!!) {
+                templateOf(with(session!!.rgLang) {
                     """by ${targetSlotAlias()}, which do you mean: ${
                         offers.joinToString(", ") {
-                            "(${it.name()})"
+                            "(${it.expression()})"
                         }
                     }."""
                 })

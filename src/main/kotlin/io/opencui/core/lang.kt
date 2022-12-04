@@ -27,6 +27,7 @@ sealed interface RGLang: Serializable {
             is LocalDateTime -> formatter.format(this)
             is LocalDate ->  dateFormatter.format(this)
             is LocalTime -> timeFormatter.format(this)
+            is String -> toString()
             is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
             else -> null
         }

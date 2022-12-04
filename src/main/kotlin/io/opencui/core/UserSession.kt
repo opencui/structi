@@ -302,7 +302,7 @@ data class UserSession(
                 val fullyQualifiedName: String = SystemAnnotationType.IntentSuggestion.typeName
                 if (!fullyQualifiedName.isEmpty()) {
                     if (fullyQualifiedName.lastIndexOf(".") >= 0 ) {
-                        return listOf(StartFill(frameEvent, intentBuilder(fullyQualifiedName)!!, "systemAnnotation"))
+                        return listOf(StartFill(frameEvent, intentBuilder(fullyQualifiedName), "systemAnnotation"))
                     }
                 }
             }
@@ -328,14 +328,6 @@ data class UserSession(
             return listOf(RecoverAction())
         }
         return listOf()
-    }
-
-
-
-    @Deprecated("Use expression")
-    fun <T: Any> T.name() : String {
-        val typeName = this::class.qualifiedName!!
-        return chatbot!!.duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
     }
 
     /**

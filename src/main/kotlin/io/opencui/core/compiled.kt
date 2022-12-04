@@ -1271,8 +1271,9 @@ abstract class AbstractValueClarification<T: Any>(
     }
 }
 
-data class SlotType(@get:JsonIgnore var value: String) : Serializable {
+data class SlotType(@get:JsonIgnore override var value: String) : IEntity, Serializable {
     @JsonIgnore var session: UserSession? = null
+    @JsonIgnore override var origValue: String? = null
     @JsonValue
     override fun toString() : String = value
 }

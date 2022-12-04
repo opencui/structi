@@ -10,8 +10,8 @@ import com.fasterxml.jackson.annotation.JsonValue
 import io.opencui.core.da.*
 import java.io.Serializable
 
-data class PayMethod(@get:JsonIgnore var value: String): Serializable {
-    var origValue: String? = null
+data class PayMethod(@get:JsonIgnore override var value: String): IEntity, Serializable {
+    override var origValue: String? = null
     @JsonValue
     override fun toString() : String = value
 
@@ -20,7 +20,6 @@ data class PayMethod(@get:JsonIgnore var value: String): Serializable {
     }
 
     companion object {
-
         val normalizedFormMap = Agent.duMeta.getEntityInstances(PayMethod::class.qualifiedName!!)
 
         fun getAllInstances(): List<PayMethod> {
@@ -31,12 +30,9 @@ data class PayMethod(@get:JsonIgnore var value: String): Serializable {
             return PagedSelectable(session, { getAllInstances() },  { PayMethod::class },
                 {offers ->
                     SlotOffer(offers, "this", "io.opencui.test.PayMethod",
-                        templateOf(with(session) {
+                        templateOf(with(session.rgLang) {
                             """We have following ${offers.size} choices for PayMethod : ${
-                                offers.joinToString(
-                                    ", "
-                                ) { it.name() }
-                            }."""
+                                offers.joinToString(", ") { it.expression()!! }}."""
                         })
                     )
                 },

@@ -534,10 +534,10 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
         session, {recData()}, { PayMethod::class },
             {offers ->
                 SlotOffer(offers, "payMethodList", "kotlin.collections.List<io.opencui.test.PayMethod>",
-                    templateOf(with(session!!) {
+                    templateOf(with(session!!.rgLang) {
                         """We have following ${offers.size} choices for PayMethod : ${
                             offers.joinToString(", ") {
-                                "${it.name()}"
+                                "${it.expression()}"
                             }
                         }."""
                     })
@@ -549,7 +549,7 @@ data class MultiValueMinMaxWithRec(override var session: UserSession? = null): I
                 it,
                 "payMethodList",
                 "kotlin.collections.List<io.opencui.test.PayMethod>",
-                templateOf(with(session!!) { """chose pay method ${it.name()} for you""" })
+                templateOf(with(session!!.rgLang) { """chose pay method ${it.expression()} for you""" })
             ) },
         implicit = true, autoFillSwitch = {payMethodList!!.size < 2})
 
@@ -1098,15 +1098,15 @@ data class ZepTestIntent_0(
 data class SlotUpdate<T: Any>(override var session: UserSession? = null): AbstractSlotUpdate<T>(session) {
     override val informNewValuePrompt = {
         SlotInform(newValue, "newValue", "",
-            templateOf(with(session!!) { """we have updated ${if (!isMV()) originalSlot!!.name() else "the ${index!!.name()} ${originalSlot!!.name()}"} form ${originalValue()!!.name()} to ${newValue!!.name()} for you""" })
+            templateOf(with(session!!.rgLang) { """we have updated ${if (!isMV()) originalSlot!!.expression() else "the ${index!!.name()} ${originalSlot!!.expression()}"} form ${originalValue()!!.expression()} to ${newValue!!.expression()} for you""" })
         ) }
     override val askNewValuePrompt = {
         SlotRequest("newValue", "",
-            templateOf(with(session!!) { """What do you want for ${if (!isMV()) originalSlot!!.name() else "${index!!.name()} ${originalSlot!!.name()}"}?""" })
+            templateOf(with(session!!.rgLang) { """What do you want for ${if (!isMV()) originalSlot!!.expression() else "${index!!.name()} ${originalSlot!!.expression()}"}?""" })
         ) }
     override val oldValueDisagreePrompt = {
         SlotConfirm(oldValue, "oldValue", "",
-            templateOf(with(session!!) { "You just said ${oldValue!!.name()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.name()} from ${originalValue()!!.name()}?" })
+            templateOf(with(session!!.rgLang) { "You just said ${oldValue!!.expression()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.expression()} from ${originalValue()!!.expression()}?" })
         ) }
     override val doNothingPrompt = {
         SlotOfferZepInform(
@@ -1115,17 +1115,17 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
         ) }
     override val askIndexPrompt = {
         SlotRequest("index", "",
-            templateOf(with(session!!) { "There are multiple values in ${originalSlot!!.name()}. Which one do you want to change?" })
+            templateOf(with(session!!.rgLang) { "There are multiple values in ${originalSlot!!.expression()}. Which one do you want to change?" })
         ) }
     override val wrongIndexPrompt = {
         SlotNotifyFailure(index, "index", "", FailType.VC,
-            templateOf(with(session!!) { """There's no ${index!!.name()} value in ${originalSlot!!.name()}""" })
+            templateOf(with(session!!.rgLang) { """There's no ${index!!.name()} value in ${originalSlot!!.expression()}""" })
         ) }
     override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers ->
         SlotOffer(
             offers, "index", "", templateOf(offers.withIndex()
                 .joinToString("\n") {
-                    with(session!!) { "${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.name()}" }
+                    with(session!!.rgLang) { "${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.expression()}" }
                 })
         ) }
 }
@@ -1150,10 +1150,10 @@ data class SlotUpdateTestIntent(override var session: UserSession? = null): IInt
         session, {recs(it)}, { City::class },
             {offers ->
                 SlotOffer(offers, "cityFrom", "io.opencui.test.City",
-                    templateOf(with(session!!) {
+                    templateOf(with(session!!.rgLang) {
                         """We have following ${offers.size} choices: ${
                             offers.joinToString(", ") {
-                                "(${it.name()})"
+                                "(${it.expression()})"
                             }
                         }."""
                     })
@@ -1788,15 +1788,11 @@ data class ValueRecOutlierValueIntent(
         pageSize = 5, target = this, slot = "s", hard = true,
         valueOutlierPrompt = {
             SlotOfferOutlier(it, "s", "kotlin.String", templateOf(with(it) {
-                with(
-                    session!!
-                ) { """outlier value: ${value?.name()}""" }
+                with(session!!.rgLang) { """outlier value: ${value?.expression()}""" }
             })) },
         indexOutlierPrompt = {
             SlotOfferOutlier(it, "s", "kotlin.String", templateOf(with(it) {
-                with(
-                    session!!
-                ) { """outlier index : ${index}""" }
+                with(session!!.rgLang) { """outlier index : ${index}""" }
             })) })
     override fun annotations(path: String): List<Annotation> = when(path) {
         "s" -> listOf(
