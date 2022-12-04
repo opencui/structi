@@ -671,7 +671,7 @@ data class ValueCheckSwitchTest_0(
         val frame: ValueCheckSwitchTest
 ) : UserDefinedInform<ValueCheckSwitchTest>(frame, templateOf("""Hi, a = ${frame.a} b = ${frame.b} c = ${frame.c}"""))
 
-data class City(@get:JsonIgnore override var value: String): InternalEntity, Serializable {
+data class City(@get:JsonIgnore override var value: String): IEntity, Serializable {
     override var origValue: String? = null
     @JsonValue
     override fun toString() : String = value

@@ -41,21 +41,18 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
     }
 }
 
-/**
- * If a global implement this, we need to persist it to disk.
- */
-interface IPersistent
+interface Interactable: Serializable {
+    fun Zh.exprImpl(): String = ""
+    fun En.exprImpl(): String = ""
+}
 
 /**
  * One should be able to access connection, and even session. The IService contains a set of functions.
  * Service is also attached to session, just like frame.
  */
-interface InternalEntity: Serializable {
+interface IEntity: Interactable {
     var value: String
     var origValue: String?
-
-    fun expression(): String? = origValue
-    fun identifier(): String = value
 }
 
 
@@ -64,19 +61,12 @@ interface InternalEntity: Serializable {
  * for the slot that we bind dynamically.
  * Builder can also do slotNames.random() and typeNames.random().
  */
-interface IFrame: Serializable {
+interface IFrame: Interactable {
     var session: UserSession?
     fun annotations(path: String): List<Annotation> = listOf()
 
     fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
 
-    fun alias(): String {
-        return session?.chatbot?.duMeta?.getTriggers(this::class.qualifiedName!!)?.firstOrNull() ?: this::class.qualifiedName!!
-    }
-
-    fun label(): String = toString()
-
-    fun name(): String = toString()
 
     // slot "this" is a special slot which indicates searching for frame confirmation
     fun searchConfirmation(slot: String): IFrame? {

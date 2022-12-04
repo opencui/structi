@@ -126,14 +126,14 @@ data class IDonotKnowWhatToDo(override var session: UserSession? = null
     }
 }
 
-data class IntentName(@get:JsonIgnore override var value: String): InternalEntity {
+data class IntentName(@get:JsonIgnore override var value: String): IEntity {
     override var origValue: String? = null
     @JsonValue
     override fun toString() : String = value
 }
 
 data class AbortIntent(override var session: UserSession? = null): AbstractAbortIntent(session) {
-    override val builder: (String) -> InternalEntity? = { Json.decodeFromString<IntentName>(it)}
+    override val builder: (String) -> IEntity? = { Json.decodeFromString<IntentName>(it)}
     override val defaultFailPrompt: (() -> DialogAct)? = { UserDefinedInform(this, templateOf("""Failed to abort!""")) }
     override val defaultSuccessPrompt: (() -> DialogAct)? = {
         UserDefinedInform(
