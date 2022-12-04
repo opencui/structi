@@ -308,7 +308,8 @@ data class UserSession(
             }
 
             if (isOpenIntent(frameEvent)) {
-                // if it is supposed to trigger new intent, but it does not trigger it based on our rules, it is not allowed to trigger new intent in the following turns
+                // if it is supposed to trigger new intent, but it does not trigger it based on our rules,
+                // it is not allowed to trigger new intent in the following turns
                 frameEvent.triggered = true
                 frameEvent.typeUsed = true
             } else {
