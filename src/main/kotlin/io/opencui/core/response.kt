@@ -41,21 +41,12 @@ sealed interface RGBase: Serializable {
     // TODO(sean): remove this when we have new code gen example.
     @Deprecated("Use expression.")
     fun <T: Any> T.name(): String? {
-        val typeName = this::class.qualifiedName!!
-        return when(this) {
-            is LocalDateTime -> formatter.format(this)
-            is LocalDate ->  dateFormatter.format(this)
-            is LocalTime -> timeFormatter.format(this)
-            is String -> toString()
-            is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
-            else -> null
-        }
+        return expression()
     }
 
     @Deprecated("Use typeExpression.")
     fun <T: Any> T.typeName() : String? {
-        val typeName = this::class.qualifiedName
-        return duMeta.getTriggers(typeName!!).firstOrNull()?: typeName
+        return typeExpression()
     }
 
 }
