@@ -236,7 +236,7 @@ data class UserSession(
     var lastTurnRes: List<ActionResult> = listOf()
 
     // For now, we assume that only default locale for each language is used.
-    val rgLang : RGLang
+    val rgLang : RGBase
         get() = chatbot!!.duMeta.getRGLang("")
 
     override fun kernelStep(): List<Action> {

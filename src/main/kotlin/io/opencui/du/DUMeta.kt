@@ -1,18 +1,16 @@
 package io.opencui.du
 
 import io.opencui.core.En
-import io.opencui.core.RGLang
+import io.opencui.core.RGBase
 import io.opencui.core.Zh
 import io.opencui.serialization.*
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
-import java.lang.RuntimeException
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 
 /**
@@ -126,7 +124,7 @@ interface DUMeta : ExtractiveMeta {
     // TODO(xiaobo): to support head on frame, just make this this function work with entity type.
     fun getSubFrames(fullyQualifiedType: String): List<String> { return emptyList() }
 
-    fun getRGLang(local: String = "") : RGLang {
+    fun getRGLang(local: String = "") : RGBase {
         return when(getLang()) {
             "zh" -> Zh(this)
             "en" -> En(this)

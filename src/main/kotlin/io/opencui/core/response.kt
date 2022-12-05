@@ -14,7 +14,7 @@ import java.util.Locale
 // This gives use one way of build language dependent behavior.
 // The good thing is, we can easily to expand to many languages.
 // Refactor the DM based on this.
-sealed interface RGLang: Serializable {
+sealed interface RGBase: Serializable {
     val locale: Locale
     val formatter: DateTimeFormatter
     val dateFormatter: DateTimeFormatter
@@ -39,14 +39,14 @@ sealed interface RGLang: Serializable {
     }
 }
 
-data class Zh(override val duMeta: DUMeta) : RGLang {
+data class Zh(override val duMeta: DUMeta) : RGBase {
     override val locale = Locale.CHINA!!
     override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
     override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
     override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
 }
 
-data class En(override val duMeta: DUMeta) : RGLang {
+data class En(override val duMeta: DUMeta) : RGBase {
     override val locale = Locale.US!!
     override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone( ZoneId.of("UTC"))!!
     override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone( ZoneId.of("UTC"))!!
