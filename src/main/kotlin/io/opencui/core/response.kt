@@ -37,6 +37,18 @@ sealed interface RGBase: Serializable {
         val typeName = this::class.qualifiedName
         return duMeta.getTriggers(typeName!!).firstOrNull()?: typeName
     }
+
+    // TODO(sean): remove this when we have new code gen example.
+    @Deprecated("Use expression.")
+    fun <T: Any> T.name(): String? {
+        return expression()
+    }
+
+    @Deprecated("Use typeExpression.")
+    fun <T: Any> T.typeName() : String? {
+        return typeExpression()
+    }
+
 }
 
 data class Zh(override val duMeta: DUMeta) : RGBase {
