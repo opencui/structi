@@ -37,6 +37,26 @@ sealed interface RGBase: Serializable {
         val typeName = this::class.qualifiedName
         return duMeta.getTriggers(typeName!!).firstOrNull()?: typeName
     }
+
+    @Deprecated("Use expression.")
+    fun <T: Any> T.name(): String? {
+        val typeName = this::class.qualifiedName!!
+        return when(this) {
+            is LocalDateTime -> formatter.format(this)
+            is LocalDate ->  dateFormatter.format(this)
+            is LocalTime -> timeFormatter.format(this)
+            is String -> toString()
+            is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
+            else -> null
+        }
+    }
+
+    @Deprecated("Use typeExpression.")
+    fun <T: Any> T.typeName() : String? {
+        val typeName = this::class.qualifiedName
+        return duMeta.getTriggers(typeName!!).firstOrNull()?: typeName
+    }
+
 }
 
 data class Zh(override val duMeta: DUMeta) : RGBase {
