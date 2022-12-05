@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import io.opencui.core.*
 import io.opencui.core.Annotation
 import io.opencui.core.da.*
-import io.opencui.serialization.InterfaceInternalEntitySerializer
+import io.opencui.serialization.InterfaceIEntitySerializer
 import io.opencui.serialization.Json
-import io.opencui.serialization.deserializeInternalEntity
+import io.opencui.serialization.deserializeIEntity
 import kotlin.reflect.KMutableProperty0
 
 data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val slot1: SlotConfirm<*>):
@@ -87,8 +87,8 @@ data class SoftEarlyTerminationIntent_1(
 )
 
 
-@JsonSerialize(using = InterfaceInternalEntitySerializer::class)
-public interface Dish : InternalEntity{
+@JsonSerialize(using = InterfaceIEntitySerializer::class)
+public interface Dish : IEntity{
     public fun normalized(): String?
 
     public fun getChildren(): List<Dish>
@@ -97,7 +97,7 @@ public interface Dish : InternalEntity{
         @JvmStatic
         @JsonCreator
         fun create(node: JsonNode): Dish {
-            return deserializeInternalEntity(node, "io.opencui.test.VirtualDish") as Dish
+            return deserializeIEntity(node, "io.opencui.test.VirtualDish") as Dish
         }
     }
 }

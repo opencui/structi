@@ -14,7 +14,6 @@ import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
-import org.jetbrains.kotlin.fir.expressions.builder.buildElseIfTrueCondition
 import java.io.Serializable
 import java.util.*
 import kotlin.reflect.KClass
@@ -479,10 +478,10 @@ abstract class AbstractAbortIntent(override var session: UserSession? = null) : 
         else -> listOf()
     }
 
-    var intentType: InternalEntity? = null
+    var intentType: IEntity? = null
     var intent: IIntent? = null
 
-    abstract val builder: (String) -> InternalEntity?
+    abstract val builder: (String) -> IEntity?
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: AbstractAbortIntent? = this@AbstractAbortIntent
@@ -541,9 +540,9 @@ data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
             }
 
             val targetIntent = (targetFiller.targetFiller as FrameFiller<*>).frame() as IIntent
-            val targetIntentName = with(session) {targetIntent.typeIdentifier()}
+            val targetIntentName = with(session) { targetIntent::class.qualifiedName!! }
             val abortIntent = (abortedFiller!!.targetFiller as FrameFiller<*>).frame() as IIntent
-            val abortIntentName = with(session) {abortIntent.typeIdentifier()}
+            val abortIntentName = with(session) { abortIntent::class.qualifiedName!! }
             frame.intent = abortIntent
             if (frame.customizedSuccessPrompt.containsKey(abortIntentName)) {
                 prompts.add(frame.customizedSuccessPrompt[abortIntentName]!!())
@@ -1272,8 +1271,9 @@ abstract class AbstractValueClarification<T: Any>(
     }
 }
 
-data class SlotType(@get:JsonIgnore var value: String) : Serializable {
+data class SlotType(@get:JsonIgnore override var value: String) : IEntity, Serializable {
     @JsonIgnore var session: UserSession? = null
+    @JsonIgnore override var origValue: String? = null
     @JsonValue
     override fun toString() : String = value
 }
@@ -1290,11 +1290,6 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         val slotFiller = findOriginalSlotFiller()?.targetFiller
         val type = if (slotFiller is EntityFiller<*>) slotFiller.qualifiedTypeStr() else if (slotFiller is MultiValueFiller<*>) slotFiller.qualifiedTypeStrForSv() else null
         return (if (type != null) Json.decodeFromString(s, session!!.findKClass(type)!!) else Json.decodeFromString<String>(s)) as T
-    }
-
-    fun normalizedWrapper(t: Any?): String {
-        if (t == null) return ""
-        return session!!.chatbot!!.duMeta.getEntityInstances(t::class.qualifiedName!!)[t.toString()]?.firstOrNull() ?: t.toString()
     }
 
     fun originalValue(): T? {
@@ -1478,7 +1473,7 @@ data class UpdatePromptAction(
 data class PhoneNumber(
     @get:JsonIgnore
     override var value: String
-) : InternalEntity {
+) : IEntity {
     override var origValue: String? = null
 
     @JsonValue

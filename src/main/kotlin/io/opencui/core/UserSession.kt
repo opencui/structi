@@ -235,6 +235,10 @@ data class UserSession(
     @JsonIgnore
     var lastTurnRes: List<ActionResult> = listOf()
 
+    // For now, we assume that only default locale for each language is used.
+    val rgLang : RGBase
+        get() = chatbot!!.duMeta.getRGLang("")
+
     override fun kernelStep(): List<Action> {
         // CUI logic is static in high order sense, we just hard code it.
         // system-driven process
@@ -298,13 +302,14 @@ data class UserSession(
                 val fullyQualifiedName: String = SystemAnnotationType.IntentSuggestion.typeName
                 if (!fullyQualifiedName.isEmpty()) {
                     if (fullyQualifiedName.lastIndexOf(".") >= 0 ) {
-                        return listOf(StartFill(frameEvent, intentBuilder(fullyQualifiedName)!!, "systemAnnotation"))
+                        return listOf(StartFill(frameEvent, intentBuilder(fullyQualifiedName), "systemAnnotation"))
                     }
                 }
             }
 
             if (isOpenIntent(frameEvent)) {
-                // if it is supposed to trigger new intent, but it does not trigger it based on our rules, it is not allowed to trigger new intent in the following turns
+                // if it is supposed to trigger new intent, but it does not trigger it based on our rules,
+                // it is not allowed to trigger new intent in the following turns
                 frameEvent.triggered = true
                 frameEvent.typeUsed = true
             } else {
@@ -324,36 +329,6 @@ data class UserSession(
             return listOf(RecoverAction())
         }
         return listOf()
-    }
-
-    // TODO(xiaobo): add the support for localization.
-    // Instead of pass the UserSession anywhere, it might be better to use context oriented solution.
-    // https://proandroiddev.com/an-introduction-context-oriented-programming-in-kotlin-2e79d316b0a2
-    // Ideally all the builder specified template should be under with(session): so that we
-    // can handle things like locale effectively.
-    fun <T: Any> T.typeIdentifier() : String {
-        return this::class.qualifiedName!!
-    }
-
-    fun <T: Any> T.typeName(): String {
-        return chatbot!!.duMeta.getTriggers(this::class.qualifiedName!!).firstOrNull()?:typeIdentifier()
-    }
-
-    @Deprecated("")
-    fun <T: Any> T.identifier() : String {
-        return toString()
-    }
-
-    @Deprecated("")
-    fun <T: Any> T.label() : String {
-        return toString()
-    }
-
-    @Deprecated("")
-    fun <T: Any> T.name() : String {
-        // TODO(sean, xiaobo): If we need to test if it is entity, when it is not, we need to forward the call.
-        val typeName = this::class.qualifiedName!!
-        return chatbot!!.duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: label()
     }
 
     /**
@@ -428,7 +403,7 @@ data class UserSession(
         if (value is ObjectNode) value.remove("@class")
         val jsonElement = Json.encodeToJsonElement(value)
         return when {
-            jsonElement is ValueNode || value is InternalEntity -> {
+            jsonElement is ValueNode || value is IEntity -> {
                 listOf(FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to jsonElement))).apply {
                     this.packageName = packageName
                 })

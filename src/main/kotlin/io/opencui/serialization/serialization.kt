@@ -9,7 +9,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.opencui.core.IFrame
-import io.opencui.core.InternalEntity
+import io.opencui.core.IEntity
 import io.opencui.core.UserSession
 import java.io.*
 import java.util.*
@@ -79,30 +79,30 @@ interface Converter<T>: Serializable {
     val isEntity: Boolean
 }
 
-fun deserializeInternalEntity(node: JsonNode, defaultClass: String): InternalEntity {
+fun deserializeIEntity(node: JsonNode, defaultClass: String): IEntity {
     when (node) {
         is ObjectNode -> {
             val keys = node.fieldNames()
             assert(keys.hasNext())
             val type = keys.next()
             val value = (node[type] as TextNode).textValue()
-            return Class.forName(type).constructors.first { it.parameters.size == 1 }.newInstance(value) as InternalEntity
+            return Class.forName(type).constructors.first { it.parameters.size == 1 }.newInstance(value) as IEntity
         }
         is ArrayNode -> {
             assert(node.size() == 2)
             val type = (node[0] as TextNode).textValue()
             val value = (node[1] as TextNode).textValue()
-            return Class.forName(type).constructors.first { it.parameters.size == 1 }.newInstance(value) as InternalEntity
+            return Class.forName(type).constructors.first { it.parameters.size == 1 }.newInstance(value) as IEntity
         }
         is TextNode -> {
-            return Class.forName(defaultClass).constructors.first { it.parameters.size == 1 }.newInstance(node.textValue()) as InternalEntity
+            return Class.forName(defaultClass).constructors.first { it.parameters.size == 1 }.newInstance(node.textValue()) as IEntity
         }
         else -> error("JsonNode type not supported")
     }
 }
 
-class InterfaceInternalEntitySerializer: JsonSerializer<InternalEntity>() {
-    override fun serialize(value: InternalEntity?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+class InterfaceIEntitySerializer: JsonSerializer<IEntity>() {
+    override fun serialize(value: IEntity?, gen: JsonGenerator?, serializers: SerializerProvider?) {
         if (value == null) {
             gen?.writeNull()
             return
@@ -149,11 +149,6 @@ object Json {
 
     inline fun <reified T> decodeFromJsonElement(s: JsonElement) : T {
         return mapper.treeToValue(s, T::class.java)
-    }
-
-    inline fun <reified T> decodeInterfaceFromJsonElement(session: UserSession, jn: JsonElement): T {
-        val clazz = session.findKClass((jn as ObjectNode).get("@class").asText())!!
-        return mapper.treeToValue(jn, clazz.java) as T
     }
 
     fun <T> getFrameConverter(session: UserSession?, clazz: Class<T>): Converter<T> {
@@ -224,13 +219,13 @@ object Json {
                 return res
             }
 
-            override val isEntity: Boolean = InternalEntity::class.java.isAssignableFrom(clazz)
+            override val isEntity: Boolean = IEntity::class.java.isAssignableFrom(clazz)
             override fun toString() : String { return "InterfaceConverter"}
         }
     }
 
     fun <T> getConverter(session: UserSession?, clazz: Class<T>): Converter<T> {
-        return if (clazz.isInterface && InternalEntity::class.java.isAssignableFrom(clazz)) {
+        return if (clazz.isInterface && IEntity::class.java.isAssignableFrom(clazz)) {
             getInterfaceConverter(session!!, clazz)
         } else if (IFrame::class.java.isAssignableFrom(clazz)) {
             getFrameConverter(session, clazz)

@@ -126,19 +126,19 @@ data class IDonotKnowWhatToDo(override var session: UserSession? = null
     }
 }
 
-data class IntentName(@get:JsonIgnore override var value: String): InternalEntity {
+data class IntentName(@get:JsonIgnore override var value: String): IEntity {
     override var origValue: String? = null
     @JsonValue
     override fun toString() : String = value
 }
 
 data class AbortIntent(override var session: UserSession? = null): AbstractAbortIntent(session) {
-    override val builder: (String) -> InternalEntity? = { Json.decodeFromString<IntentName>(it)}
+    override val builder: (String) -> IEntity? = { Json.decodeFromString<IntentName>(it)}
     override val defaultFailPrompt: (() -> DialogAct)? = { UserDefinedInform(this, templateOf("""Failed to abort!""")) }
     override val defaultSuccessPrompt: (() -> DialogAct)? = {
         UserDefinedInform(
             this,
-            templateOf(with(session!!) { """${intent?.typeName()} is Aborted successfully!""" })
+            templateOf(with(session!!.rgLang) { """${intent?.typeExpression()} is Aborted successfully!""" })
         ) }
     override val defaultFallbackPrompt: (() -> DialogAct)? = {
         UserDefinedInform(
@@ -162,10 +162,10 @@ data class ValueClarification<T: Any>(
         session,  {source}, getClass,
         {offers ->
             SlotOffer(offers, "target", getClass().qualifiedName!!,
-                templateOf(with(session!!) {
+                templateOf(with(session!!.rgLang) {
                     """by ${targetSlotAlias()}, which do you mean: ${
                         offers.joinToString(", ") {
-                            "(${it.name()})"
+                            "(${it.expression()})"
                         }
                     }."""
                 })
@@ -207,7 +207,7 @@ data class ResumeIntent(override var session: UserSession? = null
         return when {
             else -> UserDefinedInform(
                 this,
-                templateOf(with(session!!) { "We are in the middle of ${intent?.typeName()} already, let's continue with the current process." })
+                templateOf(with(session!!.rgLang) { "We are in the middle of ${intent?.typeExpression()} already, let's continue with the current process." })
             )
         }
     }
