@@ -1,6 +1,7 @@
 package io.opencui.core
 
 import io.opencui.du.DUMeta
+import io.opencui.du.getSlotMeta
 import java.io.Serializable
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -27,10 +28,20 @@ sealed interface RGBase: Serializable {
             is LocalDateTime -> formatter.format(this)
             is LocalDate ->  dateFormatter.format(this)
             is LocalTime -> timeFormatter.format(this)
+            is SlotType -> slotTypeExpression(toString())
             is String -> toString()
             is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
             else -> null
         }
+    }
+
+    private fun slotTypeExpression(slotFull: String) : String? {
+        val lastDotIndex = slotFull.lastIndexOf(".")
+        if (lastDotIndex < 0) return null
+        val frameName = slotFull.substring(0, lastDotIndex)
+        val slotName = slotFull.substring(lastDotIndex+1)
+        val slotMeta = duMeta.getSlotMeta(frameName, slotName)
+        return slotMeta?.triggers?.firstOrNull() ?: null
     }
 
     fun <T: Any> T.typeExpression() : String? {
