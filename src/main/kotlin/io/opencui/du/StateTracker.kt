@@ -497,20 +497,17 @@ data class BertStateTracker(
         // first try to find exact matched expressions
         val matcher = NestedMatcher(ducontext)
         for (document in candidates) {
-            if (exactMatch(utterance, document, emap)) {
+            // TODO(sean): if there is only one exact match, we should simply return.
+            if (matcher.match(document)) {
                 logger.debug("[recognizeFrame] exact match found: ${document.typedExpression}")
                 document.exactMatch = true
-
-                // TODO(sean): if there is only one exact match, we should simply return.
             }
-
-            if (matcher.match(document)) {
-                logger.debug("found a match")
-            }
-
         }
 
-
+        val exactMatches = candidates.filter {it.exactMatch}
+        if (!exactMatches.isNullOrEmpty()) {
+            return pickDocViaFrames(exactMatches)
+        }
 
         // now get the model score the similarity between each candidate and user utterance.
         // TODO: add resolve to simplify the model matching, ideally do matching in two different steps.
@@ -571,6 +568,7 @@ data class BertStateTracker(
     }
 
     private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ScoredDocument> {
+        // Return the best match for each frame.
         val frames : Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
         return frames.values
             .map { it.sortedByDescending{it.score}[0] }
@@ -594,74 +592,6 @@ data class BertStateTracker(
             }
         }
         return results
-    }
-
-    private fun exactMatch(
-        utterance: String, document: ScoredDocument,
-        emap: MutableMap<String, MutableList<SpanInfo>>? = null): Boolean {
-        // exact match without entities
-        if (document.utterance.trim(*StateTracker.punctuation) == utterance.trim(*StateTracker.punctuation)) return true
-
-        // Only need to handle entity types that are related.
-        val typeSet = document.slotTypes.toSet()
-
-        // take account in entities
-        if (!emap.isNullOrEmpty()) {
-            val utterances = replaceEntityValues(utterance, emap, typeSet)
-            for (u in utterances) {
-                logger.info("Compare with ${u.trim(*StateTracker.punctuation)} with ${document.typedExpression.trim(*StateTracker.punctuation)}")
-                if (document.typedExpression.trim(*StateTracker.punctuation) == u.trim(*StateTracker.punctuation)) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    fun replaceEntityValues(
-        utterance: String,
-        emap: MutableMap<String, MutableList<SpanInfo>>, typeset: Set<String>
-    ): List<String> {
-        val allSpans = mutableListOf<SpanInfo>()
-        for (entity in emap) {
-            if (entity.key in typeset) {
-                for (span in entity.value) {
-                    allSpans.add(span)
-                }
-            }
-        }
-        val spansToReplace = ArrayList<ArrayList<SpanInfo>>()
-        // replace only one range with $type$
-        for (span in allSpans) {
-            spansToReplace.add(arrayListOf(span))
-        }
-
-        // replace 2 ranges with $type$
-        for (i in 0 until allSpans.size) {
-            for (j in i + 1 until allSpans.size) {
-                spansToReplace.add(
-                    arrayListOf(
-                        allSpans[i],
-                        allSpans[j]
-                    )
-                )
-            }
-        }
-        val replaced = mutableListOf<String>()
-        for (spans in spansToReplace) {
-            var str = utterance
-            spans.sortByDescending { it.start }
-            for (i in 0..spans.size - 1) {
-                val span = spans[i]
-                if (i > 0 && span.end > spans[i - 1].start) {
-                    // ignore overlapped spans
-                    continue
-                }
-                str = str.replaceRange(span.start, span.end, "< ${span.type} >")
-            }
-            replaced.add(str)
-        }
-        return replaced.toList()
     }
 
     private fun notBeginning(segments: List<String>, index: Int): Boolean {

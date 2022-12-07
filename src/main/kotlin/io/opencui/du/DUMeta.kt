@@ -116,6 +116,7 @@ interface DUMeta : ExtractiveMeta {
     fun typeKind(name: String): TypeKind {
         if (isEntity(name)) return TypeKind.Entity
         if (name.startsWith("io.opencui.generic.")) return TypeKind.Generic
+        if (name.length == 1 && name[0].isUpperCase()) return TypeKind.Generic
         return TypeKind.Frame
     }
 
