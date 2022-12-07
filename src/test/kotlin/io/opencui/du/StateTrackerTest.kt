@@ -611,30 +611,6 @@ class StateTrackerTest : DuTestHelper() {
     }
 
     @Test
-    fun testReplaceEntityValues() {
-        val replaced = stateTracker.replaceEntityValues(
-                "零一二三四五六七八九十",
-                mutableMapOf(
-                    "奇数" to mutableListOf(
-                            SpanInfo("奇数", 1, 2, false),
-                            SpanInfo("奇数", 5, 6, false)
-                    ),
-                    "偶数" to mutableListOf(
-                            SpanInfo("偶数", 0, 1, false)
-                    )),
-                setOf("奇数","偶数" ))
-        println("replaced: $replaced")
-        assertEquals(replaced.size, 6)
-        assertEquals(replaced, listOf(
-                "零< 奇数 >二三四五六七八九十",  // replaced 1 range
-                "零一二三四< 奇数 >六七八九十",
-                "< 偶数 >一二三四五六七八九十",
-                "零< 奇数 >二三四< 奇数 >六七八九十", // replaced 2 ranges
-                "< 偶数 >< 奇数 >二三四五六七八九十",
-                "< 偶数 >一二三四< 奇数 >六七八九十"))
-    }
-
-    @Test
     fun testIntentModel() {
         val utterance = "我的手机号是 123"
         val probes = listOf("我的手机号是 <phonenumber>", "我的手机号是 [MASK]")

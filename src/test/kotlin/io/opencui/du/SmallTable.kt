@@ -931,4 +931,16 @@ class SmallTableDslTest() : DuTestHelper() {
         assertEquals(surroundings.first.size, 10)
     }
 
+    @Test
+    fun testDateUpdateExact() {
+        val frameEvents = stateTracker.convert(
+            "s",
+            "change date to tomorrow",
+            DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
+        )
+        println(frameEvents)
+        assertEquals(frameEvents.size, 1)
+        assertEquals(frameEvents[0].type, "SlotUpdate")
+        //assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+    }
 }
