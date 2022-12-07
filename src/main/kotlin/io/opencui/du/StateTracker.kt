@@ -494,16 +494,9 @@ data class BertStateTracker(
 
         val candidates = dontCareFilter(pcandidates, expectations)
 
-        // first try to find exact matched expressions
+        // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
-        for (document in candidates) {
-            // TODO(sean): if there is only one exact match, we should simply return.
-            if (matcher.match(document)) {
-                logger.debug("[recognizeFrame] exact match found: ${document.typedExpression}")
-                document.exactMatch = true
-            }
-        }
-
+        candidates.map{ if (matcher.match(it)) { it.exactMatch = true } }
         val exactMatches = candidates.filter {it.exactMatch}
         if (!exactMatches.isNullOrEmpty()) {
             return pickDocViaFrames(exactMatches)
