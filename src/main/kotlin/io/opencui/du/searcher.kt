@@ -63,7 +63,6 @@ data class ScoredDocument(var score: Float, val document: Document) {
         const val OWNER = "owner"
         const val OWNERSLOT = "owner_slot"
         const val SLOTS = "slots"
-        const val FUNCTION_SLOT = "function_slot"
         const val LABEL = "label"
         const val SLOTTYPE = "slotType"
         const val CONTEXT = "context"
@@ -135,6 +134,7 @@ fun Expression.toDoc() : Document {
     doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
     doc.add(StoredField(ScoredDocument.SLOTS, slots))
 
+    // TODO: verify and remove the unused code, when we handle pronouns.
 
     if (partialApplications != null) {
         Expression.logger.info("entailed slots: ${partialApplications.joinToString(",")}")

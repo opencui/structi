@@ -17,128 +17,126 @@ package io.opencui.du
  * We can have a list of matcher with more and more complexity.
  *
  */
-data class MatchContext(
-    val tokens: List<BoundToken>,
-    val emap: Map<String, List<SpanInfo>>,
-    val duMeta: DUMeta) {
-
-    val emapByCharStart = convert()
-    fun convert(): Map<Int, List<Pair<String, Int>>> {
-        // create the char end to token end.
-        val endMap = mutableMapOf<Int, Int>()
-        for ((index, token) in tokens.withIndex()) {
-            endMap[token.end] = index + 1
-        }
-
-        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
-        for((key, spans) in emap) {
-            for (span in spans) {
-                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
-                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
-            }
-        }
-        return result
-    }
-}
 interface Matcher {
-    fun match(utterance: String, document: TypedExprSegments, context: MatchContext) : Boolean
+    fun match(document: ScoredDocument) : Boolean
 }
 
 //
-class NestedMatcher : Matcher {
+class NestedMatcher(val context: DUContext) : Matcher {
+    private val analyzer = LanguageAnalyzer.get(context.duMeta!!.getLang(), stop = false)
+    private val duMeta = context.duMeta!!
+    var trueType : String? = null
 
-    data class InternalMatcher(val utterance: String, val context: MatchContext) {
-        private val analyzer = LanguageAnalyzer.get(context.duMeta.getLang())
-        private val duMeta = context.duMeta
-
-
-
-        // This function try to see if we can use doc to explain utterance from tokenStart.
-        // return -1, if there is no match, or position of last token that got matched.
-        // We pay attention to typed expression, whenever we see a type, we try to figure out whether
-        // one of the production can explain the rest utterance from the current start.
-        // utterance start is token based, and doc start is character based.
-        fun coverFind(uStart: Int, doc: TypedExprSegments): Int {
-            var start = uStart
-            for(segment in doc.segments) {
-                val end = when(segment) {
-                    is TypeSegment -> typeMatch(start, segment)
-                    is ExprSegment -> exprMatch(start, segment)
-                }
-                if (end == -1) return -1
-                start = end
+    // This function try to see if we can use doc to explain utterance from tokenStart.
+    // return -1, if there is no match, or position of last token that got matched.
+    // We pay attention to typed expression, whenever we see a type, we try to figure out whether
+    // one of the production can explain the rest utterance from the current start.
+    // utterance start is token based, and doc start is character based.
+    fun coverFind(uStart: Int, doc: TypedExprSegments): Int {
+        var start = uStart
+        for(segment in doc.segments) {
+            val end = when(segment) {
+                is TypeSegment -> typeMatch(start, segment)
+                is ExprSegment -> exprMatch(start, segment)
             }
-            return start
+            if (end == -1) return -1
+            start = end
         }
+        return start
+    }
 
-        //
-        fun exprMatch(uStart: Int, doc: ExprSegment): Int {
-            val tokens = analyzer!!.tokenize(doc.expr)
-            for ((index, token) in tokens.withIndex()) {
-                if (context.tokens[uStart + index] != token) return -1
-            }
-            return uStart + tokens.size
+    //
+    fun exprMatch(uStart: Int, doc: ExprSegment): Int {
+        val tokens = analyzer!!.tokenize(doc.expr)
+        for ((index, token) in tokens.withIndex()) {
+            val userToken = context.tokens!![uStart + index].token
+            val docToken = token.token
+            if (userToken != docToken) return -1
         }
+        return uStart + tokens.size
+    }
 
-        fun typeMatch(uStart: Int, doc: TypeSegment): Int {
-            // Go through every exemplar, and find one that matches.
-            return when(duMeta.typeKind(doc.type)) {
-                TypeKind.Entity -> entityCover(uStart, doc.type)
-                TypeKind.Frame -> frameMatch(uStart, doc.type)
-                TypeKind.Generic -> genericMatch(uStart)
-            }
+    fun typeMatch(uStart: Int, doc: TypeSegment): Int {
+        // Go through every exemplar, and find one that matches.
+        return when(duMeta.typeKind(doc.type)) {
+            TypeKind.Entity -> entityCover(uStart, doc.type)
+            TypeKind.Frame -> frameMatch(uStart, doc.type)
+            TypeKind.Generic -> genericMatch(uStart)
         }
+    }
 
-        // Try to find some entities to cover this, using the longest match.
-        fun entityCover(uStart: Int, entityType: String): Int {
-            val charStart = context.tokens[uStart].start
-            val entities = context.emapByCharStart[charStart] ?: return -1
-            var end = -1
-            // for now, we try the longest match.
-            for (entity in entities) {
-                if(isSubEntityOf(entity.first, entityType)) {
-                    if (end < entity.second) end = entity.second
-                }
-            }
-            return end
-        }
-
-        fun genericMatch(uStart: Int): Int {
-            // TODO: we need to consider this under expectation.
-            val charStart = context.tokens[uStart].start
-            val entities = context.emapByCharStart[charStart] ?: return -1
-            var end = -1
-            // for now, we try the longest match.
-            for (entity in entities) {
+    // Try to find some entities to cover this, using the longest match.
+    fun entityCover(uStart: Int, entityType: String): Int {
+        val charStart = context.tokens!![uStart].start
+        val entities = context.emapByCharStart[charStart] ?: return -1
+        var end = -1
+        // for now, we try the longest match.
+        for (entity in entities) {
+            if(isSubEntityOf(entity.first, entityType)) {
                 if (end < entity.second) end = entity.second
             }
-            return end
         }
+        return end
+    }
 
-        fun frameMatch(uStart: Int, frameType: String): Int {
-            val expressions = duMeta.expressionsByFrame[frameType] ?: return -1
-            var last = -1
-            for (expression in expressions) {
-                val typeExpr = Expression.segment(expression.toTypedExpression(), frameType)
-                val res = coverFind(uStart, typeExpr)
-                if (res > last) last = res
-            }
-            return last
+    fun genericMatch(uStart: Int): Int {
+        // TODO: we need to consider this under expectation.
+        val charStart = context.tokens!![uStart].start
+        val entities = context.emapByCharStart[charStart] ?: return -1
+        var end = -1
+        // for now, we try the longest match.
+        for (entity in entities) {
+            if (end < entity.second && entity.first == trueType) end = entity.second
         }
+        return end
+    }
 
-        fun isSubEntityOf(first: String, second:String): Boolean {
-            var parent : String? = first
-            while (parent != null) {
-                if (parent == second) return true
-                parent = duMeta.getEntityMeta(first)?.getSuper()
+    fun frameMatch(uStart: Int, frameType: String): Int {
+        val expressions = duMeta.expressionsByFrame[frameType] ?: return -1
+        var last = -1
+        for (expression in expressions) {
+            val typeExpr = Expression.segment(expression.toTypedExpression(), frameType)
+            val res = coverFind(uStart, typeExpr)
+            if (res > last) last = res
+        }
+        return last
+    }
+
+    fun isSubEntityOf(first: String, second:String): Boolean {
+        var parent : String? = first
+        while (parent != null) {
+            if (parent == second) return true
+            parent = duMeta.getEntityMeta(first)?.getSuper()
+        }
+        return false
+    }
+
+
+    override fun match(document: ScoredDocument): Boolean {
+        // We need to figure out whether there are special match.
+        val segments = Expression.segment(document.typedExpression, document.ownerFrame)
+        val slotTypes = segments.segments.filter { it is TypeSegment && it.type == SLOTTYPE}
+        if (slotTypes.size > 1) throw IllegalStateException("Don't support multiple slots with SlotType yet.")
+        if (slotTypes.size == 0 || context.entityTypeToSpanInfoMap[SLOTTYPE].isNullOrEmpty()) {
+            trueType = null
+            return coverFind(0, segments) == context.tokens!!.size
+        } else {
+            val matchedSlots = context.entityTypeToSpanInfoMap[SLOTTYPE]!!
+            for (matchedSlot in matchedSlots) {
+                val trueSlot = matchedSlot.value as String
+                val tkns = trueSlot.split(".")
+                val frame = tkns.subList(0, tkns.size - 1).joinToString(".")
+                if (!context.expectations.isFrameCompatible(frame)) continue
+                val slotName = tkns.last()
+                trueType = context.duMeta!!.getSlotType(frame, slotName)
+                return coverFind(0, segments) == context.tokens!!.size
             }
             return false
         }
 
     }
 
-    override fun match(utterance: String, document: TypedExprSegments, context: MatchContext): Boolean {
-        val internalMatcher = InternalMatcher(utterance, context)
-        return internalMatcher.coverFind(0, document) == context.tokens.size
+    companion object {
+        const val SLOTTYPE = "io.opencui.core.SlotType"
     }
 }

@@ -207,7 +207,6 @@ interface DUMeta : ExtractiveMeta {
     }
 }
 
-
 fun DUMeta.getSlotMeta(frame:String, slot:String) : DUSlotMeta? {
     return getSlotMetas(frame).firstOrNull {it.label == slot}
 }

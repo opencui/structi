@@ -201,6 +201,25 @@ data class DUContext(val session: String, val utterance: String, val expectation
     var tokens : List<BoundToken>? = null
     val previousTokenByChar = mutableMapOf<Int, Int>()
     val nextTokenByChar = mutableMapOf<Int, Int>()
+    var duMeta : DUMeta? = null
+
+    val emapByCharStart by lazy { convert() }
+    fun convert(): Map<Int, List<Pair<String, Int>>> {
+        // create the char end to token end.
+        val endMap = mutableMapOf<Int, Int>()
+        for ((index, token) in tokens!!.withIndex()) {
+            endMap[token.end] = index + 1
+        }
+
+        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
+        for((key, spans) in entityTypeToSpanInfoMap) {
+            for (span in spans) {
+                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
+                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
+            }
+        }
+        return result
+    }
 
     fun updateTokens(tkns: List<BoundToken>) {
         tokens = tkns
@@ -271,10 +290,14 @@ data class DUContext(val session: String, val utterance: String, val expectation
         // TODO: handle the a.b.c case
         val reslist = mutableListOf<String>()
         val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected.slot)
-        if (expectedType != null) reslist.add(expectedType)
-        for (active in expectations.activeFrames) {
-            val activeType = bot.getSlotType(active.frame, active.slot)
-            if (activeType != null) reslist.add(activeType)
+        if (expectedType != null) {
+            reslist.add(expectedType)
+        } else {
+            // Found the frame that has the slot
+            for (active in expectations.activeFrames.reversed()) {
+                val activeType = bot.getSlotType(active.frame, active.slot)
+                if (activeType != null) reslist.add(activeType)
+            }
         }
         return reslist
     }
@@ -355,20 +378,24 @@ data class BertStateTracker(
         return event
     }
 
+    fun buildDUContext(session: String, putterance: String, expectations: DialogExpectations): DUContext {
+        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+
+        val ducontext = DUContext(session, utterance, expectations).apply { duMeta = agentMeta }
+        normalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
+        ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
+        logger.debug("entity recognized: ${ducontext.entityTypeToSpanInfoMap}")
+        return ducontext
+    }
+
     private fun convertImpl(
         session: String, putterance: String,
         expectations: DialogExpectations
     ): List<FrameEvent> {
-
+        if (putterance.trim { it.isWhitespace() }.isEmpty()) return listOf()
         logger.info("Getting $putterance under ${expectations}")
-
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
-        if (utterance.isEmpty()) return listOf()
-
-        val ducontext = DUContext(session, utterance, expectations)
-        normalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
-        ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
-        logger.debug("entity recognized: ${ducontext.entityTypeToSpanInfoMap}")
+        val ducontext = buildDUContext(session, utterance, expectations)
 
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
@@ -468,14 +495,26 @@ data class BertStateTracker(
         val candidates = dontCareFilter(pcandidates, expectations)
 
         // first try to find exact matched expressions
+        val matcher = NestedMatcher(ducontext)
         for (document in candidates) {
             if (exactMatch(utterance, document, emap)) {
                 logger.debug("[recognizeFrame] exact match found: ${document.typedExpression}")
                 document.exactMatch = true
+
+                // TODO(sean): if there is only one exact match, we should simply return.
             }
+
+            if (matcher.match(document)) {
+                logger.debug("found a match")
+            }
+
         }
 
+
+
         // now get the model score the similarity between each candidate and user utterance.
+        // TODO: add resolve to simplify the model matching, ideally do matching in two different steps.
+        // one with replacement, one without replacement, like what we do right now.
         val probes = candidates.map { it.probes }
         logger.debug("intent model, utterance: $utterance, probes: $probes")
         val intentResults = nluModel.predictIntent(lang, utterance, probes)
@@ -543,7 +582,7 @@ data class BertStateTracker(
         pcandidates: List<ScoredDocument>,
         expectations: DialogExpectations
     ): List<ScoredDocument> {
-        // filter out the dontcare candidate if not dontcare is expected.
+        // filter out the dontcare candidate if no dontcare is expected.
         val results = mutableListOf<ScoredDocument>()
         val dontcare = expectations.allowDontCare()
         for (doc in pcandidates) {
