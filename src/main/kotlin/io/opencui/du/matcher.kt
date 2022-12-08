@@ -49,6 +49,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
     fun exprMatch(uStart: Int, doc: ExprSegment): Int {
         val tokens = analyzer!!.tokenize(doc.expr)
         for ((index, token) in tokens.withIndex()) {
+            if (uStart + index >= context.tokens!!.size) return -1 
             val userToken = context.tokens!![uStart + index].token
             val docToken = token.token
             if (userToken != docToken) return -1
