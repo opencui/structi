@@ -494,16 +494,9 @@ data class BertStateTracker(
 
         val candidates = dontCareFilter(pcandidates, expectations)
 
-        // first try to find exact matched expressions
+        // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
-        for (document in candidates) {
-            // TODO(sean): if there is only one exact match, we should simply return.
-            if (matcher.match(document)) {
-                logger.debug("[recognizeFrame] exact match found: ${document.typedExpression}")
-                document.exactMatch = true
-            }
-        }
-
+        candidates.map{ if (matcher.match(it)) { it.exactMatch = true } }
         val exactMatches = candidates.filter {it.exactMatch}
         if (!exactMatches.isNullOrEmpty()) {
             return pickDocViaFrames(exactMatches)
@@ -524,7 +517,6 @@ data class BertStateTracker(
         logger.info(intentResults.toString())
         for (i in 0 until intentResults.size) {
             candidates[i].score = intentResults[i].prob
-            if (candidates[i].exactMatch) candidates[i].score += intentExactBoost
             if (!ducontext.containsAllEntityNeeded(candidates[i].slotTypes, agentMeta)) {
                 candidates[i].score = 0f
                 candidates[i].exactMatch = false
@@ -535,33 +527,20 @@ data class BertStateTracker(
         // now find the intent best explain the utterance
         // First we check whether we know enough about
         val goodCandidatesSize = candidates.filter { it.score > intent_sure_threshold }.size
-        var exactCandidate: ScoredDocument? = candidates.firstOrNull{ it.exactMatch }
-        if (goodCandidatesSize <= 0 && exactCandidate == null) {
-            logger.debug("Got no match from scoring.")
+        if (goodCandidatesSize <= 0) {
+            logger.debug("Got no match for ${utterance}.")
             return null
         }
 
-        var bestCandidate: ScoredDocument? = null
-        if (goodCandidatesSize > 0) {
-            // TODO: another choice is to return here and ask user to choose one interpretation.
-            if (goodCandidatesSize > 1) {
-                logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
-            }
-
-            // now we pick the best one to operate on.
-            val iIndex = candidates.withIndex().maxByOrNull { it.value.score }!!.index
-            bestCandidate = candidates[iIndex]
-            logger.debug("[recognizeFrame convert] best candidate: ${bestCandidate.typedExpression}")
+        // TODO: another choice is to return here and ask user to choose one interpretation.
+        if (goodCandidatesSize > 1) {
+            logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
         }
 
-        // Check whether exact match and best match agrees.
-        if (exactCandidate != null) {
-            // TODO: we should use this pair for training.
-            if (bestCandidate != null && !bestCandidate.exactMatch) {
-                logger.info("intent example: ${exactCandidate.typedExpression}\t${bestCandidate.typedExpression}\t0")
-            }
-            return listOf(exactCandidate)
-        }
+        // now we pick the best one to operate on.
+        val iIndex = candidates.withIndex().maxByOrNull { it.value.score }!!.index
+        val bestCandidate = candidates[iIndex]
+        logger.debug("[recognizeFrame convert] best candidate: ${bestCandidate.typedExpression}")
 
         // We might need to consider return multiple possibilities if there is no exact match.
         return pickDocViaFrames(candidates)
