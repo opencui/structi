@@ -209,14 +209,14 @@ class DslEntityTest() : DuTestHelper() {
     @Test
     fun testTypeExprSegment() {
         val expressions = duMeta.expressionsByFrame["io.opencui.core.SlotUpdate"]!!
-        val expr = Expression.segment(expressions[4].toTypedExpression(), "io.opencui.core.SlotUpdate")
+        val expr = Expression.segment(expressions[4].toMetaExpression(), "io.opencui.core.SlotUpdate")
         println(expr)
         assertEquals(expr.frame, "io.opencui.core.SlotUpdate")
-        assertEquals(expr.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), TypeSegment(type=io.opencui.core.SlotType, start=7, end=35), ExprSegment(expr=to, start=35, end=39), TypeSegment(type=T, start=39, end=44)]")
+        assertEquals(expr.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), MetaSegment(meta=io.opencui.core.SlotType, start=7, end=35), ExprSegment(expr=to, start=35, end=39), MetaSegment(meta=T, start=39, end=44)]")
 
         val expr1 = Expression.segment(expressions[4].utterance, "io.opencui.core.SlotUpdate")
         println(expr1)
-        assertEquals(expr1.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), TypeSegment(type=originalSlot, start=7, end=21), ExprSegment(expr=to, start=21, end=25), TypeSegment(type=newValue, start=25, end=35)]")
+        assertEquals(expr1.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), MetaSegment(meta=originalSlot, start=7, end=21), ExprSegment(expr=to, start=21, end=25), MetaSegment(meta=newValue, start=25, end=35)]")
     }
 }
 

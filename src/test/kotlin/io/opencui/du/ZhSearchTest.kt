@@ -54,14 +54,14 @@ class ZhSearchTest() : DuTestHelper() {
         val results = searcher.search("是的")
 
         for (result in results) {
-            println("${result.probes} by ${result.ownerFrame} with ${result.score}")
+            println("${result.probes(agent)} by ${result.ownerFrame} with ${result.score}")
         }
         assertEquals(0, results.size)
 
         val results0 = searcher.search("随便")
 
         for (result in results0) {
-            println("${result.probes} by ${result.ownerFrame} with ${result.score}")
+            println("${result.probes(agent)} by ${result.ownerFrame} with ${result.score}")
         }
         assertEquals(1, results0.size)
     }
@@ -72,7 +72,7 @@ class ZhSearchTest() : DuTestHelper() {
         val results = searcher.search("是的", DialogExpectations(ExpectedFrame("io.opencui.core.Confirmation")))
 
         for (result in results) {
-            println("${result.probes} by ${result.ownerFrame} with ${result.score}")
+            println("${result.probes(agent)} by ${result.ownerFrame} with ${result.score}")
         }
         assertEquals(3, results.size)
     }

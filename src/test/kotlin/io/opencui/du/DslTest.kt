@@ -164,7 +164,7 @@ class DslTest() : DuTestHelper() {
         val results = searcher.search("please make a transfer.")
 
         for (result in results) {
-            println("${result.probes} by ${result.ownerFrame} with ${result.score}")
+            println("${result.probes(agent)} by ${result.ownerFrame} with ${result.score}")
         }
         assertEquals(5, results.size)
     }
@@ -175,7 +175,7 @@ class DslTest() : DuTestHelper() {
         val searcher = ExpressionSearcher(agent)
         val results = searcher.search("please* make? a transfer 02/15.")
         for (result in results) {
-            println("${result.probes} by ${result.ownerFrame} with ${result.score}")
+            println("${result.probes(agent)} by ${result.ownerFrame} with ${result.score}")
         }
         assertEquals(5, results.size)
     }
