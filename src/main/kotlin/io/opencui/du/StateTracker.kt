@@ -513,7 +513,7 @@ data class BertStateTracker(
         // TODO: add resolve to simplify the model matching, ideally do matching in two different steps.
         // one with replacement, one without replacement, like what we do right now.
         val rcandidates = SlotTypeResolver.resolve(ducontext, candidates)
-        val probes = candidates.map { it.probes(agentMeta) }
+        val probes = rcandidates.map { it.probes(agentMeta) }
         logger.debug("intent model, utterance: $utterance, probes: $probes")
         val intentResults = nluModel.predictIntent(lang, utterance, probes)
 
