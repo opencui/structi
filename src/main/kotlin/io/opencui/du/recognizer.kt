@@ -1,6 +1,5 @@
 package io.opencui.du
 
-import com.sun.jna.platform.mac.SystemB.Timezone
 import io.opencui.core.RuntimeConfig
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.LoggerFactory
@@ -39,14 +38,6 @@ class SpanInfo(
     }
 }
 
-
-/**
- * The context for extractive understanding, it should potentially include things like bot timezone.
- * Later, we might need to introduce user based context.
- */
-data class BotExtractionContext(
-    val botTimezone: Timezone
-)
 
 /**
  * We will have different type of entity recognizer, ducking, list, and maybe others.
@@ -410,7 +401,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
 
             // Actual instances.
             // TODO (sean): find a better place to hard code.
-            val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTrigger()
+            val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTriggers()
             logger.info("process entity type $type with ${content.size} entries.")
             for ((entryLabel, expressions) in content) {
                 add(entryLabel,expressions, true)

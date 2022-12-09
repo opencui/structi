@@ -189,6 +189,12 @@ fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
 }
 
 
+interface Resolver {
+    fun resolve(ducontext: DUContext, before: List<ScoredDocument>): List<ScoredDocument>
+}
+
+
+
 /**
  * This can be used to capture the intermediate result from understanding.
  * So that we can save some effort by avoiding repeated work.
@@ -287,15 +293,16 @@ data class DUContext(val session: String, val utterance: String, val expectation
 
     fun expectedEntityType(bot: DUMeta) : List<String> {
         if (expectations.activeFrames.isEmpty()) return listOf()
+        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
         // TODO: handle the a.b.c case
         val reslist = mutableListOf<String>()
-        val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected.slot)
+        val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected.slot!!)
         if (expectedType != null) {
             reslist.add(expectedType)
         } else {
             // Found the frame that has the slot
             for (active in expectations.activeFrames.reversed()) {
-                val activeType = bot.getSlotType(active.frame, active.slot)
+                val activeType = bot.getSlotType(active.frame, active.slot!!)
                 if (activeType != null) reslist.add(activeType)
             }
         }
@@ -441,7 +448,7 @@ data class BertStateTracker(
         logger.debug("best matched frame: $recognizedFrameType, utterance: ${bestCandidate.typedExpression}")
         if (!recognizedFrameType.isNullOrEmpty()) {
             // 6. matched a new intent
-            val slotsInExpr = bestCandidate.slots.split(',')
+            val slotsInExpr = bestCandidate.slotNames()
             var extractedEvents = fillSlots(ducontext, recognizedFrameType, slotsInExpr, null)
             if (extractedEvents.isNullOrEmpty()) {
                 extractedEvents += buildFrameEvent(recognizedFrameType)
@@ -505,7 +512,8 @@ data class BertStateTracker(
         // now get the model score the similarity between each candidate and user utterance.
         // TODO: add resolve to simplify the model matching, ideally do matching in two different steps.
         // one with replacement, one without replacement, like what we do right now.
-        val probes = candidates.map { it.probes }
+        val rcandidates = SlotTypeResolver.resolve(ducontext, candidates)
+        val probes = candidates.map { it.probes(agentMeta) }
         logger.debug("intent model, utterance: $utterance, probes: $probes")
         val intentResults = nluModel.predictIntent(lang, utterance, probes)
 
@@ -521,7 +529,7 @@ data class BertStateTracker(
                 candidates[i].score = 0f
                 candidates[i].exactMatch = false
             }
-            logger.debug("[recognizeFrame] Candidate: ${candidates[i].probes}, yProb: ${intentResults[i].prob} after: ${candidates[i].score}")
+            logger.debug("[recognizeFrame] Candidate: ${probes[i]}, yProb: ${intentResults[i].prob} after: ${candidates[i].score}")
         }
 
         // now find the intent best explain the utterance

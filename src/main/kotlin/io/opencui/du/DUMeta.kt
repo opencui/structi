@@ -67,8 +67,8 @@ fun extractSlotSurroundingWords(
                 }
             }
             for ((i, part) in typedSegments.segments.withIndex()) {
-                if (part is TypeSegment) {
-                    val key = "$ownerId:${part.type}"
+                if (part is MetaSegment) {
+                    val key = "$ownerId:${part.meta}"
                     if (!slotSuffixes.containsKey(key)) slotSuffixes[key] = mutableSetOf()
                     if (!slotPrefixes.containsKey(key)) slotPrefixes[key] = mutableSetOf()
                     if (i > 0 && !tknMap[i - 1].isNullOrEmpty()) {
@@ -99,7 +99,7 @@ interface ExtractiveMeta : LangBase {
 
     fun getEntityMeta(name: String): IEntityMeta? // string encoding of JsonArray of JsonObject
 
-    fun getSlotTrigger(): Map<String, List<String>> = emptyMap()
+    fun getSlotTriggers(): Map<String, List<String>> = emptyMap()
 
     val expressionsByFrame: Map<String, List<Expression>>
 }
@@ -208,12 +208,19 @@ interface DUMeta : ExtractiveMeta {
     }
 }
 
-fun DUMeta.getSlotMeta(frame:String, slot:String) : DUSlotMeta? {
-    return getSlotMetas(frame).firstOrNull {it.label == slot}
+fun DUMeta.getSlotMeta(frame:String, pslots:String) : DUSlotMeta? {
+    // We can handle the nested slots if we need to.
+    val slots = pslots.split(".")
+    var owner = frame
+    for(slot in slots.subList(0, slots.size - 1)) {
+        owner = getSlotMetas(owner).firstOrNull{it.label == slot}!!.type!!
+    }
+    val lastSlot = slots.last()
+    return getSlotMetas(owner).firstOrNull {it.label == lastSlot}
 }
 
-fun DUMeta.getSlotType(frame: String, slot:String?) : String {
-    return getSlotMetas(frame).firstOrNull {it.label == slot}?.type ?: ""
+fun DUMeta.getSlotType(frame: String, slot:String) : String {
+    return getSlotMeta(frame, slot)?.type ?: ""
 }
 
 enum class TypeKind {
@@ -230,7 +237,7 @@ abstract class DslDUMeta() : DUMeta {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
 
-    override fun getSlotTrigger(): Map<String, List<String>> {
+    override fun getSlotTriggers(): Map<String, List<String>> {
         val results = mutableMapOf<String, List<String>>()
         for ((frame, metas) in slotMetaMap) {
             for (slotMeta in metas) {
@@ -292,7 +299,7 @@ abstract class JsonDUMeta() : DUMeta {
         return entityMetas.containsKey(name)
     }
 
-    override fun getSlotTrigger(): Map<String, List<String>> {
+    override fun getSlotTriggers(): Map<String, List<String>> {
         val results = mutableMapOf<String, List<String>>()
         for ((frame, metas) in slotMetaMap) {
             for (slotMeta in metas) {
@@ -337,10 +344,9 @@ sealed interface TypedExprSegment: Serializable {
     val end: Int
 }
 data class ExprSegment(val expr: String, override val start: Int, override val end: Int): TypedExprSegment
-data class TypeSegment(val type: String, override val start: Int, override val end: Int): TypedExprSegment
+data class MetaSegment(val meta: String, override val start: Int, override val end: Int): TypedExprSegment
 
-data class TypedExprSegments(val frame: String, val typedExpr: String, val segments: List<TypedExprSegment>)
-
+data class MetaExprSegments(val frame: String, val typedExpr: String, val segments: List<TypedExprSegment>)
 data class Expression(
         val owner: String,
         val context: ExpressionContext?,
@@ -348,7 +354,7 @@ data class Expression(
         val utterance: String,
         val partialApplications: List<String>?,
         val bot: DUMeta) {
-    fun toTypedExpression(): String {
+    fun toMetaExpression(): String {
         return buildTypedExpression(utterance, owner, bot)
     }
 
@@ -366,6 +372,7 @@ data class Expression(
         }
         return "default"
     }
+
     fun buildSubFrameContext(duMeta: DUMeta): List<String>? {
         if (context != null) {
             val subtypes = duMeta.getSubFrames(context.frame)
@@ -399,57 +406,35 @@ data class Expression(
             return AngleSlotRegex.replace(utterance)
             {
                 val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-                var typeName = agent.getSlotType(owner, slotName)
-                if (typeName.isEmpty()) {
-                    typeName = "WrongName"
-                }
-                "< $typeName >"
-            }
-        }
-                // "I need $dish$" -> "I need < dish.trigger in the natural language >"
-        val angleSlotTriggerParser = { expr: Expression ->
-            AngleSlotRegex.replace(expr.utterance)
-            {
-                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-                val triggers = expr.bot.getSlotMeta(expr.owner, slotName)?.triggers
-                if (triggers.isNullOrEmpty()) {
-                    // there are templated expressions that does not have trigger before application.
-                    "< $slotName >"
-                } else {
-                    "< ${triggers[0]} >"
-                }
+                "< ${agent.getSlotType(owner, slotName)} >"
             }
         }
 
-        var probeBuilder: (Expression) -> String = angleSlotTriggerParser
-
-        /**
-         * We assume the slot names are in form of a.b.c.
-         */
-        @JvmStatic
-        fun parseQualifiedSlotNames(utterance: String): String {
-            val res = AngleSlotRegex
-                    .findAll(utterance)
-                    .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
-                    .toList()
-            return res.joinToString(",")
-        }
-
-        fun segment(expression: String, owner: String): TypedExprSegments {
+        fun segment(expression: String, owner: String): MetaExprSegments {
             val matcher = AngleSlotPattern.matcher(expression)
             val result = mutableListOf<TypedExprSegment>()
             var lastStart = 0
 
-            while(matcher.find()) {
+            while (matcher.find()) {
                 val start = matcher.start()
                 val end = matcher.end()
-                if (start > lastStart) result.add(ExprSegment(expression.substring(lastStart, start).trim(), lastStart, start))
+                if (start > lastStart) result.add(
+                    ExprSegment(
+                        expression.substring(lastStart, start).trim(),
+                        lastStart,
+                        start
+                    )
+                )
                 lastStart = end
-                result.add(TypeSegment(expression.substring(start+1, end-1).trim(), start, end))
+                result.add(MetaSegment(expression.substring(start + 1, end - 1).trim(), start, end))
             }
 
-            if (lastStart < expression.length) result.add(ExprSegment(expression.substring(lastStart, expression.length).trim(), lastStart, expression.length))
-            return TypedExprSegments(owner, expression, result)
+            if (lastStart < expression.length) result.add(
+                ExprSegment(
+                    expression.substring(lastStart, expression.length).trim(), lastStart, expression.length
+                )
+            )
+            return MetaExprSegments(owner, expression, result)
         }
 
         // TODO(sean.wu): this should be handled in a more generic fashion.

@@ -32,11 +32,11 @@ class NestedMatcher(val context: DUContext) : Matcher {
     // We pay attention to typed expression, whenever we see a type, we try to figure out whether
     // one of the production can explain the rest utterance from the current start.
     // utterance start is token based, and doc start is character based.
-    fun coverFind(uStart: Int, doc: TypedExprSegments): Int {
+    fun coverFind(uStart: Int, doc: MetaExprSegments): Int {
         var start = uStart
         for(segment in doc.segments) {
             val end = when(segment) {
-                is TypeSegment -> typeMatch(start, segment)
+                is MetaSegment -> typeMatch(start, segment)
                 is ExprSegment -> exprMatch(start, segment)
             }
             if (end == -1) return -1
@@ -57,11 +57,11 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return uStart + tokens.size
     }
 
-    fun typeMatch(uStart: Int, doc: TypeSegment): Int {
+    fun typeMatch(uStart: Int, doc: MetaSegment): Int {
         // Go through every exemplar, and find one that matches.
-        return when(duMeta.typeKind(doc.type)) {
-            TypeKind.Entity -> entityCover(uStart, doc.type)
-            TypeKind.Frame -> frameMatch(uStart, doc.type)
+        return when(duMeta.typeKind(doc.meta)) {
+            TypeKind.Entity -> entityCover(uStart, doc.meta)
+            TypeKind.Frame -> frameMatch(uStart, doc.meta)
             TypeKind.Generic -> genericMatch(uStart)
         }
     }
@@ -96,7 +96,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
         val expressions = duMeta.expressionsByFrame[frameType] ?: return -1
         var last = -1
         for (expression in expressions) {
-            val typeExpr = Expression.segment(expression.toTypedExpression(), frameType)
+            val typeExpr = Expression.segment(expression.toMetaExpression(), frameType)
             val res = coverFind(uStart, typeExpr)
             if (res > last) last = res
         }
@@ -112,11 +112,10 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return false
     }
 
-
     override fun match(document: ScoredDocument): Boolean {
         // We need to figure out whether there are special match.
         val segments = Expression.segment(document.typedExpression, document.ownerFrame)
-        val slotTypes = segments.segments.filter { it is TypeSegment && it.type == SLOTTYPE}
+        val slotTypes = segments.segments.filter { it is MetaSegment && it.meta == SLOTTYPE}
         if (slotTypes.size > 1) throw IllegalStateException("Don't support multiple slots with SlotType yet.")
         if (slotTypes.size == 0 || context.entityTypeToSpanInfoMap[SLOTTYPE].isNullOrEmpty()) {
             trueType = null
@@ -134,7 +133,6 @@ class NestedMatcher(val context: DUContext) : Matcher {
             }
             return false
         }
-
     }
 
     companion object {

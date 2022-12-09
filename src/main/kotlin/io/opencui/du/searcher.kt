@@ -38,11 +38,9 @@ import kotlin.collections.ArrayList
  */
 
 data class ScoredDocument(var score: Float, val document: Document) {
-    val probes: String = document.getField(PROBE).stringValue()
     val utterance: String = document.getField(UTTERANCE).stringValue()
-    val typedExpression: String = document.getField(EXPRESSION).stringValue()
+    var typedExpression: String = document.getField(EXPRESSION).stringValue()
     val ownerFrame: String = document.getField(OWNER).stringValue()
-    val slots: String = document.getField(SLOTS).stringValue()
     val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
     val contextSlot: String? = document.getField(CONTEXTSLOT)?.stringValue()
     val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
@@ -53,8 +51,29 @@ data class ScoredDocument(var score: Float, val document: Document) {
     var exactMatch: Boolean = false
     var hasAllSlots: Boolean = true
 
-    fun getQualifiedSlotNames() : List<String> {
-        return slots.split(",")
+    fun isCompatible(type: String, packageName: String?) : Boolean {
+        return ownerFrame == "${packageName}.${type}"
+    }
+
+    fun probes(bot: DUMeta) : String {
+
+        return AngleSlotRegex.replace(typedExpression) {
+            val slotTypeName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+            val triggers = bot.getTriggers(slotTypeName)
+            if (triggers.isNullOrEmpty()) {
+                // there are templated expressions that does not have trigger before application.
+                "< $slotTypeName >"
+            } else {
+                "< ${triggers[0]} >"
+            }
+        }
+    }
+
+    fun slotNames(): List<String> {
+        return AngleSlotRegex
+            .findAll(utterance)
+            .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
+            .toList()
     }
 
     companion object {
@@ -70,10 +89,9 @@ data class ScoredDocument(var score: Float, val document: Document) {
         const val CONTEXTSLOT = "context_slot"
         const val EXPRESSION = "expression"
         const val PARTIALEXPRESSION = "partial_application"
-    }
-
-    fun isCompatible(type: String, packageName: String?) : Boolean {
-        return ownerFrame == "${packageName}.${type}"
+        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
+        private val AngleSlotRegex = AngleSlotPattern.toRegex()
+        val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
     }
 }
 
@@ -97,8 +115,7 @@ fun Expression.toDoc() : Document {
     val expr = this
     val doc = Document()
     // Use the trigger based probes so that it works for multilingual.
-    val probe = Expression.probeBuilder.invoke(expr)
-    val slots = Expression.parseQualifiedSlotNames(expr.utterance)
+
     val expression = Expression.buildTypedExpression(expr.utterance, expr.owner, expr.bot)
 
     // Instead of embedding into expression, use StringField.
@@ -106,9 +123,6 @@ fun Expression.toDoc() : Document {
     for (slotType in slotTypes) {
         doc.add(StoredField(ScoredDocument.SLOTTYPE, slotType))
     }
-
-    // "probe" is saved for retrieval and request intent model
-    doc.add(StoredField(ScoredDocument.PROBE, probe))
     // "expression" is just for searching
     doc.add(TextField(ScoredDocument.EXPRESSION, expression, Field.Store.YES))
     doc.add(StoredField(ScoredDocument.UTTERANCE, expr.utterance))
@@ -132,7 +146,7 @@ fun Expression.toDoc() : Document {
         doc.add(StoredField(ScoredDocument.CONTEXTSLOT, context.slot))
     }
     doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
-    doc.add(StoredField(ScoredDocument.SLOTS, slots))
+
 
     // TODO: verify and remove the unused code, when we handle pronouns.
 
