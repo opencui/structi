@@ -877,6 +877,8 @@ public object en : LangPack {
       "io.opencui.core.AbortIntent" to listOf("Abort Intent"),
       "io.opencui.core.GetLiveAgent" to listOf("Hand off"),
       "io.opencui.core.ResumeIntent" to listOf("ResumeIntent"),
+      "java.time.LocalDate" to listOf("date"),
+      "java.time.LocalTime" to listOf("time"),
       "me.demo.reservation_v2.MakeReservation" to listOf("Make Reservation"),
       "me.demo.reservation_v2.ViewReservation" to listOf("View Reservation"),
       "me.demo.reservation_v2.CancelReservation" to listOf("Cancel Reservation"),
@@ -948,12 +950,12 @@ class SmallTableDslTest() : DuTestHelper() {
     fun testDateUpdateInExact() {
         val frameEvents = stateTracker.convert(
             "s",
-            "change date to tomorrow please",
+            "change time to 7:00pm please",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
         )
         println(frameEvents)
-        // assertEquals(frameEvents.size, 1)
-        //assertEquals(frameEvents[0].type, "SlotUpdate")
-        //assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+        assertEquals(frameEvents.size, 1)
+        assertEquals(frameEvents[0].type, "SlotUpdate")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 }
