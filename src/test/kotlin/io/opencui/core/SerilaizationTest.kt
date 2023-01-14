@@ -1,5 +1,8 @@
 package io.opencui.serialization
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.test.MoreBasics
 import io.opencui.test.PayMethod
@@ -8,6 +11,21 @@ import io.opencui.test.PayMethod
 import org.junit.Test
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes(
+  JsonSubTypes.Type(value = Table::class, name = "table")
+)
+interface Resource {
+    val name: String?
+}
+
+data class Table(val size: Int, override val name: String?) : Resource {
+    override fun toString() : String {
+        return """{"@class":"Table", "size":$size, "name":"$name"}"""
+    }
+}
 
 class SerializationTest {
     val expressionJson = """
@@ -195,5 +213,10 @@ class SerializationTest {
 
     }
 
-
+    @Test
+    fun testResource() {
+        val tableInJson = """{"type":"table", "name":"Chang", "size":6}"""
+        val table = Json.decodeFromString<Resource>(tableInJson)
+        assertEquals(table.toString(), """{"@class":"Table", "size":6, "name":"Chang"}""")
+    }
 }
