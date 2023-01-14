@@ -13,10 +13,7 @@ import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes(
-  JsonSubTypes.Type(value = Table::class, name = "table")
-)
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 interface Resource {
     val name: String?
 }
@@ -215,7 +212,7 @@ class SerializationTest {
 
     @Test
     fun testResource() {
-        val tableInJson = """{"type":"table", "name":"Chang", "size":6}"""
+        val tableInJson = """{"@class":"io.opencui.serialization.Table", "name":"Chang", "size":6}"""
         val table = Json.decodeFromString<Resource>(tableInJson)
         assertEquals(table.toString(), """{"@class":"Table", "size":6, "name":"Chang"}""")
     }
