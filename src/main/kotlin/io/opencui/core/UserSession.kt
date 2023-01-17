@@ -390,7 +390,11 @@ data class UserSession(
         check(manager.keys.size == 1)
         val label = manager.keys.first()
         // We always try to clone for session, but default implementation does nothing.
-        return (manager.get(label) as IExtension).cloneForSession(this) as T
+        val res = (manager.get(label) as IExtension).cloneForSession(this)
+        if (res is IProvider) {
+            res.session = this
+        }
+        return res as T
     }
 
     fun generateFrameEvent(filler: IFiller, value: Any): List<FrameEvent> {
