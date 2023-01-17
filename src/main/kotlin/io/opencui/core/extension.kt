@@ -12,7 +12,11 @@ import java.io.Serializable
 /***
  * Section for configuration.
  */
-interface IExtension
+interface IExtension {
+    fun cloneForSession(userSession: UserSession): IExtension {
+        return this
+    }
+}
 
 interface ExtensionBuilder<T:IExtension> : (Configuration) -> T
 
