@@ -12,7 +12,7 @@ interface Closable {
     fun close()
 }
 
-interface IConnection: Closable {
+interface IConnection: Closable, IExtension {
     fun <T> svInvoke(
         functionMeta: Map<String, String>,
         context: Map<String, Any?>,

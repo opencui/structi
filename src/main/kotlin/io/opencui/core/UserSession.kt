@@ -385,11 +385,12 @@ data class UserSession(
         return s.any { it is FrameFiller<*> && it.frame() is IKernelIntent }
     }
 
-    inline fun <reified T> getExtension() : T? {
+    inline fun <reified T : IExtension> getExtension() : T? {
         val manager = chatbot!!.getExtensionManager<T>()
         check(manager.keys.size == 1)
         val label = manager.keys.first()
-        val res = manager.get(label)
+        // We always try to clone for session, but default implementation does nothing.
+        val res = (manager.get(label) as IExtension).cloneForSession(this)
         if (res is IProvider) {
             res.session = this
         }
