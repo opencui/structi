@@ -147,6 +147,16 @@ object Json {
         return mapper.readValue(s)
     }
 
+    inline fun <reified T> decodeFromString(s: String, classLoader: ClassLoader) : T {
+        val oldClassLoader = Thread.currentThread().getContextClassLoader()
+        Thread.currentThread().setContextClassLoader(classLoader)
+        try {
+            return mapper.readValue(s)
+        } finally {
+            Thread.currentThread().setContextClassLoader(oldClassLoader)
+        }
+    }
+
     inline fun <reified T> decodeFromJsonElement(s: JsonElement) : T {
         return mapper.treeToValue(s, T::class.java)
     }
