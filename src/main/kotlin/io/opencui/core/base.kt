@@ -1,5 +1,7 @@
 package io.opencui.core
 
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.UserInfo
@@ -12,6 +14,25 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
+
+
+enum class ValueOperator {
+    And,
+    Not,
+    Or,
+    EqualTo,
+    LessThan,
+    GreaterThan,
+    LessThanOrEqualTo,
+    GreaterThanOrEqualTo
+}
+
+data class SlotValue(
+  @JsonProperty
+  val slot: String? = null,
+  @JsonProperty
+  val value: Any? = null
+)
 
 
 /**
