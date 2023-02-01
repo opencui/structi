@@ -1093,22 +1093,17 @@ data class PagedSelectable<T: Any> (
     val _check_index = ValueCheck(session, {isIndexValid()}, listOf(LazyAction {
         if (outlierValue())
             SeqAction(
-                convertDialogAct(getBadCandidate(), valueOutlierPrompt!!)(),
+                convertDialogAct(
+                    BadCandidate(session, Json.getConverter(session, kClass().java).invoke(constructUserChoice())),
+                    valueOutlierPrompt!!
+                )(),
                 ReinitActionBySlot(listOf(Pair(this, "index"))),
                 CleanupActionBySlot(listOf(Pair(this, "page"), Pair(this, "conditionMap"), Pair(this, "index"))))
         else SeqAction(
-            convertDialogAct(getBadIndex(), indexOutlierPrompt!!)(),
+            convertDialogAct(BadIndex(session, index!!.value.toInt()), indexOutlierPrompt!!)(),
             ReinitActionBySlot(listOf(Pair(this, "index"))),
             CleanupActionBySlot(listOf(Pair(this, "index"))))
     }))
-
-    fun getBadCandidate(): BadCandidate<T> {
-        return BadCandidate(session, Json.getConverter(session, kClass().java).invoke(constructUserChoice()))
-    }
-
-    fun getBadIndex(): BadIndex {
-        return BadIndex(session, index!!.value.toInt())
-    }
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "index" -> listOf(
