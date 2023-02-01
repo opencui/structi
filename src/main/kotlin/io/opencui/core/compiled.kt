@@ -1093,11 +1093,11 @@ data class PagedSelectable<T: Any> (
     val _check_index = ValueCheck(session, {isIndexValid()}, listOf(LazyAction {
         if (outlierValue())
             SeqAction(
-                convertDialogActGen({getBadCandidate()}, valueOutlierPrompt!!)(),
+                convertDialogAct(getBadCandidate(), valueOutlierPrompt!!)(),
                 ReinitActionBySlot(listOf(Pair(this, "index"))),
                 CleanupActionBySlot(listOf(Pair(this, "page"), Pair(this, "conditionMap"), Pair(this, "index"))))
         else SeqAction(
-            convertDialogActGen({getBadIndex()}, indexOutlierPrompt!!)(),
+            convertDialogAct(getBadIndex(), indexOutlierPrompt!!)(),
             ReinitActionBySlot(listOf(Pair(this, "index"))),
             CleanupActionBySlot(listOf(Pair(this, "index"))))
     }))
