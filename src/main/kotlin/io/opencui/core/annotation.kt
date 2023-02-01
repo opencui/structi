@@ -67,6 +67,10 @@ fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): ()
     return {dialogActGen(source())}
 }
 
+fun <T> convertDialogAct(source: T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
+    return {dialogActGen(source)}
+}
+
 interface PromptAnnotation : Annotation {
     val actions: List<Action>
     operator fun invoke(): Action {
