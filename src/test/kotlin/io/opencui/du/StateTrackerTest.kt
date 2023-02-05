@@ -647,6 +647,10 @@ class StateTrackerTest : DuTestHelper() {
                 "book a table on friday",
                 DialogExpectations(ExpectedFrame("org.Banks_1.buyTicket", "departure"))
         )
+        assertEquals(
+            """[FrameEvent(type=MakeReservation, slots=[], frames=[], packageName=me.test.frameSlot_0203), FrameEvent(type=DatePicker, slots=[EntityEvent(value=friday, attribute=date)], frames=[], packageName=me.test.frameSlot_0203)]""",
+                frameEvent.toString()
+        )
         println(frameEvent.toString())
     }
 
