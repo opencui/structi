@@ -100,8 +100,15 @@ class StateTrackerTest : DuTestHelper() {
       "owner_id": "io.opencui.core.PageSelectable",
       "expressions": [
         {
-          "utterance": "next page",
-          "function_slot": "nextPage"
+          "utterance": "next page"
+        }
+      ]
+    },
+    {
+      "owner_id": "me.test.frameSlot_0203.MakeReservation",
+      "expressions": [
+        {
+          "utterance": "Book a table on  ${'$'}datePicker${'$'}"
         }
       ]
     }
@@ -201,6 +208,13 @@ class StateTrackerTest : DuTestHelper() {
                                 "io.opencui.core.Ordinal",
                                 isMultiValue = false,
                         ))
+                "me.test.frameSlot_0203.DatePicker" -> listOf(
+                    DUSlotMeta(label = "dayOfWeek", isMultiValue = false, type = "java.time.DayOfWeek", isHead = false, triggers = listOf()),
+                    DUSlotMeta(label = "date", isMultiValue = false, type = "java.time.LocalDate", isHead = true, triggers = listOf("date", )),
+                )
+                "me.test.frameSlot_0203.MakeReservation" ->  listOf(
+                    DUSlotMeta(label = "datePicker", isMultiValue = false, type = "me.test.frameSlot_0203.DatePicker", isHead = false, triggers = listOf()),
+                )
                 else -> emptyList()
             }
         }
@@ -624,6 +638,16 @@ class StateTrackerTest : DuTestHelper() {
         val probes = listOf("i am good now", "i am good now.", "i am good now?")
         val yProbs = stateTracker.nluModel.predictIntent("en", utterance, probes)
         println("intent model resp: $yProbs")
+    }
+
+    @Test
+    fun testHead() {
+        val frameEvent = stateTracker.convert(
+                "s",
+                "book a table on friday",
+                DialogExpectations(ExpectedFrame("org.Banks_1.buyTicket", "departure"))
+        )
+        println(frameEvent.toString())
     }
 
     @Test

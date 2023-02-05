@@ -480,10 +480,6 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         needResponse = false
     }
 
-    fun enableResponse() {
-        needResponse = true
-    }
-
     fun directlyFill(a: Any) {
         (targetFiller as TypedFiller<in Any>).target.set(a)
         markDone()

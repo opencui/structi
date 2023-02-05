@@ -604,9 +604,14 @@ data class BertStateTracker(
         // We will test the nested slot at the top level, note that only handles the ones has head.
         for (slot in slotsMetaMap.keys) {
             val slotMeta = agentMeta.getSlotMeta(frame, slot)
-            if (slotMeta?.isHead == true) {
+            if (slotMeta != null) {
                 val nestedMetas = agentMeta.getSlotMetas(slotMeta.type!!)
-                nestedMetas.map{ slotsMetaMap["$slot.${it.label}"] = it }
+                for (nestedSlotMeta in nestedMetas) {
+                    if (nestedSlotMeta.isHead) {
+                        // What we need here to create the SlotMeta, based on the Outside meta,
+                        slotsMetaMap["$slot.${nestedSlotMeta.label}"] = nestedSlotMeta
+                    }
+                }
             }
         }
         
