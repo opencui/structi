@@ -23,9 +23,6 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.KProperty1
 
 
-
-
-
 /**
  * this file contains the things we need from platform, they will be declared on platform so that they can
  * referenced. The declaration on the platform need not to be complete, but need to be accurate so the
