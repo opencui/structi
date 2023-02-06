@@ -602,7 +602,7 @@ data class BertStateTracker(
         val slotsMetaMap = agentMeta.getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
 
         // We will test the nested slot at the top level, note that only handles the ones has head.
-        for (slot in slotsMetaMap.keys) {
+        for (slot in slotsMetaMap.keys.toList()) {
             val slotMeta = agentMeta.getSlotMeta(frame, slot)
             if (slotMeta != null) {
                 val nestedMetas = agentMeta.getSlotMetas(slotMeta.type!!)
