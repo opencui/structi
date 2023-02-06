@@ -787,7 +787,16 @@ data class BertStateTracker(
             spredict = GlobalScope.async { nluModel.predictSlot(lang, utterance, slotProbes) }
         }
 
-        return extractEntityEvents(ducontext, topLevelFrameType, slotMap, focusedSlot, spredict).toMutableList()
+        val result = extractEntityEvents(ducontext, topLevelFrameType, slotMap, focusedSlot, spredict).toMutableList()
+        if (result.isNullOrEmpty()) return result
+        return if (result.find {
+                topLevelFrameType.startsWith(it.packageName!!) && topLevelFrameType.endsWith(it.type)
+                        || it.packageName == "io.opencui.core"} != null) {
+            result
+        } else {
+            // Make sure that we have at least one topLevelFrameType
+            listOf(buildFrameEvent(topLevelFrameType)) + result
+        }
     }
 
     private fun fillSlotUpdate(
@@ -870,7 +879,11 @@ data class BertStateTracker(
             var pattribute: String? = null
             if (key == "") {
                 type = frameType
+                res.add(buildFrameEvent(type, eventMap[key]!!.toList()))
             } else {
+                // We do not know how to deal with the nested structure yet.
+                // For now, just create the frame for the innermost frame
+                // and ignore the
                 val parts = key.split(".")
                 type = run {
                     var type1 = frameType
@@ -879,9 +892,8 @@ data class BertStateTracker(
                     }
                     type1
                 }
-                pattribute = parts[parts.size - 1]
+                res.add(buildFrameEvent(type, eventMap[key]!!.toList()))
             }
-            res.add(buildFrameEvent(type, eventMap[key]!!.toList()).apply { attribute = pattribute })
         }
         logger.info("res: $res")
         return@runBlocking res
@@ -943,17 +955,18 @@ data class BertStateTracker(
         for (span in spans) {
             val nameParts = span.attribute!!.split(".")
             val path = nameParts.subList(0, nameParts.size - 1).joinToString(".")
+            val lastPart = nameParts[nameParts.size - 1]
             val entityLabel = span.norm!!
             logger.info("handle entity with label = $entityLabel")
             val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
-                EntityEvent(entityLabel, span.attribute!!).apply {
+                EntityEvent(entityLabel, lastPart).apply {
                     origValue = span.value;
                     type = addVirtual(span.type!!);
                     isLeaf = false
                 }
             } else {
-                EntityEvent(entityLabel, span.attribute!!).apply {
+                EntityEvent(entityLabel, lastPart).apply {
                     origValue = span.value;
                     type = span.type
                 }
