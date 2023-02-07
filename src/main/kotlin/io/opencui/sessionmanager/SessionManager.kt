@@ -114,7 +114,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
                  events: List<FrameEvent> = emptyList()): Map<String, List<String>> {
         assert(targetChannels.isNotEmpty())
         session.targetChannel = targetChannels
-        logger.info("process events: $events")
         val responses = dm.response(query, events, session)
         updateUserSession(session.userIdentifier, session.botInfo, session)
         return convertBotUtteranceToText(session, responses, session.targetChannel)
