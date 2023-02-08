@@ -152,7 +152,7 @@ object Dispatcher {
         if (getUserSession(userInfo, botInfo) == null) {
             val userSession = createUserSession(userInfo, botInfo)
             // start the conversation from the Main.
-            val events = listOf(FrameEvent("Main", emptyList(), emptyList(), "${botInfo.org}.${botInfo.agent}"))
+            val events = listOf(FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}"))
             getReply(userSession, message, events)
         }else{
             val userSession = getUserSession(userInfo, botInfo)!!

@@ -178,7 +178,7 @@ data class UserSession(
     @Transient @JsonIgnore var chatbot: IChatbot? = null): LinkedHashMap<String, Any>(), Serializable, StateChart {
 
     // Default botInfo, need to be changed.
-    var botInfo = BotInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch)
+    var botInfo = botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch)
 
     override val events = mutableListOf<FrameEvent>()
 
