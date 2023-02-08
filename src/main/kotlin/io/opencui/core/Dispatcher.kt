@@ -88,8 +88,7 @@ object Dispatcher {
     // This is used to make sure that we have a singleton to start the task.
     val timer = Timer()
 
-    // when this is true, we always delete existing index.
-    var deleteExistingIndex: Boolean = true
+    var botPrefix: String? = null
     // this is deployment wide parameter.
     var memoryBased: Boolean = true
 
