@@ -149,6 +149,7 @@ object Dispatcher {
 
 
     fun process(userInfo: IUserIdentifier, botInfo: BotInfo, message: TextPayload) {
+        logger.info("process $userInfo: $botInfo with message: $message")
         if (getUserSession(userInfo, botInfo) == null) {
             val userSession = createUserSession(userInfo, botInfo)
             // start the conversation from the Main.
