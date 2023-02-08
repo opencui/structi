@@ -255,7 +255,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
             } else {
                 val dirAsFile = File("./index/${agent.getOrg()}_${agent.getLabel()}_${agent.getLang()}_${agent.getBranch()}")
                 val path = Paths.get(dirAsFile.absolutePath)
-                logger.info("Dispatcher.deleteExistingIndex = ${Dispatcher.deleteExistingIndex}, dirExist = ${dirAsFile.exists()}")
+                logger.info("Dispatcher.indexing: dirExist = ${dirAsFile.exists()}")
                 // Make sure we delete the past index for springboot so that at least we use the newer version
                 // as we are rely on org/agent/version for uniqueness, which might fail.
                 val needIndex = !dirAsFile.exists()
