@@ -30,7 +30,7 @@ object ChatbotLoader {
             val file = getJarFile(botInfo)
             logger.info("No $key in ${chatbotCache.keys} so need to load from ${file.absolutePath} for $botInfo")
             val classLoader = URLClassLoader(arrayOf(file.toURI().toURL()), javaClass.classLoader)
-            val qualifiedAgentName = "${botInfo.org}.${botInfo.agent}.Agent"
+            val qualifiedAgentName = "${botInfo.fullName}.Agent"
             val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
             val chatbot = (kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot)
             chatbotCache[key] = RecyclableAgentResource(chatbot, classLoader, file.lastModified())

@@ -1,6 +1,5 @@
 package io.opencui.core
 
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
@@ -153,9 +152,36 @@ object RuntimeConfig {
 data class RoutingInfo(val id: String, val intentsDesc: List<String>)
 
 
+interface BotInfo: Serializable {
+    val fullName: String
+    val lang: String
+    val branch: String
+}
 
-data class BotInfo(val org: String, val agent: String, val lang: String = "*", val branch: String = "master"): Serializable
-
+fun master(lang: String = "*") : BotInfo {
+    return object : BotInfo {
+        override val fullName =  Dispatcher.botPrefix!!
+        override val lang = lang
+        override val branch = "master" }
+}
+fun botInfo(org: String, bot: String) : BotInfo {
+    return object : BotInfo {
+        override val fullName =  "${org}.${bot}"
+        override val lang = "*"
+        override val branch = "master" }
+}
+fun botInfo(fullName: String, lang: String, branch: String) : BotInfo {
+    return object : BotInfo {
+        override val fullName =  fullName
+        override val lang = lang
+        override val branch = branch }
+}
+fun botInfo(org: String, bot: String, lang: String, branch: String) : BotInfo {
+    return object : BotInfo {
+        override val fullName =  "${org}.${bot}"
+        override val lang = lang
+        override val branch = branch }
+}
 
 interface Component {
     val orgName: String
@@ -220,7 +246,7 @@ abstract class IChatbot : Component {
     open fun recycle() {
     }
 
-    fun getLoader() : ClassLoader = ChatbotLoader.findClassLoader(BotInfo(orgName, agentName, agentLang, agentBranch))
+    fun getLoader() : ClassLoader = ChatbotLoader.findClassLoader(botInfo(orgName, agentName, agentLang, agentBranch))
 
     operator fun invoke(p1: String, session: UserSession, packageName: String? = null): FillBuilder? {
         // hardcode for clean session

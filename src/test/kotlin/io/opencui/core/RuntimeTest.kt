@@ -26,7 +26,7 @@ data class TableInfo(
 
 class RuntimeTest {
     val dm = DialogManager()
-    val botInfo = BotInfo("io.opencui", "test", "en", "master")
+    val botInfo = botInfo("io.opencui", "test", "en", "master")
     val inMemorySessionStore = InMemorySessionStore()
     val versionStore = InMemoryBotStore().apply { putVersion(botInfo, "test") }
     val sessionManager = SessionManager(inMemorySessionStore)
