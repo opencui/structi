@@ -173,8 +173,12 @@ object Dispatcher {
 
     fun getReply(userSession: UserSession, message: TextPayload? = null, events: List<FrameEvent> = emptyList()) {
         val msgId = message?.msgId
+
         // if there is no msgId, or msgId is not repeated, we handle message.
-        if (msgId != null && !userSession.pastMessages.isNew(msgId)) return
+        if (msgId != null && !userSession.isFirstMessage(msgId)) {
+            logger.info("Not the first time see: $msgId")
+            return
+        }
 
         val userInfo = userSession.userIdentifier
         val botInfo = userSession.botInfo
@@ -221,9 +225,6 @@ object Dispatcher {
             logger.info("send $msgs to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
 
             send(userInfo, botInfo, msgs)
-
-            // Wait until we are done with process, this is not foolproof, just slightly better.
-            if (msgId != null) userSession.pastMessages.update(msgId)
         } else {
             if (support == null || !support.info.assist) return
             // assist mode.
