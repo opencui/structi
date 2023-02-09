@@ -16,6 +16,8 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.ObjectInputStream
 import java.io.Serializable
+import java.time.Duration
+import java.time.LocalDateTime
 import kotlin.reflect.KParameter
 
 //
@@ -188,6 +190,32 @@ data class UserSession(
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
         events.add(frameEvent)
+    }
+
+    // for now, use 30 minutes senssion
+    val sessionDuration = 30*60
+    val msgIds = mutableMapOf<String, LocalDateTime>()
+
+    // This function try to check whether the message is the first
+    // The idea is we only process the first message in the sequence of
+    // retries.
+    fun isFirstMessage(channelType: String, pmsgId: String): Boolean {
+        // First remove old msgIds.
+        val msgId = "$channelType:$pmsgId"
+        val now = LocalDateTime.now()
+        for (msgId in msgIds.keys) {
+            val duration = Duration.between(msgIds[msgId]!!, now)
+            if (duration.seconds > sessionDuration) {
+                msgIds.remove(msgId)
+            }
+        }
+        // For now, we only process once.
+        return if (!msgIds.containsKey(msgId)) {
+            msgIds.put(msgId, LocalDateTime.now())
+            true
+        } else {
+            false
+        }
     }
 
     override fun addEvents(frameEvents: List<FrameEvent>) {
