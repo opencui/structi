@@ -119,11 +119,23 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         return convertBotUtteranceToText(session, responses, session.targetChannel)
     }
 
+    private fun deDup(input: List<DialogAct>) : List<DialogAct> {
+        val result = mutableListOf<DialogAct>()
+        var current : DialogAct? = null
+        for (t in input) {
+            if (t != current) {
+                result.add(t)
+                current = t
+            }
+        }
+        return result
+    }
+
     /**
      * This the place where we can remove extra prompt if we need to.
      */
     private fun convertBotUtteranceToText(session: UserSession, results: List<ActionResult>, targetChannels: List<String>): Map<String, List<String>> {
-        val responses : List<DialogAct> = results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten()
+        val responses : List<DialogAct> = deDup(results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten())
         val rewrittenResponses = session.rewriteDialogAct(responses)
         return targetChannels.associateWith { k -> rewrittenResponses.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
