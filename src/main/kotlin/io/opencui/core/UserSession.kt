@@ -148,24 +148,6 @@ interface StateChart {
 
 }
 
-data class Dedupper<T>(val max_size: Int) : LinkedList<T>(), Serializable {
-    /**
-     * Assume the caller will use it if it is new.
-     */
-    fun isNew(x: T) : Boolean {
-        val contains = (x in this)
-        return !contains
-    }
-
-    fun update(x: T) {
-        val contains = (x in this)
-        if (!contains) {
-            this.addLast(x)
-            if (this.size > max_size) this.removeFirst()
-        }
-    }
-}
-
 
 /**
  * UserSession is used to keep the history of the conversation with user. It will
@@ -184,9 +166,6 @@ data class UserSession(
 
     override val events = mutableListOf<FrameEvent>()
 
-    // this is used for dedup the retried message from channels.
-    val pastMessages = Dedupper<String>(9)
-
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
         events.add(frameEvent)
@@ -199,9 +178,8 @@ data class UserSession(
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
     // retries.
-    fun isFirstMessage(channelType: String, pmsgId: String): Boolean {
+    fun isFirstMessage(msgId: String): Boolean {
         // First remove old msgIds.
-        val msgId = "$channelType:$pmsgId"
         val now = LocalDateTime.now()
         for (msgId in msgIds.keys) {
             val duration = Duration.between(msgIds[msgId]!!, now)
@@ -209,6 +187,7 @@ data class UserSession(
                 msgIds.remove(msgId)
             }
         }
+
         // For now, we only process once.
         return if (!msgIds.containsKey(msgId)) {
             msgIds.put(msgId, LocalDateTime.now())
