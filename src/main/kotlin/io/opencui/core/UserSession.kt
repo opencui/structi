@@ -148,24 +148,6 @@ interface StateChart {
 
 }
 
-data class Dedupper<T>(val max_size: Int) : LinkedList<T>(), Serializable {
-    /**
-     * Assume the caller will use it if it is new.
-     */
-    fun isNew(x: T) : Boolean {
-        val contains = (x in this)
-        return !contains
-    }
-
-    fun update(x: T) {
-        val contains = (x in this)
-        if (!contains) {
-            this.addLast(x)
-            if (this.size > max_size) this.removeFirst()
-        }
-    }
-}
-
 
 /**
  * UserSession is used to keep the history of the conversation with user. It will
@@ -183,9 +165,6 @@ data class UserSession(
     var botInfo = botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch)
 
     override val events = mutableListOf<FrameEvent>()
-
-    // this is used for dedup the retried message from channels.
-    val pastMessages = Dedupper<String>(9)
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
