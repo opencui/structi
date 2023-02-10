@@ -917,9 +917,9 @@ data class PagedSelectable<T: Any> (
     val sepConfirm by lazy {
         singleEntryPrompt?.let {
             Confirmation(
-                    session, this, "index",
-                    {it(pick()!!)},
-                    implicit, actions = zeroEntryActions.filter { it !is DialogAct })
+                session, this, "index",
+                {it(pick()!!)},
+                implicit, actions = zeroEntryActions.filter { it !is DialogAct })
         }
     }
 
@@ -927,8 +927,7 @@ data class PagedSelectable<T: Any> (
 
     val candidatesRaw : List<T>
         get() =  if (suggestionIntentBuilder != null) {
-            val providedValues = getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
-            providedValues
+            getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
         } else {
             candidateListProvider!!()
         }
