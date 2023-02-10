@@ -12,22 +12,18 @@ class InMemorySessionStore: ISessionStore {
         return cache[ISessionStore.key(channel, id, botInfo)]
     }
 
-    override fun deleteSession(channel: String, id:String, botInfo: BotInfo): Boolean {
-        return cache.remove(ISessionStore.key(channel, id, botInfo)) != null
+    override fun deleteSession(channel: String, id:String, botInfo: BotInfo) {
+        cache.remove(ISessionStore.key(channel, id, botInfo)) != null
     }
 
-    override fun updateSession(channel: String, id: String, botInfo: BotInfo, session: UserSession): Boolean {
+    override fun updateSession(channel: String, id: String, botInfo: BotInfo, session: UserSession) {
         val key = ISessionStore.key(channel, id, botInfo)
-        return if (cache[key] != null) {
+        if (cache[key] != null) {
             cache[key] = session
-            true
-        } else {
-            false
         }
     }
 
-    override fun saveSession(channel: String, id: String, botInfo: BotInfo, session: UserSession): Boolean {
+    override fun saveSession(channel: String, id: String, botInfo: BotInfo, session: UserSession) {
         cache[ISessionStore.key(channel, id, botInfo)] = session
-        return true
     }
 }
