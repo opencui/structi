@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory
  */
 interface ISessionStore {
     fun getSession(channel: String, id:String, botInfo: BotInfo): UserSession?
-    fun deleteSession(channel: String, id:String, botInfo: BotInfo): Boolean
-    fun updateSession(channel: String, id: String, botInfo: BotInfo, session: UserSession): Boolean
-    fun saveSession(channel: String, id: String, botInfo: BotInfo, session: UserSession): Boolean
+    fun deleteSession(channel: String, id:String, botInfo: BotInfo)
+    fun updateSession(channel: String, id: String, botInfo: BotInfo, session: UserSession)
+    fun saveSession(channel: String, id: String, botInfo: BotInfo, session: UserSession)
 
     companion object {
         fun key(channel: String, id:String, botInfo: BotInfo): String {
