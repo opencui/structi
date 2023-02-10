@@ -925,15 +925,17 @@ data class PagedSelectable<T: Any> (
 
     var suggestionIntent: IIntent? = suggestionIntentBuilder?.invoke(session!!) as IIntent?
 
-    val candidates: List<T>
-        get() {
-            return if (suggestionIntentBuilder != null) {
-                val providedValues = getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
-                providedValues.filter(matcher)
-            } else {
-                candidateListProvider!!().filter(matcher)
-            }
+    val candidatesRaw : List<T>
+        get() =  if (suggestionIntentBuilder != null) {
+            val providedValues = getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
+            providedValues
+        } else {
+            candidateListProvider!!()
         }
+
+    val candidates: List<T>
+        get() { return candidatesRaw.filter(matcher) }
+
 
     val lastPage: Int
         get() = candidates.size / pageSize - if (candidates.size % pageSize == 0) 1 else 0
