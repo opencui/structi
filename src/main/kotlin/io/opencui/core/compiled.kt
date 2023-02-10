@@ -925,13 +925,13 @@ data class PagedSelectable<T: Any> (
 
     var suggestionIntent: IIntent? = suggestionIntentBuilder?.invoke(session!!) as IIntent?
 
-    val candidatesRaw : List<T>
+    val candidatesRaw : List<T> by lazy {
         get() =  if (suggestionIntentBuilder != null) {
-            val providedValues = getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
-            providedValues
+            getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
         } else {
             candidateListProvider!!()
         }
+    }
 
     val candidates: List<T>
         get() { return candidatesRaw.filter(matcher) }
