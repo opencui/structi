@@ -173,8 +173,8 @@ data class UserSession(
 
     // for now, use 30 minutes senssion
     val sessionDuration = 30*60
-    val msgIds = mutableMapOf<String, LocalDateTime>()
-
+    val msgIds = ConcurrentHashMap<String, LocalDateTime>()
+    
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
     // retries.
