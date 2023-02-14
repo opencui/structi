@@ -18,7 +18,7 @@ interface ISessionStore {
     companion object {
         fun key(channel: String, id:String, botInfo: BotInfo): String {
             // We do not use language as part of key so that multiple language support is easier.
-            return "session:${channel}:${id}:${botInfo.fullName}::${botInfo.branch}"
+            return "${botInfo.fullName}:s:${channel}:${id}"
         }
     }
 }
