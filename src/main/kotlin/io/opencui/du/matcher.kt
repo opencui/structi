@@ -68,6 +68,8 @@ class NestedMatcher(val context: DUContext) : Matcher {
 
     // Try to find some entities to cover this, using the longest match.
     fun entityCover(uStart: Int, entityType: String): Int {
+        // TODO: why we got this point need to be checked.
+        if (uStart >= context.tokens!!.size) return -1 
         val charStart = context.tokens!![uStart].start
         val entities = context.emapByCharStart[charStart] ?: return -1
         var end = -1
