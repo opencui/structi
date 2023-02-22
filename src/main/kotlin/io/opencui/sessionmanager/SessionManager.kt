@@ -26,12 +26,16 @@ interface ISessionStore {
 
 // Some time, we need to save the bot related information across different versions for all users.
 interface IBotStore {
-    fun putVersion(botInfo: BotInfo, version: String): Boolean { return putRaw(botInfo, "version", version)}
-    fun getVersion(botInfo: BotInfo): String? { return getRaw(botInfo, "version") }
 
+    val botInfo: BotInfo
 
-    fun putRaw(botInfo: BotInfo, key: String, value: String): Boolean
-    fun getRaw(botInfo: BotInfo, key: String): String?
+    // This should mimic the redis as much as possible.
+    fun set(key: String, value: String): Boolean
+    fun get(key: String): String?
+
+    // Value is list.
+    fun rpush(key: String, value: String)
+    fun lrange(key: String, start: Int, end: Int): List<String>
 }
 
 /**

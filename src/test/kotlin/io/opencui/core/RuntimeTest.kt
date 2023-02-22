@@ -28,7 +28,7 @@ class RuntimeTest {
     val dm = DialogManager()
     val botInfo = botInfo("io.opencui", "test", "en", "master")
     val inMemorySessionStore = InMemorySessionStore()
-    val versionStore = InMemoryBotStore().apply { putVersion(botInfo, "test") }
+    val versionStore = InMemoryBotStore(botInfo)
     val sessionManager = SessionManager(inMemorySessionStore)
 
     val databaseConfig = mapOf(
