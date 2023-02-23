@@ -64,15 +64,15 @@ sealed interface RGBase: Serializable {
 
 data class Zh(override val duMeta: DUMeta) : RGBase {
     override val locale = Locale.CHINA!!
-    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
-    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
-    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(ZoneId.of("CTT", ZoneId.SHORT_IDS))!!
+    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)!!
+    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)!!
+    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale)!!
 }
 
 data class En(override val duMeta: DUMeta) : RGBase {
     override val locale = Locale.US!!
-    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).withZone( ZoneId.of("UTC"))!!
-    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone( ZoneId.of("UTC"))!!
-    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone( ZoneId.of("UTC"))!!
+    override val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)!!
+    override val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)!!
+    override val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale)!!
 }
 
