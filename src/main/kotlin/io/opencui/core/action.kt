@@ -72,10 +72,10 @@ interface CompositeAction : Action {
     //fun runs(): ActionResults
 }
 
+
 fun Action.emptyResult() : ActionResult {
     return ActionResult(emptyLog())
 }
-
 fun Action.emptyLog() : ActionLog {
     return ActionLog(this::class.java.simpleName, Json.makePrimitive(""), false)
 }
@@ -87,12 +87,6 @@ fun Action.createLog(payload: String): ActionLog {
 fun Action.createLog(payload: JsonElement): ActionLog {
     return ActionLog(this::class.java.simpleName, payload, true)
 }
-
-fun Action.createNoTypeLog(payload: JsonElement): ActionLog {
-    return ActionLog("", payload, true)
-}
-
-
 
 /**
  * This action is used when focus = null, but input != null, have a target. The key should
@@ -117,7 +111,7 @@ data class StartFill(
         // control. Notice we will do two things, if the top filler attribute is not branchable
         // then we use send the frame at intent level, if it is, then we set the top one to be
         // it, and then adjust the stack.
-        val filler = intent.createBuilder().invoke(ParamPath(intent)) as FrameFiller<*>
+        val filler = intent.createBuilder().invoke(ParamPath(intent))
         val wrapperFiller = AnnotatedWrapperFiller(filler)
         filler.parent = wrapperFiller
 
@@ -191,7 +185,7 @@ data class StartFill(
                     )
 
                 val clarificationIntent = buildIntent.invoke(session)!!
-                val clarificationFiller = clarificationIntent.createBuilder().invoke(ParamPath(clarificationIntent)) as FrameFiller<*>
+                val clarificationFiller = clarificationIntent.createBuilder().invoke(ParamPath(clarificationIntent))
                 val clarificationWrapperFiller = AnnotatedWrapperFiller(clarificationFiller)
                 clarificationFiller.parent = clarificationWrapperFiller
                 session.schedulers += Scheduler(session)
@@ -224,9 +218,8 @@ data class SimpleFillAction(
         var match: FrameEvent
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
-        var finalMatch = match
         // commit is responsible for marking the part of FrameEvent that it used
-        val success = filler.commit(finalMatch)
+        val success = filler.commit(match)
         if (!success) return ActionResult(null, false)
 
         session.schedule.state = Scheduler.State.RESCHEDULE
@@ -239,7 +232,10 @@ data class RefocusActionBySlot(
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val path = session.findActiveFillerPathForTargetSlot(frame, slot)
-        return if (path.isEmpty()) ActionResult(null, true) else RefocusAction(path as List<ICompositeFiller>).run(session)
+        return if (path.isEmpty())
+            ActionResult(null, true)
+        else
+            RefocusAction(path as List<ICompositeFiller>).run(session)
     }
 }
 
@@ -281,7 +277,7 @@ data class RefocusAction(
         // set slots in between to recheck state; in post order
         session.postOrderManipulation(scheduler, start, end) { it.recheck() }
 
-        // assume we have a candidate value for the refocused slot or we want to ask for the refocused slot
+        // assume we have a candidate value for the refocused slot, or we want to ask for the refocused slot
         if (scheduler == session.schedule) {
             RescheduleAction().run(session)
         } else {
@@ -302,7 +298,6 @@ data class RecoverAction(val tag: String = "") : StateAction {
 data class SlotAskAction(val tag: String = "") : StateAction {
     override fun run(session: UserSession): ActionResult {
         val filler = session.schedule.last()
-        val debugInfo = session.userIdentifier.channelId() == SideEffect.RESTFUL
         // decorative prompts from outer targets of VR, prompt only once
         val vrTargetPrompts = mutableListOf<List<Action>>()
         for (f in session.schedule) {
@@ -519,12 +514,12 @@ data class IntentAction(
         val intentFillerBuilder = intent.createBuilder()
         val currentFiller = session.schedule.lastOrNull() as? FrameFiller<*>
 
-        val targetFiller = intentFillerBuilder.invoke(if (currentFiller != null) currentFiller.path!!.join("_action", intent) else ParamPath(intent)) as FrameFiller<*>
+        val targetFiller = intentFillerBuilder.invoke(if (currentFiller != null) currentFiller.path!!.join("_action", intent) else ParamPath(intent))
         val targetFillerWrapper = AnnotatedWrapperFiller(targetFiller)
         targetFiller.parent = targetFillerWrapper
         targetFillerWrapper.parent = currentFiller
         session.schedule.push(targetFillerWrapper)
-        jsonIntent.init(session, targetFiller as FrameFiller<*>)
+        jsonIntent.init(session, targetFiller)
         return ActionResult(createLog("INTENT ACTION : ${intent.javaClass.name}"), true)
     }
 }
@@ -566,7 +561,7 @@ open class LazyAction(private val actionGenerator: ()->Action): SchemaAction {
 
 class Handoff: SchemaAction {
     fun matchSize(intentStr: String, routingInfo:RoutingInfo) : Int {
-        var maxSize : Int = 0
+        var maxSize = 0
         for (partial in routingInfo.intentsDesc) {
             if (intentStr.startsWith(partial.lowercase())) {
                 val size = partial.split(".").size
@@ -579,7 +574,7 @@ class Handoff: SchemaAction {
     fun findDepartment(intentStr: String?, routing: Map<String, RoutingInfo>) : String {
         if (intentStr == null) return routing[DEFAULT]!!.id
         val list = mutableListOf<Pair<String, Int>>()
-        for ( (k, v) in routing) {
+        for ( (_, v) in routing) {
             val size = matchSize(intentStr, v)
             if (size != 0) {
                 list.add(Pair(v.id, size))
@@ -594,7 +589,7 @@ class Handoff: SchemaAction {
     }
 
     override fun run(session: UserSession): ActionResult {
-        var intentStr = session.getOpenPayloadIntent()?.lowercase()
+        val intentStr = session.getOpenPayloadIntent()?.lowercase()
         logger.info("Hand off session for ${session.userIdentifier} for $intentStr")
         val department = findDepartment(intentStr, session.chatbot!!.routing)
         Dispatcher.handOffSession(session.userIdentifier, session.botInfo, department)
