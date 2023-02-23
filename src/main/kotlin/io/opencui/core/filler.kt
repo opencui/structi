@@ -287,9 +287,6 @@ interface TypedFiller<T> {
     }
 }
 
-interface BuildProperty<T> : Serializable {
-    operator fun invoke() : KMutableProperty0<T?>
-}
 
 class EntityFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,

@@ -61,10 +61,7 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
     }
 }
 
-interface Interactable: Serializable {
-    fun Zh.exprImpl(): String = ""
-    fun En.exprImpl(): String = ""
-}
+interface Interactable: Serializable
 
 /**
  * One should be able to access connection, and even session. The IService contains a set of functions.
@@ -75,6 +72,8 @@ interface IEntity: Interactable {
     var origValue: String?
 }
 
+
+interface IComposite: Interactable
 
 /**
  * For value disambiguation, we need to expose some information for the generic implementation
