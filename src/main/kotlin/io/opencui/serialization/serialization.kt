@@ -2,6 +2,7 @@ package io.opencui.serialization
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.node.*
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -12,6 +13,8 @@ import io.opencui.core.IFrame
 import io.opencui.core.IEntity
 import io.opencui.core.UserSession
 import java.io.*
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.companionObject
@@ -122,7 +125,25 @@ object Json {
 
     init {
         // support the java time.
-        mapper.registerModule(JavaTimeModule())
+        val module = JavaTimeModule()
+        module.addDeserializer(
+            OffsetDateTime::class.java,
+            object: JsonDeserializer<OffsetDateTime>() {
+                override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): OffsetDateTime {
+                    return OffsetDateTime.parse(p!!.text, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                }
+            }
+        )
+
+        module.addSerializer(
+            OffsetDateTime::class.java,
+            object: JsonSerializer<OffsetDateTime>() {
+                override fun serialize(value: OffsetDateTime?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+                    gen?.writeString(value!!.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                }
+            }
+        )
+        mapper.registerModule(module)
         mapper.registerKotlinModule()
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
