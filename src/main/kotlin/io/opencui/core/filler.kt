@@ -3,6 +3,7 @@ package io.opencui.core
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
+import com.fasterxml.jackson.databind.node.ValueNode
 import io.opencui.core.da.DumbDialogAct
 import io.opencui.core.hasMore.No
 import io.opencui.serialization.Json
@@ -238,6 +239,29 @@ interface IFiller: Compatible, Serializable {
         }
         return typeStr
     }
+
+    fun generateFrameEvent(value: Any): List<FrameEvent> {
+        val fullyQualifiedType: String = qualifiedEventType() ?: if (value is ObjectNode) value.get("@class").asText() else value::class.qualifiedName!!
+        val typeString = fullyQualifiedType.substringAfterLast(".")
+        val packageName = fullyQualifiedType.substringBeforeLast(".")
+        if (value is ObjectNode) value.remove("@class")
+        val jsonElement = Json.encodeToJsonElement(value)
+        return when {
+            jsonElement is ValueNode || value is IEntity -> {
+                listOf(FrameEvent.fromJson(typeString, Json.makeObject(mapOf(attribute to jsonElement))).apply {
+                    this.packageName = packageName
+                })
+            }
+            jsonElement is ObjectNode -> {
+                listOf(FrameEvent.fromJson(typeString, jsonElement).apply {
+                    this.packageName = packageName
+                })
+            }
+            else -> {
+                listOf()
+            }
+        }
+    }
 }
 
 // return true if the valid is considered good.
@@ -352,7 +376,73 @@ class EntityFiller<T>(
     }
 }
 
-class RealtypeFiller(override val target: KMutableProperty0<String?>, val inferFun: ((FrameEvent) -> FrameEvent?)? = null, val checker: (String) -> Boolean, val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
+
+class MonolithicFiller<T>(
+    val buildSink: () -> KMutableProperty0<T?>,
+    val builder: (String, String?) -> T?) : AEntityFiller(), TypedFiller<T> {
+    constructor(buildSink: () -> KMutableProperty0<T?>,
+                builder: (String) -> T?): this(buildSink, {s, _ -> builder(s)})
+
+    override val target: KMutableProperty0<T?>
+        get() = buildSink()
+
+    init {
+        valueGood = {
+            s, t ->
+            try {
+                builder(s, t) != null
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    override val attribute: String
+        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
+
+    override fun clear() {
+        value = null
+        origValue = null
+        event = null
+        target.set(null)
+        done = false
+        super.clear()
+    }
+
+    override fun qualifiedEventType(): String {
+        val frameType = path!!.path.last().frame::class.qualifiedName!!.let {
+            if (it.endsWith("?")) it.dropLast(1) else it
+        }
+        return frameType.substringBefore("<")
+    }
+
+    override fun isCompatible(frameEvent: FrameEvent): Boolean {
+        return simpleEventType() == frameEvent.type && frameEvent.activeSlots.any { it.attribute == attribute }
+    }
+
+    override fun commit(frameEvent: FrameEvent): Boolean {
+        val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
+        related.isUsed = true
+
+        if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
+        target.set(builder.invoke(related.value, related.type))
+        value = related.value
+        origValue = related.origValue
+        event = frameEvent
+        decorativeAnnotations.clear()
+        decorativeAnnotations.addAll(related.decorativeAnnotations)
+        done = true
+        return true
+    }
+}
+
+// on composite with VR (or almost always).
+class RealtypeFiller(
+    override val target: KMutableProperty0<String?>,
+    val inferFun: ((FrameEvent) -> FrameEvent?)? = null,
+    val checker: (String) -> Boolean,
+    val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
 
     init {
         valueGood = {
@@ -896,6 +986,7 @@ class FrameFiller<T: IFrame>(
         return false
     }
 }
+
 
 //
 // Any one of the subtype will be useful there.

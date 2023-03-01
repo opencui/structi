@@ -61,26 +61,21 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
     }
 }
 
-interface Interactable: Serializable
-
 /**
  * One should be able to access connection, and even session. The IService contains a set of functions.
  * Service is also attached to session, just like frame.
  */
-interface IEntity: Interactable {
+interface IEntity : Serializable{
     var value: String
     var origValue: String?
 }
-
-
-interface IComposite: Interactable
 
 /**
  * For value disambiguation, we need to expose some information for the generic implementation
  * for the slot that we bind dynamically.
  * Builder can also do slotNames.random() and typeNames.random().
  */
-interface IFrame: Interactable {
+interface IFrame : Serializable {
     var session: UserSession?
     fun annotations(path: String): List<Annotation> = listOf()
 

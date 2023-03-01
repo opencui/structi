@@ -1496,5 +1496,4 @@ class IntentClarification(
             return filler
         }
     }
-
 }

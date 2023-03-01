@@ -214,8 +214,8 @@ data class StartFill(
 }
 
 data class SimpleFillAction(
-        val filler: AEntityFiller,
-        var match: FrameEvent
+    val filler: AEntityFiller,
+    var match: FrameEvent
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
         // commit is responsible for marking the part of FrameEvent that it used
