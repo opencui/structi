@@ -228,7 +228,8 @@ data class SimpleFillAction(
 }
 
 data class RefocusActionBySlot(
-        val frame: IFrame, val slot: String?
+    val frame: IFrame,
+    val slot: String?
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val path = session.findActiveFillerPathForTargetSlot(frame, slot)

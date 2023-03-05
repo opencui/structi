@@ -3,10 +3,10 @@ package io.opencui.core
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
-import com.fasterxml.jackson.databind.node.ValueNode
 import io.opencui.core.da.DumbDialogAct
 import io.opencui.core.hasMore.No
 import io.opencui.serialization.Json
+import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
@@ -54,7 +54,6 @@ import kotlin.reflect.full.isSubclassOf
 data class Param(val frame: IFrame, val attribute: String): Serializable
 
 data class ParamPath(val path: List<Param>): Serializable {
-
     constructor(frame: IFrame): this(listOf(Param(frame, "this")))
 
     fun join(a: String, nf: IFrame? = null): ParamPath {
@@ -239,33 +238,7 @@ interface IFiller: Compatible, Serializable {
         }
         return typeStr
     }
-
-    fun generateFrameEvent(value: Any): List<FrameEvent> {
-        val fullyQualifiedType: String = qualifiedEventType() ?: if (value is ObjectNode) value.get("@class").asText() else value::class.qualifiedName!!
-        val typeString = fullyQualifiedType.substringAfterLast(".")
-        val packageName = fullyQualifiedType.substringBeforeLast(".")
-        if (value is ObjectNode) value.remove("@class")
-        val jsonElement = Json.encodeToJsonElement(value)
-        return when {
-            jsonElement is ValueNode || value is IEntity -> {
-                listOf(FrameEvent.fromJson(typeString, Json.makeObject(mapOf(attribute to jsonElement))).apply {
-                    this.packageName = packageName
-                })
-            }
-            jsonElement is ObjectNode -> {
-                listOf(FrameEvent.fromJson(typeString, jsonElement).apply {
-                    this.packageName = packageName
-                })
-            }
-            else -> {
-                listOf()
-            }
-        }
-    }
 }
-
-// return true if the valid is considered good.
-typealias ValueChecker = (String, String?) -> Boolean
 
 // The goal of this to fill the slot from typed string form, to typed form.
 abstract class AEntityFiller : IFiller, Committable {
@@ -277,9 +250,9 @@ abstract class AEntityFiller : IFiller, Committable {
     var event: FrameEvent? = null
 
     var done: Boolean = false
-    var valueGood: ValueChecker? = null
+
     var value: String? = null
-    var origValue: String? = null
+
 
     override fun done(frameEvents: List<FrameEvent>): Boolean = done
 
@@ -322,6 +295,9 @@ class EntityFiller<T>(
 
     override val target: KMutableProperty0<T?>
         get() = buildSink()
+
+    var origValue: String? = null
+    var valueGood: ((String, String?) -> Boolean)? = null
 
     init {
         valueGood = {
@@ -376,22 +352,24 @@ class EntityFiller<T>(
     }
 }
 
-
-class MonolithicFiller<T>(
+interface IOpaqueFiller {
+    val declaredType: String
+}
+// Used with composite with VR (or almost always).
+class OpaqueFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
-    val builder: (String, String?) -> T?) : AEntityFiller(), TypedFiller<T> {
-    constructor(buildSink: () -> KMutableProperty0<T?>,
-                builder: (String) -> T?): this(buildSink, {s, _ -> builder(s)})
+    override val declaredType: String,
+    val builder: (JsonObject) -> T?) : AEntityFiller(), TypedFiller<T>, IOpaqueFiller {
 
     override val target: KMutableProperty0<T?>
         get() = buildSink()
 
+    var valueGood: ((JsonObject) -> Boolean)? = null
+
     init {
         valueGood = {
-            s, t ->
-            try {
-                builder(s, t) != null
-            } catch (e: Exception) {
+            s -> try { builder(s) != null }
+            catch (e: Exception) {
                 e.printStackTrace()
                 false
             }
@@ -403,7 +381,6 @@ class MonolithicFiller<T>(
 
     override fun clear() {
         value = null
-        origValue = null
         event = null
         target.set(null)
         done = false
@@ -422,27 +399,43 @@ class MonolithicFiller<T>(
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
-        val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
-        related.isUsed = true
+        val related = frameEvent.frames.find { it.attribute == attribute && !it.isUsed }!!
+        related.typeUsed = true
 
-        if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
-        target.set(builder.invoke(related.value, related.type))
-        value = related.value
-        origValue = related.origValue
+        val jsonObject = FrameEvent.toJson(related)
+
+        if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
+        target.set(builder.invoke(jsonObject))
+        value = jsonObject.toString()
         event = frameEvent
         decorativeAnnotations.clear()
-        decorativeAnnotations.addAll(related.decorativeAnnotations)
+        // decorativeAnnotations.addAll(related.decorativeAnnotations)
         done = true
+
         return true
     }
+
+    companion object {
+        inline fun <reified T> filler(session: UserSession, noinline buildSink: () -> KMutableProperty0<T?>) : OpaqueFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (JsonObject) -> T? = {
+                    s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return OpaqueFiller<T>(buildSink, fullName, builder)
+        }
+    }
+
 }
 
-// on composite with VR (or almost always).
-class RealtypeFiller(
+
+class RealTypeFiller(
     override val target: KMutableProperty0<String?>,
     val inferFun: ((FrameEvent) -> FrameEvent?)? = null,
     val checker: (String) -> Boolean,
     val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
+
+    var origValue: String? = null
+    var valueGood: ((String, String?) -> Boolean)? = null
 
     init {
         valueGood = {
@@ -1014,7 +1007,7 @@ class InterfaceFiller<T>(
 
     var realtype: String? = null
     val askFiller: AnnotatedWrapperFiller by lazy {
-        val entityFiller = RealtypeFiller(::realtype, inferFun = typeConverter, checker = { s -> factory.invoke(s) != null }) { buildVFiller() }
+        val entityFiller = RealTypeFiller(::realtype, inferFun = typeConverter, checker = { s -> factory.invoke(s) != null }) { buildVFiller() }
         entityFiller.path = this.path!!.join("$attribute._realtype")
         val af = AnnotatedWrapperFiller(entityFiller, false)
         af.parent = this

@@ -14,6 +14,7 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.sessionmanager.ChatbotLoader
+import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -409,42 +410,76 @@ data class UserSession(
         val fullyQualifiedType: String = filler.qualifiedEventType() ?: if (value is ObjectNode) value.get("@class").asText() else value::class.qualifiedName!!
         val typeString = fullyQualifiedType.substringAfterLast(".")
         val packageName = fullyQualifiedType.substringBeforeLast(".")
-        if (value is ObjectNode) value.remove("@class")
-        val jsonElement = Json.encodeToJsonElement(value)
-        return when {
-            jsonElement is ValueNode || value is IEntity -> {
-                listOf(FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to jsonElement))).apply {
-                    this.packageName = packageName
-                })
+        val result = if (value is ObjectNode) {
+            value.remove("@class")
+            when (value) {
+                is ValueNode -> {
+                    listOf(
+                        FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to value))).apply {
+                            this.packageName = packageName
+                        })
+                }
+
+                is ObjectNode -> {
+                    listOf(FrameEvent.fromJson(typeString, value).apply {
+                        this.packageName = packageName
+                    })
+                }
+
+                is ArrayNode -> {
+                    value.mapNotNull {
+                        when (it) {
+                            is ValueNode -> {
+                                FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to it))).apply {
+                                    this.packageName = packageName
+                                }
+                            }
+                            is ObjectNode -> {
+                                FrameEvent.fromJson(typeString, it).apply {
+                                    this.packageName = packageName
+                                }
+                            }
+                            else -> {
+                                null
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    listOf()
+                }
             }
-            jsonElement is ObjectNode -> {
-                listOf(FrameEvent.fromJson(typeString, jsonElement).apply {
-                    this.packageName = packageName
-                })
-            }
-//            is ArrayNode -> {
-//                jsonElement.mapNotNull {
-//                    when (it) {
-//                        is ValueNode -> {
-//                            FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to it))).apply {
-//                                this.packageName = packageName
-//                            }
-//                        }
-//                        is ObjectNode -> {
-//                            FrameEvent.fromJson(typeString, it).apply {
-//                                this.packageName = packageName
-//                            }
-//                        }
-//                        else -> {
-//                            null
-//                        }
-//                    }
-//                }
-//            }
-            else -> {
-                listOf()
+        } else {
+            val jsonElement = Json.encodeToJsonElement(value)
+            when {
+                filler is IOpaqueFiller -> {
+                    val declaredType = filler.declaredType
+                    val nestedTypeString = declaredType.substringAfterLast(".")
+                    val nestedPackageName = declaredType.substringBeforeLast(".")
+                    val nestedFrames = FrameEvent.fromJson(nestedTypeString, jsonElement).apply {
+                        this.packageName = nestedPackageName
+                    }
+                    nestedFrames.attribute = filler.attribute
+                    listOf(FrameEvent(typeString, listOf(), listOf(nestedFrames)).apply { this.packageName = packageName })
+                }
+                jsonElement is ValueNode || value is IEntity -> {
+                    listOf(
+                        FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to jsonElement))).apply {
+                            this.packageName = packageName
+                        })
+                }
+                jsonElement is ObjectNode -> {
+                    listOf(FrameEvent.fromJson(typeString, jsonElement).apply {
+                        this.packageName = packageName
+                    })
+                }
+                else -> {
+                    listOf()
+                }
             }
         }
+        println("generated event: $result")
+        return result
     }
 
     fun findWrapperFillerForTargetSlot(frame: IFrame, slot: String?): AnnotatedWrapperFiller? {

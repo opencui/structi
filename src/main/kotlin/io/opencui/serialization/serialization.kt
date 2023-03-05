@@ -287,7 +287,7 @@ object Json {
         return mapOf()
     }
 
-    inline fun <reified S: IFrame, reified T: IFrame> mappingConvert(s: S) :T {
+    inline fun <reified S: IFrame, reified T: IFrame> mappingConvert(s: S) : T {
         val sourceKClass = S::class
         val targetKClass = T::class
         val mapping = findMapping(sourceKClass, targetKClass)

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.TextNode
 import com.fasterxml.jackson.databind.node.ValueNode
 import io.opencui.serialization.*
+import java.awt.Frame
 import java.io.Serializable
 
 
@@ -108,6 +109,16 @@ data class FrameEvent(
                 }
             }
             return FrameEvent(frameName, slotEvents)
+        }
+
+        fun toJson(event: FrameEvent) : JsonObject {
+            check(event.attribute != null)
+            // (TODO): add support for frames, and interface type.
+            val values = mutableMapOf<String, Any>()
+            for (slot in event.slots) {
+                values[slot.attribute] = slot.value
+            }
+            return Json.encodeToJsonElement(values) as JsonObject
         }
     }
 }
