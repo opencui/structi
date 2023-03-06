@@ -200,7 +200,7 @@ class DslEntityTest() : DuTestHelper() {
         val frameEvents = stateTracker.convert("s", "order house special")
         println("frame events: $frameEvents")
         assertEquals(frameEvents.size, 1)
-        val entityEvents = frameEvents[0].activeSlots
+        val entityEvents = frameEvents[0].activeEntitySlots
         assertEquals(entityEvents.size, 1 )
         val longForm = """EntityEvent(value="me.test.abstractEntity_1007.HouseSpecial", attribute=dish, isLeaf=false, type=me.test.abstractEntity_1007.VirtualDish)"""
         assertEquals(entityEvents[0].toLongForm(), longForm)

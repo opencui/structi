@@ -251,7 +251,7 @@ abstract class AEntityFiller : IFiller, Committable {
 
     var done: Boolean = false
 
-    var value: String? = null
+
 
 
     override fun done(frameEvents: List<FrameEvent>): Boolean = done
@@ -284,7 +284,6 @@ interface TypedFiller<T> {
     }
 }
 
-
 class EntityFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
     val origSetter: ((String?) -> Unit)? = null,
@@ -296,6 +295,7 @@ class EntityFiller<T>(
     override val target: KMutableProperty0<T?>
         get() = buildSink()
 
+    var value: String? = null
     var origValue: String? = null
     var valueGood: ((String, String?) -> Boolean)? = null
 
@@ -332,7 +332,7 @@ class EntityFiller<T>(
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        return simpleEventType() == frameEvent.type && frameEvent.activeSlots.any { it.attribute == attribute }
+        return simpleEventType() == frameEvent.type && frameEvent.activeEntitySlots.any { it.attribute == attribute }
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
@@ -350,20 +350,33 @@ class EntityFiller<T>(
         done = true
         return true
     }
+
+    companion object {
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ): EntityFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (String) -> T? = { s ->
+                Json.decodeFromString(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return EntityFiller(buildSink, null, builder)
+        }
+    }
 }
 
-interface IOpaqueFiller {
-    val declaredType: String
-}
+
+
 // Used with composite with VR (or almost always).
 class OpaqueFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
-    override val declaredType: String,
-    val builder: (JsonObject) -> T?) : AEntityFiller(), TypedFiller<T>, IOpaqueFiller {
+    val declaredType: String,
+    val builder: (JsonObject) -> T?) : AEntityFiller(), TypedFiller<T> {
 
     override val target: KMutableProperty0<T?>
         get() = buildSink()
 
+    var value: FrameEvent? = null
     var valueGood: ((JsonObject) -> Boolean)? = null
 
     init {
@@ -395,7 +408,7 @@ class OpaqueFiller<T>(
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        return simpleEventType() == frameEvent.type && frameEvent.activeSlots.any { it.attribute == attribute }
+        return simpleEventType() == frameEvent.type && frameEvent.activeFrameSlots.any { it.attribute == attribute }
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
@@ -406,7 +419,7 @@ class OpaqueFiller<T>(
 
         if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
         target.set(builder.invoke(jsonObject))
-        value = jsonObject.toString()
+        value = related
         event = frameEvent
         decorativeAnnotations.clear()
         // decorativeAnnotations.addAll(related.decorativeAnnotations)
@@ -416,15 +429,17 @@ class OpaqueFiller<T>(
     }
 
     companion object {
-        inline fun <reified T> filler(session: UserSession, noinline buildSink: () -> KMutableProperty0<T?>) : OpaqueFiller<T> {
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ) : OpaqueFiller<T> {
             val fullName = T::class.java.canonicalName
             val builder: (JsonObject) -> T? = {
                     s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!) as? T
             }
-            return OpaqueFiller<T>(buildSink, fullName, builder)
+            return OpaqueFiller(buildSink, fullName, builder)
         }
     }
-
 }
 
 
@@ -433,7 +448,7 @@ class RealTypeFiller(
     val inferFun: ((FrameEvent) -> FrameEvent?)? = null,
     val checker: (String) -> Boolean,
     val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
-
+    var value: String? = null
     var origValue: String? = null
     var valueGood: ((String, String?) -> Boolean)? = null
 
@@ -884,7 +899,7 @@ class FrameFiller<T: IFrame>(
         get() = buildSink()
 
     override fun isCompatible(frameEvent: FrameEvent) : Boolean {
-        return frameEvent.type == simpleEventType() && (frameEvent.activeSlots.isNotEmpty())
+        return frameEvent.type == simpleEventType() && (frameEvent.activeEntitySlots.isNotEmpty())
     }
 
     override fun qualifiedEventType(): String? {

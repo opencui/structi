@@ -223,7 +223,7 @@ data class SimpleFillAction(
         if (!success) return ActionResult(null, false)
 
         session.schedule.state = Scheduler.State.RESCHEDULE
-        return ActionResult(null)
+        return ActionResult(null, true)
     }
 }
 
@@ -429,8 +429,7 @@ class RespondAction : CompositeAction {
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
             val tmp = response.run(session)
-            if (!tmp.success) throw Exception("fail to respond!!!")
-            tmp
+            tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
         } else {
             null
         }

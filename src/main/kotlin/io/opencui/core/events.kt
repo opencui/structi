@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.TextNode
 import com.fasterxml.jackson.databind.node.ValueNode
 import io.opencui.serialization.*
-import java.awt.Frame
 import java.io.Serializable
 
 
@@ -70,8 +69,11 @@ data class FrameEvent(
         get() = slots.firstOrNull { !it.isUsed } == null && frames.firstOrNull { !it.usedUp } == null
     val usedUp: Boolean
         get() = ((slots.isNotEmpty() || frames.isNotEmpty()) && consumed) || (slots.isEmpty() && frames.isEmpty() && typeUsed)
-    val activeSlots: List<EntityEvent>
+    val activeEntitySlots: List<EntityEvent>
         get() = slots.filter {!it.isUsed }
+
+    val activeFrameSlots: List<FrameEvent>
+        get() = frames.filter {!it.isUsed }
 
     var dontCare : Boolean = false
 

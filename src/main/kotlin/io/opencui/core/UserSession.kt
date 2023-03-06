@@ -105,7 +105,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
  *    1. where there is new skill event:
  *    2. where there is no new skill events:
  *       i. there is no event
- *       ii. there is slot event that is not compatiable.
+ *       ii. there is slot event that is not compatible.
  *       iii. there is slot event that is compatible.
  *
  */
@@ -291,8 +291,11 @@ data class UserSession(
         // prevent from refocusing from kernel mode to user mode
         if (refocusPair != null && (!inKernelMode(schedule) || inKernelMode(refocusPair.first))) {
             val refocusFiller = refocusPair.first.last() as AnnotatedWrapperFiller
-            return if (!refocusFiller.targetFiller.done() && refocusFiller.targetFiller is EntityFiller<*>) {
-                listOf(SimpleFillAction(refocusFiller.targetFiller, refocusPair.second))
+            return if (
+                !refocusFiller.targetFiller.done() &&
+                (refocusFiller.targetFiller is EntityFiller<*> || refocusFiller.targetFiller is OpaqueFiller<*>)
+                ) {
+                listOf(SimpleFillAction(refocusFiller.targetFiller as AEntityFiller, refocusPair.second))
             } else {
                 if ((refocusPair.first.last() as? AnnotatedWrapperFiller)?.targetFiller !is MultiValueFiller<*>) {
                     // view refocusing to multi-value slot as adding value, others as starting over
@@ -452,7 +455,7 @@ data class UserSession(
         } else {
             val jsonElement = Json.encodeToJsonElement(value)
             when {
-                filler is IOpaqueFiller -> {
+                filler is OpaqueFiller<*> -> {
                     val declaredType = filler.declaredType
                     val nestedTypeString = declaredType.substringAfterLast(".")
                     val nestedPackageName = declaredType.substringBeforeLast(".")
@@ -724,13 +727,14 @@ data class UserSession(
         val matcher: (AnnotatedWrapperFiller) -> Boolean = {
             val targetFiller = it.targetFiller
             it.canEnter(frameEvents)
-                    && ((targetFiller is AEntityFiller && targetFiller.done() && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
-                        // special matcher for HasMore with PagedSelectable; allow to refocus to undone HasMore if there is one
-                        || (targetFiller is InterfaceFiller<*> && (it.parent as? FrameFiller<*>)?.frame() is HasMore && (it.parent?.parent?.parent as? MultiValueFiller<*>)?.done() == false && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
-                        || (level == 0
-                            && (targetFiller is AEntityFiller || (targetFiller is InterfaceFiller<*> && targetFiller.realtype == null) || (targetFiller is MultiValueFiller<*> && targetFiller.findCurrentFiller() == null))
-                            && !targetFiller.done(frameEvents) && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
-                    )
+            && (
+                (targetFiller is AEntityFiller && targetFiller.done() && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+                // special matcher for HasMore with PagedSelectable; allow to refocus to undone HasMore if there is one
+                || (targetFiller is InterfaceFiller<*> && (it.parent as? FrameFiller<*>)?.frame() is HasMore && (it.parent?.parent?.parent as? MultiValueFiller<*>)?.done() == false && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+                || (level == 0
+                    && (targetFiller is AEntityFiller || (targetFiller is InterfaceFiller<*> && targetFiller.realtype == null) || (targetFiller is MultiValueFiller<*> && targetFiller.findCurrentFiller() == null))
+                    && !targetFiller.done(frameEvents) && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+            )
         }
         // open slots take priority
         val groups = parent.fillers.values.groupBy { it.done(frameEvents) }
