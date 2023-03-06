@@ -14,6 +14,7 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.sessionmanager.ChatbotLoader
+import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -104,7 +105,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
  *    1. where there is new skill event:
  *    2. where there is no new skill events:
  *       i. there is no event
- *       ii. there is slot event that is not compatiable.
+ *       ii. there is slot event that is not compatible.
  *       iii. there is slot event that is compatible.
  *
  */
@@ -290,8 +291,11 @@ data class UserSession(
         // prevent from refocusing from kernel mode to user mode
         if (refocusPair != null && (!inKernelMode(schedule) || inKernelMode(refocusPair.first))) {
             val refocusFiller = refocusPair.first.last() as AnnotatedWrapperFiller
-            return if (!refocusFiller.targetFiller.done() && refocusFiller.targetFiller is EntityFiller<*>) {
-                listOf(SimpleFillAction(refocusFiller.targetFiller, refocusPair.second))
+            return if (
+                !refocusFiller.targetFiller.done() &&
+                (refocusFiller.targetFiller is EntityFiller<*> || refocusFiller.targetFiller is OpaqueFiller<*>)
+                ) {
+                listOf(SimpleFillAction(refocusFiller.targetFiller as AEntityFiller, refocusPair.second))
             } else {
                 if ((refocusPair.first.last() as? AnnotatedWrapperFiller)?.targetFiller !is MultiValueFiller<*>) {
                     // view refocusing to multi-value slot as adding value, others as starting over
@@ -409,42 +413,76 @@ data class UserSession(
         val fullyQualifiedType: String = filler.qualifiedEventType() ?: if (value is ObjectNode) value.get("@class").asText() else value::class.qualifiedName!!
         val typeString = fullyQualifiedType.substringAfterLast(".")
         val packageName = fullyQualifiedType.substringBeforeLast(".")
-        if (value is ObjectNode) value.remove("@class")
-        val jsonElement = Json.encodeToJsonElement(value)
-        return when {
-            jsonElement is ValueNode || value is IEntity -> {
-                listOf(FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to jsonElement))).apply {
-                    this.packageName = packageName
-                })
+        val result = if (value is ObjectNode) {
+            value.remove("@class")
+            when (value) {
+                is ValueNode -> {
+                    listOf(
+                        FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to value))).apply {
+                            this.packageName = packageName
+                        })
+                }
+
+                is ObjectNode -> {
+                    listOf(FrameEvent.fromJson(typeString, value).apply {
+                        this.packageName = packageName
+                    })
+                }
+
+                is ArrayNode -> {
+                    value.mapNotNull {
+                        when (it) {
+                            is ValueNode -> {
+                                FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to it))).apply {
+                                    this.packageName = packageName
+                                }
+                            }
+                            is ObjectNode -> {
+                                FrameEvent.fromJson(typeString, it).apply {
+                                    this.packageName = packageName
+                                }
+                            }
+                            else -> {
+                                null
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    listOf()
+                }
             }
-            jsonElement is ObjectNode -> {
-                listOf(FrameEvent.fromJson(typeString, jsonElement).apply {
-                    this.packageName = packageName
-                })
-            }
-//            is ArrayNode -> {
-//                jsonElement.mapNotNull {
-//                    when (it) {
-//                        is ValueNode -> {
-//                            FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to it))).apply {
-//                                this.packageName = packageName
-//                            }
-//                        }
-//                        is ObjectNode -> {
-//                            FrameEvent.fromJson(typeString, it).apply {
-//                                this.packageName = packageName
-//                            }
-//                        }
-//                        else -> {
-//                            null
-//                        }
-//                    }
-//                }
-//            }
-            else -> {
-                listOf()
+        } else {
+            val jsonElement = Json.encodeToJsonElement(value)
+            when {
+                filler is OpaqueFiller<*> -> {
+                    val declaredType = filler.declaredType
+                    val nestedTypeString = declaredType.substringAfterLast(".")
+                    val nestedPackageName = declaredType.substringBeforeLast(".")
+                    val nestedFrames = FrameEvent.fromJson(nestedTypeString, jsonElement).apply {
+                        this.packageName = nestedPackageName
+                    }
+                    nestedFrames.attribute = filler.attribute
+                    listOf(FrameEvent(typeString, listOf(), listOf(nestedFrames)).apply { this.packageName = packageName })
+                }
+                jsonElement is ValueNode || value is IEntity -> {
+                    listOf(
+                        FrameEvent.fromJson(typeString, Json.makeObject(mapOf(filler.attribute to jsonElement))).apply {
+                            this.packageName = packageName
+                        })
+                }
+                jsonElement is ObjectNode -> {
+                    listOf(FrameEvent.fromJson(typeString, jsonElement).apply {
+                        this.packageName = packageName
+                    })
+                }
+                else -> {
+                    listOf()
+                }
             }
         }
+        println("generated event: $result")
+        return result
     }
 
     fun findWrapperFillerForTargetSlot(frame: IFrame, slot: String?): AnnotatedWrapperFiller? {
@@ -689,13 +727,14 @@ data class UserSession(
         val matcher: (AnnotatedWrapperFiller) -> Boolean = {
             val targetFiller = it.targetFiller
             it.canEnter(frameEvents)
-                    && ((targetFiller is AEntityFiller && targetFiller.done() && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
-                        // special matcher for HasMore with PagedSelectable; allow to refocus to undone HasMore if there is one
-                        || (targetFiller is InterfaceFiller<*> && (it.parent as? FrameFiller<*>)?.frame() is HasMore && (it.parent?.parent?.parent as? MultiValueFiller<*>)?.done() == false && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
-                        || (level == 0
-                            && (targetFiller is AEntityFiller || (targetFiller is InterfaceFiller<*> && targetFiller.realtype == null) || (targetFiller is MultiValueFiller<*> && targetFiller.findCurrentFiller() == null))
-                            && !targetFiller.done(frameEvents) && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
-                    )
+            && (
+                (targetFiller is AEntityFiller && targetFiller.done() && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+                // special matcher for HasMore with PagedSelectable; allow to refocus to undone HasMore if there is one
+                || (targetFiller is InterfaceFiller<*> && (it.parent as? FrameFiller<*>)?.frame() is HasMore && (it.parent?.parent?.parent as? MultiValueFiller<*>)?.done() == false && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+                || (level == 0
+                    && (targetFiller is AEntityFiller || (targetFiller is InterfaceFiller<*> && targetFiller.realtype == null) || (targetFiller is MultiValueFiller<*> && targetFiller.findCurrentFiller() == null))
+                    && !targetFiller.done(frameEvents) && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+            )
         }
         // open slots take priority
         val groups = parent.fillers.values.groupBy { it.done(frameEvents) }

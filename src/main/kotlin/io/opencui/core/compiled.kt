@@ -388,7 +388,8 @@ data class DirectlyFillActionBySlot<T>(
 
 data class FillAction<T>(
     val generator: () -> T?,
-    val filler: IFiller, val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
+    val filler: IFiller,
+    val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
@@ -402,6 +403,7 @@ data class FillAction<T>(
                 slot.decorativeAnnotations.addAll(decorativeAnnotations)
             }
         }
+
         if (frameEventList.isNotEmpty()) session.addEvents(frameEventList)
         return ActionResult(
             createLog("FILL SLOT for target : ${param.frame::class.qualifiedName}, slot : ${if (param.attribute == "this") "" else param.attribute}"),
@@ -571,7 +573,9 @@ data class Confirmation(
     override var session: UserSession? = null,
     val target: IFrame?,
     val slot: String,
-    val prompts: () -> DialogAct, val implicit: Boolean = false, val actions: List<Action>? = null): IIntent {
+    val prompts: () -> DialogAct,
+    val implicit: Boolean = false,
+    val actions: List<Action>? = null): IIntent {
 
     override fun annotations(path: String): List<Annotation> = when(path) {
         "status" -> listOf(SlotPromptAnnotation(listOf(LazyAction(prompts))), ConditionalAsk(Condition { !implicit }))
@@ -586,7 +590,9 @@ data class Confirmation(
             val tp = p as? KMutableProperty0<Confirmation?> ?: ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(
-                    InterfaceFiller({ tp.get()!!::status }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
+                InterfaceFiller(
+                    { tp.get()!!::status },
+                    createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
             return filler
         }
     }
@@ -598,7 +604,12 @@ data class Confirmation(
                 SeqAction(actions)
             } else {
                 val path = session!!.findActiveFillerPathByFrame(target!!)
-                val targetFiller = (if (slot.isNullOrEmpty() || slot == "this") path.lastOrNull() else ((path.lastOrNull() as? AnnotatedWrapperFiller)?.targetFiller as? FrameFiller<*>)?.fillers?.get(slot)) as? AnnotatedWrapperFiller
+                val targetFiller = (
+                        if (slot.isNullOrEmpty() || slot == "this")
+                            path.lastOrNull()
+                        else
+                            ((path.lastOrNull() as? AnnotatedWrapperFiller)?.targetFiller as? FrameFiller<*>)?.fillers?.get(slot)
+                        ) as? AnnotatedWrapperFiller
                 if (targetFiller != null) {
                     SeqAction(
                         CleanupAction(listOf(targetFiller)),
@@ -1167,14 +1178,7 @@ data class PagedSelectable<T: Any> (
             candidates.isEmpty() && isConditionEmpty() && hard ->
                 SeqAction(zeroEntryActions)
             candidate != null ->
-                SeqAction(
-                    object : Action {
-                        override fun run(session: UserSession): ActionResult {
-                            return ActionResult(null, true)
-                    }
-                },
-                FillAction({candidate}, findTargetFiller()!!.targetFiller, listOf<Annotation>())
-            )
+                SeqAction(FillAction({candidate}, findTargetFiller()!!.targetFiller, listOf<Annotation>()))
             else -> null
         }
     }
@@ -1496,5 +1500,4 @@ class IntentClarification(
             return filler
         }
     }
-
 }

@@ -214,8 +214,8 @@ data class StartFill(
 }
 
 data class SimpleFillAction(
-        val filler: AEntityFiller,
-        var match: FrameEvent
+    val filler: AEntityFiller,
+    var match: FrameEvent
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
         // commit is responsible for marking the part of FrameEvent that it used
@@ -223,12 +223,13 @@ data class SimpleFillAction(
         if (!success) return ActionResult(null, false)
 
         session.schedule.state = Scheduler.State.RESCHEDULE
-        return ActionResult(null)
+        return ActionResult(null, true)
     }
 }
 
 data class RefocusActionBySlot(
-        val frame: IFrame, val slot: String?
+    val frame: IFrame,
+    val slot: String?
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val path = session.findActiveFillerPathForTargetSlot(frame, slot)
@@ -428,8 +429,7 @@ class RespondAction : CompositeAction {
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
             val tmp = response.run(session)
-            if (!tmp.success) throw Exception("fail to respond!!!")
-            tmp
+            tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
         } else {
             null
         }

@@ -69,8 +69,11 @@ data class FrameEvent(
         get() = slots.firstOrNull { !it.isUsed } == null && frames.firstOrNull { !it.usedUp } == null
     val usedUp: Boolean
         get() = ((slots.isNotEmpty() || frames.isNotEmpty()) && consumed) || (slots.isEmpty() && frames.isEmpty() && typeUsed)
-    val activeSlots: List<EntityEvent>
+    val activeEntitySlots: List<EntityEvent>
         get() = slots.filter {!it.isUsed }
+
+    val activeFrameSlots: List<FrameEvent>
+        get() = frames.filter {!it.isUsed }
 
     var dontCare : Boolean = false
 
@@ -108,6 +111,16 @@ data class FrameEvent(
                 }
             }
             return FrameEvent(frameName, slotEvents)
+        }
+
+        fun toJson(event: FrameEvent) : JsonObject {
+            check(event.attribute != null)
+            // (TODO): add support for frames, and interface type.
+            val values = mutableMapOf<String, Any>()
+            for (slot in event.slots) {
+                values[slot.attribute] = slot.value
+            }
+            return Json.encodeToJsonElement(values) as JsonObject
         }
     }
 }

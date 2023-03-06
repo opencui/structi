@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.DumbDialogAct
 import io.opencui.core.hasMore.No
 import io.opencui.serialization.Json
+import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
@@ -53,7 +54,6 @@ import kotlin.reflect.full.isSubclassOf
 data class Param(val frame: IFrame, val attribute: String): Serializable
 
 data class ParamPath(val path: List<Param>): Serializable {
-
     constructor(frame: IFrame): this(listOf(Param(frame, "this")))
 
     fun join(a: String, nf: IFrame? = null): ParamPath {
@@ -240,9 +240,6 @@ interface IFiller: Compatible, Serializable {
     }
 }
 
-// return true if the valid is considered good.
-typealias ValueChecker = (String, String?) -> Boolean
-
 // The goal of this to fill the slot from typed string form, to typed form.
 abstract class AEntityFiller : IFiller, Committable {
     override var path: ParamPath? = null
@@ -253,9 +250,9 @@ abstract class AEntityFiller : IFiller, Committable {
     var event: FrameEvent? = null
 
     var done: Boolean = false
-    var valueGood: ValueChecker? = null
-    var value: String? = null
-    var origValue: String? = null
+
+
+
 
     override fun done(frameEvents: List<FrameEvent>): Boolean = done
 
@@ -287,7 +284,6 @@ interface TypedFiller<T> {
     }
 }
 
-
 class EntityFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
     val origSetter: ((String?) -> Unit)? = null,
@@ -298,6 +294,10 @@ class EntityFiller<T>(
 
     override val target: KMutableProperty0<T?>
         get() = buildSink()
+
+    var value: String? = null
+    var origValue: String? = null
+    var valueGood: ((String, String?) -> Boolean)? = null
 
     init {
         valueGood = {
@@ -332,7 +332,7 @@ class EntityFiller<T>(
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        return simpleEventType() == frameEvent.type && frameEvent.activeSlots.any { it.attribute == attribute }
+        return simpleEventType() == frameEvent.type && frameEvent.activeEntitySlots.any { it.attribute == attribute }
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
@@ -350,9 +350,107 @@ class EntityFiller<T>(
         done = true
         return true
     }
+
+    companion object {
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ): EntityFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (String) -> T? = { s ->
+                Json.decodeFromString(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return EntityFiller(buildSink, null, builder)
+        }
+    }
 }
 
-class RealtypeFiller(override val target: KMutableProperty0<String?>, val inferFun: ((FrameEvent) -> FrameEvent?)? = null, val checker: (String) -> Boolean, val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
+
+
+// Used with composite with VR (or almost always).
+class OpaqueFiller<T>(
+    val buildSink: () -> KMutableProperty0<T?>,
+    val declaredType: String,
+    val builder: (JsonObject) -> T?) : AEntityFiller(), TypedFiller<T> {
+
+    override val target: KMutableProperty0<T?>
+        get() = buildSink()
+
+    var value: FrameEvent? = null
+    var valueGood: ((JsonObject) -> Boolean)? = null
+
+    init {
+        valueGood = {
+            s -> try { builder(s) != null }
+            catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    override val attribute: String
+        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
+
+    override fun clear() {
+        value = null
+        event = null
+        target.set(null)
+        done = false
+        super.clear()
+    }
+
+    override fun qualifiedEventType(): String {
+        val frameType = path!!.path.last().frame::class.qualifiedName!!.let {
+            if (it.endsWith("?")) it.dropLast(1) else it
+        }
+        return frameType.substringBefore("<")
+    }
+
+    override fun isCompatible(frameEvent: FrameEvent): Boolean {
+        return simpleEventType() == frameEvent.type && frameEvent.activeFrameSlots.any { it.attribute == attribute }
+    }
+
+    override fun commit(frameEvent: FrameEvent): Boolean {
+        val related = frameEvent.frames.find { it.attribute == attribute && !it.isUsed }!!
+        related.typeUsed = true
+
+        val jsonObject = FrameEvent.toJson(related)
+
+        if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
+        target.set(builder.invoke(jsonObject))
+        value = related
+        event = frameEvent
+        decorativeAnnotations.clear()
+        // decorativeAnnotations.addAll(related.decorativeAnnotations)
+        done = true
+
+        return true
+    }
+
+    companion object {
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ) : OpaqueFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (JsonObject) -> T? = {
+                    s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return OpaqueFiller(buildSink, fullName, builder)
+        }
+    }
+}
+
+
+class RealTypeFiller(
+    override val target: KMutableProperty0<String?>,
+    val inferFun: ((FrameEvent) -> FrameEvent?)? = null,
+    val checker: (String) -> Boolean,
+    val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
+    var value: String? = null
+    var origValue: String? = null
+    var valueGood: ((String, String?) -> Boolean)? = null
 
     init {
         valueGood = {
@@ -801,7 +899,7 @@ class FrameFiller<T: IFrame>(
         get() = buildSink()
 
     override fun isCompatible(frameEvent: FrameEvent) : Boolean {
-        return frameEvent.type == simpleEventType() && (frameEvent.activeSlots.isNotEmpty())
+        return frameEvent.type == simpleEventType() && (frameEvent.activeEntitySlots.isNotEmpty())
     }
 
     override fun qualifiedEventType(): String? {
@@ -897,6 +995,7 @@ class FrameFiller<T: IFrame>(
     }
 }
 
+
 //
 // Any one of the subtype will be useful there.
 // for interface filler to work, we always need to ask what "implementation" will we work on next.
@@ -923,7 +1022,7 @@ class InterfaceFiller<T>(
 
     var realtype: String? = null
     val askFiller: AnnotatedWrapperFiller by lazy {
-        val entityFiller = RealtypeFiller(::realtype, inferFun = typeConverter, checker = { s -> factory.invoke(s) != null }) { buildVFiller() }
+        val entityFiller = RealTypeFiller(::realtype, inferFun = typeConverter, checker = { s -> factory.invoke(s) != null }) { buildVFiller() }
         entityFiller.path = this.path!!.join("$attribute._realtype")
         val af = AnnotatedWrapperFiller(entityFiller, false)
         af.parent = this
