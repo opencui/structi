@@ -112,16 +112,6 @@ data class FrameEvent(
             }
             return FrameEvent(frameName, slotEvents)
         }
-
-        fun toJson(event: FrameEvent) : JsonObject {
-            check(event.attribute != null)
-            // (TODO): add support for frames, and interface type.
-            val values = mutableMapOf<String, Any>()
-            for (slot in event.slots) {
-                values[slot.attribute] = slot.value
-            }
-            return Json.encodeToJsonElement(values) as JsonObject
-        }
     }
 }
 

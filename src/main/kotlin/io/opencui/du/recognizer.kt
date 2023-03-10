@@ -512,6 +512,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
     override fun getNormedValue(value: SpanInfo): String? {
         return when (value.type) {
             "kotlin.Boolean" -> value.value as String?
+            "java.time.TimeZone" -> Json.encodeToString(TimeZone.getTimeZone(value.value as String))
             "java.time.ZoneId" -> Json.encodeToString(ZoneId.of(value.value as String))
             else -> "\"${value.value}\""
         }
@@ -520,7 +521,6 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
     companion object {
         const val PARTIALMATCH = "_partial_match"
         const val QUERY = "QUERY"
-
 
         fun isInternal(label: String): Boolean = label.startsWith("*")
 
