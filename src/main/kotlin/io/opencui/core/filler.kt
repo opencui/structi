@@ -415,7 +415,7 @@ class OpaqueFiller<T>(
         val related = frameEvent.frames.find { it.attribute == attribute && !it.isUsed }!!
         related.typeUsed = true
 
-        val jsonObject = FrameEvent.toJson(related)
+        val jsonObject = toJson(related)
 
         if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
         target.set(builder.invoke(jsonObject))
@@ -429,6 +429,18 @@ class OpaqueFiller<T>(
     }
 
     companion object {
+        val regex = "^\"|\"$".toRegex()
+        fun toJson(event: FrameEvent) : JsonObject {
+            check(event.attribute != null)
+            // (TODO): add support for frames, and interface type.
+            val values = mutableMapOf<String, Any>()
+            for (slot in event.slots) {
+                // We need to prevent double encode.
+                values[slot.attribute] = slot.value.replace(regex, "")
+            }
+            return Json.encodeToJsonElement(values) as JsonObject
+        }
+
         inline fun <reified T> build(
             session: UserSession,
             noinline buildSink: () -> KMutableProperty0<T?>
