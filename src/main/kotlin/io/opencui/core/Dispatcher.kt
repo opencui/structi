@@ -203,7 +203,7 @@ object Dispatcher {
             return
         }
         val channel = getChatbot(botInfo).getChannel(userInfo.channelType!!, userInfo.channelLabel!!)!!
-        logger.info(channel.info.toString())
+        logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
         val query = textPaylaod?.text ?: ""
         if (userSession.botOwn) {
             // Let other side know that you are working on it
