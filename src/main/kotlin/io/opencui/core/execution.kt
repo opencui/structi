@@ -113,7 +113,7 @@ class DialogManager {
                     throw e
                 }
             }
-
+            logger.info("botOwn: $botOwn and ${session.botOwn}")
             botOwn = session.botOwn
             if (--maxRound <= 0) break
         } while (currentTurnWorks.isNotEmpty())
