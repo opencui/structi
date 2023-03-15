@@ -25,6 +25,10 @@ data class InMemoryBotStore(override val botInfo: BotInfo): IBotStore {
         return if (!listCache.containsKey(key)) emptyList() else listCache[key]!!
     }
 
+    override fun lrem(key: String, value: String) : Int {
+        return if (listCache[key]?.remove(value) == true) 1 else 0
+    }
+
     override fun toString(): String {
         return "InMemoryBotStore(cache=${cache})"
     }

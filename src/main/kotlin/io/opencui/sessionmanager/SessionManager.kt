@@ -37,6 +37,8 @@ interface IBotStore {
     // Value is list.
     fun rpush(key: String, value: String)
     fun lrange(key: String, start: Int, end: Int): List<String>
+
+    fun lrem(key: String, value: String): Int
 }
 
 /**
