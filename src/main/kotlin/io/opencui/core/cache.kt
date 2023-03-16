@@ -133,6 +133,27 @@ interface Recyclable {
 /**
  * Add support for the common function cache.
  */
+class CachedMethod1<A, out R>(
+    val f: (A) -> List<R>, val values: MutableMap<A, Pair<List<@UnsafeVariance R>, LocalDateTime>>
+) : (A) -> List<R> {
+    private val seconds = 60
+    override fun invoke(a: A): List<R> {
+        val input = a
+        val cache = values[input]
+        Dispatcher.logger.debug("Enter cached function... for $a")
+        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
+            Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
+            values.put(input, Pair(f(a), LocalDateTime.now()))
+        }
+        return values[input]!!.first
+    }
+
+    fun invalidate(a: A) {
+        values.remove(a)
+    }
+}
+
+
 class CachedMethod2<A, B, out R>(
     val f: (A, B) -> List<R>, val values: MutableMap<Pair<A, B>, Pair<List<@UnsafeVariance R>, LocalDateTime>>
 ) : (A, B) -> List<R> {
@@ -140,7 +161,7 @@ class CachedMethod2<A, B, out R>(
     override fun invoke(a: A, b: B): List<R> {
         val input = Pair(a, b)
         val cache = values[input]
-        Dispatcher.logger.debug("Enter cached function... for $a and $b")
+        Dispatcher.logger.debug("Enter cached function... for $a, $b")
         if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
             values.put(input, Pair(f(a, b), LocalDateTime.now()))
@@ -161,7 +182,7 @@ class CachedMethod3<A, B, C, out R>(
     override fun invoke(a: A, b: B, c: C): List<R> {
         val input = Triple(a, b, c)
         val cache = values[input]
-        Dispatcher.logger.debug("Enter cached function... for $a and $b")
+        Dispatcher.logger.debug("Enter cached function... for $a, $b, $c")
         if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
             values.put(input, Pair(f(a, b, c), LocalDateTime.now()))
