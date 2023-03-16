@@ -147,6 +147,11 @@ class CachedMethod2<A, B, out R>(
         }
         return values[input]!!.first
     }
+    
+    fun invalidate(a: A, b: B) {
+        val input = Pair(a, b)
+        values.remove(input)
+    }
 }
 
 class CachedMethod3<A, B, C, out R>(
@@ -162,5 +167,10 @@ class CachedMethod3<A, B, C, out R>(
             values.put(input, Pair(f(a, b, c), LocalDateTime.now()))
         }
         return values[input]!!.first
+    }
+    
+    fun invalidate(a: A, b: B, c: C) {
+        val input = Triple(a, b, c)
+        values.remove(input)
     }
 }
