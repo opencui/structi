@@ -105,9 +105,9 @@ class DialogManager {
             check(currentTurnWorks.isEmpty() || currentTurnWorks.size == 1)
             if (currentTurnWorks.isNotEmpty()) {
                 try {
-                    currentTurnWorks[0].run(session).let {
-                        actionResults += it.apply { this.botOwn = botOwn }
-                    }
+                    currentTurnWorks[0]
+                        .run(session)
+                        .let { actionResults += it.apply { this.botOwn = botOwn } }
                 } catch (e: Exception) {
                     session.schedule.state = Scheduler.State.RECOVER
                     throw e
