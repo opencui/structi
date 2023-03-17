@@ -957,7 +957,7 @@ data class BertStateTracker(
             val path = nameParts.subList(0, nameParts.size - 1).joinToString(".")
             val lastPart = nameParts[nameParts.size - 1]
             val entityLabel = span.norm!!
-            logger.info("handle entity with label = $entityLabel")
+            logger.debug("handle entity with label = $entityLabel")
             val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
                 EntityEvent(entityLabel, lastPart).apply {
@@ -974,9 +974,9 @@ data class BertStateTracker(
             // We need to have some form of explain away, if the entity occurs in the expression
             // There might be some ambiguity here.
             val matched = ducontext.utterance.substring(span.start, span.end)
-            logger.info("got matched: $matched from ${ducontext.bestCandidate?.typedExpression} with $event")
+            logger.debug("got matched: $matched from ${ducontext.bestCandidate?.typedExpression} with $event")
             if (ducontext.bestCandidate == null || ducontext.bestCandidate!!.typedExpression.indexOf(matched) == -1) {
-                logger.info("span is: $span. putting $event with ${event.type}")
+                logger.debug("span is: $span. putting $event with ${event.type}")
                 eventMap.put(path, event)
             }
         }

@@ -14,13 +14,14 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.sessionmanager.ChatbotLoader
-import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KParameter
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 //
 // Scheduler holds fillers in the single tree.
@@ -481,7 +482,8 @@ data class UserSession(
                 }
             }
         }
-        println("generated event: $result")
+
+        logger.debug("generated event: $result")
         return result
     }
 
@@ -899,6 +901,7 @@ data class UserSession(
     }
 
     companion object {
+        val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
         val USERIDENTIFIER = io.opencui.core.user.UserIdentifier::class.qualifiedName!!
         private val serialVersionUID: Long = 123
         val PACKAGE = USERIDENTIFIER.split(".").subList(0, 2).joinToString(".")

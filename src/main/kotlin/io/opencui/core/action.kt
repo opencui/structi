@@ -129,7 +129,7 @@ data class StartFill(
 
         // TODO(xiaobo): What is the better place for this?
         // assume we know SlotUpdate has slots named "originalSlot", "oldValue" and "newValue"
-        if (intent is AbstractSlotUpdate<*> && match.slots.firstOrNull { it.attribute == "originalSlot" && !it.isUsed} == null) {
+        if (intent is AbstractSlotUpdate<*> && match.slots.firstOrNull { it.attribute == originalSlot && !it.isUsed} == null) {
             val candidates = mutableListOf<SlotType>()
             val t = findValueAndType(match)
             if (t != null) {
@@ -138,8 +138,8 @@ data class StartFill(
                 val index = t.third
                 val candidateFillers = mutableListOf<AnnotatedWrapperFiller>()
                 var topFiller = session.mainSchedule.firstOrNull() as? AnnotatedWrapperFiller
-                if (((topFiller?.targetFiller as? FrameFiller<*>)?.fillers?.get("skills")?.targetFiller as? MultiValueFiller<*>)?.findCurrentFiller() != null) {
-                    topFiller = ((topFiller.targetFiller as FrameFiller<*>).fillers["skills"]!!.targetFiller as MultiValueFiller<*>).findCurrentFiller()
+                if (((topFiller?.targetFiller as? FrameFiller<*>)?.fillers?.get(skills)?.targetFiller as? MultiValueFiller<*>)?.findCurrentFiller() != null) {
+                    topFiller = ((topFiller.targetFiller as FrameFiller<*>).fillers[skills]!!.targetFiller as MultiValueFiller<*>).findCurrentFiller()
                 }
                 session.findFillers(topFiller, candidateFillers, { f ->
                     index == null
@@ -174,14 +174,14 @@ data class StartFill(
                 // prevent slot events to take effect in the following turns
                 match.slots.forEach { it.isUsed = true }
             } else if (candidates.size == 1) {
-                val frameEventList = session.generateFrameEvent(filler.fillers["originalSlot"]!!.targetFiller, candidates.first())
+                val frameEventList = session.generateFrameEvent(filler.fillers[originalSlot]!!.targetFiller, candidates.first())
                 if (frameEventList.isNotEmpty()) session.addEvents(frameEventList)
             } else {
                 val clarificationClass = SystemAnnotationType.ValueClarification.typeName
 
                 val buildIntent = intentBuilder(
                     FrameEvent(clarificationClass.substringAfterLast("."), packageName = clarificationClass.substringBeforeLast(".", ""))
-                        .apply { triggerParameters.addAll(listOf({ SlotType::class }, candidates, intent, "originalSlot"))}
+                        .apply { triggerParameters.addAll(listOf({ SlotType::class }, candidates, intent, originalSlot))}
                     )
 
                 val clarificationIntent = buildIntent.invoke(session)!!
@@ -198,18 +198,26 @@ data class StartFill(
     }
 
     fun findValueAndType(match: FrameEvent): Triple<String, List<String>, Int?>? {
-        val index = match.slots.firstOrNull { it.attribute == "index" }?.value?.let { Json.decodeFromString<Ordinal>(it) }?.value?.toInt()
-        val oldValueSlot = match.slots.firstOrNull { it.attribute == "oldValue" }
+        val index = match.slots.firstOrNull { it.attribute == index }?.value?.let { Json.decodeFromString<Ordinal>(it) }?.value?.toInt()
+        val oldValueSlot = match.slots.firstOrNull { it.attribute == oldValue }
         if (oldValueSlot != null) {
-            val oldValueTypeCandidates = match.frames.firstOrNull { it.slots.firstOrNull { it.attribute == "oldValue" } != null }?.slots?.map { it.type!! }
+            val oldValueTypeCandidates = match.frames.firstOrNull { it.slots.firstOrNull { it.attribute == oldValue } != null }?.slots?.map { it.type!! }
             return Triple(oldValueSlot.value, oldValueTypeCandidates ?: listOf(oldValueSlot.type!!), index)
         }
-        val newValueSlot = match.slots.firstOrNull { it.attribute == "newValue" }
+        val newValueSlot = match.slots.firstOrNull { it.attribute == newValue }
         if (newValueSlot != null) {
-            val newValueTypeCandidates = match.frames.firstOrNull { it.slots.firstOrNull { it.attribute == "newValue" } != null }?.slots?.map { it.type!! }
+            val newValueTypeCandidates = match.frames.firstOrNull { it.slots.firstOrNull { it.attribute == newValue } != null }?.slots?.map { it.type!! }
             return Triple("", newValueTypeCandidates ?: listOf(newValueSlot.type!!), index)
         }
         return if (index == null) null else Triple("", listOf(), index)
+    }
+
+    companion object {
+        const val originalSlot = "originalSlot"
+        const val newValue = "newValue"
+        const val oldValue = "oldValue"
+        const val index = "index"
+        const val skills = "skills"
     }
 }
 
