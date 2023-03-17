@@ -46,14 +46,14 @@ class DialogManager {
     fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): List<ActionResult> {
         val expectations = findDialogExpectation(session)
         val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session.userIdentifier.toString(), query, DialogExpectations(expectations))
-        logger.info("Du returned frame events : $duReturnedFrameEvent")
-        logger.info("Extra frame events : $frameEvents")
+        logger.debug("Du returned frame events : $duReturnedFrameEvent")
+        logger.debug("Extra frame events : $frameEvents")
         val convertedFrameEventList = convertSpecialFrameEvent(session, frameEvents + duReturnedFrameEvent)
         for (event in convertedFrameEventList) {
             // events from user
             event.source = EventSource.USER
         }
-        logger.info("Converted frame events : $convertedFrameEventList")
+        logger.debug("Converted frame events : $convertedFrameEventList")
         return response(ParsedQuery(query, convertedFrameEventList), session)
     }
 
@@ -78,7 +78,7 @@ class DialogManager {
         val actionResults = mutableListOf<ActionResult>()
         var currentTurnWorks: List<Action>
 
-        logger.info("session state before turn ${session.turnId} : ${session.toSessionString()}")
+        logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
 
         var botOwn = session.botOwn
         // In each round, we either consume an event, or switch the state, until no rule can be fired
