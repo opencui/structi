@@ -33,10 +33,9 @@ class DialogManager {
     companion object {
         val logger: Logger = LoggerFactory.getLogger(DialogManager::class.java)
         val validEndState = setOf(Scheduler.State.INIT, Scheduler.State.POST_ASK, Scheduler.State.RECOVER)
-        val CONFIRMATIONSTSTUS = io.opencui.core.confirmation.IStatus::class.qualifiedName!!
-        val CONFIRMATIONPACKAGE = CONFIRMATIONSTSTUS.split(".").subList(0,5).joinToString(".")
+        val CONFIRMATIONSTATUS = io.opencui.core.confirmation.IStatus::class.qualifiedName!!
+        val CONFIRMATIONPACKAGE = CONFIRMATIONSTATUS.split(".").subList(0,5).joinToString(".")
         val HASMORESTATUS = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
-
     }
 
     /**
@@ -83,7 +82,7 @@ class DialogManager {
         var botOwn = session.botOwn
         // In each round, we either consume an event, or switch the state, until no rule can be fired
         // we need to make sure there is no infinite loop (each round changes the state)
-        var maxRound = 100 // prevent one session from taking too much resources
+        var maxRound = 100 // prevent one session from taking too many resources
         do {
             var schedulerChanged = false
             while (session.schedulers.size > 1) {
@@ -113,7 +112,7 @@ class DialogManager {
                     throw e
                 }
             }
-            logger.info("botOwn: $botOwn and ${session.botOwn}")
+
             botOwn = session.botOwn
             if (--maxRound <= 0) break
         } while (currentTurnWorks.isNotEmpty())
@@ -121,7 +120,7 @@ class DialogManager {
         if (!validEndState.contains(session.schedule.state)) {
             val currentState = session.schedule.state
             session.schedule.state = Scheduler.State.RECOVER
-            throw Exception("END STATE of scheduler is invalid STATE : ${currentState}")
+            throw Exception("END STATE of scheduler is invalid STATE : $currentState")
         }
 
         logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
@@ -166,7 +165,7 @@ class DialogManager {
                         if (recTargetExp != null) res += recTargetExp
                     }
                 }
-                res += ExpectedFrame(PagedSelectable::class.qualifiedName!!, "index", io.opencui.core.Ordinal::class.qualifiedName!!)
+                res += ExpectedFrame(PagedSelectable::class.qualifiedName!!, "index", Ordinal::class.qualifiedName!!)
             }
             is Confirmation -> {
                 res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", io.opencui.core.confirmation.IStatus::class.qualifiedName!!)
@@ -228,9 +227,9 @@ class DialogManager {
                 val index = session.schedule.indexOf(frameFiller)
                 val focusFiller = if (index != -1 && session.schedule.size > index+1) session.schedule[index+1] as? AnnotatedWrapperFiller else null
                 val focus = focusFiller?.attribute
-                if (frameFiller.qualifiedTypeStr() != io.opencui.core.Confirmation::class.qualifiedName!!
-                    && (focusFiller?.targetFiller as? InterfaceFiller<*>)?.qualifiedTypeStr() == CONFIRMATIONSTSTUS) {
-                    res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTSTUS)
+                if (frameFiller.qualifiedTypeStr() != Confirmation::class.qualifiedName!!
+                    && (focusFiller?.targetFiller as? InterfaceFiller<*>)?.qualifiedTypeStr() == CONFIRMATIONSTATUS) {
+                    res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTATUS)
                 }
                 res += ExpectedFrame(frameFiller.qualifiedEventType()!!, focus, (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr())
             }
@@ -300,7 +299,7 @@ class DialogManager {
                 if (lastFrameFiller != null && lastFrameFiller.frame() is PagedSelectable<*> && events.firstOrNull { it.type == "PagedSelectable" } == null) {
                     pagedSelectableFiller = lastFrameFiller
                 } else if (lastFrameFiller != null && lastFrameFiller.frame() is Confirmation && events.firstOrNull { (it.type == "Yes" || it.type == "No") && it.packageName == CONFIRMATIONPACKAGE } == null) {
-                    val activeFrameFillers = session.schedule.filter { it is FrameFiller<*> }
+                    val activeFrameFillers = session.schedule.filterIsInstance<FrameFiller<*>>()
                     if (activeFrameFillers.size > 1) {
                         val potentialPagedSelectableFiller = activeFrameFillers[activeFrameFillers.size - 2] as? FrameFiller<*>
                         if (potentialPagedSelectableFiller?.frame() is PagedSelectable<*>) {
