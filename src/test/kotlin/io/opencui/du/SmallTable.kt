@@ -924,7 +924,7 @@ class SmallTableDslTest() : DuTestHelper() {
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
         )
         println(frameEvents)
-        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="me.demo.reservation_v2.ReservationInfo.time", attribute=originalSlot), EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 
     @Test
@@ -956,6 +956,6 @@ class SmallTableDslTest() : DuTestHelper() {
         println(frameEvents)
         assertEquals(frameEvents.size, 1)
         assertEquals(frameEvents[0].type, "SlotUpdate")
-        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="me.demo.reservation_v2.ReservationInfo.time", attribute=originalSlot), EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 }
