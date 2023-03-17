@@ -490,7 +490,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
                 emap[span.type]!!.add(span)
             }
         }
-        println(emap)
+        logger.debug(emap.toString())
     }
 
     private fun covered(target: Pair<Int, Int>, ranges: List<Pair<Int, Int>>): Boolean {

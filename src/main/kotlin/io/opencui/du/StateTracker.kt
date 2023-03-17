@@ -160,6 +160,7 @@ interface StateTracker {
         val FullHasMoreList = listOf("io.opencui.core.hasMore.Yes", "io.opencui.core.hasMore.No")
         const val KotlinBoolean = "kotlin.Boolean"
         const val SlotUpdateOriginalSlot = "originalSlot"
+
         const val SlotUpdateGenericType = "T"
         val punctuation = ".!?。？！ \t\n\u00A0".toCharArray()
     }
@@ -625,7 +626,7 @@ data class BertStateTracker(
     // When there is expectation presented.
     fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
         val expectations = ducontext.expectations
-        logger.info(
+        logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(StateTracker.FullConfirmation)} and ${
                 ducontext.matchedIn(
                     StateTracker.FullConfirmationList
@@ -817,7 +818,6 @@ data class BertStateTracker(
         // we need to rewrite the slot map to replace all the T into actual slot type.
         for ((key, slotMeta) in slotMapBef) {
             // We can not fill slot without triggers.
-            if (slotMeta.label == StateTracker.SlotUpdateOriginalSlot) continue
             if (slotMeta.isGenericTyped()) {
                 slotMapTransformmed[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
             } else {
