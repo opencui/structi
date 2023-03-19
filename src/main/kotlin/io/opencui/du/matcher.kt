@@ -18,7 +18,7 @@ package io.opencui.du
  *
  */
 interface Matcher {
-    fun match(document: ScoredDocument) : Boolean
+    fun markMatch(document: ScoredDocument)
 }
 
 //
@@ -114,14 +114,32 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return false
     }
 
-    override fun match(document: ScoredDocument): Boolean {
+    override fun markMatch(document: ScoredDocument) {
         // We need to figure out whether there are special match.
         val segments = Expression.segment(document.typedExpression, document.ownerFrame)
         val slotTypes = segments.segments.filter { it is MetaSegment && it.meta == SLOTTYPE}
         if (slotTypes.size > 1) throw IllegalStateException("Don't support multiple slots with SlotType yet.")
-        if (slotTypes.size == 0 || context.entityTypeToSpanInfoMap[SLOTTYPE].isNullOrEmpty()) {
-            trueType = null
-            return coverFind(0, segments) == context.tokens!!.size
+        if (slotTypes.isEmpty() || context.entityTypeToSpanInfoMap[SLOTTYPE].isNullOrEmpty()) {
+            if (!segments.useGenericType()) {
+                trueType = null
+                document.exactMatch = coverFind(0, segments) == context.tokens!!.size
+            } else {
+                // Here we find a potential exact match, based on guess a slot.
+                val slots = duMeta.getSlotMetas(context.expectations)
+                for (slot in slots) {
+                    if (context.entityTypeToSpanInfoMap.containsKey(slot.type)) {
+                        trueType = slot.type
+                        val matched = coverFind(0, segments) == context.tokens!!.size
+                        if (matched) {
+                            document.possibleExactMatch = true
+                            // assert(document.ownerFrame == "io.opencui.core.SlotUpdate")
+                            document.guessedSlot = slot
+                            // find the first one and escape.
+                            break
+                        }
+                    }
+                }
+            }
         } else {
             val matchedSlots = context.entityTypeToSpanInfoMap[SLOTTYPE]!!
             for (matchedSlot in matchedSlots) {
@@ -131,9 +149,8 @@ class NestedMatcher(val context: DUContext) : Matcher {
                 if (!context.expectations.isFrameCompatible(frame)) continue
                 val slotName = tkns.last()
                 trueType = context.duMeta!!.getSlotType(frame, slotName)
-                return coverFind(0, segments) == context.tokens!!.size
+                document.exactMatch = coverFind(0, segments) == context.tokens!!.size
             }
-            return false
         }
     }
 

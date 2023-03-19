@@ -65,7 +65,6 @@ data class DialogExpectation(val activeFrames: List<ExpectedFrame>, val status: 
     // This is how rest of the code current assumes.
     @JsonIgnore
     val expected: ExpectedFrame = activeFrames[0]
-    constructor(vararg expected: ExpectedFrame): this(expected.asList()) {}
 }
 
 /**
@@ -78,9 +77,9 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     @JsonIgnore
     val expected: ExpectedFrame? = activeFrames.firstOrNull()
     
-    constructor(vararg expectedFrames: ExpectedFrame): this(listOf(DialogExpectation(expectedFrames.asList()))) {}
-    constructor(expectation: DialogExpectation?) : this(if (expectation != null) listOf(expectation) else emptyList()) {}
-    constructor() : this(emptyList()) {}
+    constructor(vararg expectedFrames: ExpectedFrame): this(listOf(DialogExpectation(expectedFrames.asList())))
+    constructor(expectation: DialogExpectation?) : this(if (expectation != null) listOf(expectation) else emptyList())
+    constructor() : this(emptyList())
 
     fun getFrameContext(): List<String> {
         val res = ArrayList<String>()
@@ -122,7 +121,7 @@ interface StateTracker {
      * Converts the user utterance into structured semantic representations.
      *
      * @param session dialog session, used for logging purposes.
-     * @param pytterance what user said in the current turn.
+     * @param putterance what user said in the current turn.
      * @param expectations describes the current state of dialog from chatbot side,
      * @return list of FrameEvents, structural semantic representation of what user said.
      */
@@ -296,18 +295,20 @@ data class DUContext(val session: String, val utterance: String, val expectation
         if (expectations.activeFrames.isEmpty()) return listOf()
         if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
         // TODO: handle the a.b.c case
-        val reslist = mutableListOf<String>()
-        val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected.slot!!)
-        if (expectedType != null) {
-            reslist.add(expectedType)
+        val resList = mutableListOf<String>()
+        if (expectations.expected!!.slot != null) {
+            val expectedType = bot.getSlotType(expectations.expected.frame, expectations.expected.slot!!)
+            resList.add(expectedType)
         } else {
             // Found the frame that has the slot
             for (active in expectations.activeFrames.reversed()) {
-                val activeType = bot.getSlotType(active.frame, active.slot!!)
-                if (activeType != null) reslist.add(activeType)
+                if (active.slot != null) {
+                    val activeType = bot.getSlotType(active.frame, active.slot)
+                    resList.add(activeType)
+                }
             }
         }
-        return reslist
+        return resList
     }
 
     companion object {
@@ -323,18 +324,18 @@ data class BertStateTracker(
     val agentMeta: DUMeta,
     val intentK: Int = 32,
     val slotValueK: Int = 3,
-    val intent_sure_threshold: Float = 0.5f,
-    val intent_possible_threshold: Float = 0.1f,
-    val slot_threshold: Float = 0.5f,
-    val expected_slot_bonus: Float = 1.6f,
-    val prefix_suffix_bonus: Float = 1.0f,
+    val intentSureThreshold: Float = 0.5f,
+    val intentPossibleThreshold: Float = 0.1f,
+    val slotThreshold: Float = 0.5f,
+    val expectedSlotBonus: Float = 1.6f,
+    val prefixSuffixBonus: Float = 1.0f,
     val caseSensitivity: Boolean = false
 ) : StateTracker {
 
-    val expressed_slot_bonus: Float = 5.0f
+    private val expressedSlotBonus: Float = 5.0f
 
     // If there are multi normalizer propose annotation on the same span, last one wins.
-    val normalizers = defaultRecognizers(agentMeta)
+    private val normalizers = defaultRecognizers(agentMeta)
     val nluModel: NLUModel = TfRestBertNLUModel()
     private val searcher = ExpressionSearcher(agentMeta)
 
@@ -401,7 +402,7 @@ data class BertStateTracker(
         expectations: DialogExpectations
     ): List<FrameEvent> {
         if (putterance.trim { it.isWhitespace() }.isEmpty()) return listOf()
-        logger.info("Getting $putterance under ${expectations}")
+        logger.info("Getting $putterance under $expectations")
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
         val ducontext = buildDUContext(session, utterance, expectations)
 
@@ -445,13 +446,13 @@ data class BertStateTracker(
         logger.debug("Found the best match ${bestCandidate}")
 
         // Of course, there are another dimension: whether we have expectation.
-        val recognizedFrameType: String? = bestCandidate.ownerFrame
+        val recognizedFrameType: String = bestCandidate.ownerFrame
         logger.debug("best matched frame: $recognizedFrameType, utterance: ${bestCandidate.typedExpression}")
-        if (!recognizedFrameType.isNullOrEmpty()) {
+        if (recognizedFrameType.isNotEmpty()) {
             // 6. matched a new intent
             val slotsInExpr = bestCandidate.slotNames()
             var extractedEvents = fillSlots(ducontext, recognizedFrameType, slotsInExpr, null)
-            if (extractedEvents.isNullOrEmpty()) {
+            if (extractedEvents.isEmpty()) {
                 extractedEvents += buildFrameEvent(recognizedFrameType)
             }
             extractedEvents = addEntailedSlot(bestCandidate, extractedEvents)
@@ -504,10 +505,16 @@ data class BertStateTracker(
 
         // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
-        candidates.map{ if (matcher.match(it)) { it.exactMatch = true } }
+        candidates.map{ matcher.markMatch(it) }
         val exactMatches = candidates.filter {it.exactMatch}
-        if (!exactMatches.isNullOrEmpty()) {
+        if (exactMatches.isNotEmpty()) {
             return pickDocViaFrames(exactMatches)
+        }
+
+        // If we have potential exact match, we use that as well.
+        val possibleExactMatches = candidates.filter { it.possibleExactMatch }
+        if (possibleExactMatches.isNotEmpty()) {
+            return pickDocViaFrames(possibleExactMatches)
         }
 
         // now get the model score the similarity between each candidate and user utterance.
@@ -535,7 +542,7 @@ data class BertStateTracker(
 
         // now find the intent best explain the utterance
         // First we check whether we know enough about
-        val goodCandidatesSize = candidates.filter { it.score > intent_sure_threshold }.size
+        val goodCandidatesSize = candidates.filter { it.score > intentSureThreshold }.size
         if (goodCandidatesSize <= 0) {
             logger.debug("Got no match for ${utterance}.")
             return null
@@ -560,7 +567,7 @@ data class BertStateTracker(
         val frames : Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
         return frames.values
             .map { it.sortedByDescending{it.score}[0] }
-            .filter { it.score > intent_sure_threshold }
+            .filter { it.score > intentSureThreshold }
             .sortedByDescending { it.score }
     }
 
@@ -637,7 +644,7 @@ data class BertStateTracker(
         // what happens we have good match, and these matches are related to expectations.
         // There are at least couple different use cases.
         // TODO(sean): should we start to pay attention to the order of the dialog expectation.
-        // Also the the stack structure of dialog expectation is not used.
+        // Also the stack structure of dialog expectation is not used.
         // a. confirm Yes/No
         if (expectations.isFrameCompatible(StateTracker.FullConfirmation)) {
             val events = handleExpectedBoolean(ducontext, StateTracker.FullConfirmationList)
@@ -686,7 +693,6 @@ data class BertStateTracker(
         if (ducontext.bestCandidate?.ownerFrame == StateTracker.SlotUpdate && expectations.hasExpectation()) {
             logger.debug("enter slot update.")
             // We need to figure out which slot user are interested in first.
-            val bestCandidate = ducontext.bestCandidate!!
             val slotTypeSpanInfo = ducontext.entityTypeToSpanInfoMap[StateTracker.SlotType]
             // Make sure there are slot type entity matches.
             if (slotTypeSpanInfo != null) {
@@ -715,7 +721,7 @@ data class BertStateTracker(
 
         // if there is no good match, we need to just find it using slot model.
         val extractedEvents0 = fillSlots(ducontext, expectations.expected!!.frame, listOf(), expectations.expected.slot)
-        if (!extractedEvents0.isNullOrEmpty()) {
+        if (extractedEvents0.isNotEmpty()) {
             return extractedEvents0
         }
 
@@ -723,7 +729,7 @@ data class BertStateTracker(
         for (activeFrame in expectations.activeFrames) {
             val extractedEvents = fillSlots(ducontext, activeFrame.frame, listOf(), activeFrame.slot)
             logger.info("for ${activeFrame} getting event: ${extractedEvents}")
-            if (!extractedEvents.isNullOrEmpty()) {
+            if (extractedEvents.isNotEmpty()) {
                 return extractedEvents
             }
         }
@@ -789,7 +795,7 @@ data class BertStateTracker(
         }
 
         val result = extractEntityEvents(ducontext, topLevelFrameType, slotMap, focusedSlot, spredict).toMutableList()
-        if (result.isNullOrEmpty()) return result
+        if (result.isEmpty()) return result
         return if (result.find {
                 topLevelFrameType.startsWith(it.packageName!!) && topLevelFrameType.endsWith(it.type)
                         || it.packageName == "io.opencui.core"} != null) {
@@ -809,23 +815,23 @@ data class BertStateTracker(
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
         val slotMapBef = getSlotMetas(StateTracker.SlotUpdate)
-        val slotMapTransformmed = mutableMapOf<String, DUSlotMeta>()
+        val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
 
-        check(slotTypeSpanInfos.size == 1) {"For now, we only deal with single template type."}
+        check(slotTypeSpanInfos.size == 1) { "For now, we only deal with single template type." }
         val spanInfo = slotTypeSpanInfos[0]
         val slotName = spanInfo.value.toString().split(".").last()
-        val targetMeta: DUSlotMeta = agentMeta.getSlotMetas(contextFrame).find{ it.label == slotName }!!
+        val targetMeta: DUSlotMeta = agentMeta.getSlotMetas(contextFrame).find { it.label == slotName }!!
         // we need to rewrite the slot map to replace all the T into actual slot type.
         for ((key, slotMeta) in slotMapBef) {
             // We can not fill slot without triggers.
             if (slotMeta.isGenericTyped()) {
-                slotMapTransformmed[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
+                slotMapTransformed[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
             } else {
-                slotMapTransformmed[key] = slotMeta
+                slotMapTransformed[key] = slotMeta
             }
         }
 
-        val slotMapAft = slotMapTransformmed.filter {it.value.triggers.isNotEmpty()}
+        val slotMapAft = slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
 
 
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
@@ -840,8 +846,7 @@ data class BertStateTracker(
             spredict = GlobalScope.async { nluModel.predictSlot(lang, utterance, slotProbes) }
         }
 
-        val result = extractEntityEvents(ducontext, StateTracker.SlotUpdate, slotMapAft, null, spredict).toMutableList()
-        return result
+        return extractEntityEvents(ducontext, StateTracker.SlotUpdate, slotMapAft, null, spredict).toMutableList()
     }
 
 
@@ -924,15 +929,15 @@ data class BertStateTracker(
             // (TODO: sean): This implies that we always have DONTCARE at the first entry? Strange.
             // Also, this is not the right way to get multi value to work.
             val recognizedDontCare = emap.containsKey(slotType) && emap[slotType]!![0].value.toString() == DONTCARE
-            if (result.classLogits[index * 3 + 1] > slot_threshold || emap.containsKey(slotType) && !recognizedDontCare) {
+            if (result.classLogits[index * 3 + 1] > slotThreshold || emap.containsKey(slotType) && !recognizedDontCare) {
                 // Find all the occurrences of candidates for this slot.
                 val slotCandidates = extractValue(ducontext, slotMap[slot]!!, result.get(index), emap[slotType])
                 if (slotCandidates != null) {
-                    if (slot == expectedSlot) slotCandidates.apply { forEach { it.score += expected_slot_bonus } }
+                    if (slot == expectedSlot) slotCandidates.apply { forEach { it.score += expectedSlotBonus } }
                     slotCandidates.apply { forEach { it.attribute = slot } }
                     candidateSpans.addAll(slotCandidates)
                 }
-            } else if (result.classLogits[index * 3 + 2] > slot_threshold || recognizedDontCare) {
+            } else if (result.classLogits[index * 3 + 2] > slotThreshold || recognizedDontCare) {
                 // DontCare. Right now, we do not really have the training data for this.
                 if (agentMeta.isEntity(slotType!!)) {
                     eventMap.put(path, EntityEvent("", slot))
@@ -961,13 +966,13 @@ data class BertStateTracker(
             val event = if (!span.leaf) {
                 // TODO(sean): this is virtual node
                 EntityEvent(entityLabel, lastPart).apply {
-                    origValue = span.value;
-                    type = addVirtual(span.type!!);
+                    origValue = span.value
+                    type = addVirtual(span.type!!)
                     isLeaf = false
                 }
             } else {
                 EntityEvent(entityLabel, lastPart).apply {
-                    origValue = span.value;
+                    origValue = span.value
                     type = span.type
                 }
             }
@@ -1032,7 +1037,7 @@ data class BertStateTracker(
 
         // pay attention that IntRange accepts endInclusive as a parameter by convention
         val spans = mutableMapOf<IntRange, ScoredSpan>()
-        if (prediction.classLogit > slot_threshold) {
+        if (prediction.classLogit > slotThreshold) {
             for (start in startIndexes) {
                 for (end in endIndexes) {
                     if (notBeginning(prediction.segments, start.index)) continue
@@ -1081,7 +1086,7 @@ data class BertStateTracker(
                         traceInfo = hashMapOf(
                             "recognizer_score" to entity.score.toString(),
                             "prefix_suffix_bonus" to bonus.toString()
-                        );
+                        )
                         recongizedEntity = true
                         leaf = entity.leaf
                     }
@@ -1089,8 +1094,8 @@ data class BertStateTracker(
 
                 // regardless we add the expressed bonus.
                 if (slotMeta.isMentioned) {
-                    spans[span]!!.score += expressed_slot_bonus
-                    spans[span]!!.traceInfo!!["expressed_slot_bonus"] = expressed_slot_bonus.toString()
+                    spans[span]!!.score += expressedSlotBonus
+                    spans[span]!!.traceInfo!!["expressed_slot_bonus"] = expressedSlotBonus.toString()
                 }
 
                 // Not adding score for partial match.
@@ -1104,7 +1109,7 @@ data class BertStateTracker(
             null
         } else {
             // topK score > threshold spans
-            var ret = spans.values.toList().filter { it.score > slot_threshold }
+            var ret = spans.values.toList().filter { it.score > slotThreshold }
             ret = ret.sortedByDescending { it.score }.subList(0, min(ret.size, slotValueK))
             // fill value
             ret.apply {
@@ -1123,7 +1128,7 @@ data class BertStateTracker(
         var bonus = 0f
         var denominator = 0.0000001f
         val parts = ducontext.tokens ?: return bonus
-        // for now we assume simple unigram model.
+        // for now, we assume simple unigram model.
         if (slotMeta.prefixes?.isNotEmpty() == true) {
             denominator += 1
             val previousTokenIndex = ducontext.previousTokenByChar[entity.start]
@@ -1150,7 +1155,7 @@ data class BertStateTracker(
     // given a list of frame event, add the entailed slots to the right frame event.
     private fun addEntailedSlot(bestCandidate: ScoredDocument?, frameEvents: List<FrameEvent>): List<FrameEvent> {
         if (bestCandidate == null) return frameEvents
-        if (bestCandidate.entailedSlots.size == 0) return frameEvents
+        if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
 
         val events = mutableListOf<FrameEvent>()
 
@@ -1184,8 +1189,8 @@ data class BertStateTracker(
     }
 
     companion object {
-        val firstKForDoc: Int = 3
-        val intentExactBoost: Float = 2.0f
+        const val firstKForDoc: Int = 3
+        const val intentExactBoost: Float = 2.0f
         val logger = LoggerFactory.getLogger(BertStateTracker::class.java)
         // TODO(sean): make sure entity side return this as label for DONTCARE
         const val DONTCARE = "DontCare"

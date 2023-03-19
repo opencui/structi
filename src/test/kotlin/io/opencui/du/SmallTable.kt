@@ -13,6 +13,10 @@ import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 
 import org.junit.Test
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 
 public data class SmallTableAgent(
@@ -473,7 +477,7 @@ public object en : LangPack {
       DUSlotMeta(label = "index", isMultiValue = false, type = "io.opencui.core.Ordinal", isHead =
           false, triggers = listOf("index", )),
       DUSlotMeta(label = "newValue", isMultiValue = false, type = "T", isHead = false, triggers =
-          listOf()),
+          listOf("new <originalSlot>")),
       DUSlotMeta(label = "confirm", isMultiValue = false, type =
           "io.opencui.core.confirmation.IStatus", isHead = false, triggers = listOf()),
       ),
@@ -940,10 +944,24 @@ class SmallTableDslTest() : DuTestHelper() {
             "change date to tomorrow",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
         )
+        val tmr = ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toLocalDate().plusDays(1)
+        assertEquals(frameEvents.size, 1)
+        assertEquals(frameEvents[0].type, "SlotUpdate")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="me.demo.reservation_v2.ReservationInfo.date", attribute=originalSlot), EntityEvent(value="$tmr", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+    }
+
+    @Test
+    fun testDateUpdateShort() {
+        val frameEvents = stateTracker.convert(
+            "s",
+            "change to tomorrow",
+            DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
+        )
+        val tmr = ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).toLocalDate().plusDays(1)
         println(frameEvents)
         assertEquals(frameEvents.size, 1)
         assertEquals(frameEvents[0].type, "SlotUpdate")
-        //assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="19:00:00", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="2023-03-20", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 
         @Test

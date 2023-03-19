@@ -3,7 +3,6 @@ package io.opencui.du
 import io.opencui.core.IChatbot
 import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
-import io.opencui.serialization.JsonArray
 import org.junit.Test
 import kotlin.test.assertEquals
 
@@ -670,7 +669,7 @@ class StateTrackerTest : DuTestHelper() {
 
         for ((index, slot) in probes.withIndex()) {
             if (index >= predictions.startLogitss.size) continue
-            if (predictions.classLogits[index * 3 + 1] > stateTracker.slot_threshold) {
+            if (predictions.classLogits[index * 3 + 1] > stateTracker.slotThreshold) {
                 val span = stateTracker.extractValue(
                         ducontext,
                         DUSlotMeta("slot"),
@@ -681,7 +680,7 @@ class StateTrackerTest : DuTestHelper() {
                         println("predicted slot: $slot, ${s.value}, score: ${s.score}")
                     }
                 }
-            } else if (predictions.classLogits[index * 3 + 2] > stateTracker.slot_threshold) {
+            } else if (predictions.classLogits[index * 3 + 2] > stateTracker.slotThreshold) {
                 // DontCare.
                 println("predicted slot: $slot as DontCare")
             }
