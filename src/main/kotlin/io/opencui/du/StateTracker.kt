@@ -460,7 +460,10 @@ data class BertStateTracker(
         }
         return listOf(buildFrameEvent(StateTracker.FullIDonotKnow))
     }
-
+    private fun isNoSwitchingFrame(ownerFrame:String) : Boolean {
+        return ownerFrame.startsWith("io.opencui.core") && ownerFrame != "io.opencui.core.SlotUpdate"
+    }
+    
     override fun isPartialMatch(event: EntityEvent): Boolean {
         return ListRecognizer.isPartialMatch(event.value)
     }
