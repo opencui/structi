@@ -477,7 +477,7 @@ public object en : LangPack {
       DUSlotMeta(label = "index", isMultiValue = false, type = "io.opencui.core.Ordinal", isHead =
           false, triggers = listOf("index", )),
       DUSlotMeta(label = "newValue", isMultiValue = false, type = "T", isHead = false, triggers =
-          listOf("new <originalSlot>")),
+          listOf("new <T>")),
       DUSlotMeta(label = "confirm", isMultiValue = false, type =
           "io.opencui.core.confirmation.IStatus", isHead = false, triggers = listOf()),
       ),
