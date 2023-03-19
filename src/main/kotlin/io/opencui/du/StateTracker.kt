@@ -73,7 +73,7 @@ data class DialogExpectation(val activeFrames: List<ExpectedFrame>, val status: 
  */
 data class DialogExpectations(val expectations: List<DialogExpectation>) {
     @JsonIgnore
-    val activeFrames: List<ExpectedFrame> = expectations.map{ it.activeFrames }.flatten()
+    val activeFrames: List<ExpectedFrame> = expectations.reversed().map{ it.activeFrames }.flatten()
     @JsonIgnore
     val expected: ExpectedFrame? = activeFrames.firstOrNull()
     
@@ -160,8 +160,7 @@ interface StateTracker {
         const val KotlinBoolean = "kotlin.Boolean"
         const val SlotUpdateOriginalSlot = "originalSlot"
 
-        const val SlotUpdateGenericType = "T"
-        val punctuation = ".!?。？！ \t\n\u00A0".toCharArray()
+        const val SlotUpdateGenericType = "<T>"
     }
 }
 
@@ -450,8 +449,7 @@ data class BertStateTracker(
         logger.debug("best matched frame: $recognizedFrameType, utterance: ${bestCandidate.typedExpression}")
         if (recognizedFrameType.isNotEmpty()) {
             // 6. matched a new intent
-            val slotsInExpr = bestCandidate.slotNames()
-            var extractedEvents = fillSlots(ducontext, recognizedFrameType, slotsInExpr, null)
+            var extractedEvents = fillSlots(ducontext, recognizedFrameType, null)
             if (extractedEvents.isEmpty()) {
                 extractedEvents += buildFrameEvent(recognizedFrameType)
             }
@@ -460,10 +458,7 @@ data class BertStateTracker(
         }
         return listOf(buildFrameEvent(StateTracker.FullIDonotKnow))
     }
-    private fun isNoSwitchingFrame(ownerFrame:String) : Boolean {
-        return ownerFrame.startsWith("io.opencui.core") && ownerFrame != "io.opencui.core.SlotUpdate"
-    }
-    
+
     override fun isPartialMatch(event: EntityEvent): Boolean {
         return ListRecognizer.isPartialMatch(event.value)
     }
@@ -700,7 +695,7 @@ data class BertStateTracker(
             // Make sure there are slot type entity matches.
             if (slotTypeSpanInfo != null) {
                 // We assume the expectation is stack, with most recent frames in the end
-                for (activeFrame in ducontext.expectations.activeFrames.reversed()) {
+                for (activeFrame in ducontext.expectations.activeFrames) {
                     val matchedSlotList = slotTypeSpanInfo
                         .filter { it.value.toString().startsWith(activeFrame.frame) }
                     val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
@@ -712,25 +707,29 @@ data class BertStateTracker(
                     }
 
                     // check if the current frame has the slot we cared about and go with that.
-                    val extractedEvents = fillSlotUpdate(ducontext, activeFrame.frame, matchedSlotList, listOf())
-
-                    // null means that we do not have match, empty mean no content match.
-                    if (extractedEvents != null) {
-                        return extractedEvents
-                    }
+                    val spanInfo = matchedSlotList[0]
+                    val slotName = spanInfo.value.toString().split(".").last()
+                    val targetSlot = agentMeta.getSlotMetas(activeFrame.frame).find { it.label == slotName }!!
+                    return fillSlotUpdate(ducontext, targetSlot)
                 }
+            } else {
+                // TODO: now we need to handle the case for change to tomorrow
+                // For now we assume there is only one generic type.
+                val bestCandidate = ducontext.bestCandidate!!
+                val targetSlot = bestCandidate.guessedSlot!!
+                return fillSlotUpdate(ducontext, targetSlot)
             }
         }
 
         // if there is no good match, we need to just find it using slot model.
-        val extractedEvents0 = fillSlots(ducontext, expectations.expected!!.frame, listOf(), expectations.expected.slot)
+        val extractedEvents0 = fillSlots(ducontext, expectations.expected!!.frame, expectations.expected.slot)
         if (extractedEvents0.isNotEmpty()) {
             return extractedEvents0
         }
 
         // try to fill slot for active frames
         for (activeFrame in expectations.activeFrames) {
-            val extractedEvents = fillSlots(ducontext, activeFrame.frame, listOf(), activeFrame.slot)
+            val extractedEvents = fillSlots(ducontext, activeFrame.frame, activeFrame.slot)
             logger.info("for ${activeFrame} getting event: ${extractedEvents}")
             if (extractedEvents.isNotEmpty()) {
                 return extractedEvents
@@ -779,15 +778,25 @@ data class BertStateTracker(
     private fun fillSlots(
         ducontext: DUContext,
         topLevelFrameType: String,
-        qualifiedSlotNamesInExpr: List<String>,
+        focusedSlot: String?
+    ): List<FrameEvent> {
+        val qualifiedSlotNamesInExpr = ducontext.bestCandidate?.slotNames() ?: emptyList()
+        // we need to make sure we include slots mentioned in the intent expression
+        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr).filter { it.value.triggers.isNotEmpty() }
+        return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
+    }
+
+    private fun fillSlots(
+        slotMap: Map<String, DUSlotMeta>,
+        ducontext: DUContext,
+        topLevelFrameType: String,
         focusedSlot: String?
     ): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr).filter { it.value.triggers.isNotEmpty() }
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
         val slotProbes = slotMap.values.map { it.triggers[0] }.toList()
-        logger.info("slot model, utterance: $utterance, probes: $slotProbes, frame: $topLevelFrameType, slots: $focusedSlot, $qualifiedSlotNamesInExpr")
+        logger.info("slot model, utterance: $utterance, probes: $slotProbes, frame: $topLevelFrameType, slots: $focusedSlot")
 
         var spredict: Deferred<UnifiedModelResult>? = null
         // skip slot model when utterance is one token, we should use a better check based on reconginizer
@@ -809,26 +818,21 @@ data class BertStateTracker(
         }
     }
 
-    private fun fillSlotUpdate(
-        ducontext: DUContext,
-        contextFrame: String,
-        slotTypeSpanInfos: List<SpanInfo>,
-        qualifiedSlotNamesInExpr: List<String>,
-    ): List<FrameEvent>? {
+
+    private fun fillSlotUpdate(ducontext: DUContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
         val slotMapBef = getSlotMetas(StateTracker.SlotUpdate)
         val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
 
-        check(slotTypeSpanInfos.size == 1) { "For now, we only deal with single template type." }
-        val spanInfo = slotTypeSpanInfos[0]
-        val slotName = spanInfo.value.toString().split(".").last()
-        val targetMeta: DUSlotMeta = agentMeta.getSlotMetas(contextFrame).find { it.label == slotName }!!
         // we need to rewrite the slot map to replace all the T into actual slot type.
         for ((key, slotMeta) in slotMapBef) {
             // We can not fill slot without triggers.
             if (slotMeta.isGenericTyped()) {
-                slotMapTransformed[key] = slotMeta.typeReplaced(targetMeta.type!!, targetMeta.triggers)
+                // NOTE: assume the pattern for generated type is <T>
+                val targetTrigger = targetSlot.triggers[0]
+                val newTriggers = slotMeta.triggers.map { it.replace(StateTracker.SlotUpdateOriginalSlot, targetTrigger)}
+                slotMapTransformed[key] = slotMeta.typeReplaced(targetSlot.type!!, newTriggers)
             } else {
                 slotMapTransformed[key] = slotMeta
             }
@@ -836,10 +840,9 @@ data class BertStateTracker(
 
         val slotMapAft = slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
 
-
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
         val slotProbes = slotMapAft.values.map { it.triggers[0] }.toList()
-        logger.info("slot model, utterance: $utterance, probes: $slotProbes, frame: $contextFrame, $qualifiedSlotNamesInExpr")
+        logger.info("slot model, utterance: $utterance, probes: $slotProbes, ${targetSlot.type}")
 
         var spredict: Deferred<UnifiedModelResult>? = null
         // skip slot model when utterance is one token, we should use a better check based on reconginizer
@@ -884,7 +887,6 @@ data class BertStateTracker(
         val res = ArrayList<FrameEvent>()
         for (key in eventMap.keys) {
             var type: String
-            var pattribute: String? = null
             if (key == "") {
                 type = frameType
                 res.add(buildFrameEvent(type, eventMap[key]!!.toList()))
@@ -916,7 +918,6 @@ data class BertStateTracker(
         logger.info("extractSlotValues: class logits: $result.class_logits")
         // for now: for each slot we check whether its class_logits high enough,
         // if it is, we find the span for it. we assume all top level slots are required.
-        val utterance = ducontext.utterance
         val emap = ducontext.entityTypeToSpanInfoMap
 
         val slots = slotMap.keys.toList()
@@ -1130,7 +1131,6 @@ data class BertStateTracker(
     private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, ducontext: DUContext, entity: SpanInfo): Float {
         var bonus = 0f
         var denominator = 0.0000001f
-        val parts = ducontext.tokens ?: return bonus
         // for now, we assume simple unigram model.
         if (slotMeta.prefixes?.isNotEmpty() == true) {
             denominator += 1
@@ -1192,8 +1192,6 @@ data class BertStateTracker(
     }
 
     companion object {
-        const val firstKForDoc: Int = 3
-        const val intentExactBoost: Float = 2.0f
         val logger = LoggerFactory.getLogger(BertStateTracker::class.java)
         // TODO(sean): make sure entity side return this as label for DONTCARE
         const val DONTCARE = "DontCare"

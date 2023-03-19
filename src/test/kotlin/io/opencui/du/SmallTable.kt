@@ -961,7 +961,7 @@ class SmallTableDslTest() : DuTestHelper() {
         println(frameEvents)
         assertEquals(frameEvents.size, 1)
         assertEquals(frameEvents[0].type, "SlotUpdate")
-        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="2023-03-20", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
+        assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="$tmr", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 
         @Test

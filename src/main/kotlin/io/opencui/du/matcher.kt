@@ -25,14 +25,14 @@ interface Matcher {
 class NestedMatcher(val context: DUContext) : Matcher {
     private val analyzer = LanguageAnalyzer.get(context.duMeta!!.getLang(), stop = false)
     private val duMeta = context.duMeta!!
-    var trueType : String? = null
+    private var trueType : String? = null
 
     // This function try to see if we can use doc to explain utterance from tokenStart.
     // return -1, if there is no match, or position of last token that got matched.
     // We pay attention to typed expression, whenever we see a type, we try to figure out whether
     // one of the production can explain the rest utterance from the current start.
     // utterance start is token based, and doc start is character based.
-    fun coverFind(uStart: Int, doc: MetaExprSegments): Int {
+    private fun coverFind(uStart: Int, doc: MetaExprSegments): Int {
         var start = uStart
         for(segment in doc.segments) {
             val end = when(segment) {
@@ -46,7 +46,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
     }
 
     //
-    fun exprMatch(uStart: Int, doc: ExprSegment): Int {
+    private fun exprMatch(uStart: Int, doc: ExprSegment): Int {
         val tokens = analyzer!!.tokenize(doc.expr)
         for ((index, token) in tokens.withIndex()) {
             if (uStart + index >= context.tokens!!.size) return -1 
@@ -57,7 +57,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return uStart + tokens.size
     }
 
-    fun typeMatch(uStart: Int, doc: MetaSegment): Int {
+    private fun typeMatch(uStart: Int, doc: MetaSegment): Int {
         // Go through every exemplar, and find one that matches.
         return when(duMeta.typeKind(doc.meta)) {
             TypeKind.Entity -> entityCover(uStart, doc.meta)
@@ -67,7 +67,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
     }
 
     // Try to find some entities to cover this, using the longest match.
-    fun entityCover(uStart: Int, entityType: String): Int {
+    private fun entityCover(uStart: Int, entityType: String): Int {
         // TODO: why we got this point need to be checked.
         if (uStart >= context.tokens!!.size) return -1 
         val charStart = context.tokens!![uStart].start
@@ -82,7 +82,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return end
     }
 
-    fun genericMatch(uStart: Int): Int {
+    private fun genericMatch(uStart: Int): Int {
         // TODO: we need to consider this under expectation.
         val charStart = context.tokens!![uStart].start
         val entities = context.emapByCharStart[charStart] ?: return -1
@@ -94,7 +94,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return end
     }
 
-    fun frameMatch(uStart: Int, frameType: String): Int {
+    private fun frameMatch(uStart: Int, frameType: String): Int {
         val expressions = duMeta.expressionsByFrame[frameType] ?: return -1
         var last = -1
         for (expression in expressions) {
@@ -105,7 +105,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
         return last
     }
 
-    fun isSubEntityOf(first: String, second:String): Boolean {
+    private fun isSubEntityOf(first: String, second:String): Boolean {
         var parent : String? = first
         while (parent != null) {
             if (parent == second) return true
@@ -125,6 +125,7 @@ class NestedMatcher(val context: DUContext) : Matcher {
                 document.exactMatch = coverFind(0, segments) == context.tokens!!.size
             } else {
                 // Here we find a potential exact match, based on guess a slot.
+                // Another choice when there are multiple choices we clarify.
                 val slots = duMeta.getSlotMetas(context.expectations)
                 for (slot in slots) {
                     if (context.entityTypeToSpanInfoMap.containsKey(slot.type)) {
