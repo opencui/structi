@@ -23,12 +23,11 @@ object SlotTypeResolver : Resolver {
 
             val actualSlotTypes = segments.filter {
                 it is MetaSegment && context.duMeta!!.getSlotType(document.ownerFrame, it.meta) == SLOTTYPE }
-            if (actualSlotTypes.isEmpty()) {
+            if (actualSlotTypes.isEmpty() || !context.entityTypeToSpanInfoMap.containsKey(SLOTTYPE)) {
                 //  TODO: guess the true type for generic type.
                 output.add(document)
             } else {
                 val matchedSlots = context.entityTypeToSpanInfoMap[SLOTTYPE]!!
-                val slotTriggers = context.duMeta!!.getSlotTriggers()
                 for (matchedSlot in matchedSlots) {
                     val trueSlot = matchedSlot.value as String
                     val tkns = trueSlot.split(".")

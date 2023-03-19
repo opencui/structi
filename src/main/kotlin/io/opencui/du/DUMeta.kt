@@ -39,6 +39,15 @@ data class DUSlotMeta(
         return meta
     }
 
+    fun triggerUpdated(newTriggers: List<String>): DUSlotMeta {
+
+        val meta = DUSlotMeta(label, newTriggers, type, isMultiValue, parent, isHead)
+        meta.isMentioned = isMentioned
+        meta.prefixes = prefixes
+        meta.suffixes = suffixes
+        return meta
+    }
+
     fun isGenericTyped(): Boolean {
         return type == "T"
     }
@@ -131,6 +140,10 @@ interface DUMeta : ExtractiveMeta {
             "en" -> En(this)
             else -> throw IllegalStateException("Does not support ${getLang()} yet.")
         }
+    }
+
+    fun getSlotMetas(expectation: DialogExpectations): List<DUSlotMeta> {
+        return expectation.activeFrames.map{getSlotMetas(it.frame)}.flatten()
     }
 
     companion object {
@@ -350,7 +363,11 @@ sealed interface TypedExprSegment: Serializable {
 data class ExprSegment(val expr: String, override val start: Int, override val end: Int): TypedExprSegment
 data class MetaSegment(val meta: String, override val start: Int, override val end: Int): TypedExprSegment
 
-data class MetaExprSegments(val frame: String, val typedExpr: String, val segments: List<TypedExprSegment>)
+data class MetaExprSegments(val frame: String, val typedExpr: String, val segments: List<TypedExprSegment>) {
+    fun useGenericType() : Boolean {
+        return segments.find {it is MetaSegment && it.meta == "T"} != null
+    }
+}
 data class Expression(
         val owner: String,
         val context: ExpressionContext?,
