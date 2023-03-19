@@ -39,15 +39,6 @@ data class DUSlotMeta(
         return meta
     }
 
-    fun triggerUpdated(newTriggers: List<String>): DUSlotMeta {
-
-        val meta = DUSlotMeta(label, newTriggers, type, isMultiValue, parent, isHead)
-        meta.isMentioned = isMentioned
-        meta.prefixes = prefixes
-        meta.suffixes = suffixes
-        return meta
-    }
-
     fun isGenericTyped(): Boolean {
         return type == "T"
     }
