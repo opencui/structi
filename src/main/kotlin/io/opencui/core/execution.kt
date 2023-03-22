@@ -143,6 +143,12 @@ class DialogManager {
         val entity = session.schedule.lastOrNull()
         if (session.schedule.isEmpty() || entity == null || entity.askStrategy() is ExternalEventStrategy) return null
         val topFrameWrapperFiller = session.schedule.filterIsInstance<AnnotatedWrapperFiller>().lastOrNull { it.targetFiller is FrameFiller<*> }!!
+        return DialogExpectation(findExpectedFrames(session, topFrameWrapperFiller))
+    }
+
+    // This can be used recursively for cases like
+    private fun findExpectedFrames(session: UserSession, topFrameWrapperFiller: AnnotatedWrapperFiller): List<ExpectedFrame> {
+        assert(topFrameWrapperFiller.targetFiller is FrameFiller<*>)
         val topFrame = (topFrameWrapperFiller.targetFiller as FrameFiller<*>).frame()
         val res = mutableListOf<ExpectedFrame>()
         when (topFrame) {
@@ -232,13 +238,23 @@ class DialogManager {
                     res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTATUS)
                 }
                 res += ExpectedFrame(frameFiller.qualifiedEventType()!!, focus, (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr())
+                // Now we check whether it is a frame with head.
+                val slotMetas = session.chatbot!!.duMeta.getSlotMetas(frameFiller.qualifiedTypeStr())
+                if (slotMetas.any { it.isHead }) {
+                    val targetFiller = topFrameWrapperFiller.parent
+                    if (targetFiller != null) {
+                        findExpectationByFiller(session, targetFiller)?.let {
+                            res += it
+                        }
+                    }
+                }
             }
         }
         if (res.firstOrNull { it.frame == HasMore::class.qualifiedName } == null && session.schedule.firstOrNull { it is FrameFiller<*> && it.frame() is HasMore } != null) {
             // check if there is undone HasMore
             res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", HASMORESTATUS)
         }
-        return DialogExpectation(res)
+        return res
     }
 
     private fun findExpectationByFiller(session: UserSession, filler: IFiller): ExpectedFrame? {
