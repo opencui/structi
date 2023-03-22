@@ -1097,7 +1097,7 @@ data class ZepTestIntent_0(
 
 data class SlotUpdate<T: Any>(override var session: UserSession? = null): AbstractSlotUpdate<T>(session) {
     override val informNewValuePrompt = {
-        SlotInform(newValue, "newValue", "",
+        SlotInform(newValue, "newValue", "T",
             templateOf(with(session!!.rgLang) { """we have updated ${if (!isMV()) originalSlot!!.expression() else "the ${index!!.name()} ${originalSlot!!.expression()}"} form ${originalValue()!!.expression()} to ${newValue!!.expression()} for you""" })
         ) }
     override val askNewValuePrompt = {
@@ -1105,7 +1105,7 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
             templateOf(with(session!!.rgLang) { """What do you want for ${if (!isMV()) originalSlot!!.expression() else "${index!!.name()} ${originalSlot!!.expression()}"}?""" })
         ) }
     override val oldValueDisagreePrompt = {
-        SlotConfirm(oldValue, "oldValue", "",
+        SlotConfirm(oldValue, "oldValue", "T",
             templateOf(with(session!!.rgLang) { "You just said ${oldValue!!.expression()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.expression()} from ${originalValue()!!.expression()}?" })
         ) }
     override val doNothingPrompt = {

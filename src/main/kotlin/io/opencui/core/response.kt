@@ -29,9 +29,8 @@ sealed interface RGBase: Serializable {
             is LocalDate ->  dateFormatter.format(this)
             is LocalTime -> timeFormatter.format(this)
             is SlotType -> slotTypeExpression(toString())
-            is String -> toString()
             is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
-            else -> null
+            else -> toString()
         }
     }
 
