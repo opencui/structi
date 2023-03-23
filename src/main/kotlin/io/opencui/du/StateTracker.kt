@@ -696,24 +696,35 @@ data class BertStateTracker(
             if (slotTypeSpanInfo != null) {
                 // We assume the expectation is stack, with most recent frames in the end
                 for (activeFrame in ducontext.expectations.activeFrames) {
-                    val matchedSlotList = slotTypeSpanInfo
-                        .filter { it.value.toString().startsWith(activeFrame.frame) }
-                    val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
-                    if (matchedSlots.isEmpty()) {
+                    val matchedSlotList = slotTypeSpanInfo.filter { isSlotMatched(it, activeFrame.frame) }
+                    if (matchedSlotList.isEmpty()) {
                         continue
                     }
+
+                    // Dedup first.
+                    val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
                     if (matchedSlots.size > 1) {
                         throw RuntimeException("Can not mapping two different slot yet")
                     }
 
                     // check if the current frame has the slot we cared about and go with that.
                     val spanInfo = matchedSlotList[0]
-                    val slotName = spanInfo.value.toString().split(".").last()
-                    val targetSlot = agentMeta.getSlotMetas(activeFrame.frame).find { it.label == slotName }!!
-                    return fillSlotUpdate(ducontext, targetSlot)
+                    val partsInQualified = spanInfo.value.toString().split(".")
+                    val slotName = partsInQualified.last()
+                    val slotsInActiveFrame = agentMeta.getSlotMetas(activeFrame.frame)
+
+                    val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
+                    if (targetEntitySlot != null) {
+                        return fillSlotUpdate(ducontext, targetEntitySlot!!)
+                    } else {
+                        val targetFrameType = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
+                        val targetFrameSlot = slotsInActiveFrame.find { it.type == targetFrameType }
+                        println(targetFrameSlot)
+
+                    }
                 }
             } else {
-                // TODO: now we need to handle the case for change to tomorrow
+                // TODO: now we need to handle the case for: change to tomorrow
                 // For now we assume there is only one generic type.
                 val bestCandidate = ducontext.bestCandidate!!
                 val targetSlot = bestCandidate.guessedSlot!!
@@ -752,6 +763,18 @@ data class BertStateTracker(
         }
         return null
     }
+
+    private fun isSlotMatched(spanInfo: SpanInfo, activeFrame: String): Boolean {
+        val spanTargetSlot = spanInfo.value.toString()
+        if (spanTargetSlot.startsWith(activeFrame)) return true
+        val parts = spanTargetSlot.split(".")
+        val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
+        val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
+        // now we need to figure out whether active Frame as a frame slot of this time.
+        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter {it.type == spanTargetFrame}
+        return spanTargetFrameHasHead && matchedFrameSlots.size == 1
+    }
+
 
     // This need to called if status is expected.
     private fun handleExpectedBoolean(ducontext: DUContext, valueChoices: List<String>): List<FrameEvent>? {
