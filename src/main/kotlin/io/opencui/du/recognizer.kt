@@ -36,6 +36,8 @@ class SpanInfo(
     fun norm() : String? {
         return recognizer?.getNormedValue(this)
     }
+
+
 }
 
 
