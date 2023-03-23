@@ -717,10 +717,10 @@ data class BertStateTracker(
                     if (targetEntitySlot != null) {
                         return fillSlotUpdate(ducontext, targetEntitySlot!!)
                     } else {
+                        // This find the headed frame slot.
                         val targetFrameType = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
-                        val targetFrameSlot = slotsInActiveFrame.find { it.type == targetFrameType }
-                        println(targetFrameSlot)
-
+                        val targetEntitySlot = agentMeta.getSlotMetas(targetFrameType).find {it.label == slotName}!!
+                        return fillSlotUpdate(ducontext, targetEntitySlot!!)
                     }
                 }
             } else {
