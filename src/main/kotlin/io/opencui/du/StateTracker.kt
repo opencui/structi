@@ -766,9 +766,12 @@ data class BertStateTracker(
 
     private fun isSlotMatched(spanInfo: SpanInfo, activeFrame: String): Boolean {
         val spanTargetSlot = spanInfo.value.toString()
-        if (spanTargetSlot.startsWith(activeFrame)) return true
         val parts = spanTargetSlot.split(".")
         val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
+        val slotName = parts.last()
+        val slotMeta = agentMeta.getSlotMeta(spanTargetFrame, slotName)!!
+        if (spanTargetSlot.startsWith(activeFrame) && agentMeta.isEntity(slotMeta.type!!)) return true
+
         val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
         // now we need to figure out whether active Frame as a frame slot of this time.
         val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter {it.type == spanTargetFrame}
