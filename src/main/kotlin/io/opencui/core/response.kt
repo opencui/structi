@@ -3,12 +3,14 @@ package io.opencui.core
 import io.opencui.du.DUMeta
 import io.opencui.du.getSlotMeta
 import java.io.Serializable
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.format.TextStyle
 import java.util.Locale
 
 // This is a better way to handle language dependence.
@@ -28,6 +30,7 @@ sealed interface RGBase: Serializable {
             is LocalDateTime -> formatter.format(this)
             is LocalDate ->  dateFormatter.format(this)
             is LocalTime -> timeFormatter.format(this)
+            is DayOfWeek -> getDisplayName(TextStyle.FULL, locale)
             is SlotType -> slotTypeExpression(toString())
             is IEntity -> duMeta.getEntityInstances(typeName)[toString()]?.firstOrNull() ?: toString()
             else -> toString()

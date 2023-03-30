@@ -36,8 +36,6 @@ class SpanInfo(
     fun norm() : String? {
         return recognizer?.getNormedValue(this)
     }
-
-
 }
 
 
@@ -45,8 +43,8 @@ class SpanInfo(
  * We will have different type of entity recognizer, ducking, list, and maybe others.
  * These will be used by both span detection, global rescoring.
  *
- * Also, each EntityRecognizer will responsible for a set of entities.
- * All EntityRecognizer are assumed to have an companion object which can
+ * Also, each EntityRecognizer will be responsible for a set of entities.
+ * All EntityRecognizer are assumed to have a companion object which can
  * be used to build the recognizer for the language.
  *
  * We will assume for each agent, we have a separate recognizer, for the ones that need
@@ -60,8 +58,6 @@ class SpanInfo(
  * TODO: need to figure out multi valued cases here.
  */
 interface EntityRecognizer {
-    // val botContext: BotExtractionContext
-
     /**
      * Takes a user utterance, and current expected types, it emits the recognized entity input
      * entity map, where key is the type of entity, and value is list of spans for that entity type.
@@ -516,6 +512,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
             "kotlin.Boolean" -> value.value as String?
             "java.time.TimeZone" -> Json.encodeToString(TimeZone.getTimeZone(value.value as String))
             "java.time.ZoneId" -> Json.encodeToString(ZoneId.of(value.value as String))
+            "java.time.DayOfWeek" -> Json.encodeToString(DayOfWeek.of((value.value as String).replace("^\"|\"$", "").toInt()))
             else -> "\"${value.value}\""
         }
     }
@@ -523,7 +520,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
     companion object {
         const val PARTIALMATCH = "_partial_match"
         const val QUERY = "QUERY"
-
+        val QUOTES = Regex("^\"|\"$")
         fun isInternal(label: String): Boolean = label.startsWith("*")
 
         fun isPartialMatch(norm: String?) : Boolean {
