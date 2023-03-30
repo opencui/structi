@@ -512,7 +512,6 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
             "kotlin.Boolean" -> value.value as String?
             "java.time.TimeZone" -> Json.encodeToString(TimeZone.getTimeZone(value.value as String))
             "java.time.ZoneId" -> Json.encodeToString(ZoneId.of(value.value as String))
-            "java.time.DayOfWeek" -> Json.encodeToString(DayOfWeek.of((value.value as String).replace("^\"|\"$", "").toInt()))
             else -> "\"${value.value}\""
         }
     }
