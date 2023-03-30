@@ -121,7 +121,6 @@ class InterfaceIEntitySerializer: JsonSerializer<IEntity>() {
 // TODO(sean) maybe chagned to regular class so that we can take session as member.
 object Json {
     val mapper = jacksonObjectMapper()
-    val JsonNull = NullNode.instance
 
     init {
         // support the java time.

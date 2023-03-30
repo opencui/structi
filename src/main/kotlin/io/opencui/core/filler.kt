@@ -248,11 +248,7 @@ abstract class AEntityFiller : IFiller, Committable {
 
     // it is important to keep FrameEvent in filler in order to tell whether it is autofilled
     var event: FrameEvent? = null
-
     var done: Boolean = false
-
-
-
 
     override fun done(frameEvents: List<FrameEvent>): Boolean = done
 
@@ -366,7 +362,6 @@ class EntityFiller<T>(
 }
 
 
-
 // Used with composite with VR (or almost always).
 class OpaqueFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
@@ -424,7 +419,6 @@ class OpaqueFiller<T>(
         decorativeAnnotations.clear()
         // decorativeAnnotations.addAll(related.decorativeAnnotations)
         done = true
-
         return true
     }
 
