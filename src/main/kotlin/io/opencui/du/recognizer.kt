@@ -508,9 +508,10 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
 
 
     override fun getNormedValue(value: SpanInfo): String? {
+        // TODO: should we make sure that label of entity instance has no space?
         return when (value.type) {
             "kotlin.Boolean" -> value.value as String?
-            "java.time.TimeZone" -> Json.encodeToString(TimeZone.getTimeZone(value.value as String))
+            "java.util.TimeZone" -> Json.encodeToString(TimeZone.getTimeZone(value.value as String))
             "java.time.ZoneId" -> Json.encodeToString(ZoneId.of(value.value as String))
             else -> "\"${value.value}\""
         }

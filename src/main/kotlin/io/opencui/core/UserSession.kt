@@ -181,7 +181,7 @@ data class UserSession(
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
     // retries.
-    fun isFirstMessage(msgId: String): Boolean {
+    fun isFirstMessage(pmsgId: String): Boolean {
         // First remove old msgIds.
         val now = LocalDateTime.now()
         for (msgId in msgIds.keys) {
@@ -192,8 +192,8 @@ data class UserSession(
         }
 
         // For now, we only process once.
-        return if (!msgIds.containsKey(msgId)) {
-            msgIds.put(msgId, LocalDateTime.now())
+        return if (!msgIds.containsKey(pmsgId)) {
+            msgIds.put(pmsgId, LocalDateTime.now())
             true
         } else {
             false
@@ -362,7 +362,7 @@ data class UserSession(
         val candidatesFillers =
                 mainSchedule.reversed().filterIsInstance<AnnotatedWrapperFiller>().filter { it.targetFiller is FrameFiller<*> } +
                 mainSchedule.reversed().filterIsInstance<MultiValueFiller<*>>().filter { it.svType == MultiValueFiller.SvType.INTERFACE }.flatMap { it.fillers.mapNotNull { (it.targetFiller as? InterfaceFiller<*>)?.vfiller } } +
-                finishedIntentFiller.filterIsInstance<AnnotatedWrapperFiller>().filter { (it.targetFiller as TypedFiller<*>).target.get() !is AbstractValueClarification<*> }
+                finishedIntentFiller.toList().filter { (it.targetFiller as TypedFiller<*>).target.get() !is AbstractValueClarification<*> }
         val contextValueCandidates: List<Any> = candidatesFillers.flatMap {
             val res = mutableListOf<Any>()
             res.add((it.targetFiller as FrameFiller<*>).target.get()!!)
@@ -582,7 +582,7 @@ data class UserSession(
         val stack = Stack<AnnotatedWrapperFiller>()
         stack.push(root)
         var last: AnnotatedWrapperFiller? = null
-        var started: Boolean = false
+        var started = false
         while (stack.isNotEmpty()) {
             val top = stack.peek()
             if ((last != null && isRightMostChild(top, last)) || hasNoChild(top)) {
@@ -902,7 +902,7 @@ data class UserSession(
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
-        val USERIDENTIFIER = io.opencui.core.user.UserIdentifier::class.qualifiedName!!
+        val USERIDENTIFIER = UserIdentifier::class.qualifiedName!!
         private val serialVersionUID: Long = 123
         val PACKAGE = USERIDENTIFIER.split(".").subList(0, 2).joinToString(".")
     }
