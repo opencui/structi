@@ -3,8 +3,6 @@ package io.opencui.core
 import io.opencui.channel.IChannel
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserInfo
-import io.opencui.serialization.Json
-import io.opencui.serialization.JsonObject
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 

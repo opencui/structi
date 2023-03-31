@@ -59,8 +59,6 @@ data class SqlConnection(val cfg: Configuration) : IConnection {
         }
     }
 
-
-
     @Throws(ProviderInvokeException::class)
     fun invoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String): ArrayNode {
         val results = mutableListOf<JsonNode>()
@@ -95,8 +93,6 @@ data class SqlConnection(val cfg: Configuration) : IConnection {
         logger.debug("Sql Provider result : ${result.toPrettyString()}")
         return result
     }
-
-
 
     @Throws(ProviderInvokeException::class)
     override fun <T> svInvoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String, converter: Converter<T>): T {

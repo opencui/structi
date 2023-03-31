@@ -27,7 +27,6 @@ interface ISessionStore {
 
 // Some time, we need to save the bot related information across different versions for all users.
 interface IBotStore {
-
     val botInfo: BotInfo
 
     // This should mimic the redis as much as possible.
@@ -102,7 +101,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     fun updateUserSession(channel: IUserIdentifier, botInfo: BotInfo, session: UserSession) {
         sessionStore.updateSession(channel.channelId(), channel.userId!!, botInfo, session)
     }
-
 
     /**
      * This method will be called when contact submit an query along with events (should we allow this?)

@@ -354,6 +354,5 @@ abstract class IChatbot : Component {
                     get() = parseExpressions(Json.makeArray(langPack.frames), this)
             }
         }
-
     }
 }

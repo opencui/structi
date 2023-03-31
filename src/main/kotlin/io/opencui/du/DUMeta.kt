@@ -332,7 +332,6 @@ data class EntityMeta(
     override fun getSuper(): String? {
         return if (parents.isNullOrEmpty()) null else parents[0]
     }
-
 }
 
 data class EntityType(

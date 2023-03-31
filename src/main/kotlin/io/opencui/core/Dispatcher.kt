@@ -6,7 +6,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import io.opencui.support.ISupport
 

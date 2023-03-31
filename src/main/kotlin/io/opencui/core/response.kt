@@ -7,7 +7,6 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
@@ -61,7 +60,6 @@ sealed interface RGBase: Serializable {
     fun <T: Any> T.typeName() : String? {
         return typeExpression()
     }
-
 }
 
 data class Zh(override val duMeta: DUMeta) : RGBase {

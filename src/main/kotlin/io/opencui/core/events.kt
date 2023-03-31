@@ -118,8 +118,7 @@ data class FrameEvent(
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class ParsedQuery(
     val query: String,
-    var frames: List<FrameEvent>
-) {
+    var frames: List<FrameEvent>) {
     init {
         for (event in frames) {
             event.query = query
