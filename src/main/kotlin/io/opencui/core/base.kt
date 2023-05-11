@@ -207,7 +207,7 @@ abstract class IChatbot : Component {
     override val timezone: String = duMeta.getTimezone()
 
     // Do we have support connected behind bot?
-    abstract val stateTracker: StateTracker
+    abstract val stateTracker: IStateTracker
 
     // This is used to host extension managers.
     val extensions = mutableMapOf<KClass<*>, ExtensionManager<*>>()

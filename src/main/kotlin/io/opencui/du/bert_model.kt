@@ -142,7 +142,7 @@ data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
     val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String = "${config.third}://${config.first}:${config.second}"
-    val timeout: Long = 2000
+    val timeout: Long = 10000
 
 
     fun parse(modelName: String, signatureName: String, utterance: String, probes: List<String>) : JsonObject? {

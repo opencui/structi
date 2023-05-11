@@ -343,16 +343,15 @@ class DialogManager {
                             objNode.replace("@class", classArrNode)
                             for (entityEvent in event.slots) {
                                 if (targetFiller.isCompatible(FrameEvent(event.type, slots = listOf(entityEvent), packageName = event.packageName).apply { source = EventSource.USER })) {
-                                    if (session.chatbot!!.stateTracker.isPartialMatch(entityEvent)) {
-                                        val candidateValues = session.chatbot!!.stateTracker.findRelatedEntity(entityEvent)?.map { TextNode(it) }
-                                        if (!candidateValues.isNullOrEmpty()) {
-                                            objNode.replace(entityEvent.attribute, ArrayNode(JsonNodeFactory.instance, candidateValues))
-
-                                        }
-                                    } else {
+                                    // if (session.chatbot!!.stateTracker.isPartialMatch(entityEvent)) {
+                                    //    val candidateValues = session.chatbot!!.stateTracker.findRelatedEntity(entityEvent)?.map { TextNode(it) }
+                                    //    if (!candidateValues.isNullOrEmpty()) {
+                                    //        objNode.replace(entityEvent.attribute, ArrayNode(JsonNodeFactory.instance, candidateValues))
+                                    //    }
+                                    // } else {
                                         val arrNode = ArrayNode(JsonNodeFactory.instance, listOf(Json.parseToJsonElement(entityEvent.value)))
                                         objNode.replace(entityEvent.attribute, arrNode)
-                                    }
+                                    //}
                                 } else {
                                     nonFunctionCallSlotEvents += entityEvent
                                 }
