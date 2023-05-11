@@ -25,7 +25,7 @@ public data class SmallTableAgent(
   public override val duMeta: DUMeta
     public get() = SmallTableAgent.duMeta
 
-  public override val stateTracker: StateTracker
+  public override val stateTracker: IStateTracker
     public get() = SmallTableAgent.stateTracker
 
   public override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
@@ -42,7 +42,7 @@ public data class SmallTableAgent(
     public val duMeta: DUMeta = loadDUMetaDsl(en, SmallTableAgent::class.java.classLoader, "me.sean",
         "reservationApp_v4_copy", "en", "746395988637257728", "271", "Asia/Shanghai")
 
-    public val stateTracker: StateTracker = BertStateTracker(duMeta)
+    public val stateTracker: IStateTracker = BertStateTracker(duMeta)
   }
 }
 

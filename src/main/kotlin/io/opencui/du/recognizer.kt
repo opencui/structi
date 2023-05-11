@@ -407,12 +407,12 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
 
             // process entity dontcare annotations
             if (processedDontcare.containsKey(type)) {
-                memorizeExtractiveFrame(StateTracker.DontCareLabel, StateTracker.FullDontCare, processedDontcare)
+                memorizeExtractiveFrame(IStateTracker.DontCareLabel, IStateTracker.FullDontCare, processedDontcare)
             }
 
             // Let's handle the pronoun that here. Notice currently that is only via extractive understanding.
             if (processedThat.containsKey(type)) {
-                memorizeExtractiveFrame(StateTracker.ThatLabel, StateTracker.FullThat, processedThat)
+                memorizeExtractiveFrame(IStateTracker.ThatLabel, IStateTracker.FullThat, processedThat)
             }
         }
     }
