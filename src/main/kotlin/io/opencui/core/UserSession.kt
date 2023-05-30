@@ -40,6 +40,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
     var state: State = State.INIT
 
     fun push(item: IFiller) {
+        println("Pushed to schedular: $item with ${item.path}")
         add(item)
         item.onPush()
     }
@@ -213,7 +214,7 @@ data class UserSession(
     fun userStep(): List<Action> {
         var res = kernelStep()
         while (res.size == 1 && (res[0] is KernelMode)) {
-            res[0].run(this)
+            res[0].wrappedRun(this)
             res = kernelStep()
         }
         // make sure there is no chart building action leak to user space.

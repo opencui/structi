@@ -52,6 +52,10 @@ interface SideEffect {
  */
 interface Action: Serializable {
     fun run(session: UserSession): ActionResult
+    fun wrappedRun(session: UserSession) : ActionResult {
+        println("Executing ${this::class.java} with $this" )
+        return run(session)
+    }
 }
 
 // This should only be executed in kernel mode.
@@ -69,7 +73,6 @@ interface SchemaAction: AtomAction
 
 // There are different composite actions, easy ones are list.
 interface CompositeAction : Action {
-    //fun runs(): ActionResults
 }
 
 
@@ -194,7 +197,7 @@ data class StartFill(
         }
 
         // Now we get schedule ready.
-        return RescheduleAction().run(session)
+        return RescheduleAction().wrappedRun(session)
     }
 
     fun findValueAndType(match: FrameEvent): Triple<String, List<String>, Int?>? {
@@ -244,7 +247,7 @@ data class RefocusActionBySlot(
         return if (path.isEmpty())
             ActionResult(null, true)
         else
-            RefocusAction(path as List<ICompositeFiller>).run(session)
+            RefocusAction(path as List<ICompositeFiller>).wrappedRun(session)
     }
 }
 
@@ -288,7 +291,7 @@ data class RefocusAction(
 
         // assume we have a candidate value for the refocused slot, or we want to ask for the refocused slot
         if (scheduler == session.schedule) {
-            RescheduleAction().run(session)
+            RescheduleAction().wrappedRun(session)
         } else {
             scheduler.state = Scheduler.State.RESCHEDULE
         }
@@ -343,7 +346,7 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         val flatActions = actions.flatten()
 
         session.schedule.state = Scheduler.State.POST_ASK
-        val res = if (flatActions.size == 1) flatActions[0].run(session) else SeqAction(flatActions).run(session)
+        val res = if (flatActions.size == 1) flatActions[0].wrappedRun(session) else SeqAction(flatActions).wrappedRun(session)
         val actionLog = if (res.actionLog != null) {
             if (res.actionLog.payload is ArrayNode) {
                 createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() })
@@ -364,7 +367,7 @@ data class SlotPostAskAction(
     private fun goback(session: UserSession): ActionResult {
         // we need to go back the ask again.
         session.schedule.state = Scheduler.State.ASK
-        val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.run(session)
+        val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
         return delegateActionResult ?: ActionResult(emptyLog())
     }
 
@@ -414,7 +417,7 @@ data class SlotPostAskAction(
             if (!success) return goback(session)
         }
 
-        return RescheduleAction().run(session)
+        return RescheduleAction().wrappedRun(session)
     }
 }
 
@@ -425,7 +428,7 @@ class SlotDoneAction(val filler: AnnotatedWrapperFiller) : StateAction {
         val slotDoneAnnotations = filler.path!!.findAll<SlotDoneAnnotation>()
         val actions = slotDoneAnnotations.filter { it.condition() }.flatMap { it.actions }
         if (actions.isNotEmpty()) {
-            return SeqAction(actions).run(session)
+            return SeqAction(actions).wrappedRun(session)
         }
         return ActionResult(null)
     }
@@ -436,7 +439,7 @@ class RespondAction : CompositeAction {
         val wrapperFiller = session.schedule.lastOrNull() as? AnnotatedWrapperFiller
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
-            val tmp = response.run(session)
+            val tmp = response.wrappedRun(session)
             tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
         } else {
             null
@@ -460,7 +463,7 @@ class RescheduleAction : StateAction {
                     session.finishedIntentFiller += doneFiller as AnnotatedWrapperFiller
                 }
                 if (doneFiller is AnnotatedWrapperFiller && doneFiller.isSlot) {
-                    return SlotDoneAction(doneFiller).run(session)
+                    return SlotDoneAction(doneFiller).wrappedRun(session)
                 }
             } else {
                 break
@@ -488,7 +491,7 @@ abstract class ExternalAction(
             val kClass = Class.forName("${packageName}.${actionName}", true, javaClass.classLoader).kotlin
             val ctor = kClass.primaryConstructor
             val action = ctor?.call(session, *args) as? Action
-            val result = action?.run(session)
+            val result = action?.wrappedRun(session)
             if (result != null) {
                 val jsonArrayLog = mutableListOf<JsonElement>()
                 jsonArrayLog.add(Json.makePrimitive("EXTERNAL ACTION : ${action.javaClass.name}"))
@@ -544,7 +547,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
         val logs = mutableListOf<ActionLog>()
         var flag = true
         for (action in actions) {
-            val result = action.run(session)
+            val result = action.wrappedRun(session)
             if (result.actionLog != null) {
                 logs += result.actionLog
             }
@@ -563,7 +566,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
 
 open class LazyAction(private val actionGenerator: ()->Action): SchemaAction {
     override fun run(session: UserSession): ActionResult {
-        return actionGenerator.invoke().run(session)
+        return actionGenerator.invoke().wrappedRun(session)
     }
 }
 

@@ -300,7 +300,7 @@ data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : S
             fillersToBeCleaned += targetFiller
         }
 
-        return CleanupAction(fillersToBeCleaned).run(session)
+        return CleanupAction(fillersToBeCleaned).wrappedRun(session)
     }
 }
 
@@ -325,7 +325,7 @@ data class RecheckActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) :
             fillersToBeRechecked += targetFiller
         }
 
-        return RecheckAction(fillersToBeRechecked).run(session)
+        return RecheckAction(fillersToBeRechecked).wrappedRun(session)
     }
 }
 
@@ -350,7 +350,7 @@ data class ReinitActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : 
             fillersToBeReinit += targetFiller
         }
 
-        return ReinitAction(fillersToBeReinit).run(session)
+        return ReinitAction(fillersToBeReinit).wrappedRun(session)
     }
 }
 
@@ -382,7 +382,7 @@ data class DirectlyFillActionBySlot<T>(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
             true
         )
-        return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).run(session)
+        return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).wrappedRun(session)
     }
 }
 
@@ -422,7 +422,7 @@ data class FillActionBySlot<T>(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
             true
         )
-        return FillAction(generator, wrapFiller.targetFiller, decorativeAnnotations).run(session)
+        return FillAction(generator, wrapFiller.targetFiller, decorativeAnnotations).wrappedRun(session)
     }
 }
 
@@ -447,7 +447,7 @@ data class EndSlot(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}; slot: ${slot}"),
             true
         )
-        return if (hard) MarkFillerDone(wrapFiller).run(session) else MarkFillerFilled(wrapFiller).run(session)
+        return if (hard) MarkFillerDone(wrapFiller).wrappedRun(session) else MarkFillerFilled(wrapFiller).wrappedRun(session)
     }
 }
 
@@ -459,11 +459,11 @@ class EndTopIntent : StateAction {
             val currentSkill = (topFrameFiller.fillers["skills"]?.targetFiller as? MultiValueFiller<*>)?.findCurrentFiller()
             val currentIntent = ((currentSkill?.targetFiller as? InterfaceFiller<*>)?.vfiller?.targetFiller as? FrameFiller<*>)?.frame()
             if (currentSkill != null && currentIntent is IIntent) {
-                return MarkFillerDone(currentSkill).run(session)
+                return MarkFillerDone(currentSkill).wrappedRun(session)
             }
         }
         if (topFrameFiller != null && topFrameFiller.frame() is IIntent) {
-            return MarkFillerDone((session.schedule.first() as AnnotatedWrapperFiller)).run(session)
+            return MarkFillerDone((session.schedule.first() as AnnotatedWrapperFiller)).wrappedRun(session)
         }
 
         return ActionResult(null)

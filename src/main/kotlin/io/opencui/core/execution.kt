@@ -66,7 +66,7 @@ class DialogManager {
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
         if (frameEvents.isEmpty()) {
-            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.run(session)
+            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
             if (delegateActionResult != null) {
                 return listOf(delegateActionResult)
             }
@@ -105,7 +105,7 @@ class DialogManager {
             if (currentTurnWorks.isNotEmpty()) {
                 try {
                     currentTurnWorks[0]
-                        .run(session)
+                        .wrappedRun(session)
                         .let { actionResults += it.apply { this.botOwn = botOwn } }
                 } catch (e: Exception) {
                     session.schedule.state = Scheduler.State.RECOVER
@@ -127,7 +127,7 @@ class DialogManager {
 
         if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
             if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes
-            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.run(session)
+            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
             if (delegateActionResult != null) {
                 if (delegateActionResult.actionLog != null) {
                     actionResults += delegateActionResult
