@@ -37,14 +37,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RECOVER,
     }
 
-    // This is useful to add the frame level prompt before we dive into it.
-    enum class FrameState {
-        OUTSIDE,
-        INSIDE
-    }
-
     var state: State = State.INIT
-    var frameState: FrameState = FrameState.OUTSIDE
 
     fun push(item: IFiller) {
         println("Pushed to schedular: $item with ${item.path}")
@@ -215,20 +208,6 @@ data class UserSession(
         events.addAll(frameEvents)
     }
 
-    /**
-     * Chart building should not be exposed to execution.
-     */
-    fun userStep(): List<Action> {
-        var res = kernelStep()
-        while (res.size == 1 && (res[0] is KernelMode)) {
-            res[0].wrappedRun(this)
-            res = kernelStep()
-        }
-        // make sure there is no chart building action leak to user space.
-        assert(res.none { it is KernelMode })
-        return res
-    }
-
     // the timezone is session dependent. For example, when user ask about New York hotel, then ask the same
     // thing about san fransisco.
     var timezone : String? = null
@@ -256,6 +235,20 @@ data class UserSession(
     // For now, we assume that only default locale for each language is used.
     val rgLang : RGBase
         get() = chatbot!!.duMeta.getRGLang("")
+
+    /**
+     * Chart building should not be exposed to execution.
+     */
+    fun userStep(): List<Action> {
+        var res = kernelStep()
+        while (res.size == 1 && (res[0] is KernelMode)) {
+            res[0].wrappedRun(this)
+            res = kernelStep()
+        }
+        // make sure there is no chart building action leak to user space.
+        assert(res.none { it is KernelMode })
+        return res
+    }
 
     override fun kernelStep(): List<Action> {
         // CUI logic is static in high order sense, we just hard code it.

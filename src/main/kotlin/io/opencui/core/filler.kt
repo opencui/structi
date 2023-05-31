@@ -526,6 +526,9 @@ interface ICompositeFiller : IFiller {
  * that is used as syntactical sugar.
  */
 interface MappedFiller {
+    // use outside and inside to make sure that we only inform once.
+    var inside: Boolean
+
     fun get(s: String): IFiller?
 
     fun frame(): IFrame
@@ -929,7 +932,7 @@ class FrameFiller<T: IFrame>(
     var committed = false
 
     // use outside and inside to make sure that we only inform once.
-    var inside = false
+    override var inside = false
 
     fun add(filler: IFiller) {
         val wrapper = AnnotatedWrapperFiller(filler)
@@ -982,7 +985,6 @@ class FrameFiller<T: IFrame>(
     // Choose picks up the right frame to ask.
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         val schedule = session.schedule
-        val state = schedule.state
         val filler = findNextFiller(flatEvents) ?: return false
         schedule.push(filler)
         return true
