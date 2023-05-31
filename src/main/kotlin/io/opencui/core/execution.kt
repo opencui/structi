@@ -26,7 +26,8 @@ inline fun<T> timing(msg: String, function: () -> T): T {
  * The computation is turn based. At each turn, it will follow the state transition rules defined by statechart,
  * until it run into turn termination signal, where it will hand turn to user and wait next input.
  *
- *
+ * The invocation chain is as follows:
+ * DM -> UserSession.{useStep/kernelStep}:List<Action> -> Scheduler.{wait/grow} -> filler.{wait/grow}
  */
 class DialogManager {
 

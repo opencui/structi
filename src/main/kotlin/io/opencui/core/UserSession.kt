@@ -37,7 +37,12 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RECOVER,
     }
 
+    enum class InOutSide {
+        INSIDE,
+        OUTSIDE,
+    }
     var state: State = State.INIT
+    var side: InOutSide = InOutSide.OUTSIDE
 
     fun push(item: IFiller) {
         println("Pushed to schedular: $item with ${item.path}")
@@ -237,7 +242,7 @@ data class UserSession(
         get() = chatbot!!.duMeta.getRGLang("")
 
     /**
-     * Chart building should not be exposed to execution.
+     * Chart building are in kernel mode and should not be exposed to execution.
      */
     fun userStep(): List<Action> {
         var res = kernelStep()
@@ -252,6 +257,7 @@ data class UserSession(
 
     override fun kernelStep(): List<Action> {
         // CUI logic is static in high order sense, we just hard code it.
+
         // system-driven process
         if (schedule.state == Scheduler.State.ASK) {
             return listOf(SlotAskAction())
