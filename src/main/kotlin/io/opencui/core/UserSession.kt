@@ -36,13 +36,8 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RESPOND,
         RECOVER,
     }
-
-    enum class InOutSide {
-        INSIDE,
-        OUTSIDE,
-    }
+    
     var state: State = State.INIT
-    var side: InOutSide = InOutSide.OUTSIDE
 
     fun push(item: IFiller) {
         println("Pushed to schedular: $item with ${item.path}")
@@ -254,10 +249,20 @@ data class UserSession(
         assert(res.none { it is KernelMode })
         return res
     }
-
     override fun kernelStep(): List<Action> {
+        val res = mutableListOf<Action>()
         // CUI logic is static in high order sense, we just hard code it.
+        val frameFiller = schedule.lastOrNull()
+        if (frameFiller != null && frameFiller is MappedFiller
+            && frameFiller.frame() !is IIntent && !frameFiller.inside) {
+            frameFiller.inside = true
+            // we should get the frame slot ask right here.
+        }
+        res.addAll(insideStep())
+        return res
+    }
 
+   private fun insideStep() : List<Action> {
         // system-driven process
         if (schedule.state == Scheduler.State.ASK) {
             return listOf(SlotAskAction())

@@ -363,36 +363,6 @@ data class SlotAskAction(val tag: String = "") : StateAction {
 }
 
 
-// Concrete frame start
-data class FrameStartAction(val tag: String = "") : StateAction {
-    override fun run(session: UserSession): ActionResult {
-        val filler = session.schedule.lastOrNull()
-        val wrappedFiller = filler as AnnotatedWrapperFiller
-        val mappedFiller = wrappedFiller.targetFiller as MappedFiller
-        assert(mappedFiller.inside == false)
-
-        mappedFiller.inside = true
-
-        // current slot prompt
-        val flatActions = filler.slotAskAnnotation()!!.actions
-
-        val res = if (flatActions.size == 1) flatActions[0].wrappedRun(session) else SeqAction(flatActions).wrappedRun(session)
-        val actionLog = if (res.actionLog != null) {
-            if (res.actionLog.payload is ArrayNode) {
-                createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() })
-            } else {
-                createLog(res.actionLog.payload)
-            }
-        } else {
-            null
-        }
-        return ActionResult(res.botUtterance, actionLog, res.success)
-    }
-}
-
-
-
-
 data class SlotPostAskAction(
     val filler: IFiller,
     var match: FrameEvent
