@@ -37,7 +37,14 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RECOVER,
     }
 
+    // This is useful to add the frame level prompt before we dive into it.
+    enum class FrameState {
+        OUTSIDE,
+        INSIDE
+    }
+
     var state: State = State.INIT
+    var frameState: FrameState = FrameState.OUTSIDE
 
     fun push(item: IFiller) {
         println("Pushed to schedular: $item with ${item.path}")

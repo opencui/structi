@@ -928,6 +928,9 @@ class FrameFiller<T: IFrame>(
     var fillers = LinkedHashMap<String, AnnotatedWrapperFiller>()
     var committed = false
 
+    // use outside and inside to make sure that we only inform once.
+    var inside = false
+
     fun add(filler: IFiller) {
         val wrapper = AnnotatedWrapperFiller(filler)
         wrapper.parent = this
@@ -979,6 +982,7 @@ class FrameFiller<T: IFrame>(
     // Choose picks up the right frame to ask.
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         val schedule = session.schedule
+        val state = schedule.state
         val filler = findNextFiller(flatEvents) ?: return false
         schedule.push(filler)
         return true
@@ -1211,7 +1215,6 @@ class MultiValueFiller<T>(
         super.clear()
     }
 
-    // we need to pick the right one and then remove it from
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         val schedule = session.schedule
         if (target.get() == null) {
@@ -1220,7 +1223,7 @@ class MultiValueFiller<T>(
             // When MV is not on abstract time, and there is no value rec define on it
             // and there is no FrameEvent that need to be take care of.
             val testFiller = createTFiller(-1)
-            if (vrec == null) {
+            if (false && vrec == null) {
                 if (testFiller is MappedFiller) {
                     val ffiller = createTFiller(fillers.size)
                     val wrapper = AnnotatedWrapperFiller(ffiller)

@@ -306,6 +306,7 @@ data class RecoverAction(val tag: String = "") : StateAction {
     }
 }
 
+// We need an action is used to align user on which frame we are interaction.
 
 data class SlotAskAction(val tag: String = "") : StateAction {
     override fun run(session: UserSession): ActionResult {
