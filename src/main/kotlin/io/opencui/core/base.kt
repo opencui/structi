@@ -105,7 +105,9 @@ interface IIntent : IFrame {
     }
 }
 
-interface IKernelIntent: IIntent
+// This is used to make sure
+interface IBotMode
+interface IKernelIntent: IBotMode, IIntent
 
 
 @Throws(NoSuchMethodException::class)

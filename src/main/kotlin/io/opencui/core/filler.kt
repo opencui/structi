@@ -55,11 +55,14 @@ data class Param(val frame: IFrame, val attribute: String): Serializable
 
 data class ParamPath(val path: List<Param>): Serializable {
     constructor(frame: IFrame): this(listOf(Param(frame, "this")))
+    override fun toString(): String {
+        return path.joinToString { "${it.frame::class.qualifiedName}:${it.attribute}" }
+    }
 
     fun join(a: String, nf: IFrame? = null): ParamPath {
         val last = path.last()
         val list = mutableListOf<Param>()
-        list.addAll(path.subList(0, path.size-1))
+        list.addAll(path.subList(0, path.size - 1))
         list.add(Param(last.frame, a))
         if (nf != null) list.add(Param(nf, "this"))
         return ParamPath(list)
@@ -69,22 +72,12 @@ data class ParamPath(val path: List<Param>): Serializable {
         return path[0].frame
     }
 
-    fun findSlotInitPair(): Pair<IFrame, String>? {
-        if (this.path.isEmpty()) {
-            return null
+    fun findRPath(i: Int) =
+        if (i != path.size - 1) {
+            path.subList(i, path.size).filter { it.attribute != "this" }.joinToString(separator = ".") { it.attribute }
+        } else {
+            path.last().attribute
         }
-
-        for (i in path.indices) {
-            val rpath = if (i != path.size-1) path.subList(i, path.size).filter { it.attribute != "this" }.joinToString(separator = ".") { it.attribute }
-            else path.last().attribute
-            val frame = path[i].frame
-            val t = frame.find<SlotInitAnnotation>(rpath)
-            if (t != null) {
-                return Pair(frame, rpath)
-            }
-        }
-        return null
-    }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
         val res = mutableListOf<T>()
@@ -93,10 +86,9 @@ data class ParamPath(val path: List<Param>): Serializable {
         }
 
         for (i in path.indices) {
-            val rpath = if (i != path.size-1) path.subList(i, path.size).filter { it.attribute != "this" }.joinToString(separator = ".") { it.attribute }
-            else path.last().attribute
+            val attribute = findRPath(i)
             val frame = path[i].frame
-            val t: List<T> = frame.findAll<T>(rpath)
+            val t: List<T> = frame.findAll<T>(attribute)
             res.addAll(t)
         }
         return res
@@ -115,11 +107,12 @@ data class ParamPath(val path: List<Param>): Serializable {
         }
 
         for (i in path.indices) {
-            val rpath = if (i != path.size-1) path.subList(i, path.size).filter { it.attribute != "this" }.joinToString(separator = ".") { it.attribute }
-            else path.last().attribute
+            val attribute = findRPath(i)
             val frame = path[i].frame
-            val t: T? = pathFind(frame, rpath)
-            if (t != null) return t
+            val t: T? = pathFind(frame, attribute)
+            if (t != null) {
+                return t
+            }
         }
         return null
     }
@@ -196,7 +189,7 @@ interface IFiller: Compatible, Serializable {
             }
         }
 
-    // make scheduler state move on
+    // Make scheduler state move on to next one, return true if we moved, if there are no legit
     fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
 
     fun onPop() {}
@@ -533,6 +526,9 @@ interface ICompositeFiller : IFiller {
  * that is used as syntactical sugar.
  */
 interface MappedFiller {
+    // use outside and inside to make sure that we only inform once.
+    var inside: Boolean
+
     fun get(s: String): IFiller?
 
     fun frame(): IFrame
@@ -560,6 +556,7 @@ interface ISingleton : IFrame {
     var filler: FrameFiller<*>
 }
 
+// Filler for a slot needs to access the annotation attached to type as well as slot on the host.
 class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = true): ICompositeFiller {
     val boolGatePackage = io.opencui.core.booleanGate.IStatus::class.java.`package`.name
     val hasMorePackage = io.opencui.core.hasMore.IStatus::class.java.`package`.name
@@ -934,6 +931,9 @@ class FrameFiller<T: IFrame>(
     var fillers = LinkedHashMap<String, AnnotatedWrapperFiller>()
     var committed = false
 
+    // use outside and inside to make sure that we only inform once.
+    override var inside = false
+
     fun add(filler: IFiller) {
         val wrapper = AnnotatedWrapperFiller(filler)
         wrapper.parent = this
@@ -951,7 +951,6 @@ class FrameFiller<T: IFrame>(
         check(filler is TypedFiller<*>)
         filler.path = if (filler is FrameFiller<*>) path!!.join(filler.target.name, filler.target.get()) else path!!.join(filler.target.name)
     }
-
 
     /**
      * we find next filler in this order
@@ -993,6 +992,19 @@ class FrameFiller<T: IFrame>(
 
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         if (committed) return false
+        if (!inside) {
+            val currentFrame = frame()
+            // We need to make sure we jump out of grow.
+            if (currentFrame !is IIntent &&
+                currentFrame !is IBotMode) {
+                // concrete frame that is not iintent turn the current schedule to be OUTSIDE
+                session.schedule.side = Scheduler.Side.OUTSIDE
+            } else {
+                inside = true
+            }
+        }
+
+
         if (askStrategy() is ExternalEventStrategy) {
             session.schedule.state = Scheduler.State.ASK
             return true
@@ -1078,6 +1090,8 @@ class InterfaceFiller<T>(
     }
 }
 
+// MV can be defined for abstract type, or concrete type, with/without recomemndation.
+// ValueRec is a filler as well.
 class MultiValueFiller<T>(
     val buildSink: () -> KMutableProperty0<MutableList<T>?>,
     val buildFiller: (KMutableProperty0<T?>) -> IFiller
@@ -1118,6 +1132,7 @@ class MultiValueFiller<T>(
             }
     }
 
+
     val svType: SvType
         get() = when (singleTargetFiller) {
             is AEntityFiller -> SvType.ENTITY
@@ -1137,7 +1152,11 @@ class MultiValueFiller<T>(
     override fun qualifiedEventType(): String? = singleTargetFiller.qualifiedEventType()
 
     fun qualifiedTypeStrForSv(): String? {
-        return if (fillers.size > 0) (fillers[0].targetFiller as TypedFiller<*>).qualifiedTypeStr() else (singleTargetFiller as TypedFiller<*>).qualifiedTypeStr()
+        return if (fillers.size > 0) {
+            (fillers[0].targetFiller as TypedFiller<*>).qualifiedTypeStr()
+        } else {
+            (singleTargetFiller as TypedFiller<*>).qualifiedTypeStr()
+        }
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
@@ -1211,12 +1230,27 @@ class MultiValueFiller<T>(
         super.clear()
     }
 
-    // we need to pick the right one and then remove it from
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
+        val schedule = session.schedule
         if (target.get() == null) {
             target.set(mutableListOf())
+            val vrec = path?.find<IValueRecAnnotation>()
+            // When MV is not on abstract time, and there is no value rec define on it
+            // and there is no FrameEvent that need to be take care of.
+            val testFiller = createTFiller(-1)
+            if (vrec == null) {
+                if (testFiller is MappedFiller) {
+                    val ffiller = createTFiller(fillers.size)
+                    val wrapper = AnnotatedWrapperFiller(ffiller)
+                    ffiller.parent = wrapper
+                    wrapper.parent = this
+                    addFiller(wrapper)
+                    schedule.push(wrapper)
+                    return true
+                }
+            }
         }
-        val schedule = session.schedule
+
         check(hasMore?.status !is No)
         val currentFiller = findCurrentFiller()
         if (currentFiller != null) {

@@ -36,8 +36,12 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RESPOND,
         RECOVER,
     }
-
+    enum class Side {
+        INSIDE,
+        OUTSIDE,
+    }
     var state: State = State.INIT
+    var side: Side = Side.INSIDE
 
     fun push(item: IFiller) {
         add(item)
@@ -58,11 +62,13 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
     /**
      * This is used when first expand the system. This call is guaranteed to work for
      * first time call on correct intent definition.
+     * This make sure that, there are stuff need to be done
      */
     fun grow(): Boolean {
         var top = this.peek()
+
         while (!top.move(session, session.activeEvents)) {
-            // find some open composite to put to top.
+            // Find some open composite to put to top, so that we have more things to work with.
             val grown = if (top is ICompositeFiller) top.grow(session, session.activeEvents) else false
             if (!grown) return false
             top = this.peek()
@@ -207,20 +213,6 @@ data class UserSession(
         events.addAll(frameEvents)
     }
 
-    /**
-     * Chart building should not be exposed to execution.
-     */
-    fun userStep(): List<Action> {
-        var res = kernelStep()
-        while (res.size == 1 && (res[0] is KernelMode)) {
-            res[0].run(this)
-            res = kernelStep()
-        }
-        // make sure there is no chart building action leak to user space.
-        assert(res.none { it is KernelMode })
-        return res
-    }
-
     // the timezone is session dependent. For example, when user ask about New York hotel, then ask the same
     // thing about san fransisco.
     var timezone : String? = null
@@ -249,8 +241,22 @@ data class UserSession(
     val rgLang : RGBase
         get() = chatbot!!.duMeta.getRGLang("")
 
+    /**
+     * Chart building are in kernel mode and should not be exposed to execution.
+     */
+    fun userStep(): List<Action> {
+        var res = kernelStep()
+        while (res.size == 1 && (res[0] is KernelMode)) {
+            res[0].wrappedRun(this)
+            res = kernelStep()
+        }
+        // make sure there is no chart building action leak to user space.
+        assert(res.none { it is KernelMode })
+        return res
+    }
+
+
     override fun kernelStep(): List<Action> {
-        // CUI logic is static in high order sense, we just hard code it.
         // system-driven process
         if (schedule.state == Scheduler.State.ASK) {
             return listOf(SlotAskAction())

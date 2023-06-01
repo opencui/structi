@@ -132,7 +132,7 @@ data class HasMore(
         val inferFunc: (FrameEvent) -> FrameEvent?,
         val minChecker: () -> Boolean = {true},
         val minPrompts: () -> DialogAct
-) : IFrame {
+) : IBotMode, IFrame {
     @JsonIgnore
     var status: IStatus? = null
 
@@ -177,7 +177,7 @@ data class HasMore(
 data class BoolGate(
     override var session: UserSession? = null,
     val prompts: () -> DialogAct,
-    val inferFunc: (FrameEvent) -> FrameEvent?) : IFrame {
+    val inferFunc: (FrameEvent) -> FrameEvent?) : IBotMode, IFrame {
 
     @JsonIgnore
     var status: io.opencui.core.booleanGate.IStatus? = null
@@ -300,7 +300,7 @@ data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : S
             fillersToBeCleaned += targetFiller
         }
 
-        return CleanupAction(fillersToBeCleaned).run(session)
+        return CleanupAction(fillersToBeCleaned).wrappedRun(session)
     }
 }
 
@@ -325,7 +325,7 @@ data class RecheckActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) :
             fillersToBeRechecked += targetFiller
         }
 
-        return RecheckAction(fillersToBeRechecked).run(session)
+        return RecheckAction(fillersToBeRechecked).wrappedRun(session)
     }
 }
 
@@ -350,7 +350,7 @@ data class ReinitActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : 
             fillersToBeReinit += targetFiller
         }
 
-        return ReinitAction(fillersToBeReinit).run(session)
+        return ReinitAction(fillersToBeReinit).wrappedRun(session)
     }
 }
 
@@ -382,7 +382,7 @@ data class DirectlyFillActionBySlot<T>(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
             true
         )
-        return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).run(session)
+        return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).wrappedRun(session)
     }
 }
 
@@ -422,7 +422,7 @@ data class FillActionBySlot<T>(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
             true
         )
-        return FillAction(generator, wrapFiller.targetFiller, decorativeAnnotations).run(session)
+        return FillAction(generator, wrapFiller.targetFiller, decorativeAnnotations).wrappedRun(session)
     }
 }
 
@@ -447,7 +447,7 @@ data class EndSlot(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}; slot: ${slot}"),
             true
         )
-        return if (hard) MarkFillerDone(wrapFiller).run(session) else MarkFillerFilled(wrapFiller).run(session)
+        return if (hard) MarkFillerDone(wrapFiller).wrappedRun(session) else MarkFillerFilled(wrapFiller).wrappedRun(session)
     }
 }
 
@@ -459,11 +459,11 @@ class EndTopIntent : StateAction {
             val currentSkill = (topFrameFiller.fillers["skills"]?.targetFiller as? MultiValueFiller<*>)?.findCurrentFiller()
             val currentIntent = ((currentSkill?.targetFiller as? InterfaceFiller<*>)?.vfiller?.targetFiller as? FrameFiller<*>)?.frame()
             if (currentSkill != null && currentIntent is IIntent) {
-                return MarkFillerDone(currentSkill).run(session)
+                return MarkFillerDone(currentSkill).wrappedRun(session)
             }
         }
         if (topFrameFiller != null && topFrameFiller.frame() is IIntent) {
-            return MarkFillerDone((session.schedule.first() as AnnotatedWrapperFiller)).run(session)
+            return MarkFillerDone((session.schedule.first() as AnnotatedWrapperFiller)).wrappedRun(session)
         }
 
         return ActionResult(null)
@@ -811,7 +811,7 @@ data class Ordinal(
     }
 }
 
-data class NextPage(override var session: UserSession? = null) : IFrame {
+data class NextPage(override var session: UserSession? = null) : IBotMode, IFrame {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: NextPage? = this@NextPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -822,7 +822,7 @@ data class NextPage(override var session: UserSession? = null) : IFrame {
     }
 }
 
-data class PreviousPage(override var session: UserSession? = null) : IFrame {
+data class PreviousPage(override var session: UserSession? = null) : IBotMode, IFrame {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: PreviousPage? = this@PreviousPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -833,7 +833,7 @@ data class PreviousPage(override var session: UserSession? = null) : IFrame {
     }
 }
 
-data class FilterCandidate(override var session: UserSession? = null) : IFrame {
+data class FilterCandidate(override var session: UserSession? = null) : IBotMode, IFrame {
     var conditionMapJson: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
         "conditionMapJson" -> listOf(RecoverOnly())
@@ -1485,7 +1485,7 @@ data class PhoneNumber(
 class IntentClarification(
     @JsonInclude(JsonInclude.Include.NON_NULL)
     override var session: UserSession? = null
-) : IFrame{
+) : IBotMode, IFrame{
     var utterance: String? = null
 
     var source: Array<IIntent>? = null
