@@ -132,7 +132,7 @@ data class HasMore(
         val inferFunc: (FrameEvent) -> FrameEvent?,
         val minChecker: () -> Boolean = {true},
         val minPrompts: () -> DialogAct
-) : IFrame {
+) : IKernelMode, IFrame {
     @JsonIgnore
     var status: IStatus? = null
 
@@ -177,7 +177,7 @@ data class HasMore(
 data class BoolGate(
     override var session: UserSession? = null,
     val prompts: () -> DialogAct,
-    val inferFunc: (FrameEvent) -> FrameEvent?) : IFrame {
+    val inferFunc: (FrameEvent) -> FrameEvent?) : IKernelMode, IFrame {
 
     @JsonIgnore
     var status: io.opencui.core.booleanGate.IStatus? = null
@@ -811,7 +811,7 @@ data class Ordinal(
     }
 }
 
-data class NextPage(override var session: UserSession? = null) : IFrame {
+data class NextPage(override var session: UserSession? = null) : IKernelMode, IFrame {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: NextPage? = this@NextPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -822,7 +822,7 @@ data class NextPage(override var session: UserSession? = null) : IFrame {
     }
 }
 
-data class PreviousPage(override var session: UserSession? = null) : IFrame {
+data class PreviousPage(override var session: UserSession? = null) : IKernelMode, IFrame {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: PreviousPage? = this@PreviousPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -833,7 +833,7 @@ data class PreviousPage(override var session: UserSession? = null) : IFrame {
     }
 }
 
-data class FilterCandidate(override var session: UserSession? = null) : IFrame {
+data class FilterCandidate(override var session: UserSession? = null) : IKernelMode, IFrame {
     var conditionMapJson: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
         "conditionMapJson" -> listOf(RecoverOnly())
@@ -1485,7 +1485,7 @@ data class PhoneNumber(
 class IntentClarification(
     @JsonInclude(JsonInclude.Include.NON_NULL)
     override var session: UserSession? = null
-) : IFrame{
+) : IKernelMode, IFrame{
     var utterance: String? = null
 
     var source: Array<IIntent>? = null

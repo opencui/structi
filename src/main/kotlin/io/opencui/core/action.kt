@@ -306,9 +306,6 @@ data class RecoverAction(val tag: String = "") : StateAction {
     }
 }
 
-// We need an action is used to align user on which frame we are interaction.
-
-
 data class SlotAskAction(val tag: String = "") : StateAction {
     override fun run(session: UserSession): ActionResult {
         val filler = session.schedule.last()
@@ -476,6 +473,16 @@ class RescheduleAction : StateAction {
         if (schedule.isNotEmpty()) {
             val grown = schedule.grow()
             check(grown)
+
+            // We need an action is used to align user on which frame we are interaction.
+            val frameFiller = schedule.lastOrNull()
+            if (frameFiller != null &&
+                frameFiller is MappedFiller &&
+                (frameFiller.frame() !is IIntent || frameFiller.frame() !is IKernelMode) &&
+                !frameFiller.inside) {
+                 frameFiller.inside = true
+                 // we should get the frame slot ask right here.
+             }
         } else {
             session.schedule.state = Scheduler.State.INIT
         }

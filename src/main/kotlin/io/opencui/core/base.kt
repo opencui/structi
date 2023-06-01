@@ -105,7 +105,9 @@ interface IIntent : IFrame {
     }
 }
 
-interface IKernelIntent: IIntent
+// This is used to make sure
+interface IKernelMode
+interface IKernelIntent: IKernelMode, IIntent
 
 
 @Throws(NoSuchMethodException::class)
