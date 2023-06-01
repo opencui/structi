@@ -181,6 +181,16 @@ class RuntimeTest {
             """>{"query": "16", "frames": [{"type": "PreDiagnosis", "slots": [], "packageName": "io.opencui.test"}]}""",
             """<{"type":"SlotAskAction","payload":"What pay method do you perfer?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.test.PreDiagnosis","slot":"method"}]}""",
+        )
+        process(coreExpected)
+    }
+
+    // @Test
+    fun testBasics2() {
+        val coreExpected = listOf(
+            """>{"query": "16", "frames": [{"type": "PreDiagnosis", "slots": [], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SlotAskAction","payload":"What pay method do you perfer?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.test.PreDiagnosis","slot":"method"}]}""",
             """>{"query": "17", "frames": [{"type": "PreDiagnosis", "slots": [{"value" : "\"wrong_method\"", "origValue": "orig_value_visa",  "type" : "PayMethod", "attribute" : "method"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"SlotAskAction","payload":"What kind of headache do you have?"}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.Headache"}]}""",
@@ -249,6 +259,7 @@ class RuntimeTest {
         )
         process(coreExpected)
     }
+
 
     @Test
     fun testCompositeSkill() {
