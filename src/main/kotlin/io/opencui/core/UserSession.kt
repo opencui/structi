@@ -36,11 +36,14 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RESPOND,
         RECOVER,
     }
-    
+    enum class Side {
+        INSIDE,
+        OUTSIDE,
+    }
     var state: State = State.INIT
+    var side: Side = Side.INSIDE
 
     fun push(item: IFiller) {
-        println("Pushed to schedular: $item with ${item.path}")
         add(item)
         item.onPush()
     }
@@ -54,11 +57,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         return item
     }
 
-    fun peek(): IFiller {
-        val item = last()
-        println("Peeked: $item with ${item.path}")
-        return last()
-    }
+    fun peek(): IFiller = last()
 
     /**
      * This is used when first expand the system. This call is guaranteed to work for

@@ -992,6 +992,19 @@ class FrameFiller<T: IFrame>(
 
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         if (committed) return false
+        if (!inside) {
+            val currentFrame = frame()
+            // We need to make sure we jump out of grow.
+            if (currentFrame !is IIntent &&
+                currentFrame !is IBotMode) {
+                // concrete frame that is not iintent turn the current schedule to be OUTSIDE
+                session.schedule.side = Scheduler.Side.OUTSIDE
+            } else {
+                inside = true
+            }
+        }
+
+
         if (askStrategy() is ExternalEventStrategy) {
             session.schedule.state = Scheduler.State.ASK
             return true
@@ -1225,7 +1238,7 @@ class MultiValueFiller<T>(
             // When MV is not on abstract time, and there is no value rec define on it
             // and there is no FrameEvent that need to be take care of.
             val testFiller = createTFiller(-1)
-            if (false && vrec == null) {
+            if (vrec == null) {
                 if (testFiller is MappedFiller) {
                     val ffiller = createTFiller(fillers.size)
                     val wrapper = AnnotatedWrapperFiller(ffiller)
