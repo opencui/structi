@@ -185,7 +185,7 @@ class RuntimeTest {
         process(coreExpected)
     }
 
-    // @Test
+    // TODO (sean): get this test back, but it is very old and the logic is very different. @Test
     fun testBasics2() {
         val coreExpected = listOf(
             """>{"query": "16", "frames": [{"type": "PreDiagnosis", "slots": [], "packageName": "io.opencui.test"}]}""",
