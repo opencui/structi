@@ -54,16 +54,22 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         return item
     }
 
-    fun peek(): IFiller = last()
+    fun peek(): IFiller {
+        val item = last()
+        println("Peeked: $item with ${item.path}")
+        return last()
+    }
 
     /**
      * This is used when first expand the system. This call is guaranteed to work for
      * first time call on correct intent definition.
+     * This make sure that, there are stuff need to be done
      */
     fun grow(): Boolean {
         var top = this.peek()
+
         while (!top.move(session, session.activeEvents)) {
-            // find some open composite to put to top.
+            // Find some open composite to put to top, so that we have more things to work with.
             val grown = if (top is ICompositeFiller) top.grow(session, session.activeEvents) else false
             if (!grown) return false
             top = this.peek()
@@ -249,6 +255,8 @@ data class UserSession(
         assert(res.none { it is KernelMode })
         return res
     }
+
+
     override fun kernelStep(): List<Action> {
         // system-driven process
         if (schedule.state == Scheduler.State.ASK) {

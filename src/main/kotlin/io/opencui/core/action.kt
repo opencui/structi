@@ -309,8 +309,15 @@ data class RecoverAction(val tag: String = "") : StateAction {
 data class SlotAskAction(val tag: String = "") : StateAction {
     override fun run(session: UserSession): ActionResult {
         val filler = session.schedule.last()
+
         // decorative prompts from outer targets of VR, prompt only once
         val vrTargetPrompts = mutableListOf<List<Action>>()
+        // We need to first figure out whether we are in an entity filler, then whether parent is
+        // MapppedFiller and not Intent, and not IKernelMode
+
+
+
+
         for (f in session.schedule) {
             if (f == (f.parent as? AnnotatedWrapperFiller)?.recommendationFiller) {
                 val vrTargetPromptAnnotation = f.decorativeAnnotations.firstIsInstanceOrNull<PromptAnnotation>()
@@ -473,16 +480,6 @@ class RescheduleAction : StateAction {
         if (schedule.isNotEmpty()) {
             val grown = schedule.grow()
             check(grown)
-
-            // We need an action is used to align user on which frame we are interaction.
-            val frameFiller = schedule.lastOrNull()
-            if (frameFiller != null &&
-                frameFiller is MappedFiller &&
-                (frameFiller.frame() !is IIntent || frameFiller.frame() !is IKernelMode) &&
-                !frameFiller.inside) {
-                 frameFiller.inside = true
-                 // we should get the frame slot ask right here.
-             }
         } else {
             session.schedule.state = Scheduler.State.INIT
         }

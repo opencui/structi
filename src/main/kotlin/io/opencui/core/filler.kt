@@ -189,7 +189,7 @@ interface IFiller: Compatible, Serializable {
             }
         }
 
-    // make scheduler state move on
+    // Make scheduler state move on to next one, return true if we moved, if there are no legit
     fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
 
     fun onPop() {}
