@@ -473,31 +473,12 @@ data class PreDiagnosis(override var session: UserSession? = null
     @get:JsonIgnore
     val person: Person?
         get() = session?.getGlobal()
-    var headaches: MutableList<Headache>? = null
+
     @JsonIgnore
     var symptoms: MutableList<ISymptom>? = null
     var indexes: MutableList<Int>? = null
 
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "headaches" -> listOf(
-            SlotConditionalPromptAnnotation(
-                listOf(
-                    LazyAction {
-                        if (headaches!!.isEmpty())
-                            SlotRequest(
-                                "headaches",
-                                "kotlin.collections.List<io.opencui.test.Headache>",
-                                templateOf("What kind of headache do you have?")
-                            )
-                        else
-                            SlotRequestMore(
-                                "headaches",
-                                "kotlin.collections.List<io.opencui.test.Headache>",
-                                templateOf("What kind of headache do you still have?")
-                            )
-                    })
-            )
-        )
         "symptoms" -> listOf(
             SlotConditionalPromptAnnotation(
                 listOf(
@@ -569,15 +550,6 @@ data class PreDiagnosis(override var session: UserSession? = null
             filler.addWithPath(EntityFiller<PayMethod>({frame!!::method}, { s: String? -> method?.origValue = s}) { s -> Json.decodeFromString(s) })
 
             filler.add(frame!!.session!!.getGlobalFiller<Person>()!!)
-
-            val headachesFiller = MultiValueFiller(
-                { frame!!::headaches },
-                fun(p: KMutableProperty0<Headache?>): ICompositeFiller {
-                    val builder = p.apply { set(Headache(frame!!.session)) }.get()!!.createBuilder()
-                    return builder.invoke(path.join("headaches._item", p.get()))
-                }
-            )
-            filler.addWithPath(headachesFiller)
 
             val mffiller = MultiValueFiller(
                 { frame!!::symptoms },
