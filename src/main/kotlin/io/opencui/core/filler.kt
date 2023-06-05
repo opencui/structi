@@ -768,6 +768,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         val done = targetFiller.done(flatEvents)
         if (!done) {
             val frameEvent: FrameEvent? = flatEvents.firstOrNull { targetFiller.isCompatible(it) }
+            // If the stateUpdate is not done, and there is no unprocessed event, let's schedule it.
             if (!stateUpdateDone && frameEvent == null) {
                 println("pushed stateUpdateFiller: $path")
                 schedule.push(stateUpdateFiller!!)
@@ -854,17 +855,17 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         (askStrategy() as? RecoverOnly)?.enable()
     }
 
-    private fun mVAskStrategy() : AskStrategy? {
-        if (parent !is AnnotatedWrapperFiller) return null
-        val parentWrapper = parent as AnnotatedWrapperFiller
-        val parentTargetFiller = parentWrapper.targetFiller
-        // if (!parentTargetFiller.isMV()) return null
-        return parentTargetFiller.askStrategy()
+    override fun done(frameEvents: List<FrameEvent>): Boolean {
+        val canNotEnter = !canEnter(frameEvents)
+        val res = markedDone
+                || canNotEnter
+                || (filled(frameEvents) && postFillDone() && (!needResponse || responseDone))
+        if (slotUpdateFlag) println("done: $res with canNotEnter: $canNotEnter")
+        return res
     }
 
     fun canEnter(frameEvents: List<FrameEvent>): Boolean {
         var askStrategy =  askStrategy()
-        //val askStrategy = if (slotUpdateFlag) mVAskStrategy() else askStrategy()
         val askStrategyNotMet = (askStrategy is ConditionalAsk && !askStrategy.canEnter())
                 || (askStrategy is NeverAsk && stateUpdateDone && frameEvents.firstOrNull { isCompatible(it) } == null)
                 || (askStrategy is RecoverOnly && stateUpdateDone && !askStrategy.canEnter() && frameEvents.firstOrNull { isCompatible(it) } == null)
@@ -878,15 +879,6 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     fun postFillDone(): Boolean {
         return checkDone && confirmDone && resultDone
-    }
-
-    override fun done(frameEvents: List<FrameEvent>): Boolean {
-        val canNotEnter = !canEnter(frameEvents)
-        val res = markedDone
-                || canNotEnter
-                || (filled(frameEvents) && postFillDone() && (!needResponse || responseDone))
-        if (slotUpdateFlag) println("done: $res with canNotEnter: $canNotEnter")
-        return res
     }
 
     override fun clear() {
