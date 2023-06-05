@@ -422,6 +422,9 @@ data class FillActionBySlot<T>(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
             true
         )
+        if (wrapFiller.targetFiller.isMV()) {
+            return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).wrappedRun(session)
+        }
         return FillAction(generator, wrapFiller.targetFiller, decorativeAnnotations).wrappedRun(session)
     }
 }
