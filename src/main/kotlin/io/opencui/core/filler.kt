@@ -192,6 +192,8 @@ interface IFiller: Compatible, Serializable {
     // Make scheduler state move on to next one, return true if we moved, if there are no legit
     fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
 
+    fun isMV(): Boolean = false
+
     fun onPop() {}
 
     fun onPush() {}
@@ -574,6 +576,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         return if (targetFiller.isCompatible(frameEvent)) FrameEvent("Yes", packageName = boolGatePackage ) else null
     }
 
+    var slotUpdateFlag = false
+
     fun disableResponse() {
         needResponse = false
     }
@@ -663,13 +667,17 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     val stateUpdateFiller: AnnotatedWrapperFiller? by lazy {
         val slotInitAnnotation = path!!.find<SlotInitAnnotation>() ?: return@lazy null
+
+        println("create stateUpdateFiller: $path")
+
         val updateIntent = ActionWrapperIntent(path!!.root().session, slotInitAnnotation.action)
-        (updateIntent.createBuilder().invoke(path!!.join("$attribute._update", updateIntent)) as? FrameFiller<*>)?.let {
-            val res = AnnotatedWrapperFiller(it, false)
-            res.parent = this@AnnotatedWrapperFiller
-            it.parent = res
-            res
-        }
+        val updateFiller = updateIntent.createBuilder().invoke(path!!.join("$attribute._update", updateIntent)) as FrameFiller<*>
+        // We need to create slot updater.
+        val res = AnnotatedWrapperFiller(updateFiller, false)
+        res.slotUpdateFlag = true
+        res.parent = this@AnnotatedWrapperFiller
+        updateFiller.parent = res
+        res
     }
 
     val stateUpdateDone: Boolean
@@ -760,7 +768,9 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         val done = targetFiller.done(flatEvents)
         if (!done) {
             val frameEvent: FrameEvent? = flatEvents.firstOrNull { targetFiller.isCompatible(it) }
+            // If the stateUpdate is not done, and there is no unprocessed event, let's schedule it.
             if (!stateUpdateDone && frameEvent == null) {
+                println("pushed stateUpdateFiller: $path")
                 schedule.push(stateUpdateFiller!!)
                 return true
             }
@@ -845,11 +855,21 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         (askStrategy() as? RecoverOnly)?.enable()
     }
 
+    override fun done(frameEvents: List<FrameEvent>): Boolean {
+        val canNotEnter = !canEnter(frameEvents)
+        val res = markedDone
+                || canNotEnter
+                || (filled(frameEvents) && postFillDone() && (!needResponse || responseDone))
+        if (slotUpdateFlag) println("done: $res with canNotEnter: $canNotEnter")
+        return res
+    }
+
     fun canEnter(frameEvents: List<FrameEvent>): Boolean {
-        val askStrategyNotMet = (askStrategy() is ConditionalAsk && !askStrategy().canEnter())
-                || (askStrategy() is NeverAsk && stateUpdateDone && frameEvents.firstOrNull { isCompatible(it) } == null)
-                || (askStrategy() is RecoverOnly && stateUpdateDone && !askStrategy().canEnter() && frameEvents.firstOrNull { isCompatible(it) } == null)
-                || (askStrategy() is BoolGateAsk && boolGate!!.status is io.opencui.core.booleanGate.No && frameEvents.firstOrNull { isCompatible(it) } == null)
+        var askStrategy =  askStrategy()
+        val askStrategyNotMet = (askStrategy is ConditionalAsk && !askStrategy.canEnter())
+                || (askStrategy is NeverAsk && stateUpdateDone && frameEvents.firstOrNull { isCompatible(it) } == null)
+                || (askStrategy is RecoverOnly && stateUpdateDone && !askStrategy.canEnter() && frameEvents.firstOrNull { isCompatible(it) } == null)
+                || (askStrategy is BoolGateAsk && boolGate!!.status is io.opencui.core.booleanGate.No && frameEvents.firstOrNull { isCompatible(it) } == null)
         return !responseDone && !askStrategyNotMet && !ancestorTerminated
     }
 
@@ -859,10 +879,6 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     fun postFillDone(): Boolean {
         return checkDone && confirmDone && resultDone
-    }
-
-    override fun done(frameEvents: List<FrameEvent>): Boolean {
-        return markedDone || !canEnter(frameEvents) || (filled(frameEvents) && postFillDone() && (!needResponse || responseDone))
     }
 
     override fun clear() {
@@ -1090,6 +1106,9 @@ class InterfaceFiller<T>(
     }
 }
 
+// So that we can test
+
+
 // MV can be defined for abstract type, or concrete type, with/without recomemndation.
 // ValueRec is a filler as well.
 class MultiValueFiller<T>(
@@ -1150,6 +1169,7 @@ class MultiValueFiller<T>(
     }
 
     override fun qualifiedEventType(): String? = singleTargetFiller.qualifiedEventType()
+    override fun isMV(): Boolean = true
 
     fun qualifiedTypeStrForSv(): String? {
         return if (fillers.size > 0) {
