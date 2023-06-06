@@ -114,7 +114,11 @@ object Dispatcher {
         val channel = getChatbot(botInfo).getChannel(target.channelType!!, target.channelLabel!!)
         if (channel != null && channel is IMessageChannel) {
             for (msg in msgs) {
-                channel.send(target.userId!!, msg, botInfo)
+                // Channel like messenger can not take empty message.
+                val msgTrimmed = msg.trim()
+                if (!msgTrimmed.isNullOrEmpty()) {
+                    channel.send(target.userId!!, msg, botInfo)
+                }
             }
         } else {
             logger.info("Cann't find ${target.channelType} for ${botInfo}")
