@@ -90,9 +90,6 @@ open class Configuration(val contract: String, val label: String): Serializable,
 
     fun id() : String = "$contract.$label"
 
-
-    
-    
     companion object {
         const val DEFAULT = "default"
         val configurables = mutableMapOf<Pair<String, String>, Configuration>()
@@ -145,8 +142,6 @@ data class ConfiguredBuilder<T:IExtension>(val contract: String, val label: Stri
 /***
  * Section for support.
  */
-
-
 
 /**
  * Three things needed to work together to make support work:
