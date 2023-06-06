@@ -20,6 +20,7 @@ interface IChannel : IExtension {
     // contact is also a channel dependent notation for user.
     fun send(id: String, payloadStr: String, botInfo: BotInfo, source: IUserIdentifier? = null): IChannel.Status {
         val payloadTrimed =  payloadStr.trim()
+        println("playloadTrimed: $payloadTrimed")
         if (payloadTrimed[0] != '{') {
             // we got pure text
             sendWhitePayload(id, textMessage(payloadTrimed), botInfo, source)

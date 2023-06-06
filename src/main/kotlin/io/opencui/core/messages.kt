@@ -64,7 +64,6 @@ fun textMessage(text: String, msgId: String?=null) : TextPayload {
 }
 
 
-
 //list text type
 @JsonTypeName("listText")
 data class ListTextPayload(
