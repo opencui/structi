@@ -222,7 +222,7 @@ object Dispatcher {
             val msgs = getReplyForChannel(userSession, query, userInfo.channelType!!, events)
 
             for (msg in msgs) {
-                support?.postBotMessage(userSession, msg as TextPayload)
+                support?.postBotMessage(userSession, TextPayload(msg))
             }
 
             logger.info("send $msgs to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
