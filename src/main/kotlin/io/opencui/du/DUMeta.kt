@@ -314,10 +314,6 @@ abstract class JsonDUMeta() : DUMeta {
     }
 }
 
-interface Triggerable {
-    val triggers: List<String>
-}
-
 interface IEntityMeta {
     val recognizer: List<String>
     val children: List<String>

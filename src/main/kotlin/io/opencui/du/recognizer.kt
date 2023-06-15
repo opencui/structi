@@ -311,7 +311,7 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
         tokenIndex[tokenId].add(TypedMention(typeId, mentionId))
     }
 
-    private val analyzer: Analyzer? = LanguageAnalyzer.getUnstoppedAnalyzer(agent.getLang())
+    val analyzer: Analyzer? = LanguageAnalyzer.getUnstoppedAnalyzer(agent.getLang())
     private val stopwords: CharArraySet? = LanguageAnalyzer.getStopSet(agent.getLang())
 
     // This method is used to handle the extractive frame like DontCare and That
@@ -339,80 +339,6 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
             for (phrase in phrases) {
                 val mentionId = mentionTable.put(phrase)
                 updateMentionIndex(mentionId, labelId, typeId, true)
-            }
-        }
-    }
-
-    init {
-        logger.info("Init ListRecognizer...")
-        // We can have two kind of DontCare, proactive, and reactive. The DontCare on the entity
-        // is also proactive, meaning user can say it directly. instead of just replying prompt.
-        val processedDontcare = HashMap<String, ArrayList<String>>()
-        val processedThat = HashMap<String, ArrayList<String>>()
-        val fullMatches = HashMap<Pair<String, String>, MutableSet<String>>()
-
-        // Populate the typeId
-        agent.getEntities().map { typeTable.put(it) }
-
-        // Handle every type here.
-        for (type in agent.getEntities()) {
-            val typeId = typeTable.getId(type)!!
-
-            // TODO(sean): we should get the name instead of using label here.
-            // now we assume that we have normed token.
-            // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
-            val partialIndex = HashMap<String, MutableList<String>>()
-
-            fun add(entryLabel: String, expressions: List<String>, leaf: Boolean) {
-                // TODO(sean): again, the norm need to be language related.
-                val labelId = labelTable.put(entryLabel)
-                for (mention in expressions) {
-                    val key = mention.lowercase().trim{ it.isWhitespace() }
-                    val mentionId = mentionTable.put(key)
-                    // Handle full match.
-                    updateMentionIndex(mentionId, labelId, typeId, leaf)
-
-                    // Handle partial match.
-                    val tokens =analyzer!!.tokenize(key).map{it.token}
-                    for (token in tokens) {
-                        val tokenId = tokenTable.put(token)
-                        updateTokenIndex(tokenId, mentionId, typeId)
-                        if (!partialIndex.containsKey(token)) partialIndex[token] = mutableListOf()
-                        if (!fullMatches.containsKey(Pair(token, type))) {
-                            fullMatches[Pair(token, type)] = mutableSetOf()
-                        }
-                        fullMatches[Pair(token,type)]!!.add(entryLabel)
-                        partialIndex[token]!!.add(key)
-                    }
-                }
-            }
-
-            // for internal node
-            val meta = agent.getEntityMeta(type)
-            val children = meta?.children ?: emptyList()
-            for (child in children) {
-                // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
-                val entryLabel = "$child"
-                val expressions = agent.getTriggers(child)
-                add(entryLabel, expressions, false)
-            }
-
-            // Actual instances.
-            // TODO (sean): find a better place to hard code.
-            val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTriggers()
-            logger.info("process entity type $type with ${content.size} entries.")
-            for ((entryLabel, expressions) in content) {
-                add(entryLabel,expressions, true)
-            }
-
-            // process entity dontcare annotations
-            if (processedDontcare.containsKey(type)) {
-                memorizeExtractiveFrame(IStateTracker.DontCareLabel, IStateTracker.FullDontCare, processedDontcare)
-            }
-
-            // Let's handle the pronoun that here. Notice currently that is only via extractive understanding.
-            if (processedThat.containsKey(type)) {
-                memorizeExtractiveFrame(IStateTracker.ThatLabel, IStateTracker.FullThat, processedThat)
             }
         }
     }
@@ -531,9 +457,131 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
     }
 }
 
+
+object ListRecognizerBuilder {
+    val processedDontcare = HashMap<String, ArrayList<String>>()
+    val processedThat = HashMap<String, ArrayList<String>>()
+    val fullMatches = HashMap<Pair<String, String>, MutableSet<String>>()
+
+    fun add(listRecognizer: ListRecognizer,
+            typeId:Int,
+            type: String,
+            entryLabel: String,
+            expressions: List<String>,
+            leaf: Boolean) {
+        // TODO(sean): again, the norm need to be language related.
+        val labelId = listRecognizer.labelTable.put(entryLabel)
+        for (mention in expressions) {
+            val key = mention.lowercase().trim{ it.isWhitespace() }
+            val mentionId = listRecognizer.mentionTable.put(key)
+            // Handle full match.
+            listRecognizer.updateMentionIndex(mentionId, labelId, typeId, leaf)
+
+            // Handle partial match.
+            val tokens = listRecognizer.analyzer!!.tokenize(key).map{it.token}
+            for (token in tokens) {
+                val tokenId = listRecognizer.tokenTable.put(token)
+                listRecognizer.updateTokenIndex(tokenId, mentionId, typeId)
+                // if (!partialIndex.containsKey(token)) partialIndex[token] = mutableListOf()
+                if (!fullMatches.containsKey(Pair(token, type))) {
+                    fullMatches[Pair(token, type)] = mutableSetOf()
+                }
+                fullMatches[Pair(token,type)]!!.add(entryLabel)
+                // partialIndex[token]!!.add(key)
+            }
+        }
+    }
+
+    // This method is used to handle the extractive frame like DontCare and That
+    fun build(agent: ExtractiveMeta, listRecognizer: ListRecognizer) {
+        logger.info("Init ListRecognizer...")
+        // We can have two kind of DontCare, proactive, and reactive. The DontCare on the entity
+        // is also proactive, meaning user can say it directly. instead of just replying prompt.
+
+        // Populate the typeId
+        agent.getEntities().map { listRecognizer.typeTable.put(it) }
+
+        // Handle every type here.
+        for (type in agent.getEntities()) {
+            val typeId = listRecognizer.typeTable.getId(type)!!
+
+            // TODO(sean): we should get the name instead of using label here.
+            // now we assume that we have normed token.
+            // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
+
+            // for internal node
+            val meta = agent.getEntityMeta(type)
+            val children = meta?.children ?: emptyList()
+            for (child in children) {
+                // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
+                val entryLabel = "$child"
+                val expressions = agent.getTriggers(child)
+                add(listRecognizer, typeId, type, entryLabel, expressions,false)
+            }
+
+            // Actual instances.
+            // TODO (sean): find a better place to hard code.
+            val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTriggers()
+            logger.info("process entity type $type with ${content.size} entries.")
+            for ((entryLabel, expressions) in content) {
+                add(listRecognizer, typeId, type, entryLabel,expressions, true)
+            }
+
+            // process entity dontcare annotations
+            if (processedDontcare.containsKey(type)) {
+                listRecognizer.memorizeExtractiveFrame(IStateTracker.DontCareLabel, IStateTracker.FullDontCare, processedDontcare)
+            }
+
+            // Let's handle the pronoun that here. Notice currently that is only via extractive understanding.
+            if (processedThat.containsKey(type)) {
+                listRecognizer.memorizeExtractiveFrame(IStateTracker.ThatLabel, IStateTracker.FullThat, processedThat)
+            }
+        }
+    }
+ fun build(entities: Map<String, Map<String, List<String>>>, listRecognizer: ListRecognizer) {
+        logger.info("Init ListRecognizer...")
+        // We can have two kind of DontCare, proactive, and reactive. The DontCare on the entity
+        // is also proactive, meaning user can say it directly. instead of just replying prompt.
+
+        // Populate the typeId
+        entities.keys.map { listRecognizer.typeTable.put(it) }
+
+        // Handle every type here.
+        for (type in entities.keys ) {
+            val typeId = listRecognizer.typeTable.getId(type)!!
+
+            // TODO(sean): we should get the name instead of using label here.
+            // now we assume that we have normed token.
+            // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
+
+            // for internal node
+            val children = entities[type]!!
+            for (entryLabel in children.keys) {
+                // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
+                val expressions = children[entryLabel]!!
+                add(listRecognizer, typeId, type, entryLabel, expressions,false)
+            }
+        }
+    }
+
+    operator fun invoke(agent: DUMeta) : ListRecognizer {
+        val listRecognizer = ListRecognizer(agent)
+        build(agent, listRecognizer)
+        return listRecognizer
+    }
+
+    operator fun invoke(agent: DUMeta, entities: Map<String, Map<String, List<String>>>) : ListRecognizer{
+        val listRecognizer = ListRecognizer(agent)
+        build(entities, listRecognizer)
+        return listRecognizer
+    }
+
+    val logger = LoggerFactory.getLogger(ListRecognizer::class.java)
+}
+
 fun defaultRecognizers(agent: DUMeta) : List<EntityRecognizer> {
     return listOf(
-        ListRecognizer(agent),
+        ListRecognizerBuilder(agent),
         DucklingRecognizer(agent)
     )
 }
