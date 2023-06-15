@@ -62,11 +62,22 @@ data class Retry<T>(
     }
 }
 
+// Specify how hint should be used.
+enum class HintType {
+    SESSION,
+    TURN
+}
+
+data class DuHint(val kind: HintType, val events:List<List<String>>)
+data class Hint(val du: DuHint)
+
+
 data class FramelyRequest (
         val text: String,
         val sessionId: String,
         val initial: Boolean = true,
-        val events: List<FrameEvent> = emptyList())
+        val events: List<FrameEvent> = emptyList(),
+        val hint: Hint?? = null)
 
 data class FramelyResponse(
     val response: Map<String, List<String>>,

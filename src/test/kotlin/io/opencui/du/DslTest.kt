@@ -157,7 +157,7 @@ class DslTest() : DuTestHelper() {
         }
     }
 
-    private val normalizers = listOf(ListRecognizer(agent))
+    private val normalizers = listOf(ListRecognizerBuilder()(agent))
     @Test
     fun f() {
         val searcher = ExpressionSearcher(agent)
@@ -216,7 +216,7 @@ class DslTest() : DuTestHelper() {
     @Test
     fun testLitRecognizer() {
         // Just need to prepare agent.
-        val recognizer = ListRecognizer(agent)
+        val recognizer = ListRecognizerBuilder()(agent)
         println("types = ${recognizer.typeTable.stringToId}")
         println("labels = ${recognizer.labelTable.stringToId}")
         println("mentions = ${recognizer.mentionTable.stringToId}")
