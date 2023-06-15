@@ -901,7 +901,7 @@ public object en : LangPack {
 class SmallTableDslTest() : DuTestHelper() {
 
     val agent = SmallTableAgent.duMeta
-    private val normalizers = listOf(ListRecognizerBuilder()(agent))
+    private val normalizers = listOf(ListRecognizerBuilder(agent))
 
     val stateTracker = BertStateTracker(
             agent,

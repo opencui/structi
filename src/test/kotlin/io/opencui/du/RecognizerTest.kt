@@ -118,7 +118,7 @@ class RecognizerTest : DuTestHelper() {
                 TODO("Not yet implemented")
             }
         }
-        val listRecognizer = ListRecognizerBuilder()(zhAgent)
+        val listRecognizer = ListRecognizerBuilder(zhAgent)
         val emap = mutableMapOf<String, MutableList<SpanInfo>>()
         listRecognizer.parse("我想去北京", listOf(), emap)
         assertEquals("\"北京1\"", emap["city"]!![0].norm())

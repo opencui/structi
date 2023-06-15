@@ -458,14 +458,13 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
 }
 
 
-class ListRecognizerBuilder() {
+object ListRecognizerBuilder {
     val processedDontcare = HashMap<String, ArrayList<String>>()
     val processedThat = HashMap<String, ArrayList<String>>()
     val fullMatches = HashMap<Pair<String, String>, MutableSet<String>>()
 
     fun add(listRecognizer: ListRecognizer,
             typeId:Int,
-            partialIndex: HashMap<String, MutableList<String>>,
             type: String,
             entryLabel: String,
             expressions: List<String>,
@@ -483,12 +482,12 @@ class ListRecognizerBuilder() {
             for (token in tokens) {
                 val tokenId = listRecognizer.tokenTable.put(token)
                 listRecognizer.updateTokenIndex(tokenId, mentionId, typeId)
-                if (!partialIndex.containsKey(token)) partialIndex[token] = mutableListOf()
+                // if (!partialIndex.containsKey(token)) partialIndex[token] = mutableListOf()
                 if (!fullMatches.containsKey(Pair(token, type))) {
                     fullMatches[Pair(token, type)] = mutableSetOf()
                 }
                 fullMatches[Pair(token,type)]!!.add(entryLabel)
-                partialIndex[token]!!.add(key)
+                // partialIndex[token]!!.add(key)
             }
         }
     }
@@ -509,9 +508,6 @@ class ListRecognizerBuilder() {
             // TODO(sean): we should get the name instead of using label here.
             // now we assume that we have normed token.
             // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
-            val partialIndex = HashMap<String, MutableList<String>>()
-
-
 
             // for internal node
             val meta = agent.getEntityMeta(type)
@@ -520,7 +516,7 @@ class ListRecognizerBuilder() {
                 // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
                 val entryLabel = "$child"
                 val expressions = agent.getTriggers(child)
-                add(listRecognizer, typeId, partialIndex, type, entryLabel, expressions,false)
+                add(listRecognizer, typeId, type, entryLabel, expressions,false)
             }
 
             // Actual instances.
@@ -528,7 +524,7 @@ class ListRecognizerBuilder() {
             val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTriggers()
             logger.info("process entity type $type with ${content.size} entries.")
             for ((entryLabel, expressions) in content) {
-                add(listRecognizer, typeId, partialIndex, type, entryLabel,expressions, true)
+                add(listRecognizer, typeId, type, entryLabel,expressions, true)
             }
 
             // process entity dontcare annotations
@@ -542,6 +538,31 @@ class ListRecognizerBuilder() {
             }
         }
     }
+ fun build(entities: Map<String, Map<String, List<String>>>, listRecognizer: ListRecognizer) {
+        logger.info("Init ListRecognizer...")
+        // We can have two kind of DontCare, proactive, and reactive. The DontCare on the entity
+        // is also proactive, meaning user can say it directly. instead of just replying prompt.
+
+        // Populate the typeId
+        entities.keys.map { listRecognizer.typeTable.put(it) }
+
+        // Handle every type here.
+        for (type in entities.keys ) {
+            val typeId = listRecognizer.typeTable.getId(type)!!
+
+            // TODO(sean): we should get the name instead of using label here.
+            // now we assume that we have normed token.
+            // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
+
+            // for internal node
+            val children = entities[type]!!
+            for (entryLabel in children.keys) {
+                // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
+                val expressions = children[entryLabel]!!
+                add(listRecognizer, typeId, type, entryLabel, expressions,false)
+            }
+        }
+    }
 
     operator fun invoke(agent: DUMeta) : ListRecognizer {
         val listRecognizer = ListRecognizer(agent)
@@ -549,14 +570,18 @@ class ListRecognizerBuilder() {
         return listRecognizer
     }
 
-    companion object {
-        val logger = LoggerFactory.getLogger(ListRecognizer::class.java)
+    operator fun invoke(agent: DUMeta, entities: Map<String, Map<String, List<String>>>) : ListRecognizer{
+        val listRecognizer = ListRecognizer(agent)
+        build(entities, listRecognizer)
+        return listRecognizer
     }
+
+    val logger = LoggerFactory.getLogger(ListRecognizer::class.java)
 }
 
 fun defaultRecognizers(agent: DUMeta) : List<EntityRecognizer> {
     return listOf(
-        ListRecognizerBuilder()(agent),
+        ListRecognizerBuilder(agent),
         DucklingRecognizer(agent)
     )
 }

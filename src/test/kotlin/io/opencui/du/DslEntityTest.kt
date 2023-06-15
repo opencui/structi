@@ -176,7 +176,7 @@ class DslEntityTest() : DuTestHelper() {
             0.5f
     )
 
-    private val normalizers = listOf(ListRecognizerBuilder()(duMeta))
+    private val normalizers = listOf(ListRecognizerBuilder(duMeta))
 
     @Test
     fun testEntityValue0() {
