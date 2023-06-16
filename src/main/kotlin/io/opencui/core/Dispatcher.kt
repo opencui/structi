@@ -7,7 +7,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.serialization.JsonObject
 import io.opencui.support.ISupport
 
 
@@ -27,39 +26,6 @@ interface IManaged {
 
     fun handOffSession(id:String, botInfo: BotInfo, department: String) {}
 }
-
-data class Retry<T>(
-    val times: Int,
-    val isGood: (T) -> Boolean,
-    val initialDelay: Long = 100, // 0.1 second
-    val maxDelay: Long = 1000,    // 1 second
-    val factor: Double = 2.0) {
-
-    operator fun invoke(block: () -> T) : T {
-        var ltimes = 1
-        var currentDelay = initialDelay
-        while(ltimes < times) {
-            try {
-                val res = block()
-                if (isGood(res)) {
-                    return res
-                } else {
-                    println("retry the $ltimes")
-                }
-            } catch (e: Exception) {
-                // you can log an error here and/or make a more finer-grained
-                // analysis of the cause to see if retry is needed
-            }
-
-            Thread.sleep(currentDelay)
-            currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
-            ++ltimes
-        }
-        return block() // last attempt
-    }
-}
-
-
 
 interface Sink {
     fun markSeen(msgId: String?) {}
@@ -83,7 +49,7 @@ data class ChannelSink(val channel: IChannel, val uid: String, val botInfo: BotI
     }
 }
 
-data class SimpleSink(val sink: MutableList<String> = mutableListOf()): Sink {
+data class SimpleSink(val sink: MutableList<String>): Sink {
     override fun send(msg: String) {
         sink.add(msg)
     }
@@ -100,7 +66,6 @@ data class SimpleSink(val sink: MutableList<String> = mutableListOf()): Sink {
 object Dispatcher {
     lateinit var sessionManager: SessionManager
     val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
-    val mapper = ObjectMapper()
 
     // This is used to make sure that we have a singleton to start the task.
     val timer = Timer()
