@@ -1,6 +1,7 @@
 package io.opencui.core
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.opencui.channel.IChannel
 import io.opencui.sessionmanager.SessionManager
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -25,10 +26,6 @@ interface IManaged {
     fun closeSession(id:String, botInfo: BotInfo) {}
 
     fun handOffSession(id:String, botInfo: BotInfo, department: String) {}
-}
-
-interface ChannelInfo {
-
 }
 
 data class Retry<T>(
@@ -82,6 +79,37 @@ data class FramelyResponse(
     val response: Map<String, List<String>>,
     val du: List<FrameEvent> = emptyList(),
     val state: JsonObject? = null)
+
+
+interface Sink {
+    fun markSeen(msgId: String?) {}
+    fun typing() {}
+    fun send(msg: String)
+}
+
+data class ChannelSink(val channel: IChannel, val uid: String, val botInfo: BotInfo): Sink {
+    override fun markSeen(msgId: String?) {
+        if (channel is IMessageChannel) {
+            channel.markSeen(uid, botInfo, msgId)
+        }
+    }
+    override fun typing() {
+        if (channel is IMessageChannel) {
+            channel.typing(uid, botInfo)
+        }
+    }
+    override fun send(msg: String) {
+        channel.send(uid, msg, botInfo)
+    }
+}
+
+data class SimpleSink(val sink: MutableList<String> = mutableListOf()): Sink {
+    override fun send(msg: String) {
+        sink.add(msg)
+    }
+}
+
+
 //
 // Dispatcher can be used to different restful controller to provide conversational
 // interface for various channel.
@@ -185,6 +213,17 @@ object Dispatcher {
 
 
     fun getReply(userSession: UserSession, message: TextPayload? = null, events: List<FrameEvent> = emptyList()) {
+        val userInfo = userSession.userIdentifier
+        val botInfo = userSession.botInfo
+
+        val channel = getChatbot(botInfo).getChannel(userInfo.channelType!!, userInfo.channelLabel!!)!!
+        logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
+        val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
+        
+        getReply(userSession, message, sink, events)
+    }
+
+    fun getReply(userSession: UserSession, message: TextPayload? = null, sink: Sink, events: List<FrameEvent> = emptyList()) {
         val msgId = message?.msgId
 
         // if there is no msgId, or msgId is not repeated, we handle message.
@@ -215,17 +254,13 @@ object Dispatcher {
             logger.info("$support already handed off")
             return
         }
-        val channel = getChatbot(botInfo).getChannel(userInfo.channelType!!, userInfo.channelLabel!!)!!
-        logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
         val query = textPaylaod?.text ?: ""
         if (userSession.botOwn) {
             // Let other side know that you are working on it
-            if (channel is IMessageChannel) {
-                logger.info("send hint...")
-                if (message?.msgId != null) {
-                    channel.markSeen(userInfo.userId!!, botInfo, message.msgId)
-                    channel.typing(userInfo.userId!!, botInfo)
-                }
+            logger.info("send hint...")
+            if (message?.msgId != null) {
+                sink.markSeen(message.msgId)
+                sink.typing()
             }
 
             // always add the RESTFUL just in case.
@@ -237,7 +272,14 @@ object Dispatcher {
 
             logger.info("send $msgs to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
 
-            send(userInfo, botInfo, msgs)
+
+            for (msg in msgs) {
+                // Channel like messenger can not take empty message.
+                val msgTrimmed = msg.trim()
+                if (!msgTrimmed.isNullOrEmpty()) {
+                    sink.send(msg)
+                }
+            }
         } else {
             if (support == null || !support.info.assist) return
             // assist mode.
@@ -247,6 +289,7 @@ object Dispatcher {
             }
         }
     }
+
 
     private fun getReplyForChannel(
         session: UserSession,
