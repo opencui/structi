@@ -59,26 +59,6 @@ data class Retry<T>(
     }
 }
 
-// Specify how hint should be used.
-enum class HintType {
-    SESSION,
-    TURN
-}
-
-data class DuHint(val kind: HintType, val entities:Map<String, Map<String, List<String>>>)
-data class Hint(val du: DuHint)
-
-data class FramelyRequest (
-        val text: String,
-        val sessionId: String,
-        val initial: Boolean = true,
-        val events: List<FrameEvent> = emptyList(),
-        val hint: Hint? = null)
-
-data class FramelyResponse(
-    val response: Map<String, List<String>>,
-    val du: List<FrameEvent> = emptyList(),
-    val state: JsonObject? = null)
 
 
 interface Sink {
@@ -219,7 +199,7 @@ object Dispatcher {
         val channel = getChatbot(botInfo).getChannel(userInfo.channelType!!, userInfo.channelLabel!!)!!
         logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
         val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
-        
+
         getReply(userSession, message, sink, events)
     }
 
