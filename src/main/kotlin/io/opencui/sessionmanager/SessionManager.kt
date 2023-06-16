@@ -120,7 +120,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         assert(targetChannels.isNotEmpty())
         session.targetChannel = targetChannels
         val responses = dm.response(query, events, session)
-        println(Json.encodeToJsonElement(responses).toPrettyString())
         updateUserSession(session.userIdentifier, session.botInfo, session)
         return convertBotUtteranceToText(session, responses, session.targetChannel)
     }
