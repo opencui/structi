@@ -211,12 +211,7 @@ data class BertStateTracker(
      * Assumptions:
      * 1. We assume that index can be shared by different agent.
      */
-    override fun convert(
-        session: String,
-        putterance: String,
-        expectations: DialogExpectations
-    ): List<FrameEvent> {
-        // we need to do some postprocessing to meet the runtime requirements
+    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         val res = convertImpl(session, putterance, expectations)
         return res.map { dontCareConvert(it) }
     }
@@ -236,18 +231,22 @@ data class BertStateTracker(
         return event
     }
 
-    fun buildDUContext(session: String, putterance: String, expectations: DialogExpectations): DUContext {
+    fun buildDUContext(session: UserSession, putterance: String, expectations: DialogExpectations): DUContext {
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
 
-        val ducontext = DUContext(session, utterance, expectations).apply { duMeta = agentMeta }
-        normalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
+        val ducontext = DUContext(session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
+        var allNormalizers = normalizers
+        if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
+        if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
+        allNormalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
         ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
         logger.debug("entity recognized: ${ducontext.entityTypeToSpanInfoMap}")
         return ducontext
     }
 
     private fun convertImpl(
-        session: String, putterance: String,
+        session: UserSession,
+        putterance: String,
         expectations: DialogExpectations
     ): List<FrameEvent> {
         if (putterance.trim { it.isWhitespace() }.isEmpty()) return listOf()

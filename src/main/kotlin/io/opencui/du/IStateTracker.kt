@@ -3,6 +3,8 @@ package io.opencui.du
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.FrameEvent
 import io.opencui.core.IExtension
+import io.opencui.core.UserSession
+import io.opencui.core.user.IUserIdentifier
 
 
 /**
@@ -108,8 +110,19 @@ interface IStateTracker : IExtension {
      * @param expectations describes the current state of dialog from chatbot side,
      * @return list of FrameEvents, structural semantic representation of what user said.
      */
-    fun convert(session: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
+    fun convert(session: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
+        // We keep this so that all the exist test can run.
+        data class SimpleUserIdentifier(
+            override var userId: String?,
+            override var channelType: String? = null,
+            override var channelLabel: String? = null): IUserIdentifier {
+                override fun toString() = userId!!
+            }
+        val userSession = UserSession(SimpleUserIdentifier(session))
+        return convert(userSession, putterance, expectations)
+    }
 
+    fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**
      * Test whether a given entity event is from partial match. Mainly used for potential slot
      */

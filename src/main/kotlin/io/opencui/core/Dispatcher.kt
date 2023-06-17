@@ -109,12 +109,11 @@ object Dispatcher {
     }
 
     fun getUserSession(userInfo: IUserIdentifier, botInfo: BotInfo): UserSession? {
-        return sessionManager.getUserSession(userInfo, botInfo).apply { this?.botInfo = botInfo }
+        return sessionManager.getUserSession(userInfo, botInfo)
     }
 
     fun createUserSession(userInfo: IUserIdentifier, botInfo: BotInfo): UserSession {
         val session = sessionManager.createUserSession(userInfo, botInfo)
-        session.botInfo = botInfo
         val support = getSupport(botInfo)
         if (support != null && !support.isInitiated(session)) {
             logger.info("init session now...")
@@ -216,8 +215,6 @@ object Dispatcher {
             }
 
             logger.info("send $msgs to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
-
-
             for (msg in msgs) {
                 // Channel like messenger can not take empty message.
                 val msgTrimmed = msg.trim()
