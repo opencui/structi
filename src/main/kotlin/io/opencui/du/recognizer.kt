@@ -286,8 +286,8 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
 class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
 
-    data class TypedLabel(val typeId: Int, val labelId: Int, val leaf: Boolean)
-    data class TypedMention(val typeId: Int, val mentionId: Int)
+    data class TypedLabel(val typeId: Int, val labelId: Int, val leaf: Boolean): Serializable
+    data class TypedMention(val typeId: Int, val mentionId: Int): Serializable
 
     val maxNgramSize = 5
 
