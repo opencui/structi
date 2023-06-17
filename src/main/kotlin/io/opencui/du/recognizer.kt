@@ -592,7 +592,7 @@ fun List<EntityRecognizer>.recognizeAll(utterance:String, types: List<String>, e
 }
 
 // Simply provide a way to convert string to id, or id to string back.
-class StringIdTable {
+class StringIdTable : Serializable {
     val stringToId = HashMap<String, Int>()
     val idToString = ArrayList<String>()
     fun put(key: String) : Int {
