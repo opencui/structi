@@ -284,7 +284,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 }
 
 
-class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer, Serializable {
+class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
 
     data class TypedLabel(val typeId: Int, val labelId: Int, val leaf: Boolean)
     data class TypedMention(val typeId: Int, val mentionId: Int)
@@ -312,8 +312,8 @@ class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer, Serializable
         tokenIndex[tokenId].add(TypedMention(typeId, mentionId))
     }
 
-    val analyzer: Analyzer? = LanguageAnalyzer.getUnstoppedAnalyzer(agent.getLang())
-    private val stopwords: CharArraySet? = LanguageAnalyzer.getStopSet(agent.getLang())
+    val analyzer: Analyzer? = LanguageAnalyzer.getUnstoppedAnalyzer(lang)
+    private val stopwords: CharArraySet? = LanguageAnalyzer.getStopSet(lang)
 
     // This method is used to handle the extractive frame like DontCare and That
     fun collectExtractiveFrame(owner: JsonObject, type: String, processed: HashMap<String, ArrayList<String>>) {
@@ -566,13 +566,13 @@ object ListRecognizerBuilder {
     }
 
     operator fun invoke(agent: DUMeta) : ListRecognizer {
-        val listRecognizer = ListRecognizer(agent)
+        val listRecognizer = ListRecognizer(agent.getLang())
         build(agent, listRecognizer)
         return listRecognizer
     }
 
-    operator fun invoke(agent: DUMeta, entities: Map<String, Map<String, List<String>>>) : ListRecognizer{
-        val listRecognizer = ListRecognizer(agent)
+    operator fun invoke(lang: String, entities: Map<String, Map<String, List<String>>>) : ListRecognizer{
+        val listRecognizer = ListRecognizer(lang)
         build(entities, listRecognizer)
         return listRecognizer
     }
