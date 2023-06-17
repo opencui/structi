@@ -13,6 +13,7 @@ import io.opencui.core.user.UserIdentifier
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
+import io.opencui.du.ListRecognizer
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.ObjectInputStream
 import java.io.Serializable
@@ -171,7 +172,7 @@ data class UserSession(
     @Transient @JsonIgnore var chatbot: IChatbot? = null): LinkedHashMap<String, Any>(), Serializable, StateChart {
 
     // Default botInfo, need to be changed.
-    var botInfo = botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch)
+    val botInfo : BotInfo by lazy { botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch) }
 
     override val events = mutableListOf<FrameEvent>()
 
@@ -183,7 +184,11 @@ data class UserSession(
     // for now, use 30 minutes senssion
     val sessionDuration = 30*60
     val msgIds = ConcurrentHashMap<String, LocalDateTime>()
-    
+
+    @Transient
+    var turnRecognizer: ListRecognizer? = null
+    var sessionRecognizer: ListRecognizer? = null
+
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
     // retries.
