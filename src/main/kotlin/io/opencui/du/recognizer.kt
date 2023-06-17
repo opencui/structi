@@ -14,6 +14,7 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import io.opencui.serialization.*
 import org.apache.lucene.analysis.CharArraySet
+import java.io.Serializable
 import java.util.*
 
 /**
@@ -283,7 +284,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 }
 
 
-class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer {
+class ListRecognizer(val agent: ExtractiveMeta) : EntityRecognizer, Serializable {
 
     data class TypedLabel(val typeId: Int, val labelId: Int, val leaf: Boolean)
     data class TypedMention(val typeId: Int, val mentionId: Int)
