@@ -312,9 +312,9 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
         tokenIndex[tokenId].add(TypedMention(typeId, mentionId))
     }
 
+    @Transient
     val analyzer: Analyzer? = LanguageAnalyzer.getUnstoppedAnalyzer(lang)
-    private val stopwords: CharArraySet? = LanguageAnalyzer.getStopSet(lang)
-
+    
     // This method is used to handle the extractive frame like DontCare and That
     fun collectExtractiveFrame(owner: JsonObject, type: String, processed: HashMap<String, ArrayList<String>>) {
         val ownerId = owner.getPrimitive(DUMeta.OWNERID).content()
