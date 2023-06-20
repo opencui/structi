@@ -45,7 +45,7 @@ class DialogManager {
      */
     fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): List<ActionResult> {
         val expectations = findDialogExpectation(session)
-        val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session.userIdentifier.toString(), query, DialogExpectations(expectations))
+        val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
         val convertedFrameEventList = convertSpecialFrameEvent(session, frameEvents + duReturnedFrameEvent)
