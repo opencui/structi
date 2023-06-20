@@ -240,7 +240,7 @@ data class BertStateTracker(
         if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
         allNormalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
         ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
-        logger.info("entity recognized: ${ducontext.entityTypeToSpanInfoMap} with ${allNormalizers.size} recognizers")
+        logger.info("entity recognized: ${ducontext.entityTypeToSpanInfoMap} with ${allNormalizers.size}:${normalizers.size} recognizers")
         return ducontext
     }
 
