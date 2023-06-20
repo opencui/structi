@@ -539,7 +539,8 @@ object ListRecognizerBuilder {
             }
         }
     }
- fun build(entities: Map<String, Map<String, List<String>>>, listRecognizer: ListRecognizer) {
+    
+    fun build(entities: Map<String, Map<String, List<String>>>, listRecognizer: ListRecognizer) {
         logger.info("Init ListRecognizer...")
         // We can have two kind of DontCare, proactive, and reactive. The DontCare on the entity
         // is also proactive, meaning user can say it directly. instead of just replying prompt.
@@ -551,15 +552,13 @@ object ListRecognizerBuilder {
         for (type in entities.keys ) {
             val typeId = listRecognizer.typeTable.getId(type)!!
 
-            // TODO(sean): we should get the name instead of using label here.
-            // now we assume that we have normed token.
-            // TODO(sean): assume normed can not be recognized unless it is also listed in the rest.
-
             // for internal node
             val children = entities[type]!!
+            logger.info("process entity type $type with ${children.size} entries.")
             for (entryLabel in children.keys) {
                 // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
                 val expressions = children[entryLabel]!!
+                logger.info("process entity type $entryLabel with ${expressions.size} entries.")
                 add(listRecognizer, typeId, type, entryLabel, expressions,false)
             }
         }
