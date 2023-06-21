@@ -559,7 +559,7 @@ object ListRecognizerBuilder {
                 // TODO(sean): Use * to mark the internal node, need to ake sure that is pattern is stable
                 val expressions = children[entryLabel]!!
                 logger.info("process entity type $entryLabel with ${expressions.size} entries.")
-                add(listRecognizer, typeId, type, entryLabel, expressions,false)
+                add(listRecognizer, typeId, type, entryLabel, expressions,true)
             }
         }
     }
