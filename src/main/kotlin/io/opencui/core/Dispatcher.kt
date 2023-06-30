@@ -1,6 +1,5 @@
 package io.opencui.core
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.opencui.channel.IChannel
 import io.opencui.sessionmanager.SessionManager
 import org.slf4j.Logger
@@ -31,6 +30,11 @@ interface Sink {
     fun markSeen(msgId: String?) {}
     fun typing() {}
     fun send(msg: String)
+
+    fun send(session: UserSession, msg: String) {
+        session.addBotMessage(msg)
+        send(msg)
+    }
 }
 
 data class ChannelSink(val channel: IChannel, val uid: String, val botInfo: BotInfo): Sink {
@@ -84,7 +88,7 @@ object Dispatcher {
 
     fun closeSession(target: IUserIdentifier, botInfo: BotInfo) {
         if (target.channelType != null && target.channelLabel != null) {
-            val channel = getChatbot(botInfo).getChannel(target.channelType!!, target.channelLabel!!)
+            val channel = getChatbot(botInfo).getChannel(target.channelLabel!!)
             if (channel != null && channel is IManaged) {
                 (channel as IManaged).closeSession(target.userId!!, botInfo)
             }
@@ -94,7 +98,7 @@ object Dispatcher {
     }
 
     fun send(target: IUserIdentifier, botInfo: BotInfo, msgs: List<String>) {
-        val channel = getChatbot(botInfo).getChannel(target.channelType!!, target.channelLabel!!)
+        val channel = getChatbot(botInfo).getChannel(target.channelLabel!!)
         if (channel != null && channel is IMessageChannel) {
             for (msg in msgs) {
                 // Channel like messenger can not take empty message.
@@ -160,7 +164,7 @@ object Dispatcher {
         val userInfo = userSession.userIdentifier
         val botInfo = userSession.botInfo
 
-        val channel = getChatbot(botInfo).getChannel(userInfo.channelType!!, userInfo.channelLabel!!)!!
+        val channel = getChatbot(botInfo).getChannel(userInfo.channelLabel!!)!!
         logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
         val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
 
@@ -219,7 +223,7 @@ object Dispatcher {
                 // Channel like messenger can not take empty message.
                 val msgTrimmed = msg.trim()
                 if (!msgTrimmed.isNullOrEmpty()) {
-                    sink.send(msg)
+                    sink.send(userSession, msg)
                 }
             }
         } else {
@@ -249,7 +253,7 @@ object Dispatcher {
         logger.info("handoff ${target.userId} at ${target.channelType} on ${botInfo} with depatment ${department}")
 
 
-        val channel = getChatbot(botInfo).getChannel(target.channelType!!, target.channelLabel!!)
+        val channel = getChatbot(botInfo).getChannel(target.channelLabel!!)
         if (channel == null) {
             logger.info("Channel ${target.channelType} not found.")
         }
