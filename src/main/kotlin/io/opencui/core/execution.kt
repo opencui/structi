@@ -8,7 +8,6 @@ import io.opencui.core.da.ForwardDialogAct
 import io.opencui.du.*
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
-import io.opencui.system1.ISystem1
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
