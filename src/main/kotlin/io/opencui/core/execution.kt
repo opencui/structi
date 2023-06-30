@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
+import io.opencui.core.da.ForwardDialogAct
 import io.opencui.du.*
 import io.opencui.serialization.Json
+import io.opencui.system1.ISystem1
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -63,12 +65,24 @@ class DialogManager {
     fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
         session.turnId += 1
 
+        session.addUserMessage(pinput.query)
+        val system1 = session.chatbot?.getExtension<ISystem1>()
+
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
+        // If we do not understand.
         if (frameEvents.isEmpty()) {
-            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
-            if (delegateActionResult != null) {
+            if (system1 != null) {
+                val response = session.system1Response()!!
+                val dialogAct = ForwardDialogAct(response)
+                val result = dialogAct.wrappedRun(session)
+                return listOf(result)
+            } else {
+                // if we do not have system1 for backup.
+                val delegateActionResult =
+                    session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()
+                        ?.wrappedRun(session)!!
                 return listOf(delegateActionResult)
             }
         }

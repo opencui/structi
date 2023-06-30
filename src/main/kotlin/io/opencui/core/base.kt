@@ -220,13 +220,14 @@ abstract class IChatbot : Component {
     // This is designed for routing conversation to right department when needed.
     abstract val routing: Map<String, RoutingInfo>
 
-    fun getChannel(type: String, label: String) : IChannel? {
+    fun getChannel(label: String) : IChannel? {
         return extensions[IChannel::class]?.get(label) as IChannel?
     }
 
-    inline fun <reified T> getExtension(label: String): T? {
+    inline fun <reified T> getExtension(label: String = "default"): T? {
        return extensions[T::class]?.get(label) as T?
     }
+
     inline fun <reified T> getExtensionManager(): ExtensionManager<*> {
        return extensions[T::class]!!
     }

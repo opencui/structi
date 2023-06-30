@@ -15,6 +15,8 @@ import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.sessionmanager.ChatbotLoader
+import io.opencui.system1.CoreMessage
+import io.opencui.system1.ISystem1
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -181,6 +183,8 @@ data class UserSession(
         events.add(frameEvent)
     }
 
+    val history = mutableListOf<CoreMessage>()
+
     // for now, use 30 minutes senssion
     val sessionDuration = 30*60
     val msgIds = ConcurrentHashMap<String, LocalDateTime>()
@@ -221,6 +225,19 @@ data class UserSession(
     // the timezone is session dependent. For example, when user ask about New York hotel, then ask the same
     // thing about san fransisco.
     var timezone : String? = null
+
+    fun addUserMessage(msg: String) {
+        history.add(CoreMessage(true, msg))
+    }
+
+    fun addBotMessage(msg: String) {
+        history.add(CoreMessage(false, msg))
+    }
+
+    fun system1Response(): String? {
+        val system1 = chatbot?.getExtension<ISystem1>()
+        return system1?.response(history)
+    }
 
     /**
      * We should always set this in the Dispatcher when create user session.

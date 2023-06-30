@@ -178,3 +178,8 @@ data class SlotOfferSepInformConfirm<T>(
 class DumbDialogAct : DialogAct {
     override var templates: Templates = TODO("Not yet implemented")
 }
+
+// This might be useful to capture the system1 response.
+data class ForwardDialogAct(val msg: String): DialogAct {
+     override var templates: Templates = templateOf(msg)
+}
