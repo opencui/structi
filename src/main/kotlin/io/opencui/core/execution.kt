@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.ForwardDialogAct
 import io.opencui.du.*
 import io.opencui.serialization.Json
-import io.opencui.system1.IDumbSystem1
+import io.opencui.system1.ISystem1
 import io.opencui.system1.ISystem1
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.slf4j.Logger
@@ -67,7 +67,7 @@ class DialogManager {
         session.turnId += 1
 
         session.addUserMessage(pinput.query)
-        val system1 = session.chatbot?.getExtension<IDumbSystem1>()
+        val system1 = session.chatbot?.getExtension<ISystem1>()
 
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.

@@ -16,13 +16,9 @@ import java.io.Serializable
  * Dumb system will always return something.
  * For now, we assume the system1 are dumb.
  */
-interface ISystem1 : IExtension {
-
-}
-
 data class CoreMessage(val user: Boolean, val message: String): Serializable
 
-interface IDumbSystem1 : ISystem1 {
+interface ISystem1 : IExtension {
     fun response(msgs: List<CoreMessage>): String
 }
 

@@ -16,7 +16,7 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
-import io.opencui.system1.IDumbSystem1
+import io.opencui.system1.ISystem1
 import io.opencui.system1.ISystem1
 import java.io.ObjectInputStream
 import java.io.Serializable
@@ -236,7 +236,7 @@ data class UserSession(
     }
 
     fun system1Response(): String? {
-        val system1 = chatbot?.getExtension<IDumbSystem1>()
+        val system1 = chatbot?.getExtension<ISystem1>()
         return system1?.response(history)
     }
 
