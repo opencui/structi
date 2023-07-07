@@ -50,6 +50,13 @@ class DialogManager {
         val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
+        frameEvents.forEach { it.fromUser = false }
+        frameEvents.forEach {
+            // If there is a system event for a global, we clear the existing one.
+            // We assume the event is full when that global need to be filled.
+            session.clearSingleton(it.fullType)
+        }
+
         val convertedFrameEventList = convertSpecialFrameEvent(session, frameEvents + duReturnedFrameEvent)
         for (event in convertedFrameEventList) {
             // events from user
