@@ -63,6 +63,8 @@ data class FrameEvent(
     var inferredFrom: Boolean = false
     var refocused: Boolean = false
     var typeUsed: Boolean = false
+    var fromUser: Boolean = true
+
     val isUsed: Boolean
         get() = typeUsed || slots.firstOrNull { it.isUsed } != null || frames.firstOrNull { it.isUsed } != null
     val consumed : Boolean

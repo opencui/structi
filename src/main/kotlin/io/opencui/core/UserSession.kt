@@ -880,6 +880,14 @@ data class UserSession(
         }
     }
 
+    /**
+     * If there is a system frame event for singleton, we should simply clear what we had
+     * so that it can be filled again.
+     */
+    fun clearSingleton(qname: String) {
+        globals.remove(qname)
+    }
+
     fun getOpenPayloadIntent(): String? {
         for (s in schedulers.reversed()) {
             val intent = (s.lastOrNull { it is FrameFiller<*> && it.frame() is IIntent && !it.frame()::class.qualifiedName!!.startsWith("io.opencui") } as? FrameFiller<*>)?.frame()
