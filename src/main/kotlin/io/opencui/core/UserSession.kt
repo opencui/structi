@@ -885,7 +885,15 @@ data class UserSession(
      * so that it can be filled again.
      */
     fun clearSingleton(qname: String) {
-        globals.remove(qname)
+        if (globals.containsKey(qname)) {
+            val kClass = Class.forName(qname, true, chatbot!!.getLoader()).kotlin
+            val ctor = kClass.primaryConstructor ?: return
+            val frame = ctor.call(this) as? ISingleton
+            if (frame != null) {
+                frame.filler = frame.createBuilder().invoke(ParamPath(frame))
+                globals[qname] = frame
+            }
+        }        
     }
 
     fun getOpenPayloadIntent(): String? {
