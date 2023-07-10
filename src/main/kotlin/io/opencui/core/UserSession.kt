@@ -868,15 +868,19 @@ data class UserSession(
         return groups.map { rewriteDialogActInGroup(it.second) }.flatten()
     }
 
+    private fun rawMakeSingleton(qname: String) {
+        val kClass = Class.forName(qname, true, chatbot!!.getLoader()).kotlin
+        val ctor = kClass.primaryConstructor ?: return
+        val frame = ctor.call(this) as? ISingleton
+        if (frame != null) {
+            frame.filler = frame.createBuilder().invoke(ParamPath(frame))
+            globals[qname] = frame
+        }
+    }
+
     fun makeSingleton(qname: String) {
         if (!globals.containsKey(qname)) {
-            val kClass = Class.forName(qname, true, chatbot!!.getLoader()).kotlin
-            val ctor = kClass.primaryConstructor ?: return
-            val frame = ctor.call(this) as? ISingleton
-            if (frame != null) {
-                frame.filler = frame.createBuilder().invoke(ParamPath(frame))
-                globals[qname] = frame
-            }
+            rawMakeSingleton(qname)
         }
     }
 
@@ -886,13 +890,7 @@ data class UserSession(
      */
     fun clearSingleton(qname: String) {
         if (globals.containsKey(qname)) {
-            val kClass = Class.forName(qname, true, chatbot!!.getLoader()).kotlin
-            val ctor = kClass.primaryConstructor ?: return
-            val frame = ctor.call(this) as? ISingleton
-            if (frame != null) {
-                frame.filler = frame.createBuilder().invoke(ParamPath(frame))
-                globals[qname] = frame
-            }
+            rawMakeSingleton(qname)
         }        
     }
 

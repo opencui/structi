@@ -54,6 +54,7 @@ class DialogManager {
         frameEvents.forEach {
             // If there is a system event for a global, we clear the existing one.
             // We assume the event is full when that global need to be filled.
+            logger.debug("Clear up the global: ${it.fullType}")
             session.clearSingleton(it.fullType)
         }
 
