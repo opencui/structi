@@ -45,7 +45,8 @@ data class EntityEvent(
 }
 
 enum class EventSource {
-    USER,
+    USER,   // From user query.
+    BUILDER,  // From api.
     UNKNOWN
 }
 
