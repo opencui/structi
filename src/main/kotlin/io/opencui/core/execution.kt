@@ -48,9 +48,10 @@ class DialogManager {
     fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): List<ActionResult> {
         val expectations = findDialogExpectation(session)
         val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+        duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
-        frameEvents.forEach { it.fromUser = false }
+        frameEvents.forEach { it.source = EventSource.BUILDER }
         frameEvents.forEach {
             // If there is a system event for a global, we clear the existing one.
             // We assume the event is full when that global need to be filled.
@@ -59,10 +60,6 @@ class DialogManager {
         }
 
         val convertedFrameEventList = convertSpecialFrameEvent(session, frameEvents + duReturnedFrameEvent)
-        for (event in convertedFrameEventList) {
-            // events from user
-            event.source = EventSource.USER
-        }
         logger.debug("Converted frame events : $convertedFrameEventList")
         return response(ParsedQuery(query, convertedFrameEventList), session)
     }

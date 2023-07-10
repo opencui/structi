@@ -777,7 +777,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             // HasMore has a VR that does not handle HasMore FrameEvent; it's special here
             if (!recommendationDone
                 && (frameEvent == null
-                        || (targetFiller !is AEntityFiller && frameEvent.source == EventSource.USER && frameEvent.packageName != hasMorePackage)
+                        || (targetFiller !is AEntityFiller && frameEvent.source != EventSource.UNKNOWN && frameEvent.packageName != hasMorePackage)
                         || (targetFiller is AEntityFiller && frameEvent.slots.firstOrNull { !it.isLeaf } != null))) {
                 if (recommendationFiller == null || frameEvent != null) {
                     recommendationFiller = initRecommendationFiller(session, frameEvent)

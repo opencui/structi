@@ -29,6 +29,7 @@ data class EntityEvent(
     val value: String,
     val attribute: String): Serializable {
     var type: String? = null
+    @JsonIgnore
     var isUsed: Boolean = false
     var origValue: String? = null
 
@@ -39,11 +40,13 @@ data class EntityEvent(
     }
 
     // TODO(sean) what is this used for?
+    @JsonIgnore
     val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 }
 
 enum class EventSource {
-    USER,
+    USER,   // From user query.
+    BUILDER,  // From api.
     UNKNOWN
 }
 
@@ -59,26 +62,41 @@ data class FrameEvent(
         var packageName: String? = null): Serializable {
     var attribute: String? = null
     var query: String? = null
-    var triggered: Boolean = false
-    var inferredFrom: Boolean = false
-    var refocused: Boolean = false
-    var typeUsed: Boolean = false
-    var fromUser: Boolean = true
 
+    @JsonIgnore
+    var triggered: Boolean = false
+
+    @JsonIgnore
+    var inferredFrom: Boolean = false
+
+    @JsonIgnore
+    var refocused: Boolean = false
+
+    @JsonIgnore
+    var typeUsed: Boolean = false
+
+
+    @get:JsonIgnore
     val isUsed: Boolean
         get() = typeUsed || slots.firstOrNull { it.isUsed } != null || frames.firstOrNull { it.isUsed } != null
+
+    @get:JsonIgnore
     val consumed : Boolean
         get() = slots.firstOrNull { !it.isUsed } == null && frames.firstOrNull { !it.usedUp } == null
+
+    @get:JsonIgnore
     val usedUp: Boolean
         get() = ((slots.isNotEmpty() || frames.isNotEmpty()) && consumed) || (slots.isEmpty() && frames.isEmpty() && typeUsed)
+
+    @get:JsonIgnore
     val activeEntitySlots: List<EntityEvent>
         get() = slots.filter {!it.isUsed }
 
+    @get:JsonIgnore
     val activeFrameSlots: List<FrameEvent>
         get() = frames.filter {!it.isUsed }
 
-    var dontCare : Boolean = false
-
+    @get:JsonIgnore
     val fullType: String
         get() = "${packageName}.$type"
 
@@ -87,6 +105,7 @@ data class FrameEvent(
     @JsonIgnore
     var slotAssignments: MutableMap<String, ()->Any?> = mutableMapOf()
 
+    @JsonIgnore
     var turnId : Int = -1
 
     fun updateTurnId(pturnId: Int) {
