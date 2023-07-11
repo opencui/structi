@@ -51,7 +51,7 @@ class DialogManager {
         duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
-        frameEvents.forEach { it.source = EventSource.BUILDER }
+        frameEvents.forEach { it.source = EventSource.API }
         frameEvents.forEach {
             // If there is a system event for a global, we clear the existing one.
             // We assume the event is full when that global need to be filled.
