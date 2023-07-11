@@ -46,7 +46,7 @@ data class EntityEvent(
 
 enum class EventSource {
     USER,   // From user query.
-    BUILDER,  // From api.
+    API,  // From api.
     UNKNOWN
 }
 
@@ -62,6 +62,8 @@ data class FrameEvent(
         var packageName: String? = null): Serializable {
     var attribute: String? = null
     var query: String? = null
+
+    val delta: Boolean = true
 
     @JsonIgnore
     var triggered: Boolean = false

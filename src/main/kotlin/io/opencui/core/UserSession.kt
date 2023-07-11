@@ -157,7 +157,6 @@ interface StateChart {
      * Chart building, state transition, and message emission, of course, there are composite ones.
      */
     fun kernelStep(): List<Action>
-
 }
 
 
@@ -180,6 +179,9 @@ data class UserSession(
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
+        if (!frameEvent.delta && frameEvent.source == EventSource.API) {
+            events.removeIf{ it.fullType == frameEvent.fullType }
+        }
         events.add(frameEvent)
     }
 
@@ -216,10 +218,7 @@ data class UserSession(
     }
 
     override fun addEvents(frameEvents: List<FrameEvent>) {
-        frameEvents.forEach {
-            it.updateTurnId(turnId)
-        }
-        events.addAll(frameEvents)
+        frameEvents.forEach { addEvent(it) }
     }
 
     // the timezone is session dependent. For example, when user ask about New York hotel, then ask the same
