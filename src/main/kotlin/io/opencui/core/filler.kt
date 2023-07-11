@@ -398,16 +398,21 @@ class OpaqueFiller<T>(
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        return simpleEventType() == frameEvent.type && frameEvent.activeFrameSlots.any { it.attribute == attribute }
+        val simpleType = simpleEventType()
+        val typeMatch = (simpleType == frameEvent.type)
+        val nestedMatch = frameEvent.activeFrameSlots.any { it.attribute == attribute }
+        return typeMatch && nestedMatch || declaredType == frameEvent.fullType
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
-        val related = frameEvent.frames.find { it.attribute == attribute && !it.isUsed }!!
-        related.typeUsed = true
+        val related = frameEvent.activeFrameSlots.find { it.attribute == attribute }
 
-        val jsonObject = toJson(related)
+        related?.typeUsed = true
+
+        val jsonObject = toJson(related ?: frameEvent)
 
         if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
+
         target.set(builder.invoke(jsonObject))
         value = related
         event = frameEvent
@@ -420,7 +425,7 @@ class OpaqueFiller<T>(
     companion object {
         val regex = "^\"|\"$".toRegex()
         fun toJson(event: FrameEvent) : JsonObject {
-            check(event.attribute != null)
+            // check(event.attribute != null)
             // (TODO): add support for frames, and interface type.
             val values = mutableMapOf<String, Any>()
             for (slot in event.slots) {
