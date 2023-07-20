@@ -62,6 +62,11 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
 
     fun peek(): IFiller = last()
 
+    fun parentGrandparentBothAnnotated(): Boolean {
+        if (size < 3) return false
+        return get(size - 1) is FrameFiller<*> && get(size - 2) is AnnotatedWrapperFiller && get(size - 3) is AnnotatedWrapperFiller
+    }
+
     /**
      * This is used when first expand the system. This call is guaranteed to work for
      * first time call on correct intent definition.
@@ -303,6 +308,8 @@ data class UserSession(
         }
 
         if (schedule.state == Scheduler.State.RESPOND) {
+            val currentFiller = schedule.lastOrNull()
+            check(currentFiller is AnnotatedWrapperFiller)
             return listOf(RespondAction())
         }
 

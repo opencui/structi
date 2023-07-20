@@ -233,6 +233,10 @@ interface IFiller: Compatible, Serializable {
         }
         return typeStr
     }
+
+    fun isForInterfaceOrMultiValue(): Boolean {
+        return this is InterfaceFiller<*> || this is MultiValueFiller<*>
+    }
 }
 
 // The goal of this to fill the slot from typed string form, to typed form.
@@ -979,8 +983,7 @@ class FrameFiller<T: IFrame>(
      * 2. natural order
      */
     fun findNextFiller(frameEvents: List<FrameEvent>): AnnotatedWrapperFiller? {
-        val childEntry = findNextChildFiller(frameEvents)
-        return childEntry
+        return findNextChildFiller(frameEvents)
     }
 
     fun findNextChildFiller(frameEvents: List<FrameEvent>): AnnotatedWrapperFiller? {

@@ -1686,7 +1686,7 @@ class RuntimeTest {
             assertTrue(line.startsWith(">"), line)
 
             val input = lines[index].substring(1)
-            println(input)
+            println("Input :$input")
             val responses = try {
                 val rawQuery = parseExplanation(input)
                 val convertedFrameEvents = dm.convertSpecialFrameEvent(session, rawQuery.frames)
