@@ -41,7 +41,8 @@ data class SlotRequest(
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
     // this kind of constructor is just for convenience of testcase
-    constructor(slotName: String, slotType: String, templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
+    constructor(slotName: String, slotType: String,
+                templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
 data class SlotRequestMore(
@@ -49,7 +50,8 @@ data class SlotRequestMore(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(slotName: String, slotType: String, templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
+    constructor(slotName: String, slotType: String,
+                templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
 data class SlotGate(
@@ -57,7 +59,8 @@ data class SlotGate(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(slotName: String, slotType: String, templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
+    constructor(slotName: String, slotType: String,
+                templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
 enum class FailType {
@@ -73,7 +76,9 @@ data class SlotNotifyFailure<T>(
     val failType: FailType,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(target: T, slotName: String, slotType: String, failType: FailType, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(target, slotName, slotType, failType, context, templates)
+    constructor(target: T, slotName: String, slotType: String, failType: FailType,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(target, slotName, slotType, failType, context, templates)
 }
 
 data class SlotConfirm<T>(
@@ -82,7 +87,9 @@ data class SlotConfirm<T>(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(target: T?, slotName: String, slotType: String, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(target, slotName, slotType, context, templates)
+    constructor(target: T?, slotName: String, slotType: String,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(target, slotName, slotType, context, templates)
 }
 
 data class SlotInform<T>(
@@ -91,7 +98,9 @@ data class SlotInform<T>(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(target: T?, slotName: String, slotType: String, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(target, slotName, slotType, context, templates)
+    constructor(target: T?, slotName: String, slotType: String,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(target, slotName, slotType, context, templates)
 }
 
 data class SlotOffer<T>(
@@ -100,7 +109,9 @@ data class SlotOffer<T>(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()): SlotDialogAct {
-    constructor(value: List<T>, slotName: String, slotType: String, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
+    constructor(value: List<T>, slotName: String, slotType: String,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
 }
 
 data class SlotOfferSepInform<T>(
@@ -109,7 +120,9 @@ data class SlotOfferSepInform<T>(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(value: T, slotName: String, slotType: String, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
+    constructor(value: T, slotName: String, slotType: String,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
 }
 
 data class SlotOfferZepInform(
@@ -117,7 +130,9 @@ data class SlotOfferZepInform(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(slotName: String, slotType: String, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(slotName, slotType, context, templates)
+    constructor(slotName: String, slotType: String,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(slotName, slotType, context, templates)
 }
 
 data class SlotOfferOutlier<T>(
@@ -126,7 +141,9 @@ data class SlotOfferOutlier<T>(
     override val slotType: String,
     override val context: List<IFrame> = listOf(),
     override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(value: T, slotName: String, slotType: String, templates: Templates = emptyTemplate(), context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
+    constructor(value: T, slotName: String, slotType: String,
+                templates: Templates = emptyTemplate(),
+                context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
 }
 
 // FRAME DialogAct
