@@ -47,6 +47,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
     var side: Side = Side.INSIDE
 
     fun push(item: IFiller) {
+        logger.debug("pushing ${item::class.java} with ${item.path?.last()}")
         add(item)
         item.onPush()
     }
@@ -57,10 +58,16 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
             removeAt(size - 1)
         }
         item!!.onPop()
+        logger.debug("popping ${item::class.java} with ${item.path?.last()}")
         return item
     }
 
     fun peek(): IFiller = last()
+
+    fun parentGrandparentBothAnnotated(): Boolean {
+        if (size < 3) return false
+        return get(size - 1) is FrameFiller<*> && get(size - 2) is AnnotatedWrapperFiller && get(size - 3) is AnnotatedWrapperFiller
+    }
 
     /**
      * This is used when first expand the system. This call is guaranteed to work for
@@ -96,6 +103,10 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         }
         objNode.replace("fillers", ArrayNode(JsonNodeFactory.instance, nodeArray))
         return objNode
+    }
+
+    companion object {
+        val logger = LoggerFactory.getLogger(Scheduler::class.java)
     }
 }
 
@@ -179,7 +190,7 @@ data class UserSession(
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
-        if (!frameEvent.delta && frameEvent.source == EventSource.API) {
+        if (frameEvent.source == EventSource.API) {
             events.removeIf{ it.fullType == frameEvent.fullType }
         }
         events.add(frameEvent)
@@ -303,6 +314,8 @@ data class UserSession(
         }
 
         if (schedule.state == Scheduler.State.RESPOND) {
+            val currentFiller = schedule.lastOrNull()
+            check(currentFiller is AnnotatedWrapperFiller)
             return listOf(RespondAction())
         }
 
@@ -320,7 +333,7 @@ data class UserSession(
         if (refocusPair != null && (!inKernelMode(schedule) || inKernelMode(refocusPair.first))) {
             val refocusFiller = refocusPair.first.last() as AnnotatedWrapperFiller
             return if (
-                !refocusFiller.targetFiller.done() &&
+                !refocusFiller.targetFiller.done(emptyList()) &&
                 (refocusFiller.targetFiller is EntityFiller<*> || refocusFiller.targetFiller is OpaqueFiller<*>)
                 ) {
                 listOf(SimpleFillAction(refocusFiller.targetFiller as AEntityFiller, refocusPair.second))
@@ -757,9 +770,11 @@ data class UserSession(
             val targetFiller = it.targetFiller
             it.canEnter(frameEvents)
             && (
-                (targetFiller is AEntityFiller && targetFiller.done() && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+                (targetFiller is AEntityFiller && targetFiller.done(emptyList()) && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
                 // special matcher for HasMore with PagedSelectable; allow to refocus to undone HasMore if there is one
-                || (targetFiller is InterfaceFiller<*> && (it.parent as? FrameFiller<*>)?.frame() is HasMore && (it.parent?.parent?.parent as? MultiValueFiller<*>)?.done() == false && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
+                || (targetFiller is InterfaceFiller<*> && (it.parent as? FrameFiller<*>)?.frame() is HasMore && (it.parent?.parent?.parent as? MultiValueFiller<*>)?.done(
+                    emptyList()
+                ) == false && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)
                 || (level == 0
                     && (targetFiller is AEntityFiller || (targetFiller is InterfaceFiller<*> && targetFiller.realtype == null) || (targetFiller is MultiValueFiller<*> && targetFiller.findCurrentFiller() == null))
                     && !targetFiller.done(frameEvents) && frameEvents.firstOrNull { e -> it.isCompatible(e) } != null)

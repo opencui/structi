@@ -1310,7 +1310,9 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         val res = mutableListOf<Ordinal>()
         val fillers = (findOriginalSlotFiller()!!.targetFiller as MultiValueFiller<*>).fillers
         for (iv in fillers.withIndex()) {
-            if (iv.value.done() && (oldValue == null || oldValue == (iv.value.targetFiller as? EntityFiller<*>)?.target?.get())) {
+            if (iv.value.done(emptyList()) &&
+                (oldValue == null ||
+                        oldValue == (iv.value.targetFiller as? EntityFiller<*>)?.target?.get())) {
                 res += Ordinal((iv.index + 1).toString())
             }
         }

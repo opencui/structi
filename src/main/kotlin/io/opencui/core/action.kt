@@ -54,7 +54,9 @@ interface SideEffect {
 interface Action: Serializable {
     fun run(session: UserSession): ActionResult
     fun wrappedRun(session: UserSession) : ActionResult {
-        println("Executing ${this::class.java} with $this" )
+        if (this !is RescheduleAction) {
+            Dispatcher.logger.debug("Executing ${this::class.java}")
+        }
         return run(session)
     }
 }
@@ -149,7 +151,7 @@ data class StartFill(
                     index == null
                         && f.targetFiller is EntityFiller<*>
                         && types.contains(f.targetFiller.qualifiedTypeStr())
-                        && f.done()
+                        && f.done(emptyList())
                         && (value == "" || value == Json.encodeToString(f.targetFiller.target.get()!!))
                 }, additionalBaseCase = { f ->
                     // never enter entity mv slot filler
@@ -161,12 +163,12 @@ data class StartFill(
                     check(f.targetFiller is MultiValueFiller<*>)
                     val typeAgree = types.isEmpty() || types.contains(f.targetFiller.qualifiedTypeStrForSv())
                     if (!typeAgree) return@findFillers false
-                    val indexAgree = index == null || (f.targetFiller.fillers.size >= index && f.targetFiller.fillers[index-1].done())
+                    val indexAgree = index == null || (f.targetFiller.fillers.size >= index && f.targetFiller.fillers[index-1].done(emptyList()))
                     if (!indexAgree) return@findFillers false
                     if (value == "") {
-                        f.targetFiller.fillers.any { it.done() }
+                        f.targetFiller.fillers.any { it.done(emptyList()) }
                     } else {
-                        if (index == null) f.targetFiller.fillers.filter { it.done() }.map { Json.encodeToString((it.targetFiller as TypedFiller<*>).target.get()!!) }.contains(value)
+                        if (index == null) f.targetFiller.fillers.filter { it.done(emptyList()) }.map { Json.encodeToString((it.targetFiller as TypedFiller<*>).target.get()!!) }.contains(value)
                         else Json.encodeToString((f.targetFiller.fillers[index-1].targetFiller as TypedFiller<*>).target.get()!!) == value
                     }
                 })
@@ -449,6 +451,7 @@ data class SlotPostAskAction(
             if (!success) return goback(session)
         }
 
+        // Return the control back to kernel.
         return RescheduleAction().wrappedRun(session)
     }
 }
@@ -464,44 +467,66 @@ class SlotDoneAction(val filler: AnnotatedWrapperFiller) : StateAction {
         }
         return ActionResult(null)
     }
+    override fun toString(): String {
+        return """SlotDoneAction(${filler.targetFiller} with ${filler.targetFiller.path})"""
+    }
 }
 
 class RespondAction : CompositeAction {
     override fun run(session: UserSession): ActionResult {
-        val wrapperFiller = session.schedule.lastOrNull() as? AnnotatedWrapperFiller
+        val topFiller = session.schedule.lastOrNull()
+        val wrapperFiller = topFiller as? AnnotatedWrapperFiller
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
             val tmp = response.wrappedRun(session)
             tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
         } else {
-            null
+            logger.debug("RespondAction topFiller is ${topFiller}")
+            ActionResult(emptyLog())
         }
         wrapperFiller!!.responseDone = true
         session.schedule.state = Scheduler.State.RESCHEDULE
-        return res ?: ActionResult(emptyLog())
+        return res
+    }
+    companion object {
+        val logger = LoggerFactory.getLogger(RespondAction::class.java)
     }
 }
 
 class RescheduleAction : StateAction {
     override fun run(session: UserSession): ActionResult {
         val schedule = session.schedule
+        logger.debug("Reschedule start...")
         while (schedule.size > 0) {
             val top = schedule.peek()
+            if (top !is AnnotatedWrapperFiller) {
+                logger.debug("   ${top::class.java} with ${top.path?.last()}")
+            } else {
+                logger.debug("   ${top.targetFiller::class.java} with Annotated ${top.targetFiller.path?.last()}")
+            }
             // if ancestor is marked done, consider the ICompositeFiller done
-            val topDone = top.done(session.activeEvents) || (top !is AnnotatedWrapperFiller && (top.parent as? AnnotatedWrapperFiller)?.done(session.activeEvents) == true)
-            if (topDone) {
+            val topDone = top.done(session.activeEvents)
+            val topParentDone = (top.parent as? AnnotatedWrapperFiller)?.done(session.activeEvents) == true
+            val parentGrandAnnotated = schedule.parentGrandparentBothAnnotated()
+            if (topDone || (top.isForInterfaceOrMultiValue() && topParentDone)) {
                 val doneFiller = schedule.pop()
                 if (schedule.isEmpty()) {
-                    session.finishedIntentFiller += doneFiller as AnnotatedWrapperFiller
+                    // TODO: the logic here is strange.
+                    if (doneFiller is AnnotatedWrapperFiller) {
+                        session.finishedIntentFiller += doneFiller as AnnotatedWrapperFiller
+                    }
                 }
                 if (doneFiller is AnnotatedWrapperFiller && doneFiller.isSlot) {
-                    return SlotDoneAction(doneFiller).wrappedRun(session)
+                    val result = SlotDoneAction(doneFiller).wrappedRun(session)
+                    logger.debug("Get result: ${result}")
+                    return result
                 }
+
             } else {
                 break
             }
         }
-
+        Dispatcher.logger.debug("Reschedule ends...")
         if (schedule.isNotEmpty()) {
             val grown = schedule.grow()
             check(grown)
@@ -510,6 +535,9 @@ class RescheduleAction : StateAction {
         }
 
         return ActionResult(emptyLog())
+    }
+    companion object {
+        val logger = LoggerFactory.getLogger(RescheduleAction::class.java)
     }
 }
 
@@ -555,12 +583,13 @@ data class IntentAction(
         val intent = jsonIntent.invoke(session)?: return ActionResult(createLog("INTENT ACTION cannot construct intent : $jsonIntent"), false)
 
         val intentFillerBuilder = intent.createBuilder()
-        val currentFiller = session.schedule.lastOrNull() as? FrameFiller<*>
-
+        val topFiller = session.schedule.lastOrNull()
+        check(topFiller != null)
+        val currentFiller = if (topFiller is AnnotatedWrapperFiller)  topFiller.targetFiller else topFiller
         val targetFiller = intentFillerBuilder.invoke(if (currentFiller != null) currentFiller.path!!.join("_action", intent) else ParamPath(intent))
         val targetFillerWrapper = AnnotatedWrapperFiller(targetFiller)
         targetFiller.parent = targetFillerWrapper
-        targetFillerWrapper.parent = currentFiller
+        targetFillerWrapper.parent = currentFiller as FrameFiller<*>
         session.schedule.push(targetFillerWrapper)
         jsonIntent.init(session, targetFiller)
         return ActionResult(createLog("INTENT ACTION : ${intent.javaClass.name}"), true)
