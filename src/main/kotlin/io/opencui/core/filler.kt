@@ -51,13 +51,17 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Param(val frame: IFrame, val attribute: String): Serializable
+data class Param(val frame: IFrame, val attribute: String): Serializable {
+    override fun toString(): String = "${frame::class.qualifiedName}:${attribute}"
+}
 
 data class ParamPath(val path: List<Param>): Serializable {
     constructor(frame: IFrame): this(listOf(Param(frame, "this")))
     override fun toString(): String {
         return path.joinToString { "${it.frame::class.qualifiedName}:${it.attribute}" }
     }
+
+    fun last() : Param = path.last()
 
     fun join(a: String, nf: IFrame? = null): ParamPath {
         val last = path.last()
@@ -200,7 +204,7 @@ interface IFiller: Compatible, Serializable {
 
     // Is filler considered to be done given remaining events.
     // done means can neither move nor grow
-    fun done(frameEvents: List<FrameEvent> = emptyList()): Boolean
+    fun done(frameEvents: List<FrameEvent>): Boolean
 
     fun clear() {
         decorativeAnnotations.clear()
@@ -691,7 +695,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     val stateUpdateDone: Boolean
         get() {
-            return stateUpdateFiller?.done() != false
+            return stateUpdateFiller?.done(emptyList()) != false
         }
 
     val recommendationDone: Boolean
@@ -700,7 +704,9 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             // if we encounter path that ends with ._hast or ._item we omit those suffix to find ValueRecAnnotation,
             // so we have to disable vr for mvSlot for now
             // maybe we will need vr for mvSlot and mvSlot._hast and mvSlot._item respectively in the future
-            return targetFiller is MultiValueFiller<*> || path?.find<IValueRecAnnotation>() == null || recommendationFiller?.done() == true
+            return targetFiller is MultiValueFiller<*> ||
+                    path?.find<IValueRecAnnotation>() == null ||
+                    recommendationFiller?.done(emptyList()) == true
         }
 
     fun initCheckFiller(): AnnotatedWrapperFiller? {
@@ -719,24 +725,28 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     val confirmDone: Boolean
         get() {
             val confirmFrame = path!!.find<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
-            val decorativeConfirm = targetFiller.decorativeAnnotations.firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
+            val decorativeConfirm = targetFiller
+                .decorativeAnnotations
+                .firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
             val confirmFrameList = mutableListOf<IFrame>()
             if (confirmFrame != null) confirmFrameList += confirmFrame
             if (decorativeConfirm != null) confirmFrameList += decorativeConfirm
             val currentFrames = confirmationFillers.mapNotNull { (it.targetFiller as? FrameFiller<*>)?.frame() }.toSet()
-            return confirmFrameList.isEmpty() || (confirmFrameList.toSet() == currentFrames && confirmationFillers.map { it.done() }.fold(true) { acc, b -> acc && b })
+            return confirmFrameList.isEmpty() ||
+                    (confirmFrameList.toSet() == currentFrames &&
+                            confirmationFillers.map { it.done(emptyList()) }.fold(true) { acc, b -> acc && b })
         }
 
     val checkDone: Boolean
         get() {
-            return path!!.find<ValueCheckAnnotation>() == null || checkFiller?.done() == true
+            return path!!.find<ValueCheckAnnotation>() == null || checkFiller?.done(emptyList()) == true
         }
 
     var resultFiller: AnnotatedWrapperFiller? = (targetFiller as? FrameFiller<*>)?.fillers?.get("result")
 
     val resultDone: Boolean
         get() {
-            return resultFiller?.done() != false
+            return resultFiller?.done(emptyList()) != false
         }
 
     // response on/off switch
@@ -832,7 +842,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                     schedule.push(confirmationFillers.first())
                     return true
                 } else {
-                    val firstNotDone = confirmationFillers.firstOrNull { !it.done() }
+                    val firstNotDone = confirmationFillers.firstOrNull { !it.done(emptyList()) }
                     if (firstNotDone != null) {
                         schedule.push(firstNotDone)
                         return true
@@ -977,24 +987,17 @@ class FrameFiller<T: IFrame>(
         filler.path = if (filler is FrameFiller<*>) path!!.join(filler.target.name, filler.target.get()) else path!!.join(filler.target.name)
     }
 
-    /**
-     * we find next filler in this order
-     * 1. slot mentioned
-     * 2. natural order
-     */
-    fun findNextFiller(frameEvents: List<FrameEvent>): AnnotatedWrapperFiller? {
-        return findNextChildFiller(frameEvents)
-    }
-
     fun findNextChildFiller(frameEvents: List<FrameEvent>): AnnotatedWrapperFiller? {
-        return fillers.filterNot { it.key == "result" }.values.firstOrNull { !it.done(frameEvents) }
+        val results0 =  fillers.filterNot { it.key == "result" }.values
+        val results1 = results0.filter { !it.done(frameEvents) }
+        return results1.firstOrNull()
     }
 
     /**
      * Do static check first, then contextual check. If there are work to do, return false.
      */
     override fun done(frameEvents: List<FrameEvent>): Boolean {
-        val a = findNextFiller(frameEvents)
+        val a = findNextChildFiller(frameEvents)
         return a == null && (askStrategy() !is ExternalEventStrategy || committed)
     }
 
@@ -1009,7 +1012,7 @@ class FrameFiller<T: IFrame>(
     // Choose picks up the right frame to ask.
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         val schedule = session.schedule
-        val filler = findNextFiller(flatEvents) ?: return false
+        val filler = findNextChildFiller(flatEvents) ?: return false
         schedule.push(filler)
         return true
     }
@@ -1214,7 +1217,7 @@ class MultiValueFiller<T>(
     val fillers = mutableListOf<AnnotatedWrapperFiller>()
 
     fun findCurrentFiller(): AnnotatedWrapperFiller? {
-        return fillers.firstOrNull { !it.done() }
+        return fillers.firstOrNull { !it.done(emptyList()) }
     }
 
     private fun createTFiller(index: Int): IFiller {

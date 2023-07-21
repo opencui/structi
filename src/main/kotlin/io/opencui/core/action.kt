@@ -55,7 +55,7 @@ interface Action: Serializable {
     fun run(session: UserSession): ActionResult
     fun wrappedRun(session: UserSession) : ActionResult {
         if (this !is RescheduleAction) {
-            println("Executing $this")
+            Dispatcher.logger.debug("Executing ${this::class.java}")
         }
         return run(session)
     }
@@ -151,7 +151,7 @@ data class StartFill(
                     index == null
                         && f.targetFiller is EntityFiller<*>
                         && types.contains(f.targetFiller.qualifiedTypeStr())
-                        && f.done()
+                        && f.done(emptyList())
                         && (value == "" || value == Json.encodeToString(f.targetFiller.target.get()!!))
                 }, additionalBaseCase = { f ->
                     // never enter entity mv slot filler
@@ -163,12 +163,12 @@ data class StartFill(
                     check(f.targetFiller is MultiValueFiller<*>)
                     val typeAgree = types.isEmpty() || types.contains(f.targetFiller.qualifiedTypeStrForSv())
                     if (!typeAgree) return@findFillers false
-                    val indexAgree = index == null || (f.targetFiller.fillers.size >= index && f.targetFiller.fillers[index-1].done())
+                    val indexAgree = index == null || (f.targetFiller.fillers.size >= index && f.targetFiller.fillers[index-1].done(emptyList()))
                     if (!indexAgree) return@findFillers false
                     if (value == "") {
-                        f.targetFiller.fillers.any { it.done() }
+                        f.targetFiller.fillers.any { it.done(emptyList()) }
                     } else {
-                        if (index == null) f.targetFiller.fillers.filter { it.done() }.map { Json.encodeToString((it.targetFiller as TypedFiller<*>).target.get()!!) }.contains(value)
+                        if (index == null) f.targetFiller.fillers.filter { it.done(emptyList()) }.map { Json.encodeToString((it.targetFiller as TypedFiller<*>).target.get()!!) }.contains(value)
                         else Json.encodeToString((f.targetFiller.fillers[index-1].targetFiller as TypedFiller<*>).target.get()!!) == value
                     }
                 })
@@ -481,25 +481,28 @@ class RespondAction : CompositeAction {
             val tmp = response.wrappedRun(session)
             tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
         } else {
-            println("RespondAction topFiller is $topFiller")
+            logger.debug("RespondAction topFiller is ${topFiller}")
             ActionResult(emptyLog())
         }
         wrapperFiller!!.responseDone = true
         session.schedule.state = Scheduler.State.RESCHEDULE
         return res
     }
+    companion object {
+        val logger = LoggerFactory.getLogger(RespondAction::class.java)
+    }
 }
 
 class RescheduleAction : StateAction {
     override fun run(session: UserSession): ActionResult {
         val schedule = session.schedule
-        println("Reschedule start...")
+        logger.debug("Reschedule start...")
         while (schedule.size > 0) {
             val top = schedule.peek()
             if (top !is AnnotatedWrapperFiller) {
-                println("   with ${top.path}")
+                logger.debug("   ${top::class.java} with ${top.path?.last()}")
             } else {
-                println("   with Annotated ${top.targetFiller.path}")
+                logger.debug("   ${top.targetFiller::class.java} with Annotated ${top.targetFiller.path?.last()}")
             }
             // if ancestor is marked done, consider the ICompositeFiller done
             val topDone = top.done(session.activeEvents)
@@ -515,7 +518,7 @@ class RescheduleAction : StateAction {
                 }
                 if (doneFiller is AnnotatedWrapperFiller && doneFiller.isSlot) {
                     val result = SlotDoneAction(doneFiller).wrappedRun(session)
-                    println("Get result: ${result}")
+                    logger.debug("Get result: ${result}")
                     return result
                 }
 
@@ -523,7 +526,7 @@ class RescheduleAction : StateAction {
                 break
             }
         }
-        println("Reschedule ends...")
+        Dispatcher.logger.debug("Reschedule ends...")
         if (schedule.isNotEmpty()) {
             val grown = schedule.grow()
             check(grown)
@@ -532,6 +535,9 @@ class RescheduleAction : StateAction {
         }
 
         return ActionResult(emptyLog())
+    }
+    companion object {
+        val logger = LoggerFactory.getLogger(RescheduleAction::class.java)
     }
 }
 
