@@ -707,7 +707,7 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
             prompts = {
-                SlotValueInform(
+                SlotInform(
                     this,
                     "this",
                     "io.opencui.test.BookFlight",
@@ -763,7 +763,7 @@ data class BookHotel(override var session: UserSession? = null
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
             {
-                SlotValueConfirm(
+                SlotConfirm(
                     this,
                     "this",
                     "io.opencui.test.BookHotel",
@@ -1003,7 +1003,7 @@ data class IntentNeedConfirm(override var session: UserSession? = null
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
             {
-                SlotValueConfirm(
+                SlotConfirm(
                     this,
                     "this",
                     "io.opencui.test.IntentNeedConfirm",
@@ -1012,7 +1012,7 @@ data class IntentNeedConfirm(override var session: UserSession? = null
     )
     @JsonIgnore
     var confirmboolVar: Confirmation = Confirmation(session, this, "boolVar",
-            { SlotValueConfirm(boolVar, "boolVar", "kotlin.Boolean", templateOf("""r u sure of bool value $boolVar""")) }
+            { SlotConfirm(boolVar, "boolVar", "kotlin.Boolean", templateOf("""r u sure of bool value $boolVar""")) }
     )
 
     override fun searchConfirmation(slot: String): IFrame? {

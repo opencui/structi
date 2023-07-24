@@ -45,16 +45,6 @@ data class SlotRequest(
                 templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
-data class SlotInform(
-    override val slotName: String,
-    override val slotType: String,
-    override val context: List<IFrame> = listOf(),
-    override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    // this kind of constructor is just for convenience of testcase
-    constructor(slotName: String, slotType: String,
-                templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
-}
-
 data class SlotRequestMore(
     override val slotName: String,
     override val slotType: String,
@@ -91,7 +81,7 @@ data class SlotNotifyFailure<T>(
                 context: List<IFrame> = listOf()): this(target, slotName, slotType, failType, context, templates)
 }
 
-data class SlotValueConfirm<T>(
+data class SlotConfirm<T>(
     val target: T?,
     override val slotName: String,
     override val slotType: String,
@@ -102,7 +92,7 @@ data class SlotValueConfirm<T>(
                 context: List<IFrame> = listOf()): this(target, slotName, slotType, context, templates)
 }
 
-data class SlotValueInform<T>(
+data class SlotInform<T>(
     val target: T?,
     override val slotName: String,
     override val slotType: String,
@@ -157,12 +147,12 @@ data class SlotOfferOutlier<T>(
 }
 
 // FRAME DialogAct
-data class FrameValueConfirm<T>(
+data class FrameConfirm<T>(
     val target: T?,
     override val frameType: String,
     override var templates: Templates = emptyTemplate()) : FrameDialogAct
 
-data class FrameValueInform<T>(
+data class FrameInform<T>(
     val target: T?,
     override val frameType: String,
     override var templates: Templates = emptyTemplate()) : FrameDialogAct
