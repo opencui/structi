@@ -548,9 +548,6 @@ interface ICompositeFiller : IFiller {
  * that is used as syntactical sugar.
  */
 interface MappedFiller {
-    // use outside and inside to make sure that we only inform once.
-    var inside: Boolean
-
     fun get(s: String): IFiller?
 
     fun frame(): IFrame
@@ -975,8 +972,6 @@ class FrameFiller<T: IFrame>(
     var fillers = LinkedHashMap<String, AnnotatedWrapperFiller>()
     var committed = false
 
-    // use outside and inside to make sure that we only inform once.
-    override var inside = false
 
     fun add(filler: IFiller) {
         val wrapper = AnnotatedWrapperFiller(filler)
@@ -1028,18 +1023,6 @@ class FrameFiller<T: IFrame>(
 
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         if (committed) return false
-        if (!inside) {
-            val currentFrame = frame()
-            // We need to make sure we jump out of grow.
-            if (currentFrame !is IIntent &&
-                currentFrame !is IBotMode) {
-                // concrete frame that is not iintent turn the current schedule to be OUTSIDE
-                // session.schedule.side = Scheduler.Side.OUTSIDE
-            } else {
-                inside = true
-            }
-        }
-
         if (askStrategy() is ExternalEventStrategy) {
             session.schedule.state = Scheduler.State.ASK
             return true
