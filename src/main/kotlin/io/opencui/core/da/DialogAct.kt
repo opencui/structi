@@ -45,6 +45,16 @@ data class SlotRequest(
                 templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
+data class SlotNotify(
+    override val slotName: String,
+    override val slotType: String,
+    override val context: List<IFrame> = listOf(),
+    override var templates: Templates = emptyTemplate()) : SlotDialogAct {
+    // this kind of constructor is just for convenience of testcase
+    constructor(slotName: String, slotType: String,
+                templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
+}
+
 data class SlotRequestMore(
     override val slotName: String,
     override val slotType: String,

@@ -481,7 +481,10 @@ class RealTypeFiller(
     override fun commit(frameEvent: FrameEvent): Boolean {
         frameEvent.typeUsed = true
 
-        val type = if (frameEvent.packageName.isNullOrEmpty()) frameEvent.type else "${frameEvent.packageName}.${frameEvent.type}"
+        val type = if (frameEvent.packageName.isNullOrEmpty()) {
+            frameEvent.type
+        } else {
+            "${frameEvent.packageName}.${frameEvent.type}" }
 
         if (valueGood != null && !valueGood!!.invoke(type, null)) return false
         target.set(type)
@@ -506,7 +509,11 @@ class RealTypeFiller(
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        val type = if (frameEvent.packageName.isNullOrEmpty()) frameEvent.type else "${frameEvent.packageName}.${frameEvent.type}"
+        val type = if (frameEvent.packageName.isNullOrEmpty()) {
+            frameEvent.type
+        } else {
+            "${frameEvent.packageName}.${frameEvent.type}"
+        }
         return !frameEvent.isUsed && checker(type)
     }
 }
@@ -541,9 +548,6 @@ interface ICompositeFiller : IFiller {
  * that is used as syntactical sugar.
  */
 interface MappedFiller {
-    // use outside and inside to make sure that we only inform once.
-    var inside: Boolean
-
     fun get(s: String): IFiller?
 
     fun frame(): IFrame
@@ -795,9 +799,11 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             }
             // HasMore has a VR that does not handle HasMore FrameEvent; it's special here
             if (!recommendationDone
-                && (frameEvent == null
-                        || (targetFiller !is AEntityFiller && frameEvent.source != EventSource.UNKNOWN && frameEvent.packageName != hasMorePackage)
-                        || (targetFiller is AEntityFiller && frameEvent.slots.firstOrNull { !it.isLeaf } != null))) {
+                && (frameEvent == null ||
+                        (targetFiller !is AEntityFiller &&
+                                frameEvent.source != EventSource.UNKNOWN &&
+                                frameEvent.packageName != hasMorePackage) ||
+                        (targetFiller is AEntityFiller && frameEvent.slots.firstOrNull { !it.isLeaf } != null))) {
                 if (recommendationFiller == null || frameEvent != null) {
                     recommendationFiller = initRecommendationFiller(session, frameEvent)
                 }
@@ -966,8 +972,6 @@ class FrameFiller<T: IFrame>(
     var fillers = LinkedHashMap<String, AnnotatedWrapperFiller>()
     var committed = false
 
-    // use outside and inside to make sure that we only inform once.
-    override var inside = false
 
     fun add(filler: IFiller) {
         val wrapper = AnnotatedWrapperFiller(filler)
@@ -1019,19 +1023,6 @@ class FrameFiller<T: IFrame>(
 
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         if (committed) return false
-        if (!inside) {
-            val currentFrame = frame()
-            // We need to make sure we jump out of grow.
-            if (currentFrame !is IIntent &&
-                currentFrame !is IBotMode) {
-                // concrete frame that is not iintent turn the current schedule to be OUTSIDE
-                session.schedule.side = Scheduler.Side.OUTSIDE
-            } else {
-                inside = true
-            }
-        }
-
-
         if (askStrategy() is ExternalEventStrategy) {
             session.schedule.state = Scheduler.State.ASK
             return true

@@ -39,12 +39,8 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
         RESPOND,
         RECOVER,
     }
-    enum class Side {
-        INSIDE,
-        OUTSIDE,
-    }
+
     var state: State = State.INIT
-    var side: Side = Side.INSIDE
 
     fun push(item: IFiller) {
         logger.debug("pushing ${item::class.java} with ${item.path?.last()}")
