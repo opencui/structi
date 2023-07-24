@@ -481,7 +481,10 @@ class RealTypeFiller(
     override fun commit(frameEvent: FrameEvent): Boolean {
         frameEvent.typeUsed = true
 
-        val type = if (frameEvent.packageName.isNullOrEmpty()) frameEvent.type else "${frameEvent.packageName}.${frameEvent.type}"
+        val type = if (frameEvent.packageName.isNullOrEmpty()) {
+            frameEvent.type
+        } else {
+            "${frameEvent.packageName}.${frameEvent.type}" }
 
         if (valueGood != null && !valueGood!!.invoke(type, null)) return false
         target.set(type)
@@ -506,7 +509,11 @@ class RealTypeFiller(
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        val type = if (frameEvent.packageName.isNullOrEmpty()) frameEvent.type else "${frameEvent.packageName}.${frameEvent.type}"
+        val type = if (frameEvent.packageName.isNullOrEmpty()) {
+            frameEvent.type
+        } else {
+            "${frameEvent.packageName}.${frameEvent.type}"
+        }
         return !frameEvent.isUsed && checker(type)
     }
 }
@@ -795,9 +802,11 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             }
             // HasMore has a VR that does not handle HasMore FrameEvent; it's special here
             if (!recommendationDone
-                && (frameEvent == null
-                        || (targetFiller !is AEntityFiller && frameEvent.source != EventSource.UNKNOWN && frameEvent.packageName != hasMorePackage)
-                        || (targetFiller is AEntityFiller && frameEvent.slots.firstOrNull { !it.isLeaf } != null))) {
+                && (frameEvent == null ||
+                        (targetFiller !is AEntityFiller &&
+                                frameEvent.source != EventSource.UNKNOWN &&
+                                frameEvent.packageName != hasMorePackage) ||
+                        (targetFiller is AEntityFiller && frameEvent.slots.firstOrNull { !it.isLeaf } != null))) {
                 if (recommendationFiller == null || frameEvent != null) {
                     recommendationFiller = initRecommendationFiller(session, frameEvent)
                 }
@@ -810,6 +819,10 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             }
             if (askStrategy() !is NeverAsk || frameEvent != null) {
                 targetFiller.parent = this
+                val slotPromptAnnotation = targetFiller.slotAskAnnotation()
+                if (slotPromptAnnotation != null) {
+                    targetFiller.decorativeAnnotations.add(slotPromptAnnotation)
+                }
                 schedule.push(targetFiller)
                 return true
             }
@@ -1030,7 +1043,6 @@ class FrameFiller<T: IFrame>(
                 inside = true
             }
         }
-
 
         if (askStrategy() is ExternalEventStrategy) {
             session.schedule.state = Scheduler.State.ASK
