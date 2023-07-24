@@ -94,9 +94,7 @@ data class SlotConditionalPromptAnnotation(override val actions: List<Action>) :
     constructor(picker: () -> Templates): this(listOf(LazyAction { SlotRequest("", "", picker()) } ))
 }
 
-data class SlotInformActionAnnotation(override val actions: List<Action>) : PromptAnnotation {
-    constructor(vararg acts: Action): this(acts.toList())
-}
+data class SlotInformActionAnnotation(override val actions: List<Action>) : PromptAnnotation
 
 interface AskStrategy: Annotation {
     fun canEnter(): Boolean
