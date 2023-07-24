@@ -11,7 +11,7 @@ import io.opencui.serialization.Json
 import io.opencui.serialization.deserializeIEntity
 import kotlin.reflect.KMutableProperty0
 
-data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val slot1: SlotConfirm<*>):
+data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val slot1: SlotValueConfirm<*>):
     DialogActRewriter {
     override var result: DialogAct = SlotOfferSepInformConfirm(slot1.target, slot1.slotName, slot1.slotType, slot1.context)
 }
@@ -58,7 +58,7 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
     @JsonIgnore
     var confirmThis: Confirmation = Confirmation(session, this, "",
         {
-            SlotConfirm(
+            SlotValueConfirm(
                 this,
                 "",
                 "io.opencui.test.SoftEarlyTerminationIntent",
