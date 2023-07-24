@@ -332,7 +332,7 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
 
     @JsonIgnore
     val confirmb = Confirmation(session, this, "b",
-            { SlotConfirm(this, "b", "kotlin.Int", templateOf("original confirmation b=${b}")) }
+            { SlotValueConfirm(this, "b", "kotlin.Int", templateOf("original confirmation b=${b}")) }
     )
     override fun annotations(path: String): List<Annotation> = when(path) {
         "a" -> listOf(SlotPromptAnnotation(templateOf("a ?")))
@@ -413,7 +413,7 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
 
     @JsonIgnore
     val confirmb = Confirmation(session, this, "b",
-            { SlotConfirm(this, "b", "kotlin.Int", templateOf("original confirmation b=${b}")) }
+            { SlotValueConfirm(this, "b", "kotlin.Int", templateOf("original confirmation b=${b}")) }
     )
     override fun annotations(path: String): List<Annotation> = when(path) {
         "a" -> listOf(SlotPromptAnnotation(templateOf("a ?")))
@@ -1097,7 +1097,7 @@ data class ZepTestIntent_0(
 
 data class SlotUpdate<T: Any>(override var session: UserSession? = null): AbstractSlotUpdate<T>(session) {
     override val informNewValuePrompt = {
-        SlotInform(newValue, "newValue", "T",
+        SlotValueInform(newValue, "newValue", "T",
             templateOf(with(session!!.rgLang) { """we have updated ${if (!isMV()) originalSlot!!.expression() else "the ${index!!.name()} ${originalSlot!!.expression()}"} form ${originalValue()!!.expression()} to ${newValue!!.expression()} for you""" })
         ) }
     override val askNewValuePrompt = {
@@ -1105,7 +1105,7 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
             templateOf(with(session!!.rgLang) { """What do you want for ${if (!isMV()) originalSlot!!.expression() else "${index!!.name()} ${originalSlot!!.expression()}"}?""" })
         ) }
     override val oldValueDisagreePrompt = {
-        SlotConfirm(oldValue, "oldValue", "T",
+        SlotValueConfirm(oldValue, "oldValue", "T",
             templateOf(with(session!!.rgLang) { "You just said ${oldValue!!.expression()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.expression()} from ${originalValue()!!.expression()}?" })
         ) }
     override val doNothingPrompt = {
@@ -1525,7 +1525,7 @@ data class MVEntryConfirmationTestIntent(override var session: UserSession? = nu
 
     val mvEntryConfirm = Confirmation(session, null, "",
             {
-                SlotInform<PayMethod>(
+                SlotValueInform<PayMethod>(
                     null,
                     "payMethodList._item",
                     "io.opencui.test.PayMethod",
@@ -1945,9 +1945,9 @@ data class FreeActionConfirmationTestIntent(
 
     @JsonIgnore
     var confirmS: FreeActionConfirmation = FreeActionConfirmation(session,
-            { SlotInform(s, "s", "kotlin.String", templateOf("""r u sure of string value $s""")) },
+            { SlotValueInform(s, "s", "kotlin.String", templateOf("""r u sure of string value $s""")) },
             {
-                SlotInform(
+                SlotValueInform(
                     s,
                     "s",
                     "kotlin.String",
@@ -2039,7 +2039,7 @@ data class ExternalEventContainerIntent(
         "intent" -> listOf(
             SlotInformActionAnnotation(
                 listOf(
-                    SlotInform(
+                    SlotValueInform(
                         intent,
                         "intent",
                         "io.opencui.test.ExternalEventIntent",
@@ -2052,7 +2052,7 @@ data class ExternalEventContainerIntent(
         "result" -> listOf(
             SlotInformActionAnnotation(
                 listOf(
-                    SlotInform(
+                    SlotValueInform(
                         result,
                         "result",
                         "io.opencui.test.ExternalEventIntent",
@@ -2069,14 +2069,14 @@ data class ExternalEventContainerIntent(
     @JsonIgnore
     var confirmThis: FreeActionConfirmation = FreeActionConfirmation(session,
             {
-                SlotInform(
+                SlotValueInform(
                     this,
                     "this",
                     "io.opencui.test.ExternalEventContainerIntent",
                     templateOf("""implicitly confirm this intent.s=${intent?.s}""")
                 ) },
             {
-                SlotInform(
+                SlotValueInform(
                     this,
                     "this",
                     "io.opencui.test.ExternalEventContainerIntent",
@@ -2312,7 +2312,7 @@ data class SlotDoubleConfirmTestIntent(
 
     @JsonIgnore
     var confirmSlot: Confirmation = Confirmation(session, this, "slot",
-        { SlotConfirm(slot, "slot", "kotlin.String", listOf(this), templateOf("""r u sure of slot value $slot""")) })
+        { SlotValueConfirm(slot, "slot", "kotlin.String", listOf(this), templateOf("""r u sure of slot value $slot""")) })
 
     override fun searchConfirmation(slot: String): IFrame? {
         return when (slot) {
