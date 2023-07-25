@@ -313,11 +313,38 @@ data class RecoverAction(val tag: String = "") : StateAction {
 
 data class SlotAskAction(val tag: String = "") : StateAction {
 
+    // This is mainly used to process the one level nested structure.
+    private fun frameInform(session:UserSession, filler: AEntityFiller, res: MutableList<List<Action>>) {
+        val parent0 = filler.parent
+        if (parent0 !is AnnotatedWrapperFiller) return
+        val parent1 = parent0.parent
+        if (parent1 !is MappedFiller) return
+        if (parent1.frame() is IBotMode) return
+        if (parent1.inside) return
+        val parent2 = parent1.parent as AnnotatedWrapperFiller
+        val inform = parent2.slotAskAnnotation()?.actions
+        // We add the frame level inform.
+        if (!inform.isNullOrEmpty()) res.add(inform)
+        parent1.inside = true
+        session.schedule.side = Scheduler.Side.INSIDE
+    }
+
+
+
     override fun run(session: UserSession): ActionResult {
         val filler = session.schedule.last()
 
         // decorative prompts from outer targets of VR, prompt only once
         val vrTargetPrompts = mutableListOf<List<Action>>()
+        // We need to first figure out whether we are in an entity filler, then whether parent is
+        // MapppedFiller and not Intent, and not IKernelMode
+        if (session.schedule.side == Scheduler.Side.OUTSIDE) {
+            // Here we try to
+            if (filler is AEntityFiller) {
+                frameInform(session, filler, vrTargetPrompts)
+            }
+        }
+
         for (f in session.schedule) {
             if (f == (f.parent as? AnnotatedWrapperFiller)?.recommendationFiller) {
                 val vrTargetPromptAnnotation = f.decorativeAnnotations.firstIsInstanceOrNull<PromptAnnotation>()
