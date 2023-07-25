@@ -149,6 +149,7 @@ interface IStateTracker : IExtension {
         const val FullBoolGate = "io.opencui.core.BoolGate"
         val FullBoolGateList = listOf("io.opencui.core.booleanGate.Yes", "io.opencui.core.booleanGate.No")
 
+        const val TriggerComponentSkill =  "io.opencui.core.TriggerComponentSkill"
         const val FullConfirmation = "io.opencui.core.Confirmation"
         val FullConfirmationList = listOf("io.opencui.core.confirmation.Yes", "io.opencui.core.confirmation.No")
         const val FullHasMore = "io.opencui.core.HasMore"
@@ -159,3 +160,5 @@ interface IStateTracker : IExtension {
         const val SlotUpdateGenericType = "<T>"
     }
 }
+
+
