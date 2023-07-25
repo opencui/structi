@@ -212,9 +212,11 @@ data class BertStateTracker(
      * 1. We assume that index can be shared by different agent.
      */
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
-        val res = convertImpl(session, putterance, expectations)
+        val res0 = convertImpl(session, putterance, expectations)
+        val res1 = res0.map { dontCareConvert(it) }
         val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
-        return res.map { dontCareConvert(it) }.map{ componentSkillConvert(it) }
+        val res2 = res1.map{ componentSkillConvert(it) }
+        return res2
     }
 
     private fun dontCareConvert(event: FrameEvent): FrameEvent {
