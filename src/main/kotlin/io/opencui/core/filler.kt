@@ -819,6 +819,10 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             }
             if (askStrategy() !is NeverAsk || frameEvent != null) {
                 targetFiller.parent = this
+                val slotPromptAnnotation = targetFiller.slotAskAnnotation()
+                if (slotPromptAnnotation != null) {
+                    targetFiller.decorativeAnnotations.add(slotPromptAnnotation)
+                }
                 schedule.push(targetFiller)
                 return true
             }
@@ -1034,7 +1038,7 @@ class FrameFiller<T: IFrame>(
             if (currentFrame !is IIntent &&
                 currentFrame !is IBotMode) {
                 // concrete frame that is not iintent turn the current schedule to be OUTSIDE
-                // session.schedule.side = Scheduler.Side.OUTSIDE
+                session.schedule.side = Scheduler.Side.OUTSIDE
             } else {
                 inside = true
             }
