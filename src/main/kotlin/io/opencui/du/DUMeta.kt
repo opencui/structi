@@ -122,7 +122,7 @@ interface DUMeta : ExtractiveMeta {
 
     fun isEntity(name: String) : Boolean  // given a name, return true if it's entity
 
-    // TODO(xiaobo): to support head on frame, just make this this function work with entity type.
+    // TODO(xiaobo): to support head on frame, just make  function work with entity type.
     fun getSubFrames(fullyQualifiedType: String): List<String> { return emptyList() }
 
     fun getRGLang(local: String = "") : RGBase {

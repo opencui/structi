@@ -212,8 +212,11 @@ data class BertStateTracker(
      * 1. We assume that index can be shared by different agent.
      */
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
-        val res = convertImpl(session, putterance, expectations)
-        return res.map { dontCareConvert(it) }
+        val res0 = convertImpl(session, putterance, expectations)
+        val res1 = res0.map { dontCareConvert(it) }
+        val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
+        val res2 = res1.map{ componentSkillConvert(it) }
+        return res2
     }
 
     private fun dontCareConvert(event: FrameEvent): FrameEvent {
@@ -564,12 +567,12 @@ data class BertStateTracker(
 
                     val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
                     if (targetEntitySlot != null) {
-                        return fillSlotUpdate(ducontext, targetEntitySlot!!)
+                        return fillSlotUpdate(ducontext, targetEntitySlot)
                     } else {
                         // This find the headed frame slot.
                         val targetFrameType = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
-                        val targetEntitySlot = agentMeta.getSlotMetas(targetFrameType).find {it.label == slotName}!!
-                        return fillSlotUpdate(ducontext, targetEntitySlot!!)
+                        val targetEntitySlot = agentMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
+                        return fillSlotUpdate(ducontext, targetEntitySlot)
                     }
                 }
             } else {
@@ -1050,17 +1053,6 @@ data class BertStateTracker(
         return events
     }
 
-    fun buildFrameEvent(
-        topLevelFrame: String,
-        slots: List<EntityEvent> = listOf(),
-        frames: List<FrameEvent> = listOf()
-    ): FrameEvent {
-        val parts = topLevelFrame.splitToSequence(".")
-        val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
-        val event = FrameEvent(parts.last(), slots, frames, packageName)
-        return event
-
-    }
 
     override fun recycle() {
         nluModel.shutdown()
@@ -1072,6 +1064,46 @@ data class BertStateTracker(
         const val DONTCARE = "DontCare"
         override fun invoke(p1: Configuration): IStateTracker {
             TODO("Not yet implemented")
+        }
+    }
+}
+
+
+fun buildFrameEvent(
+    topLevelFrame: String,
+    slots: List<EntityEvent> = listOf(),
+    frames: List<FrameEvent> = listOf()
+): FrameEvent {
+    val parts = topLevelFrame.splitToSequence(".")
+    val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
+    return FrameEvent(parts.last(), slots, frames, packageName)
+}
+
+
+fun buildEntityEvent(key: String, value: String): EntityEvent {
+    return EntityEvent(value=""""$value"""", attribute=key)
+}
+
+/**
+ * When the current active frames contains a skill for the new skill, we
+ */
+data class ComponentSkillConverter(val duMeta: DUMeta, val dialogExpectation: DialogExpectations) : (FrameEvent) -> FrameEvent {
+    private val expectedFrames = dialogExpectation.expectations.map { it.activeFrames }.flatten()
+
+    override fun invoke(p1: FrameEvent): FrameEvent {
+        val matched = expectedFrames.firstOrNull { expectedFrame ->
+            duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
+        }
+
+        return if (matched == null) {
+            return p1
+        } else {
+            val componentSlot = duMeta.getSlotMetas(matched.frame).firstOrNull { it.type == p1.fullType}!!
+            val entityEvents = listOf(
+                buildEntityEvent("compositeSkillName", matched.frame),
+                buildEntityEvent("componentSkillName", componentSlot.type!!)
+            )
+            return buildFrameEvent(IStateTracker.TriggerComponentSkill, entityEvents)
         }
     }
 }
