@@ -313,13 +313,13 @@ data class RecoverAction(val tag: String = "") : StateAction {
 
 data class SlotAskAction(val tag: String = "") : StateAction {
 
-    // This is mainly used to process the
+    // This is mainly used to process the one level nested structure.
     private fun frameInform(session:UserSession, filler: AEntityFiller, res: MutableList<List<Action>>) {
         val parent0 = filler.parent
         if (parent0 !is AnnotatedWrapperFiller) return
         val parent1 = parent0.parent
         if (parent1 !is MappedFiller) return
-        if (parent1.frame() is IIntent || parent1.frame() is IBotMode) return
+        if (parent1.frame() is IBotMode) return
         if (parent1.inside) return
         val parent2 = parent1.parent as AnnotatedWrapperFiller
         val inform = parent2.slotAskAnnotation()?.actions
