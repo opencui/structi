@@ -69,8 +69,8 @@ class DialogManager {
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
-        // If we do not understand.
-        if (frameEvents.isEmpty()) {
+        // If we do not understand, we fall back to system1
+        if (frameEvents.size == 1 && frameEvents[0].type == "IDonotGetIt") {
             if (system1 != null) {
                 val response = session.system1Response()!!
                 val dialogAct = ForwardDialogAct(response)
