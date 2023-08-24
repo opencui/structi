@@ -71,6 +71,7 @@ class DialogManager {
         val frameEvents = pinput.frames
         // If we do not understand, we fall back to system1
         if (frameEvents.size == 1 && frameEvents[0].type == "IDonotGetIt") {
+            logger.info("IDonotGetIt with system1 = ${system1 == null}")
             if (system1 != null) {
                 val response = session.system1Response()!!
                 val dialogAct = ForwardDialogAct(response)
