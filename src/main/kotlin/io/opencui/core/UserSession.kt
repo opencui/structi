@@ -816,7 +816,7 @@ data class UserSession(
         return when (dialogAct) {
             is SlotDialogAct -> """${if (dialogAct.context.isNotEmpty()) dialogAct.context.first()::class.qualifiedName else "null"}_${dialogAct.slotName}_${dialogAct.slotType}"""
             is FrameDialogAct -> dialogAct.frameType
-            else -> throw Exception("ComponentDialogAct not supported")
+            else -> dialogAct::class.qualifiedName!!
         }
     }
 

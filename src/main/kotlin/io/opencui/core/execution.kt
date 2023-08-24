@@ -69,8 +69,9 @@ class DialogManager {
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
+        val userFrameEvents = frameEvents.filter {it.source == EventSource.USER}
         // If we do not understand, we fall back to system1
-        if (frameEvents.size == 1 && frameEvents[0].type == "IDonotGetIt") {
+        if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("IDonotGetIt with system1 = ${system1 == null}")
             if (system1 != null) {
                 val response = session.system1Response()!!
