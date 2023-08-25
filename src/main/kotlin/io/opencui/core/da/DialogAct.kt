@@ -207,6 +207,6 @@ class DumbDialogAct : DialogAct {
 }
 
 // This might be useful to capture the system1 response.
-data class ForwardDialogAct(val msg: String): DialogAct {
+data class System1DialogAct(val msg: String): DialogAct {
      override var templates: Templates = templateOf(msg)
 }
