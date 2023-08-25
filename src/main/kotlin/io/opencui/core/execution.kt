@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.ForwardDialogAct
+import io.opencui.core.da.UserDefinedInform
 import io.opencui.du.*
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
@@ -21,6 +22,23 @@ inline fun<T> timing(msg: String, function: () -> T): T {
     println("$msg consumed ${endTime - startTime} millisecond.")
     return result
 }
+
+inline fun<T> List<T>.removeDuplicate(test: (T) -> Boolean): List<T> {
+    val res = mutableListOf<T>()
+    var occurence = 0
+    for (item in this) {
+        if (test(item)) {
+            occurence += 1
+            if (occurence == 1) {
+                res.add(item)
+            }
+        } else {
+            res.add(item)
+        }
+    }
+    return res
+}
+
 
 /**
  * DialogManager is used to drive a statechart configured by builder using input event created by end user.
@@ -69,17 +87,6 @@ class DialogManager {
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
-        val userFrameEvents = frameEvents.filter {it.source == EventSource.USER}
-        // If we do not understand, we fall back to system1
-        if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
-            logger.info("IDonotGetIt with system1 = ${system1 == null}")
-            if (system1 != null) {
-                val response = session.system1Response()!!
-                val dialogAct = ForwardDialogAct(response)
-                val result = dialogAct.wrappedRun(session)
-                return listOf(result)
-            }
-        }
         // Sometime, there are empty events.
         if (frameEvents.isEmpty()) {
             // if we do not have system1 for backup.
@@ -146,17 +153,25 @@ class DialogManager {
 
         if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
             if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes
-            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
-            if (delegateActionResult != null) {
-                if (delegateActionResult.actionLog != null) {
-                    actionResults += delegateActionResult
-                }
+        }
+
+        // If system1 is not null, we try to replace I do not get it with system 1 response.
+        if (system1 != null) {
+            val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
+            // If we do not understand, we fall back to system1
+            if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
+                logger.info("IDonotGetIt with system1 = ${system1 == null}")
+                val response = session.system1Response()!!
+                val dialogAct = ForwardDialogAct(response)
+                // We add system1 response to the last one.
+                actionResults += ActionResult(listOf(dialogAct), null)
             }
         }
 
         session.lastTurnRes = actionResults
         return actionResults
     }
+
 
     fun findDialogExpectation(session: UserSession): DialogExpectation? {
         val entity = session.schedule.lastOrNull()

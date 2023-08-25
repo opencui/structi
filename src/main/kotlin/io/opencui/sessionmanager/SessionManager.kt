@@ -2,6 +2,8 @@ package io.opencui.sessionmanager
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.ForwardDialogAct
+import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.serialization.Json
 import org.slf4j.Logger
@@ -142,7 +144,32 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     private fun convertBotUtteranceToText(session: UserSession, results: List<ActionResult>, targetChannels: List<String>): Map<String, List<String>> {
         val responses : List<DialogAct> = deDup(results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten())
         val rewrittenResponses = session.rewriteDialogAct(responses)
-        return targetChannels.associateWith { k -> rewrittenResponses.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
+        val dialogActPairs = rewrittenResponses.partition { it is ForwardDialogAct }
+
+        val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
+
+        return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
+    }
+
+    private fun isDonotUnderstand(it: DialogAct): Boolean {
+        return it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt"
+    }
+
+    private fun replaceWithSystem1(orig: List<DialogAct>, system1: List<DialogAct>) : List<DialogAct> {
+        if (system1.isEmpty()) return orig
+        check(system1.size == 1)
+        val deduped = orig.removeDuplicate { isDonotUnderstand(it) }
+
+        val res = mutableListOf<DialogAct>()
+        for (it in deduped) {
+            if (isDonotUnderstand(it)) {
+                res.add(system1[0])
+            } else {
+                res.add(it)
+            }
+        }
+        return res
+
     }
 
     /**
