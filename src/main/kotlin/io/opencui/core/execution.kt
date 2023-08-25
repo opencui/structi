@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
-import io.opencui.core.da.ForwardDialogAct
+import io.opencui.core.da.System1DialogAct
 import io.opencui.du.*
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
@@ -69,17 +69,6 @@ class DialogManager {
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
-        val userFrameEvents = frameEvents.filter {it.source == EventSource.USER}
-        // If we do not understand, we fall back to system1
-        if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
-            logger.info("IDonotGetIt with system1 = ${system1 == null}")
-            if (system1 != null) {
-                val response = session.system1Response()!!
-                val dialogAct = ForwardDialogAct(response)
-                val result = dialogAct.wrappedRun(session)
-                return listOf(result)
-            }
-        }
         // Sometime, there are empty events.
         if (frameEvents.isEmpty()) {
             // if we do not have system1 for backup.
@@ -94,6 +83,19 @@ class DialogManager {
         session.addEvents(frameEvents)
 
         val actionResults = mutableListOf<ActionResult>()
+
+
+        // If we do not understand, we fall back to system1
+        val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
+        if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
+            logger.info("IDonotGetIt with system1 = ${system1 == null}")
+            if (system1 != null) {
+                val response = session.system1Response()!!
+                val dialogAct = System1DialogAct(response)
+                actionResults.add(ActionResult(listOf(dialogAct), null))
+            }
+        }
+
         var currentTurnWorks: List<Action>
 
         logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")

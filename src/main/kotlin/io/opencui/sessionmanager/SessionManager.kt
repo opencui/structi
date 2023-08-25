@@ -2,6 +2,8 @@ package io.opencui.sessionmanager
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.System1DialogAct
+import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.serialization.Json
 import org.slf4j.Logger
@@ -142,7 +144,17 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     private fun convertBotUtteranceToText(session: UserSession, results: List<ActionResult>, targetChannels: List<String>): Map<String, List<String>> {
         val responses : List<DialogAct> = deDup(results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten())
         val rewrittenResponses = session.rewriteDialogAct(responses)
-        return targetChannels.associateWith { k -> rewrittenResponses.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
+        val hasSystem1DialogAct = rewrittenResponses.find { it is System1DialogAct } != null
+
+        val filteredDialogActs = rewrittenResponses.filter {
+            hasSystem1DialogAct && !(it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt")
+        }
+
+        if (rewrittenResponses.size != filteredDialogActs.size) {
+            logger.info("Filtered some IDonotGetIt out.")
+        }
+
+        return targetChannels.associateWith { k -> filteredDialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
 
     /**
