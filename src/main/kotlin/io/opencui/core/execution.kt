@@ -156,7 +156,9 @@ class DialogManager {
         val system1 = session.chatbot?.getExtension<ISystem1>()
         // If system1 is not null, we try to replace I do not get it with system 1 response.
         if (system1 != null) {
+            logger.info("${frameEvents.map{it.source}}")
             val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
+            logger.info("${userFrameEvents.map{it.source}}")
             logger.info("inside system1 with ${userFrameEvents}")
             // If we do not understand, we fall back to system1
             if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
