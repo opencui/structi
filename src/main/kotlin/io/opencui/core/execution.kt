@@ -82,8 +82,6 @@ class DialogManager {
         session.turnId += 1
 
         session.addUserMessage(pinput.query)
-        val system1 = session.chatbot?.getExtension<ISystem1>()
-
         // When we did not understand what user said.
         // TODO: figure out different ways that we do not get it, so that we reply smarter.
         val frameEvents = pinput.frames
@@ -155,9 +153,13 @@ class DialogManager {
             if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes
         }
 
+        val system1 = session.chatbot?.getExtension<ISystem1>()
         // If system1 is not null, we try to replace I do not get it with system 1 response.
         if (system1 != null) {
+            logger.info("${frameEvents.map{it.source}}")
             val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
+            logger.info("${userFrameEvents.map{it.source}}")
+            logger.info("inside system1 with ${userFrameEvents}")
             // If we do not understand, we fall back to system1
             if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
                 logger.info("IDonotGetIt with system1 = ${system1 == null}")
