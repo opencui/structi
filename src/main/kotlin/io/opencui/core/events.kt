@@ -59,7 +59,8 @@ data class FrameEvent(
         var type: String,
         val slots: List<EntityEvent> = emptyList(),
         val frames: List<FrameEvent> = emptyList(),
-        var packageName: String? = null): Serializable {
+        var packageName: String? = null,
+        var source: EventSource = EventSource.UNKNOWN): Serializable {
     var attribute: String? = null
     var query: String? = null
 
@@ -113,8 +114,6 @@ data class FrameEvent(
     fun updateTurnId(pturnId: Int) {
         turnId = pturnId
     }
-
-    var source: EventSource = EventSource.UNKNOWN
 
     companion object {
         // TODO(xiaobo): is this frameName simple or qualified?
