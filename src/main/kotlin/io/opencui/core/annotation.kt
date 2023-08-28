@@ -170,5 +170,6 @@ enum class SystemAnnotationType(val typeName: String) {
     IntentSuggestion("io.opencui.core.IntentSuggestion"),
     ValueClarification("io.opencui.core.ValueClarification"),
     ResumeIntent("io.opencui.core.ResumeIntent"),
+    System1Response("io.opencui.core.System1Response")
 }
 

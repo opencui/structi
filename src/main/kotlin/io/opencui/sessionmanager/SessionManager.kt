@@ -123,33 +123,19 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         session.targetChannel = targetChannels
         val responses = dm.response(query, events, session)
         updateUserSession(session.userIdentifier, session.botInfo, session)
-        return convertBotUtteranceToText(session, responses, session.targetChannel)
-    }
-
-    private fun deDup(input: List<DialogAct>) : List<DialogAct> {
-        val result = mutableListOf<DialogAct>()
-        var current : DialogAct? = null
-        for (t in input) {
-            if (t != current) {
-                result.add(t)
-                current = t
-            }
-        }
-        return result
+        return convertDialogActsToText(session, responses, session.targetChannel)
     }
 
     /**
      * This the place where we can remove extra prompt if we need to.
      */
-    private fun convertBotUtteranceToText(session: UserSession, results: List<ActionResult>, targetChannels: List<String>): Map<String, List<String>> {
-        val responses : List<DialogAct> = deDup(results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten())
+    private fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
         val rewrittenResponses = session.rewriteDialogAct(responses)
         val dialogActPairs = rewrittenResponses.partition { it is ForwardDialogAct }
-
         val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
-
         return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
+
 
     private fun isDonotUnderstand(it: DialogAct): Boolean {
         return it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt"
