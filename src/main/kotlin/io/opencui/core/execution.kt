@@ -154,6 +154,7 @@ class DialogManager {
         }
 
         val system1 = session.chatbot?.getExtension<ISystem1>()
+        logger.info("found system1: ${system1 != null}")
         // If system1 is not null, we try to replace I do not get it with system 1 response.
         if (system1 != null) {
             logger.info("${frameEvents.map{it.source}}")
@@ -162,7 +163,7 @@ class DialogManager {
             logger.info("inside system1 with ${userFrameEvents}")
             // If we do not understand, we fall back to system1
             if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
-                logger.info("IDonotGetIt with system1 = ${system1 == null}")
+                logger.info("IDonotGetIt present.")
                 val response = session.system1Response()!!
                 val dialogAct = ForwardDialogAct(response)
                 // We add system1 response to the last one.
