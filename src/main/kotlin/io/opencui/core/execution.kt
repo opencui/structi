@@ -149,10 +149,6 @@ class DialogManager {
 
         logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
 
-        if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
-            if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes
-        }
-
         val system1 = session.chatbot?.getExtension<ISystem1>()
         logger.info("found system1: ${system1 != null}")
         // If system1 is not null, we try to replace I do not get it with system 1 response.
@@ -169,6 +165,10 @@ class DialogManager {
                 // We add system1 response to the last one.
                 actionResults += ActionResult(listOf(dialogAct), null)
             }
+        }
+
+        if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
+            if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes
         }
 
         session.lastTurnRes = actionResults
