@@ -256,22 +256,6 @@ data class UserSession(
         history.add(CoreMessage(false, msg))
     }
 
-    /**
-     * We should always set this in the Dispatcher when create user session.
-     */
-    fun setUserIdentifier(pprofile: IUserIdentifier) {
-        makeSingleton(IUSERIDENTIFIER)
-        val userIdentifier = getGlobal<UserIdentifier>()
-        userIdentifier!!.apply {
-            channelType = pprofile.channelType;
-            userId = pprofile.userId;
-            channelLabel = pprofile.channelLabel
-            //  These two are not always used.
-            sessionId = pprofile.sessionId
-            messageId = pprofile.messageId
-        }
-    }
-
     var targetChannel: List<String> = listOf(SideEffect.RESTFUL)
 
     @JsonIgnore
