@@ -237,7 +237,7 @@ abstract class IChatbot : Component {
     }
 
     fun createUserSession(channelType: String, user: String, channelLabel: String?): UserSession{
-        return UserSession(UserInfo(channelType, user, channelLabel), chatbot = this)
+        return UserSession(user, channelType, channelLabel, chatbot = this)
     }
 
     inline fun <reified T:IExtension> buildManager(init: ExtensionManager<T>.() -> Unit) : ExtensionManager<T> {

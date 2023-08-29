@@ -131,7 +131,6 @@ object Dispatcher {
         // 2. multichannel but with no omnichannel requirements.
         // 3. multichannel with omnichannel requirement.
         // For #1 and #2, the follow the good enough.
-        session.setUserIdentifier(session.userIdentifier)
         return session
     }
 

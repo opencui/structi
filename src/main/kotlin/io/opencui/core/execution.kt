@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.DialogAct
-import io.opencui.core.da.ForwardDialogAct
 import io.opencui.du.*
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
@@ -174,7 +173,7 @@ class DialogManager {
         // If we do not understand, we fall back to system1
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("IDonotGetIt present.")
-            val response = session.system1Response()!!
+            val response = system1?.response(session.history)!!
             // For now, we just use the reflection to system1 reply.
             val system1Skill = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
             val reply = system1Skill::class.memberProperties.find { it.name == "reply" }

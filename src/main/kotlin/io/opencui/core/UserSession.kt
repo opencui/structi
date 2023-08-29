@@ -16,7 +16,6 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
-import io.opencui.system1.ISystem1
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -180,13 +179,22 @@ interface StateChart {
  * for continue the session.
  */
 data class UserSession(
-    val userIdentifier: IUserIdentifier,
-    @Transient @JsonIgnore var chatbot: IChatbot? = null): LinkedHashMap<String, Any>(), Serializable, StateChart {
+    override var userId: String?,
+    override var channelType: String? = null,
+    override var channelLabel: String? = null,
+    @Transient @JsonIgnore var chatbot: IChatbot? = null
+): LinkedHashMap<String, Any>(), Serializable, StateChart, IUserIdentifier{
+
+    constructor(u: IUserIdentifier, c: IChatbot?): this(u.userId, u.channelType, u.channelLabel, c)
 
     // Default botInfo, need to be changed.
     val botInfo : BotInfo by lazy { botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch) }
 
     override val events = mutableListOf<FrameEvent>()
+
+    val userIdentifier: IUserIdentifier
+        get() = this
+
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
@@ -205,6 +213,10 @@ data class UserSession(
     @Transient
     var turnRecognizer: ListRecognizer? = null
     var sessionRecognizer: ListRecognizer? = null
+
+    @Transient
+    override var messageId: String? = null
+    override var sessionId: String? = null
 
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
@@ -242,20 +254,6 @@ data class UserSession(
 
     fun addBotMessage(msg: String) {
         history.add(CoreMessage(false, msg))
-    }
-
-    fun system1Response(): String? {
-        val system1 = chatbot?.getExtension<ISystem1>()
-        return system1?.response(history)
-    }
-
-    /**
-     * We should always set this in the Dispatcher when create user session.
-     */
-    fun setUserIdentifier(pprofile: IUserIdentifier) {
-        makeSingleton(USERIDENTIFIER)
-        val userIdentifier = getGlobal<UserIdentifier>()
-        userIdentifier!!.apply{channelType = pprofile.channelType; userId = pprofile.userId; channelLabel = pprofile.channelLabel }
     }
 
     var targetChannel: List<String> = listOf(SideEffect.RESTFUL)
@@ -898,15 +896,6 @@ data class UserSession(
         }
     }
 
-    /**
-     * If there is a system frame event for singleton, we should simply clear what we had
-     * so that it can be filled again.
-     */
-    fun clearSingleton(qname: String) {
-        if (globals.containsKey(qname)) {
-            rawMakeSingleton(qname)
-        }        
-    }
 
     fun getOpenPayloadIntent(): String? {
         for (s in schedulers.reversed()) {
@@ -920,9 +909,13 @@ data class UserSession(
         return schedule.firstOrNull { it is AnnotatedWrapperFiller && it.targetFiller is FrameFiller<*> && it.targetFiller.frame()::class.qualifiedName == event.fullType } != null
     }
 
-    inline fun <reified T : ISingleton> getGlobal(): T? {
+    inline fun <reified T> getGlobal(): T? {
         val qname = T::class.qualifiedName!!
-        makeSingleton(qname)
+        if (qname == IUSERIDENTIFIER) {
+            globals[qname] = UserIdentifier(this)
+        } else {
+            makeSingleton(qname)
+        }
         return globals[qname] as T?
     }
 
@@ -958,8 +951,8 @@ data class UserSession(
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
-        val USERIDENTIFIER = UserIdentifier::class.qualifiedName!!
+        val IUSERIDENTIFIER = IUserIdentifier::class.qualifiedName!!
         private val serialVersionUID: Long = 123
-        val PACKAGE = USERIDENTIFIER.split(".").subList(0, 2).joinToString(".")
+        val PACKAGE = IUSERIDENTIFIER.split(".").subList(0, 2).joinToString(".")
     }
 }

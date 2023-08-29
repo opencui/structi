@@ -2,13 +2,15 @@ package io.opencui.core.user
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
-import io.opencui.core.Annotation
 import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
     var userId: String?
     var channelType: String?
     var channelLabel: String?
+
+    var sessionId: String?
+    var messageId: String?
 
     fun channelId() : String {
         return if (channelLabel == null) channelType!! else "$channelType+$channelLabel"
@@ -34,6 +36,8 @@ data class UserInfo(
     override var userId: String?,
     override var channelLabel: String?
 ) : IUserProfile, HashMap<String, Any>() {
+    override var sessionId: String? = null
+    override var messageId: String? = null
     override var name: String? = null
     override var phone: PhoneNumber? = null
     override var email: String? = null
@@ -46,15 +50,13 @@ data class UserInfo(
     }
 }
 
+
 /**
  */
-data class UserIdentifier (
-@JsonIgnore
-override var session: UserSession?
-): IFrame, IUserIdentifier, ISingleton {
-    override var channelType: String? = null
-    override var userId: String? = null
-    override var channelLabel: String? = null
+class UserIdentifier (
+    override var session: UserSession?
+): IUserIdentifier by session!!, ISingleton {
+
     @JsonIgnore
     override lateinit var filler: FrameFiller<*>
 
