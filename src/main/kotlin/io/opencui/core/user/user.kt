@@ -9,6 +9,9 @@ interface IUserIdentifier {
     var channelType: String?
     var channelLabel: String?
 
+    var sessionId: String?
+    var messageId: String?
+
     fun channelId() : String {
         return if (channelLabel == null) channelType!! else "$channelType+$channelLabel"
     }
@@ -33,6 +36,8 @@ data class UserInfo(
     override var userId: String?,
     override var channelLabel: String?
 ) : IUserProfile, HashMap<String, Any>() {
+    override var sessionId: String? = null
+    override var messageId: String? = null
     override var name: String? = null
     override var phone: PhoneNumber? = null
     override var email: String? = null
@@ -46,38 +51,13 @@ data class UserInfo(
 }
 
 
-data class SimpleUserIdentifier(
-    override var userId: String?,
-    override var channelType: String? = null,
-    override var channelLabel: String? = null
-): IUserIdentifier
-
-
 /**
  */
 data class UserIdentifier (
-@JsonIgnore
-override var session: UserSession?
-): IFrame, IUserIdentifier, ISingleton {
-    override var channelType: String? = null
-    override var userId: String? = null
+    override var userId: String?,
+    override var channelType: String? = null,
     override var channelLabel: String? = null
-    @JsonIgnore
-    override lateinit var filler: FrameFiller<*>
-
-    @JsonIgnore
-    @Transient
-    var sessionId: String? = null
-    @JsonIgnore
-    @Transient
-    var messageId: String? = null
-
-
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
-        var frame: UserIdentifier? = this@UserIdentifier
-        override fun invoke(path: ParamPath): FrameFiller<*> {
-            val filler = FrameFiller({ ::frame }, path)
-            return filler
-        }
-    }
+): IUserIdentifier{
+    override var sessionId: String? = null
+    override var messageId: String? = null
 }

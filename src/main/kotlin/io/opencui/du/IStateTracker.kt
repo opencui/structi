@@ -5,7 +5,6 @@ import io.opencui.core.FrameEvent
 import io.opencui.core.IExtension
 import io.opencui.core.UserSession
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.core.user.SimpleUserIdentifier
 
 
 /**
@@ -113,7 +112,7 @@ interface IStateTracker : IExtension {
      */
     fun convert(user: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
         // We keep this so that all the exist test can run.
-        val userSession = UserSession(SimpleUserIdentifier(user))
+        val userSession = UserSession(user)
         return convert(userSession, putterance, expectations)
     }
 

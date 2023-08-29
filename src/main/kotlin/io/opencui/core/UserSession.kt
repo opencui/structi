@@ -179,14 +179,22 @@ interface StateChart {
  * for continue the session.
  */
 data class UserSession(
-    val userIdentifier: IUserIdentifier,
+    override var userId: String?,
+    override var channelType: String? = null,
+    override var channelLabel: String? = null,
     @Transient @JsonIgnore var chatbot: IChatbot? = null
-): LinkedHashMap<String, Any>(), Serializable, StateChart {
+): LinkedHashMap<String, Any>(), Serializable, StateChart, IUserIdentifier{
+
+    constructor(u: IUserIdentifier, c: IChatbot?): this(u.userId, u.channelType, u.channelLabel, c)
 
     // Default botInfo, need to be changed.
     val botInfo : BotInfo by lazy { botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch) }
 
     override val events = mutableListOf<FrameEvent>()
+
+    val userIdentifier: IUserIdentifier
+        get() = this
+
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
@@ -207,8 +215,8 @@ data class UserSession(
     var sessionRecognizer: ListRecognizer? = null
 
     @Transient
-    var messageId: String? = null
-    var sessionId: String? = null
+    override var messageId: String? = null
+    override var sessionId: String? = null
 
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
@@ -254,7 +262,14 @@ data class UserSession(
     fun setUserIdentifier(pprofile: IUserIdentifier) {
         makeSingleton(USERIDENTIFIER)
         val userIdentifier = getGlobal<UserIdentifier>()
-        userIdentifier!!.apply{channelType = pprofile.channelType; userId = pprofile.userId; channelLabel = pprofile.channelLabel }
+        userIdentifier!!.apply {
+            channelType = pprofile.channelType;
+            userId = pprofile.userId;
+            channelLabel = pprofile.channelLabel
+            //  These two are not always used.
+            sessionId = pprofile.sessionId
+            messageId = pprofile.messageId
+        }
     }
 
     var targetChannel: List<String> = listOf(SideEffect.RESTFUL)
@@ -897,15 +912,6 @@ data class UserSession(
         }
     }
 
-    /**
-     * If there is a system frame event for singleton, we should simply clear what we had
-     * so that it can be filled again.
-     */
-    fun clearSingleton(qname: String) {
-        if (globals.containsKey(qname)) {
-            rawMakeSingleton(qname)
-        }        
-    }
 
     fun getOpenPayloadIntent(): String? {
         for (s in schedulers.reversed()) {
@@ -919,7 +925,7 @@ data class UserSession(
         return schedule.firstOrNull { it is AnnotatedWrapperFiller && it.targetFiller is FrameFiller<*> && it.targetFiller.frame()::class.qualifiedName == event.fullType } != null
     }
 
-    inline fun <reified T : ISingleton> getGlobal(): T? {
+    inline fun <reified T> getGlobal(): T? {
         val qname = T::class.qualifiedName!!
         makeSingleton(qname)
         return globals[qname] as T?
