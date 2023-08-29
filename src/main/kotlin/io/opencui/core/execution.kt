@@ -6,13 +6,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.ForwardDialogAct
-import io.opencui.core.da.UserDefinedInform
 import io.opencui.du.*
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.memberProperties
 
 
@@ -175,10 +175,18 @@ class DialogManager {
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("IDonotGetIt present.")
             val response = session.system1Response()!!
+            // For now, we just use the reflection to system1 reply.
+            val system1Skill = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
+            val reply = system1Skill::class.memberProperties.find { it.name == "reply" }
 
-            val dialogAct = ForwardDialogAct(response)
+            check(reply is KMutableProperty<*>)
+            reply.setter.call(system1Skill, response)
+
+            val system1ActionResults = system1Skill?.searchResponse()?.wrappedRun(session)
             // We add system1 response to the last one.
-            actionResults += ActionResult(listOf(dialogAct), null)
+            if (system1ActionResults != null) {
+                actionResults += system1ActionResults
+            }
         }
         return actionResults
     }
