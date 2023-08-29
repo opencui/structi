@@ -153,8 +153,8 @@ class DialogManager {
         logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
 
         val system1 = session.chatbot?.getExtension<ISystem1>()
-        logger.info("found system1: ${system1 != null}")
         val system1Response = getSystem1Response(session, system1, frameEvents)
+        logger.info("found system1 response size: ${system1Response.size}")
 
         if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
             if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes + system1Response
