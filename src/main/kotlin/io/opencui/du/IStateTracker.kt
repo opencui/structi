@@ -5,6 +5,7 @@ import io.opencui.core.FrameEvent
 import io.opencui.core.IExtension
 import io.opencui.core.UserSession
 import io.opencui.core.user.IUserIdentifier
+import io.opencui.core.user.SimpleUserIdentifier
 
 
 /**
@@ -103,22 +104,16 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
  */
 interface IStateTracker : IExtension {
     /**
-     * Converts the user utterance into structured semantic representations.
+     * Converts the user utterance into structured semantic representations,
      *
-     * @param session dialog session, used for logging purposes.
+     * @param user dialog session, used for logging purposes.
      * @param putterance what user said in the current turn.
      * @param expectations describes the current state of dialog from chatbot side,
      * @return list of FrameEvents, structural semantic representation of what user said.
      */
-    fun convert(session: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
+    fun convert(user: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
         // We keep this so that all the exist test can run.
-        data class SimpleUserIdentifier(
-            override var userId: String?,
-            override var channelType: String? = null,
-            override var channelLabel: String? = null): IUserIdentifier {
-                override fun toString() = userId!!
-            }
-        val userSession = UserSession(SimpleUserIdentifier(session))
+        val userSession = UserSession(SimpleUserIdentifier(user))
         return convert(userSession, putterance, expectations)
     }
 

@@ -18,7 +18,9 @@ import java.io.Serializable
  */
 data class CoreMessage(val user: Boolean, val message: String): Serializable
 
+
 interface ISystem1 : IExtension {
-    fun response(msgs: List<CoreMessage>): String
+    //  msgs and feedback are mutually exclusive.
+    fun response(msgs: List<CoreMessage>, feedback: Map<String, Any>? = null): String
 }
 

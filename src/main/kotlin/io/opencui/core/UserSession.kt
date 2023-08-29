@@ -16,7 +16,6 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
-import io.opencui.system1.ISystem1
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -181,7 +180,8 @@ interface StateChart {
  */
 data class UserSession(
     val userIdentifier: IUserIdentifier,
-    @Transient @JsonIgnore var chatbot: IChatbot? = null): LinkedHashMap<String, Any>(), Serializable, StateChart {
+    @Transient @JsonIgnore var chatbot: IChatbot? = null
+): LinkedHashMap<String, Any>(), Serializable, StateChart {
 
     // Default botInfo, need to be changed.
     val botInfo : BotInfo by lazy { botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch) }
@@ -205,6 +205,10 @@ data class UserSession(
     @Transient
     var turnRecognizer: ListRecognizer? = null
     var sessionRecognizer: ListRecognizer? = null
+
+    @Transient
+    var messageId: String? = null
+    var sessionId: String? = null
 
     // This function try to check whether the message is the first
     // The idea is we only process the first message in the sequence of
@@ -242,11 +246,6 @@ data class UserSession(
 
     fun addBotMessage(msg: String) {
         history.add(CoreMessage(false, msg))
-    }
-
-    fun system1Response(): String? {
-        val system1 = chatbot?.getExtension<ISystem1>()
-        return system1?.response(history)
     }
 
     /**
@@ -958,7 +957,7 @@ data class UserSession(
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
-        val USERIDENTIFIER = UserIdentifier::class.qualifiedName!!
+        val USERIDENTIFIER = IUserIdentifier::class.qualifiedName!!
         private val serialVersionUID: Long = 123
         val PACKAGE = USERIDENTIFIER.split(".").subList(0, 2).joinToString(".")
     }

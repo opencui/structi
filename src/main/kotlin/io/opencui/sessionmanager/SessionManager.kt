@@ -143,7 +143,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
 
     private fun replaceWithSystem1(orig: List<DialogAct>, system1: List<DialogAct>) : List<DialogAct> {
         if (system1.isEmpty()) return orig
-        check(system1.size == 1)
         val deduped = orig.removeDuplicate { isDonotUnderstand(it) }
 
         val res = mutableListOf<DialogAct>()

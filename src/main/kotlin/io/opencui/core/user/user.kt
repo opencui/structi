@@ -2,7 +2,6 @@ package io.opencui.core.user
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
-import io.opencui.core.Annotation
 import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
@@ -46,6 +45,14 @@ data class UserInfo(
     }
 }
 
+
+data class SimpleUserIdentifier(
+    override var userId: String?,
+    override var channelType: String? = null,
+    override var channelLabel: String? = null
+): IUserIdentifier
+
+
 /**
  */
 data class UserIdentifier (
@@ -57,6 +64,14 @@ override var session: UserSession?
     override var channelLabel: String? = null
     @JsonIgnore
     override lateinit var filler: FrameFiller<*>
+
+    @JsonIgnore
+    @Transient
+    var sessionId: String? = null
+    @JsonIgnore
+    @Transient
+    var messageId: String? = null
+
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: UserIdentifier? = this@UserIdentifier
