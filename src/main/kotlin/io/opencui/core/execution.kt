@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
+import io.opencui.core.da.DialogAct
 import io.opencui.core.da.ForwardDialogAct
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.du.*
@@ -63,7 +64,7 @@ class DialogManager {
      * high level response, called before dialog understanding (DU, DU is handled by this method first, before it
      * calls the low level response method).
      */
-    fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): List<ActionResult> {
+    fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): List<DialogAct> {
         val expectations = findDialogExpectation(session)
         val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
         duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
@@ -72,8 +73,10 @@ class DialogManager {
         frameEvents.forEach { it.source = EventSource.API }
         val convertedFrameEventList = convertSpecialFrameEvent(session, frameEvents + duReturnedFrameEvent)
         logger.debug("Converted frame events : $convertedFrameEventList")
-        return response(ParsedQuery(query, convertedFrameEventList), session)
+        val results = response(ParsedQuery(query, convertedFrameEventList), session)
+        return results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten().distinct()
     }
+
 
     /**
      * Low level response, after DU is done.
@@ -151,27 +154,32 @@ class DialogManager {
 
         val system1 = session.chatbot?.getExtension<ISystem1>()
         logger.info("found system1: ${system1 != null}")
-        // If system1 is not null, we try to replace I do not get it with system 1 response.
-        if (system1 != null) {
-            logger.info("${frameEvents.map{it.source}}")
-            val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
-            logger.info("${userFrameEvents.map{it.source}}")
-            logger.info("inside system1 with ${userFrameEvents}")
-            // If we do not understand, we fall back to system1
-            if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
-                logger.info("IDonotGetIt present.")
-                val response = session.system1Response()!!
-                val dialogAct = ForwardDialogAct(response)
-                // We add system1 response to the last one.
-                actionResults += ActionResult(listOf(dialogAct), null)
-            }
-        }
+        val system1Response = getSystem1Response(session, system1, frameEvents)
 
         if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
-            if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes
+            if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes + system1Response
         }
 
         session.lastTurnRes = actionResults
+        return actionResults + system1Response
+    }
+
+    fun getSystem1Response(session: UserSession, system1: ISystem1?, frameEvents: List<FrameEvent>): List<ActionResult> {
+        if (system1 == null) return emptyList()
+        logger.info("${frameEvents.map{it.source}}")
+        val actionResults = mutableListOf<ActionResult>()
+        val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
+        logger.info("${userFrameEvents.map{it.source}}")
+        logger.info("inside system1 with ${userFrameEvents}")
+        // If we do not understand, we fall back to system1
+        if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
+            logger.info("IDonotGetIt present.")
+            val response = session.system1Response()!!
+
+            val dialogAct = ForwardDialogAct(response)
+            // We add system1 response to the last one.
+            actionResults += ActionResult(listOf(dialogAct), null)
+        }
         return actionResults
     }
 
