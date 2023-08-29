@@ -131,7 +131,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
      */
     private fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
         val rewrittenResponses = session.rewriteDialogAct(responses)
-        val dialogActPairs = rewrittenResponses.partition { it is ForwardDialogAct }
+        val dialogActPairs = rewrittenResponses.partition { it is UserDefinedInform<*> && it.frameType == "io.opencui.core.System1"}
         val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
         return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
@@ -149,7 +149,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val res = mutableListOf<DialogAct>()
         for (it in deduped) {
             if (isDonotUnderstand(it)) {
-                res.add(system1[0])
+                res.addAll(system1)
             } else {
                 res.add(it)
             }
