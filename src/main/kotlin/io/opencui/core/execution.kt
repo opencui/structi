@@ -71,7 +71,7 @@ class DialogManager {
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
         frameEvents.forEach { it.source = EventSource.API }
-        val convertedFrameEventList = convertSpecialFrameEvent(session, frameEvents + duReturnedFrameEvent)
+        val convertedFrameEventList = convertSpecialFrameEvent(session, duReturnedFrameEvent + frameEvents)
         logger.debug("Converted frame events : $convertedFrameEventList")
         val results = response(ParsedQuery(query, convertedFrameEventList), session)
         return results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten().distinct()
