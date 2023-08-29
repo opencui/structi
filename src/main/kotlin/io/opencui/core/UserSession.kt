@@ -260,7 +260,7 @@ data class UserSession(
      * We should always set this in the Dispatcher when create user session.
      */
     fun setUserIdentifier(pprofile: IUserIdentifier) {
-        makeSingleton(USERIDENTIFIER)
+        makeSingleton(IUSERIDENTIFIER)
         val userIdentifier = getGlobal<UserIdentifier>()
         userIdentifier!!.apply {
             channelType = pprofile.channelType;
@@ -927,7 +927,11 @@ data class UserSession(
 
     inline fun <reified T> getGlobal(): T? {
         val qname = T::class.qualifiedName!!
-        makeSingleton(qname)
+        if (qname == IUSERIDENTIFIER) {
+            globals[qname] = UserIdentifier(this)
+        } else {
+            makeSingleton(qname)
+        }
         return globals[qname] as T?
     }
 
@@ -963,8 +967,8 @@ data class UserSession(
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
-        val USERIDENTIFIER = IUserIdentifier::class.qualifiedName!!
+        val IUSERIDENTIFIER = IUserIdentifier::class.qualifiedName!!
         private val serialVersionUID: Long = 123
-        val PACKAGE = USERIDENTIFIER.split(".").subList(0, 2).joinToString(".")
+        val PACKAGE = IUSERIDENTIFIER.split(".").subList(0, 2).joinToString(".")
     }
 }
