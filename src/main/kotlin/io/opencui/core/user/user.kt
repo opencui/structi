@@ -2,6 +2,7 @@ package io.opencui.core.user
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
+import io.opencui.serialization.Json
 import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
@@ -17,6 +18,18 @@ interface IUserIdentifier {
     }
     fun uuid(): String {
         return "c|$channelType|$channelLabel|$userId"
+    }
+
+    fun toJson() : String {
+        return Json.encodeToString(
+            mapOf(
+                "userId" to userId,
+                "channelType" to channelType,
+                "channelLabel" to channelLabel,
+                "seessionId" to sessionId,
+                "messageId" to messageId
+            )
+        )
     }
 }
 
