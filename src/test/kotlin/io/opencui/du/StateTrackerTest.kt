@@ -481,8 +481,8 @@ class StateTrackerTest : DuTestHelper() {
 
         val originalInput = "buy a ticket from beijing city to shanghai"
         val recognizedEntities = mutableMapOf<String, List<SpanInfo>>()
-        recognizedEntities["city"] = listOf(SpanInfo("city", 18, 25, false, value = "beijing", score = 2.0f),
-                SpanInfo("city", 34, 42, false, value = "shanghai", score = 2.0f))
+        recognizedEntities["city"] = listOf(SpanInfo("city", 18, 25, value = "beijing", score = 2.0f),
+                SpanInfo("city", 34, 42, value = "shanghai", score = 2.0f))
         val slotMap = mapOf(
                 "from" to DUSlotMeta("from", listOf("from"), "city"),
                 "to" to DUSlotMeta("to", listOf("to"), "city"))
@@ -519,7 +519,7 @@ class StateTrackerTest : DuTestHelper() {
                 listOf(listOf(0.1f), listOf(0.1f)),
                 listOf(0),
                 listOf(1))
-        val emap2 = mapOf("city" to listOf(SpanInfo("city", 0, 7, false)))
+        val emap2 = mapOf("city" to listOf(SpanInfo("city", 0, 7)))
         assertEquals(
                 "{=[EntityEvent(value=beijing, attribute=from)]}",
                 stateTracker.extractSlotValues(
@@ -547,8 +547,8 @@ class StateTrackerTest : DuTestHelper() {
         val originalInput = "Alice want to buy a ticket from shanghai to beijing at today"
         // test low level function: extractValues
         val recognizedEntities = mutableMapOf<String, List<SpanInfo>>()
-        recognizedEntities["city"] = listOf(SpanInfo("city", 44, 51, false, value = "beijing", score = 2.0f),
-                SpanInfo("city", 32, 40, false, value = "shanghai", score = 2.0f))
+        recognizedEntities["city"] = listOf(SpanInfo("city", 44, 51, value = "beijing", score = 2.0f),
+                SpanInfo("city", 32, 40, value = "shanghai", score = 2.0f))
         val slotMap = mapOf(
                 "from" to DUSlotMeta("from", listOf("departure"),
                         "city").apply{ prefixes = mutableSetOf("from"); suffixes = mutableSetOf("to")},

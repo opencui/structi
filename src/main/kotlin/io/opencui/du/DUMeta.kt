@@ -335,7 +335,8 @@ data class EntityType(
     override val recognizer: List<String>,
     val entities: Map<String, List<String>>,
     val parent: String? = null,
-    override val children: List<String> = emptyList()): IEntityMeta {
+    override val children: List<String> = emptyList(),
+    val pattern: String? = null): IEntityMeta {
     override fun getSuper(): String? {
         return parent
     }

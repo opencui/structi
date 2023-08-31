@@ -1,6 +1,5 @@
 package io.opencui.du
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
