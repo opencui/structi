@@ -13,7 +13,6 @@ import java.time.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import io.opencui.serialization.*
-import org.apache.lucene.analysis.CharArraySet
 import java.io.Serializable
 import java.util.*
 
@@ -22,14 +21,14 @@ import java.util.*
  * Value should be in json format.
  */
 class SpanInfo(
-        val type: String,
-        val start: Int,
-        val end: Int,
-        val latent: Boolean,
-        val value: Any?=null,
-        val recognizer: EntityRecognizer? = null,
-        val leaf: Boolean = true,
-        val score: Float=2.0f) {
+    val type: String,
+    val start: Int,
+    val end: Int,
+    val value: Any? = null,
+    val recognizer: EntityRecognizer? = null,
+    val leaf: Boolean = true,
+    val score: Float = 2.0f
+) {
     override fun toString() : String {
         return "$value @($start, $end)"
     }
@@ -70,6 +69,47 @@ interface EntityRecognizer {
      *  via Json deserialization.
      */
     fun getNormedValue(value: SpanInfo): String?
+}
+
+
+// This adds the regex recognizer
+class RegexRecognizer: EntityRecognizer {
+    constructor(agent: DUMeta) {
+        for (entity in agent.getEntities()) {
+            val meta = agent.getEntityMeta(entity) as EntityType
+            if (meta.recognizer.contains("RegexRecognizer")) {
+                regexes[entity] = meta.pattern!!.toRegex()
+            }
+        }
+    }
+    constructor(spatterns: Map<String, String>) {
+        for ((key, spattern) in spatterns) {
+            regexes[key] = spattern.toRegex()
+        }
+    }
+
+    val regexes = mutableMapOf<String, Regex>()
+
+    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
+        for ((key, pattern) in regexes) {
+            val matches = pattern.findAll(input)
+            val spans = mutableListOf<SpanInfo>()
+            for (match in matches) {
+                spans.add(SpanInfo(
+                    key,
+                    match.range.start,
+                    match.range.endInclusive + 1,
+                    value=match.value,
+                    recognizer = this))
+            }
+            emap[key] = spans
+        }
+    }
+
+    override fun getNormedValue(value: SpanInfo): String? {
+        return value.value as String
+    }
+
 }
 
 
@@ -120,7 +160,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         val end = items.getPrimitive("end").content().toInt()
         val latent = items.getPrimitive("latent").content().toBoolean()
         val value = items.get("value") as JsonElement
-        return SpanInfo(type, start, end, latent, value, this, true)
+        return SpanInfo(type, start, end, value, this, true)
     }
 
     fun fill(input: String, sres: JsonArray, emap: MutableMap<String, MutableList<SpanInfo>>) {
@@ -221,13 +261,13 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             val substr = utterance.substring(v.start).lowercase(Locale.getDefault())
             if (v.type == "java.time.LocalDate") {
                 if (substr.startsWith("on ")) {
-                    return SpanInfo(v.type, v.start + 3, v.end, v.latent, v.value, v.recognizer, true, v.score)
+                    return SpanInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
                 }
                 if (substr.startsWith("at ")) return null
             }
             if (v.type == "java.time.LocalTime") {
                 if (substr.startsWith("at ")) {
-                    return SpanInfo(v.type, v.start + 3, v.end, v.latent, v.value, v.recognizer, true, v.score)
+                    return SpanInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
                 }
                 if (substr.startsWith("on ")) return null
             }
@@ -375,7 +415,7 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
                         }
 
                         typedSpans[typeId]!!.add(Pair(spanlist[i].start, spanlist[i + k].end))
-                        emap[type]!!.add(SpanInfo(type, spanlist[i].start, spanlist[i + k].end, false, label, this, leaf))
+                        emap[type]!!.add(SpanInfo(type, spanlist[i].start, spanlist[i + k].end, label, this, leaf))
                     }
                 }  else {
                     // when this is not mention match
@@ -391,7 +431,6 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
                                     type,
                                     spanlist[i].start,
                                     spanlist[i + k].end,
-                                    false,
                                     label,
                                     this,
                                     true

@@ -91,9 +91,14 @@ class EntityTypeBuilder(val t: String) {
     val entities = mutableMapOf<String, List<String>>()
     var parent : String? = null
     var children: List<String> = mutableListOf()
+    var pattern: String? = null
 
     fun parent(p : String) {
         parent = p
+    }
+
+    fun pattern(p: String) {
+        pattern = p
     }
 
     fun children(c: List<String>) {
@@ -113,7 +118,7 @@ class EntityTypeBuilder(val t: String) {
     }
 
     fun toEntityType() : EntityType {
-        return EntityType(t, recognizers, entities, parent, children)
+        return EntityType(t, recognizers, entities, parent, children, pattern)
     }
 }
 
