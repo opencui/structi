@@ -153,9 +153,12 @@ interface DUMeta : ExtractiveMeta {
         fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Expression>> {
             val resmap = mutableMapOf<String, List<Expression>>()
             for (owner in exprOwners) {
-                val res = ArrayList<Expression>()
                 owner as JsonObject
                 val ownerId = getContent(owner["owner_id"])!!
+                if (!resmap.containsKey(ownerId)) {
+                    resmap[ownerId] = ArrayList<Expression>()
+                }
+                val res = resmap[ownerId] as ArrayList<Expression>
                 val expressions = owner["expressions"] ?: continue
                 expressions as JsonArray
                 for (expression in expressions) {
@@ -168,7 +171,7 @@ interface DUMeta : ExtractiveMeta {
                     val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
                     res.add(Expression(ownerId, context, label, toLowerProperly(utterance), partialApplications, bot))
                 }
-                resmap[ownerId] = res.apply { trimToSize() }
+                res.apply { trimToSize() }
             }
             return resmap
         }
@@ -373,21 +376,8 @@ data class Expression(
     fun buildFrameContext(): String {
         if (context != null) {
             return """{"frame_id":"${context.frame}"}"""
-        } else {
-            if (frameMap.containsKey(this.owner)) {
-                return """{"frame_id":"${frameMap[this.owner]}"}"""
-            }
         }
         return "default"
-    }
-
-    fun buildSubFrameContext(duMeta: DUMeta): List<String>? {
-        if (context != null) {
-            val subtypes = duMeta.getSubFrames(context.frame)
-            if (subtypes.isNullOrEmpty()) return null
-            return subtypes.map {"""{"frame_id":"$it"}"""}
-        }
-        return null
     }
 
     fun buildSlotTypes(): List<String> {
@@ -444,15 +434,5 @@ data class Expression(
             )
             return MetaExprSegments(owner, expression, result)
         }
-
-        // TODO(sean.wu): this should be handled in a more generic fashion.
-        private val frameMap = mapOf(
-            "io.opencui.core.confirmation.No" to "io.opencui.core.Confirmation",
-            "io.opencui.core.confirmation.Yes" to "io.opencui.core.Confirmation",
-            "io.opencui.core.hasMore.No" to "io.opencui.core.HasMore",
-            "io.opencui.core.hasMore.Yes" to "io.opencui.core.HasMore",
-            "io.opencui.core.booleanGate.No" to "io.opencui.core.BoolGate",
-            "io.opencui.core.booleanGate.Yes" to "io.opencui.core.BoolGate",
-        )
     }
 }

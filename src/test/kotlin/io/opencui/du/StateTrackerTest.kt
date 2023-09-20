@@ -66,34 +66,39 @@ class StateTrackerTest : DuTestHelper() {
       ]
     },
     {
-      "owner_id": "io.opencui.core.confirmation.Yes",
+      "owner_id": "io.opencui.core.confirmation.IStatus",
       "expressions": [
         {
+          "label": "io.opencui.core.confirmation.Yes",
           "utterance": "confirmed"
         }
       ]
     },
     {
-      "owner_id": "io.opencui.core.confirmation.No",
+      "owner_id": "io.opencui.core.confirmation.IStatus",
       "expressions": [
         {
+          "label": "io.opencui.core.confirmation.No",
           "utterance": "that is incorrect"
         },
         {
+          "label": "io.opencui.core.confirmation.No",
           "utterance": "I don't think so"
         }
       ]
     },
     {
-          "owner_id": "io.opencui.core.hasMore.No",
-          "expressions": [
-            {
-              "utterance": "nope, thanks"
-            },
-            {
-              "utterance": "I am good now."
-            }
-          ]
+      "owner_id": "io.opencui.core.hasMore.IStatus",
+      "expressions": [
+        {
+          "label": "io.opencui.core.hasMore.No",
+          "utterance": "nope, thanks"
+        },
+        {
+          "label": "io.opencui.core.hasMore.No",
+          "utterance": "I am good now."
+        }
+      ]
     },
     {
       "owner_id": "io.opencui.core.PageSelectable",
@@ -307,7 +312,7 @@ class StateTrackerTest : DuTestHelper() {
         val frameEvents = stateTracker.convert(
                 "s",
                 "I don't think so",
-                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.Confirmation")))
+                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.confirmation.IStatus")))
         println("frame events: $frameEvents")
         assertEquals(
                 "[FrameEvent(type=No, slots=[], frames=[], packageName=io.opencui.core.confirmation)]",
@@ -384,10 +389,11 @@ class StateTrackerTest : DuTestHelper() {
 
     @Test
     fun testConfirmation() {
+        val expressions = agent.expressionsByFrame
         val frameEvents = stateTracker.convert(
                 "s",
                 "confirmed",
-                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.Confirmation")))
+                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.confirmation.IStatus")))
         assertEquals("[FrameEvent(type=Yes, slots=[], frames=[], packageName=io.opencui.core.confirmation)]",
                 frameEvents.toString())
 
@@ -418,7 +424,7 @@ class StateTrackerTest : DuTestHelper() {
         val frameEvents = stateTracker.convert(
                 "s",
                 "I am good now",
-                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.HasMore")))
+                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.hasMore.IStatus")))
         assertEquals("[FrameEvent(type=No, slots=[], frames=[], packageName=io.opencui.core.hasMore)]",
                 frameEvents.toString())
     }
