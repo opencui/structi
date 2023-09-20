@@ -90,7 +90,7 @@ data class DUContext(val session: String, val utterance: String, val expectation
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
         if (!candidates.isNullOrEmpty()) bestCandidate = candidates!![0]
-        return if (bestCandidate != null) frameNames.contains(bestCandidate!!.ownerFrame) else false
+        return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
     }
 
     fun getEntityValue(typeName: String): String? {
@@ -350,12 +350,14 @@ data class BertStateTracker(
             return null
         }
 
-        val candidates = dontCareFilter(pcandidates, expectations)
+        val candidates0 = dontCareFilter(pcandidates, expectations)
+        val candidates = statusFilter(candidates0, expectations)
 
         // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
         candidates.map{ matcher.markMatch(it) }
         val exactMatches = candidates.filter {it.exactMatch}
+        exactMatches.map{ it.score += 2.0f }
         if (exactMatches.isNotEmpty()) {
             return pickDocViaFrames(exactMatches)
         }
@@ -438,6 +440,24 @@ data class BertStateTracker(
         return results
     }
 
+    private fun statusFilter(
+        pcandidates: List<ScoredDocument>,
+        expectations: DialogExpectations
+    ): List<ScoredDocument> {
+        val frames = expectations.activeFrames.map { it.frame }.toSet()
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<ScoredDocument>()
+        for (doc in pcandidates) {
+            if (doc.ownerFrame in IStateTracker.IStatusSet) {
+                if (doc.ownerFrame in frames) results.add(doc)
+            } else {
+                results.add(doc)
+            }
+        }
+        return results
+    }
+
+
     private fun notBeginning(segments: List<String>, index: Int): Boolean {
         return index < segments.size && segments[index].startsWith("##")
     }
@@ -483,7 +503,7 @@ data class BertStateTracker(
     fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
         val expectations = ducontext.expectations
         logger.debug(
-            "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.FullConfirmation)} and ${
+            "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
                 ducontext.matchedIn(
                     IStateTracker.FullConfirmationList
                 )
@@ -495,19 +515,19 @@ data class BertStateTracker(
         // TODO(sean): should we start to pay attention to the order of the dialog expectation.
         // Also the stack structure of dialog expectation is not used.
         // a. confirm Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.FullConfirmation)) {
+        if (expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)) {
             val events = handleExpectedBoolean(ducontext, IStateTracker.FullConfirmationList)
             if (events != null) return events
         }
 
         // b. boolgate Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.FullBoolGate)) {
+        if (expectations.isFrameCompatible(IStateTracker.BoolGateStatus)) {
             val events = handleExpectedBoolean(ducontext, IStateTracker.FullBoolGateList)
             if (events != null) return events
         }
 
         // c. hasMore Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.FullHasMore)) {
+        if (expectations.isFrameCompatible(IStateTracker.HasMoreStatus)) {
             val events = handleExpectedBoolean(ducontext, IStateTracker.FullHasMoreList)
             if (events != null) return events
         }
@@ -633,7 +653,7 @@ data class BertStateTracker(
     // This need to called if status is expected.
     private fun handleExpectedBoolean(ducontext: DUContext, valueChoices: List<String>): List<FrameEvent>? {
         if (ducontext.matchedIn(valueChoices)) {
-            return listOf(buildFrameEvent(ducontext.bestCandidate?.ownerFrame!!))
+            return listOf(buildFrameEvent(ducontext.bestCandidate?.label!!))
         }
 
         // if we have extractive match.

@@ -137,12 +137,6 @@ fun Expression.toDoc() : Document {
     // default, active frame, active frame + requested slot.
     Expression.logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.utterance.lowercase(Locale.getDefault())}")
     doc.add(StringField(ScoredDocument.CONTEXT, buildFrameContext(), Field.Store.YES))
-    val subFrameContext = buildSubFrameContext(bot)
-    if (!subFrameContext.isNullOrEmpty()) {
-        for (frame in subFrameContext) {
-            doc.add(StringField(ScoredDocument.CONTEXT, frame, Field.Store.YES))
-        }
-    }
 
     if (context?.slot != null) {
         Expression.logger.info("context slot ${context.slot}")
@@ -245,8 +239,6 @@ data class ExpressionSearcher(val agent: DUMeta) {
         private val AngleSlotRegex = Pattern.compile("""<(.+?)>""").toRegex()
         val logger: Logger = LoggerFactory.getLogger(ExpressionSearcher::class.java)
         private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
-
-
 
         @JvmStatic
         fun buildIndex(agent: DUMeta): Directory {

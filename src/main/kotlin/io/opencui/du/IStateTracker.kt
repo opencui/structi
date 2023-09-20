@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.FrameEvent
 import io.opencui.core.IExtension
 import io.opencui.core.UserSession
-import io.opencui.core.user.IUserIdentifier
 
 
 /**
@@ -67,13 +66,7 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     constructor() : this(emptyList())
 
     fun getFrameContext(): List<String> {
-        val res = ArrayList<String>()
-        // TODO(sean) why we only search frame?
-        // For now, we simply add these contexts frame for search.
-        for (aframe in activeFrames) {
-            res.add("""{"frame_id":"${aframe.frame}"}""")
-        }
-        return res
+        return activeFrames.map { """{"frame_id":"${it.frame}"}""" }
     }
 
     fun isFrameCompatible(frameName: String) : Boolean {
@@ -140,18 +133,22 @@ interface IStateTracker : IExtension {
         const val DontCareLabel = "_DontCare"
         const val FullThat = "io.opencui.core.That"
         const val ThatLabel = "{'@class'='io.opencui.core.That'}"
-        const val FullBoolGate = "io.opencui.core.BoolGate"
+        const val BoolGateStatus = "io.opencui.core.booleanGate.IStatus"
         val FullBoolGateList = listOf("io.opencui.core.booleanGate.Yes", "io.opencui.core.booleanGate.No")
 
         const val TriggerComponentSkill =  "io.opencui.core.TriggerComponentSkill"
-        const val FullConfirmation = "io.opencui.core.Confirmation"
+        const val ConfirmationStatus = "io.opencui.core.confirmation.IStatus"
         val FullConfirmationList = listOf("io.opencui.core.confirmation.Yes", "io.opencui.core.confirmation.No")
-        const val FullHasMore = "io.opencui.core.HasMore"
+        const val HasMoreStatus = "io.opencui.core.hasMore.IStatus"
         val FullHasMoreList = listOf("io.opencui.core.hasMore.Yes", "io.opencui.core.hasMore.No")
         const val KotlinBoolean = "kotlin.Boolean"
         const val SlotUpdateOriginalSlot = "originalSlot"
 
         const val SlotUpdateGenericType = "<T>"
+        val IStatusSet = setOf(
+            "io.opencui.core.confirmation.IStatus",
+            "io.opencui.core.hasMore.IStatus",
+            "io.opencui.core.booleanGate.IStatus")
     }
 }
 
