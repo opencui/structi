@@ -3,6 +3,7 @@ package io.opencui.core
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
+import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserInfo
 import io.opencui.du.*
 import io.opencui.du.DUMeta.Companion.parseExpressions
@@ -77,6 +78,11 @@ interface IEntity : Serializable{
  */
 interface IFrame : Serializable {
     var session: UserSession?
+    
+    fun getUserIdentifier(): IUserIdentifier {
+        return session!!
+    }
+
     fun annotations(path: String): List<Annotation> = listOf()
 
     fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
