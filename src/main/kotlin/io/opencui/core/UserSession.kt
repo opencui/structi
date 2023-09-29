@@ -14,6 +14,7 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
+import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
 import java.io.ObjectInputStream
@@ -437,6 +438,11 @@ data class UserSession(
     }
 
     inline fun <reified T : IExtension> getExtension() : T? {
+        val kClass = T::class.java
+        if (kClass.isAssignableFrom(IKVStore::class.java)) {
+            return Dispatcher.sessionManager.botStore as T
+        }
+
         val manager = chatbot!!.getExtensionManager<T>()
         check(manager.keys.size == 1)
         val label = manager.keys.first()
