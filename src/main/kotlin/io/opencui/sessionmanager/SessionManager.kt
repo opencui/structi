@@ -5,6 +5,7 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.ForwardDialogAct
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
+import io.opencui.kvstore.IKVStore
 import io.opencui.serialization.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -28,18 +29,8 @@ interface ISessionStore {
 
 
 // Some time, we need to save the bot related information across different versions for all users.
-interface IBotStore {
+interface IBotStore: IKVStore {
     val botInfo: BotInfo
-
-    // This should mimic the redis as much as possible.
-    fun set(key: String, value: String): Boolean
-    fun get(key: String): String?
-
-    // Value is list.
-    fun rpush(key: String, value: String)
-    fun lrange(key: String, start: Int, end: Int): List<String>
-
-    fun lrem(key: String, value: String): Int
 }
 
 /**

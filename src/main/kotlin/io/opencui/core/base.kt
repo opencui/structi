@@ -78,7 +78,7 @@ interface IEntity : Serializable{
  */
 interface IFrame : Serializable {
     var session: UserSession?
-    
+
     fun getUserIdentifier(): IUserIdentifier {
         return session!!
     }
