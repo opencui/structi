@@ -79,8 +79,8 @@ interface IEntity : Serializable{
 interface IFrame : Serializable {
     var session: UserSession?
 
-    fun getUserIdentifier(): IUserIdentifier {
-        return session!!
+    fun getUserIdentifier(): IUserIdentifier? {
+        return session
     }
 
     fun annotations(path: String): List<Annotation> = listOf()
