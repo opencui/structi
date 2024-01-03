@@ -403,13 +403,14 @@ interface LlmStateTracker: IStateTracker {
         return res2
     }
 
-    fun buildDUContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
+    fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
         val ducontext = DuContext(
             session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
         var allNormalizers = normalizers.toMutableList()
         // Session and turn based recognizers
         if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
         if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
+
         allNormalizers.recognizeAll(
             utterance,
             ducontext.expectedEntityType(agentMeta),

@@ -93,7 +93,7 @@ data class BertStateTracker(
         expectations: DialogExpectations
     ): List<FrameEvent> {
 
-        val ducontext = buildDUContext(session, utterance, expectations)
+        val ducontext = buildDuContext(session, utterance, expectations)
 
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
@@ -797,7 +797,6 @@ data class BertStateTracker(
                 }
             }
         }
-
 
         // Now use extractive entity information.
         if (entities != null) {
