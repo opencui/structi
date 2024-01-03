@@ -154,16 +154,6 @@ data class BertStateTracker(
         return ListRecognizer.isPartialMatch(event.value)
     }
 
-    fun findRelatedEntity(event: EntityEvent): List<String>? {
-        if (isPartialMatch(event)) {
-            val recognizer = normalizers[0] as ListRecognizer
-            val type = event.type
-            val token = event.origValue
-            if (type == null || token == null) return null
-            return recognizer.findRelatedEntity(type, token)
-        }
-        return null
-    }
 
     /**
      * There are four different things we can do to improve the implementation here.
