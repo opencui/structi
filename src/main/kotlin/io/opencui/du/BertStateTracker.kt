@@ -13,7 +13,6 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-
 // return the top k items from the collection.
 fun <T : Comparable<T>> top(k: Int, collection: Iterable<T>): List<IndexedValue<T>> {
     val topList = ArrayList<IndexedValue<T>>()
@@ -39,129 +38,6 @@ fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
 
 interface Resolver {
     fun resolve(ducontext: DUContext, before: List<ScoredDocument>): List<ScoredDocument>
-}
-
-
-
-/**
- * This can be used to capture the intermediate result from understanding.
- * So that we can save some effort by avoiding repeated work.
- */
-data class DUContext(val session: String, val utterance: String, val expectations: DialogExpectations = DialogExpectations()) {
-    val entityTypeToSpanInfoMap = mutableMapOf<String, MutableList<SpanInfo>>()
-    var candidates : List<ScoredDocument>? = null
-    var bestCandidate : ScoredDocument? = null
-
-    var tokens : List<BoundToken>? = null
-    val previousTokenByChar = mutableMapOf<Int, Int>()
-    val nextTokenByChar = mutableMapOf<Int, Int>()
-    var duMeta : DUMeta? = null
-
-    val emapByCharStart by lazy { convert() }
-    fun convert(): Map<Int, List<Pair<String, Int>>> {
-        // create the char end to token end.
-        val endMap = mutableMapOf<Int, Int>()
-        for ((index, token) in tokens!!.withIndex()) {
-            endMap[token.end] = index + 1
-        }
-
-        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
-        for((key, spans) in entityTypeToSpanInfoMap) {
-            for (span in spans) {
-                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
-                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
-            }
-        }
-        return result
-    }
-
-    fun updateTokens(tkns: List<BoundToken>) {
-        tokens = tkns
-        for( (index, tkn) in tokens!!.withIndex() ) {
-            if(index >  0) {
-                previousTokenByChar[tkn.start] = index - 1
-            }
-            if(index < tokens!!.size - 1) {
-                nextTokenByChar[tkn.end] = index + 1
-            }
-        }
-    }
-
-    fun matchedIn(frameNames: List<String>): Boolean {
-        // Right now, we only consider the best candidate, but we can extend this to other frames.
-        if (!candidates.isNullOrEmpty()) bestCandidate = candidates!![0]
-        return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
-    }
-
-    fun getEntityValue(typeName: String): String? {
-        //TODO("Not yet implemented")
-        val spans = entityTypeToSpanInfoMap[typeName]
-        if (spans.isNullOrEmpty()) {
-            return null
-        }
-        val span = spans[0]
-
-        // If we do not have bestCandidate or we entire utterance is covered by entity.
-        return if (bestCandidate == null || (utterance.length == span.end && span.start ==0) ) {
-            span.norm()
-        } else {
-            null
-        }
-    }
-
-    fun putAll(lmap : Map<String, List<SpanInfo>>) {
-        for ((k, vs) in lmap) {
-            for (v in vs) {
-                entityTypeToSpanInfoMap.put(k, v)
-            }
-        }
-    }
-
-    fun containsAllEntityNeeded(entities: List<String>, bot: DUMeta) : Boolean {
-        // if the entities is empty, then we already contain all entity needed.
-        for (entity in entities) {
-            // If we do not have this required entity, it is bad.
-            if(findMentions(entity, bot).isEmpty()) return false
-        }
-        return true
-    }
-
-    private fun findMentions(entity: String, bot: DUMeta) : List<SpanInfo> {
-        // if we do not have at least one that is not partial match, it is bad.
-        var mentions = entityTypeToSpanInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-        if (!mentions.isNullOrEmpty()) return mentions
-        val entityMeta = bot.getEntityMeta(entity) ?: return emptyList()
-        logger.debug("Did not find $entity, trying ${entityMeta.children}")
-        for (child in entityMeta.children) {
-            mentions = entityTypeToSpanInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-            if (!mentions.isNullOrEmpty()) return mentions
-        }
-        return emptyList()
-    }
-
-    fun expectedEntityType(bot: DUMeta) : List<String> {
-        if (expectations.activeFrames.isEmpty()) return listOf()
-        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
-        // TODO: handle the a.b.c case
-        val resList = mutableListOf<String>()
-        if (expectations.expected!!.slot != null) {
-            val expectedType = bot.getSlotType(expectations.expected.frame, expectations.expected.slot!!)
-            resList.add(expectedType)
-        } else {
-            // Found the frame that has the slot
-            for (active in expectations.activeFrames.reversed()) {
-                if (active.slot != null) {
-                    val activeType = bot.getSlotType(active.frame, active.slot)
-                    resList.add(activeType)
-                }
-            }
-        }
-        return resList
-    }
-
-    companion object {
-        val logger = LoggerFactory.getLogger(DUContext::class.java)
-    }
 }
 
 
@@ -225,7 +101,7 @@ data class BertStateTracker(
         ducontext.candidates = candidates
 
         // What happens if there are expectations.
-        if (expectations.activeFrames.isNotEmpty() && expectations.hasExpectation()) {
+        if (expectations.activeFrames.isNotEmpty()) {
             // TODO(sean): assuming single intent here.
             if (candidates?.size != 1
                 || candidates[0].ownerFrame.startsWith("io.opencui.core")
@@ -463,7 +339,7 @@ data class BertStateTracker(
     }
 
     // When there is expectation presented.
-    fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
+    override fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
         val expectations = ducontext.expectations
         logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${

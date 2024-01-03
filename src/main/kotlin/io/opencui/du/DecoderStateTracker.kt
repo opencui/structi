@@ -75,9 +75,9 @@ data class DecoderStateTracker(
         ducontext.candidates = candidates
 
         // What happens if there are expectations.
-        if (expectations.activeFrames.isNotEmpty() && expectations.hasExpectation()) {
+        if (expectations.activeFrames.isNotEmpty()) {
             // TODO(sean): assuming single intent here.
-            if (candidates?.size != 1
+            if (candidates?.size != 0
                 || candidates[0].ownerFrame.startsWith("io.opencui.core")
                 || expectations.isFrameCompatible(candidates[0].ownerFrame)) {
                 val events = convertWithExpectation(ducontext)
@@ -298,7 +298,7 @@ data class DecoderStateTracker(
     }
 
     // When there is expectation presented.
-    fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
+    override fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
         val expectations = ducontext.expectations
         logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
