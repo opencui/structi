@@ -1,10 +1,8 @@
 package io.opencui.du
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import io.opencui.core.EntityEvent
-import io.opencui.core.FrameEvent
-import io.opencui.core.IExtension
-import io.opencui.core.UserSession
+import io.opencui.core.*
+import org.slf4j.LoggerFactory
 import java.util.*
 
 
@@ -234,6 +232,11 @@ interface LlmStateTracker: IStateTracker {
      * 1. We assume that index can be shared by different agent.
      */
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        logger.info("Getting $putterance under $expectations")
+        // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
+        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+        if (utterance.isEmpty()) return listOf()
+
         val res0 = convertImpl(session, putterance, expectations)
         val res1 = res0.map { dontCareForPagedSelectable(it) }
         val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
@@ -241,12 +244,11 @@ interface LlmStateTracker: IStateTracker {
         return res2
     }
 
-    fun buildDUContext(session: UserSession, putterance: String, expectations: DialogExpectations): DUContext {
-        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
-
-        val ducontext =
-            DUContext(session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
-        var allNormalizers = normalizers
+    fun buildDUContext(session: UserSession, utterance: String, expectations: DialogExpectations): DUContext {
+        val ducontext = DUContext(
+            session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
+        var allNormalizers = normalizers.toMutableList()
+        // Session and turn based recognizers
         if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
         if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
         allNormalizers.recognizeAll(
@@ -263,4 +265,27 @@ interface LlmStateTracker: IStateTracker {
         putterance: String,
         expectations: DialogExpectations
     ): List<FrameEvent>
+
+    companion object {
+        val logger = LoggerFactory.getLogger(LlmStateTracker::class.java)
+        // TODO(sean): make sure entity side return this as label for DONTCARE
+        const val DONTCARE = "DontCare"
+    }
 }
+
+
+fun buildFrameEvent(
+    topLevelFrame: String,
+    slots: List<EntityEvent> = listOf(),
+    frames: List<FrameEvent> = listOf()
+): FrameEvent {
+    val parts = topLevelFrame.splitToSequence(".")
+    val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
+    return FrameEvent(parts.last(), slots, frames, packageName)
+}
+
+
+fun buildEntityEvent(key: String, value: String): EntityEvent {
+    return EntityEvent(value=""""$value"""", attribute=key)
+}
+

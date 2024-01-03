@@ -213,12 +213,10 @@ data class BertStateTracker(
      */
     override fun convertImpl(
         session: UserSession,
-        putterance: String,
+        utterance: String,
         expectations: DialogExpectations
     ): List<FrameEvent> {
-        if (putterance.trim { it.isWhitespace() }.isEmpty()) return listOf()
-        logger.info("Getting $putterance under $expectations")
-        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+
         val ducontext = buildDUContext(session, utterance, expectations)
 
         // TODO: support multiple intention in one utterance, abstractively.
@@ -1050,21 +1048,5 @@ data class BertStateTracker(
             TODO("Not yet implemented")
         }
     }
-}
-
-
-fun buildFrameEvent(
-    topLevelFrame: String,
-    slots: List<EntityEvent> = listOf(),
-    frames: List<FrameEvent> = listOf()
-): FrameEvent {
-    val parts = topLevelFrame.splitToSequence(".")
-    val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
-    return FrameEvent(parts.last(), slots, frames, packageName)
-}
-
-
-fun buildEntityEvent(key: String, value: String): EntityEvent {
-    return EntityEvent(value=""""$value"""", attribute=key)
 }
 
