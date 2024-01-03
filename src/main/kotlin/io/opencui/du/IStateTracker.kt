@@ -421,3 +421,10 @@ fun buildEntityEvent(key: String, value: String): EntityEvent {
     return EntityEvent(value=""""$value"""", attribute=key)
 }
 
+
+// LlmStateTracker always try to recognize frame first, and then slot.
+// We assume the output from recognizer should be taken seriously, or dependable, the quality fix should
+// be inside the recognizer, not patching outside of recognizer.
+interface FrameRecognizer {
+    operator fun invoke(context: DuContext): List<FrameEvent>?
+}

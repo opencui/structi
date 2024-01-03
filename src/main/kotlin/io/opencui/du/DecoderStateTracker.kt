@@ -339,9 +339,7 @@ data class DecoderStateTracker(
             // we need to go through all the expectation
             for (expected in ducontext.expectations.activeFrames) {
                 if (!expected.allowDontCare()) continue
-                if (bestCandidate.contextFrame == null ||
-                    (bestCandidate.contextFrame == expected.frame && bestCandidate.contextSlot == expected.slot)
-                ) {
+                if (bestCandidate.contextFrame == null || bestCandidate.contextFrame == expected.frame) {
                     val slotType = agentMeta.getSlotType(expected.frame, expected.slot!!)
                     // TODO: handle the frame slot case.
                     if (agentMeta.isEntity(slotType)) {

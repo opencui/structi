@@ -42,7 +42,6 @@ data class ScoredDocument(var score: Float, val document: Document) {
     var typedExpression: String = document.getField(EXPRESSION).stringValue()
     val ownerFrame: String = document.getField(OWNER).stringValue()
     val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
-    val contextSlot: String? = document.getField(CONTEXTSLOT)?.stringValue()
     val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
     val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
     val label: String = if (document.get(LABEL) == null) "" else document.get(LABEL)
