@@ -37,6 +37,9 @@ data class ExpectedFrame(
 }
 
 
+
+
+
 /**
  * This can be used to capture the intermediate result from understanding.
  * So that we can save some effort by avoiding repeated work.
@@ -156,6 +159,33 @@ data class DuContext(
             }
         }
         return resList
+    }
+
+    fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, entity: SpanInfo): Float {
+        var bonus = 0f
+        var denominator = 0.0000001f
+        // for now, we assume simple unigram model.
+        if (slotMeta.prefixes?.isNotEmpty() == true) {
+            denominator += 1
+            val previousTokenIndex = previousTokenByChar[entity.start]
+            if (previousTokenIndex != null) {
+                val tkn = tokens!![previousTokenIndex].token
+                if (slotMeta.prefixes!!.contains(tkn)) {
+                    bonus += 1
+                }
+            }
+        }
+        if (slotMeta.suffixes?.isNotEmpty() == true) {
+            denominator += 1
+            val nextTokenIndex = nextTokenByChar[entity.end]
+            if (nextTokenIndex != null) {
+                val tkn = tokens!![nextTokenIndex].token
+                if (slotMeta.suffixes!!.contains(tkn)) {
+                    bonus += 1
+                }
+            }
+        }
+        return bonus/denominator
     }
 
     companion object {

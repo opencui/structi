@@ -756,12 +756,11 @@ data class DecoderStateTracker(
             }
         }
 
-
         // Now use extractive entity information.
         if (entities != null) {
             for (entity in entities) {
                 val span = IntRange(entity.start, entity.end - 1)
-                val bonus = getSurroundingWordsBonus(slotMeta, duContext, entity)
+                val bonus = duContext.getSurroundingWordsBonus(slotMeta, entity)
                 if (spans.containsKey(span)) {
                     spans[span]!!.score += entity.score + bonus
                     spans[span]!!.norm = entity.norm()
@@ -817,35 +816,6 @@ data class DecoderStateTracker(
             }
             return ret
         }
-    }
-
-
-
-    private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, ducontext: DuContext, entity: SpanInfo): Float {
-        var bonus = 0f
-        var denominator = 0.0000001f
-        // for now, we assume simple unigram model.
-        if (slotMeta.prefixes?.isNotEmpty() == true) {
-            denominator += 1
-            val previousTokenIndex = ducontext.previousTokenByChar[entity.start]
-            if (previousTokenIndex != null) {
-                val tkn = ducontext.tokens!![previousTokenIndex].token
-                if (slotMeta.prefixes!!.contains(tkn)) {
-                    bonus += 1
-                }
-            }
-        }
-        if (slotMeta.suffixes?.isNotEmpty() == true) {
-            denominator += 1
-            val nextTokenIndex = ducontext.nextTokenByChar[entity.end]
-            if (nextTokenIndex != null) {
-                val tkn = ducontext.tokens!![nextTokenIndex].token
-                if (slotMeta.suffixes!!.contains(tkn)) {
-                    bonus += 1
-                }
-            }
-        }
-        return bonus/denominator
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
