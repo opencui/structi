@@ -150,10 +150,6 @@ data class BertStateTracker(
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
-    fun isPartialMatch(event: EntityEvent): Boolean {
-        return ListRecognizer.isPartialMatch(event.value)
-    }
-
 
     /**
      * There are four different things we can do to improve the implementation here.
