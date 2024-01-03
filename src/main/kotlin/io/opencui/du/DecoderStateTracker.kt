@@ -12,163 +12,11 @@ import kotlin.collections.HashMap
 import kotlin.math.max
 import kotlin.math.min
 
-
-
 // return the top k items from the collection.
-fun <T : Comparable<T>> top(k: Int, collection: Iterable<T>): List<IndexedValue<T>> {
-    val topList = ArrayList<IndexedValue<T>>()
-    for ((index, logit) in collection.withIndex()) {
-        if (topList.size < k || logit > topList.last().value) {
-            topList.add(IndexedValue(index, logit))
-            topList.sortByDescending { it.value }
-            if (topList.size > k) {
-                topList.removeAt(k)
-            }
-        }
-    }
-    return topList
-}
-
-fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
-    if (!this.containsKey(key)) {
-        put(key, mutableListOf())
-    }
-    get(key)!!.add(value)
-}
-
-
-interface Resolver {
-    fun resolve(ducontext: DUContext, before: List<ScoredDocument>): List<ScoredDocument>
-}
-
-
-
 /**
- * This can be used to capture the intermediate result from understanding.
- * So that we can save some effort by avoiding repeated work.
+ * DecoderStateTracker assumes the underlying nlu module has decoder, can be either t5 or gpt.
  */
-data class DUContext(val session: String, val utterance: String, val expectations: DialogExpectations = DialogExpectations()) {
-    val entityTypeToSpanInfoMap = mutableMapOf<String, MutableList<SpanInfo>>()
-    var candidates : List<ScoredDocument>? = null
-    var bestCandidate : ScoredDocument? = null
-
-    var tokens : List<BoundToken>? = null
-    val previousTokenByChar = mutableMapOf<Int, Int>()
-    val nextTokenByChar = mutableMapOf<Int, Int>()
-    var duMeta : DUMeta? = null
-
-    val emapByCharStart by lazy { convert() }
-    fun convert(): Map<Int, List<Pair<String, Int>>> {
-        // create the char end to token end.
-        val endMap = mutableMapOf<Int, Int>()
-        for ((index, token) in tokens!!.withIndex()) {
-            endMap[token.end] = index + 1
-        }
-
-        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
-        for((key, spans) in entityTypeToSpanInfoMap) {
-            for (span in spans) {
-                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
-                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
-            }
-        }
-        return result
-    }
-
-    fun updateTokens(tkns: List<BoundToken>) {
-        tokens = tkns
-        for( (index, tkn) in tokens!!.withIndex() ) {
-            if(index >  0) {
-                previousTokenByChar[tkn.start] = index - 1
-            }
-            if(index < tokens!!.size - 1) {
-                nextTokenByChar[tkn.end] = index + 1
-            }
-        }
-    }
-
-    fun matchedIn(frameNames: List<String>): Boolean {
-        // Right now, we only consider the best candidate, but we can extend this to other frames.
-        if (!candidates.isNullOrEmpty()) bestCandidate = candidates!![0]
-        return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
-    }
-
-    fun getEntityValue(typeName: String): String? {
-        //TODO("Not yet implemented")
-        val spans = entityTypeToSpanInfoMap[typeName]
-        if (spans.isNullOrEmpty()) {
-            return null
-        }
-        val span = spans[0]
-
-        // If we do not have bestCandidate or we entire utterance is covered by entity.
-        return if (bestCandidate == null || (utterance.length == span.end && span.start ==0) ) {
-            span.norm()
-        } else {
-            null
-        }
-    }
-
-    fun putAll(lmap : Map<String, List<SpanInfo>>) {
-        for ((k, vs) in lmap) {
-            for (v in vs) {
-                entityTypeToSpanInfoMap.put(k, v)
-            }
-        }
-    }
-
-    fun containsAllEntityNeeded(entities: List<String>, bot: DUMeta) : Boolean {
-        // if the entities is empty, then we already contain all entity needed.
-        for (entity in entities) {
-            // If we do not have this required entity, it is bad.
-            if(findMentions(entity, bot).isEmpty()) return false
-        }
-        return true
-    }
-
-    private fun findMentions(entity: String, bot: DUMeta) : List<SpanInfo> {
-        // if we do not have at least one that is not partial match, it is bad.
-        var mentions = entityTypeToSpanInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-        if (!mentions.isNullOrEmpty()) return mentions
-        val entityMeta = bot.getEntityMeta(entity) ?: return emptyList()
-        logger.debug("Did not find $entity, trying ${entityMeta.children}")
-        for (child in entityMeta.children) {
-            mentions = entityTypeToSpanInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-            if (!mentions.isNullOrEmpty()) return mentions
-        }
-        return emptyList()
-    }
-
-    fun expectedEntityType(bot: DUMeta) : List<String> {
-        if (expectations.activeFrames.isEmpty()) return listOf()
-        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
-        // TODO: handle the a.b.c case
-        val resList = mutableListOf<String>()
-        if (expectations.expected!!.slot != null) {
-            val expectedType = bot.getSlotType(expectations.expected.frame, expectations.expected.slot!!)
-            resList.add(expectedType)
-        } else {
-            // Found the frame that has the slot
-            for (active in expectations.activeFrames.reversed()) {
-                if (active.slot != null) {
-                    val activeType = bot.getSlotType(active.frame, active.slot)
-                    resList.add(activeType)
-                }
-            }
-        }
-        return resList
-    }
-
-    companion object {
-        val logger = LoggerFactory.getLogger(DUContext::class.java)
-    }
-}
-
-
-/**
- * BertStateTracker assumes the underlying nlu module is bert based.
- */
-data class BertStateTracker(
+data class DecoderStateTracker(
     override val agentMeta: DUMeta,
     val intentK: Int = 32,
     val slotValueK: Int = 3,
@@ -188,6 +36,7 @@ data class BertStateTracker(
     private val searcher = ExpressionSearcher(agentMeta)
 
     override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+
     override val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
     /**
@@ -213,15 +62,14 @@ data class BertStateTracker(
      */
     override fun convertImpl(
         session: UserSession,
-        putterance: String,
+        utterance: String,
         expectations: DialogExpectations
     ): List<FrameEvent> {
-        if (putterance.trim { it.isWhitespace() }.isEmpty()) return listOf()
-        logger.info("Getting $putterance under $expectations")
-        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+        logger.info("Getting $utterance under $expectations")
+
         val ducontext = buildDUContext(session, utterance, expectations)
 
-        // TODO: support multiple intention in one utterance, abstractively.
+        // TODO: support multiple intention in one utterance, in abstractive sense.
         // Find best matched frame, assume one intention in one utterance.
         val candidates = recognizeFrame(ducontext)
         ducontext.candidates = candidates
@@ -273,21 +121,6 @@ data class BertStateTracker(
             return extractedEvents
         }
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
-    }
-
-    fun isPartialMatch(event: EntityEvent): Boolean {
-        return ListRecognizer.isPartialMatch(event.value)
-    }
-
-    fun findRelatedEntity(event: EntityEvent): List<String>? {
-        if (isPartialMatch(event)) {
-            val recognizer = normalizers[0] as ListRecognizer
-            val type = event.type
-            val token = event.origValue
-            if (type == null || token == null) return null
-            return recognizer.findRelatedEntity(type, token)
-        }
-        return null
     }
 
     /**
@@ -1051,20 +884,3 @@ data class BertStateTracker(
         }
     }
 }
-
-
-fun buildFrameEvent(
-    topLevelFrame: String,
-    slots: List<EntityEvent> = listOf(),
-    frames: List<FrameEvent> = listOf()
-): FrameEvent {
-    val parts = topLevelFrame.splitToSequence(".")
-    val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
-    return FrameEvent(parts.last(), slots, frames, packageName)
-}
-
-
-fun buildEntityEvent(key: String, value: String): EntityEvent {
-    return EntityEvent(value=""""$value"""", attribute=key)
-}
-

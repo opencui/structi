@@ -1,9 +1,11 @@
 package io.opencui.du
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import io.opencui.core.EntityEvent
 import io.opencui.core.FrameEvent
 import io.opencui.core.IExtension
 import io.opencui.core.UserSession
+import java.util.*
 
 
 /**
@@ -152,4 +154,113 @@ interface IStateTracker : IExtension {
     }
 }
 
+interface FrameEventProcessor {
+    operator fun invoke(input: FrameEvent) : FrameEvent
+}
 
+class DontCareForPagedSelectable: FrameEventProcessor {
+    override operator fun invoke(event: FrameEvent) : FrameEvent {
+        if (event.type == "PagedSelectable" &&
+            event.slots.size == 1 &&
+            event.slots[0].attribute == "index" &&
+            event.slots[0].value == "\"_DontCare\""
+        ) {
+            return buildFrameEvent(
+                "io.opencui.core.PagedSelectable",
+                listOf(EntityEvent(value = """"1"""", attribute = "index"))
+            )
+        }
+        return event
+    }
+}
+
+/**
+ * When the current active frames contains a skill for the new skill.
+ */
+data class ComponentSkillConverter(
+    val duMeta: DUMeta,
+    val dialogExpectation: DialogExpectations) : FrameEventProcessor {
+
+    private val expectedFrames = dialogExpectation.expectations.map { it.activeFrames }.flatten()
+
+    override fun invoke(p1: FrameEvent): FrameEvent {
+        val matched = expectedFrames.firstOrNull { expectedFrame ->
+            duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
+        }
+
+        return if (matched == null) {
+            return p1
+        } else {
+            val componentSlot = duMeta.getSlotMetas(matched.frame).firstOrNull { it.type == p1.fullType}!!
+            val entityEvents = listOf(
+                buildEntityEvent("compositeSkillName", matched.frame),
+                buildEntityEvent("componentSkillName", componentSlot.type!!)
+            )
+            return buildFrameEvent(IStateTracker.TriggerComponentSkill, entityEvents)
+        }
+    }
+}
+
+/**
+ * BertStateTracker assumes the underlying nlu module is bert based.
+ */
+interface LlmStateTracker: IStateTracker {
+    val agentMeta: DUMeta
+
+    // If there are multi normalizer propose annotation on the same span, last one wins.
+    val normalizers: List<EntityRecognizer>
+    val lang: String
+    val dontCareForPagedSelectable: DontCareForPagedSelectable
+
+    /**
+     * Dialog expectation is used to inform DU module to be sensitive to certain information. This is important
+     * as many expression can mean different things, and use expectation can make understanding a bit easy as
+     * listening can be more focused.
+     * Currently, there are couple different expectations:
+     * 1. expecting a slot.
+     * 2. expecting multi value.
+     * 3. expecting confirmation.
+     * 4. expecting value recommendation.
+     * Of course, we can have combination of these.
+     *
+     * The main goal of this method is taking user utterance and convert that into frame events.
+     * We follow the following process:
+     * 1. find related expressions.
+     * 2. use intent model to rerank the expression candidate and pick the best match and determine the frame.
+     * 3. use slot model to find values for the slot for the given frame.
+     * 4. generate frame events so that dialog engine can process it.
+     *
+     * Assumptions:
+     * 1. We assume that index can be shared by different agent.
+     */
+    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        val res0 = convertImpl(session, putterance, expectations)
+        val res1 = res0.map { dontCareForPagedSelectable(it) }
+        val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
+        val res2 = res1.map { componentSkillConvert(it) }
+        return res2
+    }
+
+    fun buildDUContext(session: UserSession, putterance: String, expectations: DialogExpectations): DUContext {
+        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+
+        val ducontext =
+            DUContext(session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
+        var allNormalizers = normalizers
+        if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
+        if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
+        allNormalizers.recognizeAll(
+            utterance,
+            ducontext.expectedEntityType(agentMeta),
+            ducontext.entityTypeToSpanInfoMap
+        )
+        ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
+        return ducontext
+    }
+
+    fun convertImpl(
+        session: UserSession,
+        putterance: String,
+        expectations: DialogExpectations
+    ): List<FrameEvent>
+}
