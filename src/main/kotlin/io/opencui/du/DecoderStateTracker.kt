@@ -136,7 +136,7 @@ data class DecoderStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    private fun recognizeFrame(ducontext: DUContext): List<ScoredDocument>? {
+    private fun recognizeFrame(ducontext: DuContext): List<ScoredDocument>? {
         // recognize entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
         val utterance = ducontext.utterance
@@ -298,7 +298,7 @@ data class DecoderStateTracker(
     }
 
     // When there is expectation presented.
-    override fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
+    override fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>? {
         val expectations = ducontext.expectations
         logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
@@ -449,7 +449,7 @@ data class DecoderStateTracker(
 
 
     // This need to called if status is expected.
-    private fun handleExpectedBoolean(ducontext: DUContext, valueChoices: List<String>): List<FrameEvent>? {
+    private fun handleExpectedBoolean(ducontext: DuContext, valueChoices: List<String>): List<FrameEvent>? {
         if (ducontext.matchedIn(valueChoices)) {
             return listOf(buildFrameEvent(ducontext.bestCandidate?.label!!))
         }
@@ -471,7 +471,7 @@ data class DecoderStateTracker(
      * fillSlots is used to create entity event.
      */
     private fun fillSlots(
-        ducontext: DUContext,
+        ducontext: DuContext,
         topLevelFrameType: String,
         focusedSlot: String?
     ): List<FrameEvent> {
@@ -483,7 +483,7 @@ data class DecoderStateTracker(
 
     private fun fillSlots(
         slotMap: Map<String, DUSlotMeta>,
-        ducontext: DUContext,
+        ducontext: DuContext,
         topLevelFrameType: String,
         focusedSlot: String?
     ): List<FrameEvent> {
@@ -514,7 +514,7 @@ data class DecoderStateTracker(
     }
 
 
-    private fun fillSlotUpdate(ducontext: DUContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+    private fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
         val slotMapBef = getSlotMetas(IStateTracker.SlotUpdate)
@@ -556,7 +556,7 @@ data class DecoderStateTracker(
      * we extract the frame event rooted for frame type.
      */
     private fun extractEntityEvents(
-        ducontext: DUContext,
+        ducontext: DuContext,
         frameType: String,
         requiredSlotMap: Map<String, DUSlotMeta>,
         expectedSlot: String?,
@@ -605,7 +605,7 @@ data class DecoderStateTracker(
     }
 
     fun extractSlotValues(
-        ducontext: DUContext,
+        ducontext: DuContext,
         expectedSlot: String?,
         slotMap: Map<String, DUSlotMeta>,
         result: UnifiedModelResult
@@ -725,7 +725,7 @@ data class DecoderStateTracker(
     )
 
     fun extractValue(
-        duContext: DUContext,
+        duContext: DuContext,
         slotMeta: DUSlotMeta,
         prediction: SlotPrediction,
         entities: List<SpanInfo>? = null
@@ -823,7 +823,7 @@ data class DecoderStateTracker(
 
 
 
-    private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, ducontext: DUContext, entity: SpanInfo): Float {
+    private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, ducontext: DuContext, entity: SpanInfo): Float {
         var bonus = 0f
         var denominator = 0.0000001f
         // for now, we assume simple unigram model.

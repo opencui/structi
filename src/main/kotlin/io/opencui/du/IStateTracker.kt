@@ -41,7 +41,7 @@ data class ExpectedFrame(
  * This can be used to capture the intermediate result from understanding.
  * So that we can save some effort by avoiding repeated work.
  */
-data class DUContext(
+data class DuContext(
     val session: String,
     val utterance: String,
     val expectations: DialogExpectations = DialogExpectations()) {
@@ -159,7 +159,7 @@ data class DUContext(
     }
 
     companion object {
-        val logger = LoggerFactory.getLogger(DUContext::class.java)
+        val logger = LoggerFactory.getLogger(DuContext::class.java)
     }
 }
 
@@ -373,8 +373,8 @@ interface LlmStateTracker: IStateTracker {
         return res2
     }
 
-    fun buildDUContext(session: UserSession, utterance: String, expectations: DialogExpectations): DUContext {
-        val ducontext = DUContext(
+    fun buildDUContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
+        val ducontext = DuContext(
             session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
         var allNormalizers = normalizers.toMutableList()
         // Session and turn based recognizers
@@ -395,7 +395,7 @@ interface LlmStateTracker: IStateTracker {
         expectations: DialogExpectations
     ): List<FrameEvent>
 
-    fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>?
+    fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>?
 
 
     companion object {

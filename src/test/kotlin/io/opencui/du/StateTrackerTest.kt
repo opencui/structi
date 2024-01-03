@@ -508,7 +508,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(
                 "{=[EntityEvent(value=shanghai, attribute=to), EntityEvent(value=beijing, attribute=from)]}",
                 stateTracker.extractSlotValues(
-                        DUContext("", originalInput).apply {putAll(recognizedEntities)},
+                        DuContext("", originalInput).apply {putAll(recognizedEntities)},
                         "",
                         slotMap,
                         prediction).toString(),
@@ -529,7 +529,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(
                 "{=[EntityEvent(value=beijing, attribute=from)]}",
                 stateTracker.extractSlotValues(
-                        DUContext("", "beijing").apply{ putAll(emap2) },
+                        DuContext("", "beijing").apply{ putAll(emap2) },
                         "from",
                         slotMap,
                         prediction2).toString(),
@@ -541,7 +541,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(
                 "{=[EntityEvent(value=beijing, attribute=to)]}",
                 stateTracker.extractSlotValues(
-                        DUContext( "","beijing").apply {putAll(emap2)},
+                        DuContext( "","beijing").apply {putAll(emap2)},
                         "to",
                         slotMap,
                         prediction2).toString(),
@@ -573,7 +573,7 @@ class StateTrackerTest : DuTestHelper() {
         // expected slot: null
         // with prefix suffix bonus, shanghai should fill from, beijing to
         // should fill both from and to: {from: shanghai, to: beijing}
-        val context = DUContext("", originalInput).apply{putAll(recognizedEntities)}
+        val context = DuContext("", originalInput).apply{putAll(recognizedEntities)}
         context.updateTokens(LanguageAnalyzer.get("en", stop = false)!!.tokenize(originalInput))
         assertEquals(
                 "{=[EntityEvent(value=shanghai, attribute=from), EntityEvent(value=beijing, attribute=to)]}",
@@ -662,7 +662,7 @@ class StateTrackerTest : DuTestHelper() {
     @Test
     fun testSlotModel() {
         val utterance = "march"
-        val ducontext = DUContext("s", utterance, DialogExpectations())
+        val ducontext = DuContext("s", utterance, DialogExpectations())
         val probes = listOf("departure?")
         val predictions = stateTracker.nluModel.predictSlot("en", utterance, probes)
         print("request slot model, utterance: $utterance, probes: $probes")
