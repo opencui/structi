@@ -150,6 +150,11 @@ data class BertStateTracker(
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
+    fun detectFrame(ducontext: DuContext): List<FrameDetection>? {
+        val results = recognizeFrame(ducontext)
+        ducontext.candidates = results
+        return results?.map { FrameDetection(it.ownerFrame) }
+    }
 
     /**
      * There are four different things we can do to improve the implementation here.

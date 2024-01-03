@@ -52,7 +52,7 @@ data class ScoredDocument(var score: Float, val document: Document) {
     // The next two are used for potential exect match.
     var possibleExactMatch: Boolean = false
     var guessedSlot: DUSlotMeta? = null
-    var hasAllSlots: Boolean = true
+
 
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"

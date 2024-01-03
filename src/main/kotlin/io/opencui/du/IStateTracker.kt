@@ -459,3 +459,5 @@ fun buildEntityEvent(key: String, value: String): EntityEvent {
 interface FrameRecognizer {
     operator fun invoke(context: DuContext): List<FrameEvent>?
 }
+
+data class FrameDetection (val ownerFrame: String)
