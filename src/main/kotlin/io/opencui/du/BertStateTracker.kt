@@ -9,6 +9,7 @@ import kotlinx.coroutines.async
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.math.E
 import kotlin.math.max
 import kotlin.math.min
 
@@ -166,7 +167,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    private fun recognizeFrame(ducontext: DuContext): List<ScoredDocument>? {
+    private fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {
         // recognize entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
         val utterance = ducontext.utterance
@@ -241,13 +242,18 @@ data class BertStateTracker(
         return pickDocViaFrames(candidates)
     }
 
-    private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ScoredDocument> {
+    private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ExampledLabel> {
         // Return the best match for each frame.
         val frames : Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
-        return frames.values
+        val exemplars = frames.values
             .map { it.sortedByDescending{it.score}[0] }
             .filter { it.score > intentSureThreshold }
             .sortedByDescending { it.score }
+        return exemplars.map{
+            ExampledLabel(it.ownerFrame, it.typedExpression, it.contextFrame, it.label, it.entailedSlots).apply {
+                guessedSlot = it.guessedSlot
+            }
+        }
     }
 
     private fun dontCareFilter(
@@ -848,7 +854,7 @@ data class BertStateTracker(
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
-    private fun addEntailedSlot(bestCandidate: ScoredDocument?, frameEvents: List<FrameEvent>): List<FrameEvent> {
+    private fun addEntailedSlot(bestCandidate: ExampledLabel?, frameEvents: List<FrameEvent>): List<FrameEvent> {
         if (bestCandidate == null) return frameEvents
         if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
 

@@ -39,13 +39,17 @@ data class ExpectedFrame(
 // This is used to bridge encoder and decoder solution
 data class ExampledLabel(
     val ownerFrame: String,
+    val typedExpression: String,
     val contextFrame: String? = null,
     val label: String? = null,
-    val typedExpression: String?=null) {
-    constructor(owner: String, context: String?, label: String?) : this(owner, context, label,null)
+    val entailedSlots: List<String>) {
 
     // this is used for generic typed slot by bert model.
     var guessedSlot: DUSlotMeta? = null
+
+    fun isCompatible(type: String, packageName: String?) : Boolean {
+        return ownerFrame == "${packageName}.${type}"
+    }
 }
 
 /**
@@ -66,8 +70,8 @@ data class DuContext(
     val emapByCharStart by lazy { convert() }
 
     // for bert based state tracker only.
-    var exemplars : List<ScoredDocument>? = null
-    var bestCandidate : ScoredDocument? = null
+    var exemplars : List<ExampledLabel>? = null
+    var bestCandidate : ExampledLabel? = null
 
     fun convert(): Map<Int, List<Pair<String, Int>>> {
         // create the char end to token end.
