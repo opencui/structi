@@ -503,9 +503,8 @@ data class BertStateTracker(
         topLevelFrameType: String,
         focusedSlot: String?
     ): List<FrameEvent> {
-        val qualifiedSlotNamesInExpr = ducontext.bestCandidate?.slotNames() ?: emptyList()
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr).filter { it.value.triggers.isNotEmpty() }
+        val slotMap = getSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 

@@ -43,6 +43,9 @@ data class ExampledLabel(
     val label: String? = null,
     val typedExpression: String?=null) {
     constructor(owner: String, context: String?, label: String?) : this(owner, context, label,null)
+
+    // this is used for generic typed slot by bert model.
+    var guessedSlot: DUSlotMeta? = null
 }
 
 /**
