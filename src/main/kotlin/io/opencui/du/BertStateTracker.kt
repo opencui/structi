@@ -97,13 +97,13 @@ data class BertStateTracker(
 
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
-
-        ducontext.candidates = recognizeFrame(ducontext)
-        val candidates = ducontext.candidates
+        // this is used to detect frames.
+        detectFrame(ducontext)
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
             // TODO(sean): assuming single intent here.
+            val candidates = ducontext.exemplars
             if (candidates?.size != 1
                 || candidates[0].ownerFrame.startsWith("io.opencui.core")
                 || expectations.isFrameCompatible(candidates[0].ownerFrame)) {
@@ -114,14 +114,14 @@ data class BertStateTracker(
 
         // Now, we have no dialog expectation. There are three different cases:
         // 1. found no candidates. If best candidate is null, return empty list.
-        logger.debug("ducontext: $ducontext : ${ducontext.candidates}" )
-        if (candidates.isNullOrEmpty()) {
+        logger.debug("ducontext: $ducontext : ${ducontext.exemplars}" )
+        if (ducontext.exemplars.isNullOrEmpty()) {
             return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
         }
 
         // 2. found more than one candidate. (currently we do not handle.)
-        if (candidates.size > 1) {
-            val components = ducontext.candidates!!.map {
+        if (ducontext.exemplars != null && ducontext.exemplars!!.size > 1) {
+            val components = ducontext.exemplars!!.map {
                 buildFrameEvent(it.ownerFrame).apply { query = utterance }
             }
 
@@ -131,8 +131,7 @@ data class BertStateTracker(
         }
 
         // 3. found just one candidate. Now we have one best candidate.
-        val bestCandidate = candidates[0]
-        ducontext.bestCandidate = bestCandidate
+        val bestCandidate = ducontext.exemplars!![0]
         logger.debug("Found the best match ${bestCandidate}")
 
         // Of course, there are another dimension: whether we have expectation.
@@ -150,10 +149,8 @@ data class BertStateTracker(
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
-    fun detectFrame(ducontext: DuContext): List<FrameDetection>? {
-        val results = recognizeFrame(ducontext)
-        ducontext.candidates = results
-        return results?.map { FrameDetection(it.ownerFrame) }
+    fun detectFrame(ducontext: DuContext) {
+        ducontext.exemplars = recognizeFrame(ducontext)
     }
 
     /**

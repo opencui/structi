@@ -57,7 +57,7 @@ data class DuContext(
     val emapByCharStart by lazy { convert() }
 
     // for bert based state tracker only.
-    var candidates : List<ScoredDocument>? = null
+    var exemplars : List<ScoredDocument>? = null
     var bestCandidate : ScoredDocument? = null
 
     fun convert(): Map<Int, List<Pair<String, Int>>> {
@@ -91,7 +91,7 @@ data class DuContext(
 
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
-        if (!candidates.isNullOrEmpty()) bestCandidate = candidates!![0]
+        if (!exemplars.isNullOrEmpty()) bestCandidate = exemplars!![0]
         return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
     }
 
