@@ -549,8 +549,32 @@ fun buildEntityEvent(key: String, value: String): EntityEvent {
 // LlmStateTracker always try to recognize frame first, and then slot.
 // We assume the output from recognizer should be taken seriously, or dependable, the quality fix should
 // be inside the recognizer, not patching outside of recognizer.
-interface FrameRecognizer {
-    operator fun invoke(context: DuContext): List<FrameEvent>?
+
+
+
+// return the top k items from the collection.
+fun <T : Comparable<T>> top(k: Int, collection: Iterable<T>): List<IndexedValue<T>> {
+    val topList = ArrayList<IndexedValue<T>>()
+    for ((index, logit) in collection.withIndex()) {
+        if (topList.size < k || logit > topList.last().value) {
+            topList.add(IndexedValue(index, logit))
+            topList.sortByDescending { it.value }
+            if (topList.size > k) {
+                topList.removeAt(k)
+            }
+        }
+    }
+    return topList
 }
 
-data class FrameDetection (val ownerFrame: String)
+fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
+    if (!this.containsKey(key)) {
+        put(key, mutableListOf())
+    }
+    get(key)!!.add(value)
+}
+
+
+interface Resolver {
+    fun resolve(ducontext: DuContext, before: List<ScoredDocument>): List<ScoredDocument>
+}
