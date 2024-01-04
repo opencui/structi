@@ -47,12 +47,13 @@ data class ExpectedFrame(
 data class DuContext(
     val session: String,
     val utterance: String,
-    val expectations: DialogExpectations = DialogExpectations()) {
+    val expectations: DialogExpectations = DialogExpectations(),
+    val duMeta: DUMeta? = null) {
     val entityTypeToSpanInfoMap = mutableMapOf<String, MutableList<SpanInfo>>()
     var tokens : List<BoundToken>? = null
     val previousTokenByChar = mutableMapOf<Int, Int>()
     val nextTokenByChar = mutableMapOf<Int, Int>()
-    var duMeta : DUMeta? = null
+
 
     val emapByCharStart by lazy { convert() }
 
@@ -404,8 +405,7 @@ interface LlmStateTracker: IStateTracker {
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
-        val ducontext = DuContext(
-            session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
+        val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, agentMeta)
         var allNormalizers = normalizers.toMutableList()
         // Session and turn based recognizers
         if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
