@@ -66,89 +66,7 @@ data class BertStateTracker(
     override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
     override val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
-    /**
-     * Dialog expectation is used to inform DU module to be sensitive to certain information. This is important
-     * as many expression can mean different things, and use expectation can make understanding a bit easy as
-     * listening can be more focused.
-     * Currently, there are couple different expectations:
-     * 1. expecting a slot.
-     * 2. expecting multi value.
-     * 3. expecting confirmation.
-     * 4. expecting value recommendation.
-     * Of course, we can have combination of these.
-     *
-     * The main goal of this method is taking user utterance and convert that into frame events.
-     * We follow the following process:
-     * 1. find related expressions.
-     * 2. use intent model to rerank the expression candidate and pick the best match and determine the frame.
-     * 3. use slot model to find values for the slot for the given frame.
-     * 4. generate frame events so that dialog engine can process it.
-     *
-     * Assumptions:
-     * 1. We assume that index can be shared by different agent.
-     */
-    override fun convertImpl(
-        session: UserSession,
-        utterance: String,
-        expectations: DialogExpectations
-    ): List<FrameEvent> {
 
-        val ducontext = buildDuContext(session, utterance, expectations)
-
-        // TODO: support multiple intention in one utterance, abstractively.
-        // Find best matched frame, assume one intention in one utterance.
-        // this is used to detect frames.
-        ducontext.exemplars = recognizeFrame(ducontext)
-
-        // What happens if there are expectations.
-        if (expectations.activeFrames.isNotEmpty()) {
-            // TODO(sean): assuming single intent here.
-            val candidates = ducontext.exemplars
-            if (candidates?.size != 1
-                || candidates[0].ownerFrame.startsWith("io.opencui.core")
-                || expectations.isFrameCompatible(candidates[0].ownerFrame)
-            ) {
-                val events = convertWithExpectation(ducontext)
-                if (events != null) return events
-            }
-        }
-
-        // Now, we have no dialog expectation. There are three different cases:
-        // 1. found no candidates. If best candidate is null, return empty list.
-        logger.debug("ducontext: $ducontext : ${ducontext.exemplars}")
-        if (ducontext.exemplars.isNullOrEmpty()) {
-            return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
-        }
-
-        // 2. found more than one candidate. (currently we do not handle.)
-        if (ducontext.exemplars != null && ducontext.exemplars!!.size > 1) {
-            val components = ducontext.exemplars!!.map {
-                buildFrameEvent(it.ownerFrame).apply { query = utterance }
-            }
-
-            // This return the raw frame event, we need to figure out a way to parse it one more time.
-            // We may need a new api for this, otherwise, we will waste some parsing of utterance.
-            return listOf(buildFrameEvent("io.opencui.core.IntentClarification", listOf(), components))
-        }
-
-        // 3. found just one candidate. Now we have one best candidate.
-        val bestCandidate = ducontext.exemplars!![0]
-        logger.debug("Found the best match ${bestCandidate}")
-
-        // Of course, there are another dimension: whether we have expectation.
-        val recognizedFrameType: String = bestCandidate.ownerFrame
-        logger.debug("best matched frame: $recognizedFrameType, utterance: ${bestCandidate.typedExpression}")
-        if (recognizedFrameType.isNotEmpty()) {
-            // 6. matched a new intent
-            var extractedEvents = fillSlots(ducontext, recognizedFrameType, null)
-            if (extractedEvents.isEmpty()) {
-                extractedEvents += buildFrameEvent(recognizedFrameType)
-            }
-            extractedEvents = addEntailedSlot(bestCandidate, extractedEvents)
-            return extractedEvents
-        }
-        return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
-    }
 
     /**
      * There are four different things we can do to improve the implementation here.
@@ -163,7 +81,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    private fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {
+    override fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {
         // recognize entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
         val utterance = ducontext.utterance
@@ -496,11 +414,7 @@ data class BertStateTracker(
     /**
      * fillSlots is used to create entity event.
      */
-    private fun fillSlots(
-        ducontext: DuContext,
-        topLevelFrameType: String,
-        focusedSlot: String?
-    ): List<FrameEvent> {
+    override fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val slotMap = getSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
@@ -848,7 +762,7 @@ data class BertStateTracker(
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
-    private fun addEntailedSlot(bestCandidate: ExampledLabel?, frameEvents: List<FrameEvent>): List<FrameEvent> {
+    override fun addEntailedSlot(bestCandidate: ExampledLabel?, frameEvents: List<FrameEvent>): List<FrameEvent> {
         if (bestCandidate == null) return frameEvents
         if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
 
