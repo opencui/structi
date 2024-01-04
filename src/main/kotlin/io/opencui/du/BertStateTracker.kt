@@ -229,11 +229,6 @@ data class BertStateTracker(
             logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
         }
 
-        // now we pick the best one to operate on (why is this not used).
-        // val iIndex = candidates.withIndex().maxByOrNull { it.value.score }!!.index
-        // val bestCandidate = candidates[iIndex]
-        // logger.debug("[recognizeFrame convert] best candidate: ${bestCandidate.typedExpression}")
-
         // We might need to consider return multiple possibilities if there is no exact match.
         return pickDocViaFrames(candidates)
     }
