@@ -57,11 +57,6 @@ data class IntentModelResult(val probs: List<Float>) {
     }
 }
 
-data class ClassificationResults(
-    val probs: List<Float>) {
-    val size: Int = probs.size
-}
-
 
 /**
  * This is api that current nlu model provide. But we should expose more kotlin friendly
