@@ -71,7 +71,8 @@ data class DuContext(
 
     // for bert based state tracker only.
     var exemplars : List<ExampledLabel>? = null
-    var bestCandidate : ExampledLabel? = null
+    val bestCandidate : ExampledLabel?
+        get() = exemplars?.get(0)
 
     fun convert(): Map<Int, List<Pair<String, Int>>> {
         // create the char end to token end.
@@ -104,7 +105,6 @@ data class DuContext(
 
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
-        if (!exemplars.isNullOrEmpty()) bestCandidate = exemplars!![0]
         return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
     }
 
