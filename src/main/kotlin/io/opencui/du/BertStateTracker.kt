@@ -9,7 +9,6 @@ import kotlinx.coroutines.async
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.math.E
 import kotlin.math.max
 import kotlin.math.min
 
@@ -99,7 +98,7 @@ data class BertStateTracker(
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
         // this is used to detect frames.
-        detectFrame(ducontext)
+        ducontext.exemplars = recognizeFrame(ducontext)
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
@@ -107,7 +106,8 @@ data class BertStateTracker(
             val candidates = ducontext.exemplars
             if (candidates?.size != 1
                 || candidates[0].ownerFrame.startsWith("io.opencui.core")
-                || expectations.isFrameCompatible(candidates[0].ownerFrame)) {
+                || expectations.isFrameCompatible(candidates[0].ownerFrame)
+            ) {
                 val events = convertWithExpectation(ducontext)
                 if (events != null) return events
             }
@@ -115,7 +115,7 @@ data class BertStateTracker(
 
         // Now, we have no dialog expectation. There are three different cases:
         // 1. found no candidates. If best candidate is null, return empty list.
-        logger.debug("ducontext: $ducontext : ${ducontext.exemplars}" )
+        logger.debug("ducontext: $ducontext : ${ducontext.exemplars}")
         if (ducontext.exemplars.isNullOrEmpty()) {
             return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
         }
@@ -150,10 +150,6 @@ data class BertStateTracker(
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
-    fun detectFrame(ducontext: DuContext) {
-        ducontext.exemplars = recognizeFrame(ducontext)
-    }
-
     /**
      * There are four different things we can do to improve the implementation here.
      * 1. implement the intent clarification so that we can resolve the ambiguity.
@@ -184,9 +180,9 @@ data class BertStateTracker(
 
         // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
-        candidates.map{ matcher.markMatch(it) }
-        val exactMatches = candidates.filter {it.exactMatch}
-        exactMatches.map{ it.score += 2.0f }
+        candidates.map { matcher.markMatch(it) }
+        val exactMatches = candidates.filter { it.exactMatch }
+        exactMatches.map { it.score += 2.0f }
         if (exactMatches.isNotEmpty()) {
             return pickDocViaFrames(exactMatches)
         }
@@ -233,10 +229,10 @@ data class BertStateTracker(
             logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
         }
 
-        // now we pick the best one to operate on.
-        val iIndex = candidates.withIndex().maxByOrNull { it.value.score }!!.index
-        val bestCandidate = candidates[iIndex]
-        logger.debug("[recognizeFrame convert] best candidate: ${bestCandidate.typedExpression}")
+        // now we pick the best one to operate on (why is this not used).
+        // val iIndex = candidates.withIndex().maxByOrNull { it.value.score }!!.index
+        // val bestCandidate = candidates[iIndex]
+        // logger.debug("[recognizeFrame convert] best candidate: ${bestCandidate.typedExpression}")
 
         // We might need to consider return multiple possibilities if there is no exact match.
         return pickDocViaFrames(candidates)
@@ -244,12 +240,12 @@ data class BertStateTracker(
 
     private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ExampledLabel> {
         // Return the best match for each frame.
-        val frames : Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
+        val frames: Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
         val exemplars = frames.values
-            .map { it.sortedByDescending{it.score}[0] }
+            .map { it.sortedByDescending { it.score }[0] }
             .filter { it.score > intentSureThreshold }
             .sortedByDescending { it.score }
-        return exemplars.map{
+        return exemplars.map {
             ExampledLabel(it.ownerFrame, it.typedExpression, it.contextFrame, it.label, it.entailedSlots).apply {
                 guessedSlot = it.guessedSlot
             }
@@ -325,7 +321,7 @@ data class BertStateTracker(
                 }
             }
         }
-        
+
         // include all the required slot matas.
         for (slot in required) {
             slotsMetaMap[slot]?.isMentioned = true
@@ -421,7 +417,8 @@ data class BertStateTracker(
                         return fillSlotUpdate(ducontext, targetEntitySlot)
                     } else {
                         // This find the headed frame slot.
-                        val targetFrameType = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
+                        val targetFrameType =
+                            partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
                         val targetEntitySlot = agentMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
                         return fillSlotUpdate(ducontext, targetEntitySlot)
                     }
@@ -477,7 +474,7 @@ data class BertStateTracker(
 
         val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
         // now we need to figure out whether active Frame as a frame slot of this time.
-        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter {it.type == spanTargetFrame}
+        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter { it.type == spanTargetFrame }
         return spanTargetFrameHasHead && matchedFrameSlots.size == 1
     }
 
@@ -538,7 +535,8 @@ data class BertStateTracker(
         if (result.isEmpty()) return result
         return if (result.find {
                 topLevelFrameType.startsWith(it.packageName!!) && topLevelFrameType.endsWith(it.type)
-                        || it.packageName == "io.opencui.core"} != null) {
+                        || it.packageName == "io.opencui.core"
+            } != null) {
             result
         } else {
             // Make sure that we have at least one topLevelFrameType
@@ -559,7 +557,8 @@ data class BertStateTracker(
             if (slotMeta.isGenericTyped()) {
                 // NOTE: assume the pattern for generated type is <T>
                 val targetTrigger = targetSlot.triggers[0]
-                val newTriggers = slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger)}
+                val newTriggers =
+                    slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger) }
                 slotMapTransformed[key] = slotMeta.typeReplaced(targetSlot.type!!, newTriggers)
             } else {
                 slotMapTransformed[key] = slotMeta
@@ -880,6 +879,7 @@ data class BertStateTracker(
 
     companion object : ExtensionBuilder<IStateTracker> {
         val logger = LoggerFactory.getLogger(BertStateTracker::class.java)
+
         // TODO(sean): make sure entity side return this as label for DONTCARE
         const val DONTCARE = "DontCare"
         override fun invoke(p1: Configuration): IStateTracker {
