@@ -148,6 +148,8 @@ data class DecoderStateTracker(
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
     override fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {
+        // TODO(sean): how do we resolve the type for generic type?
+
         // recognized entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
         val utterance = ducontext.utterance
@@ -176,44 +178,20 @@ data class DecoderStateTracker(
             return possibleExactMatches.map{ it as ExampledLabel }
         }
 
-        // now get the model score the similarity between each candidate and user utterance.
-        // TODO: add resolve to simplify the model matching, ideally do matching in two different steps.
-        // one with replacement, one without replacement, like what we do right now.
-        val rcandidates = SlotTypeResolver.resolve(ducontext, candidates)
-        val probes = rcandidates.map { it.probes(agentMeta) }
-        logger.debug("intent model, utterance: $utterance, probes: $probes")
-        val intentResults = nluModel.predictIntent(lang, utterance, probes)
-
-        if (intentResults == null) {
-            logger.info("Did not get any return from NLU server => do not understand.")
-            return null
-        }
-
-        logger.info(intentResults.toString())
-        for (i in 0 until intentResults.size) {
-            candidates[i].score = intentResults[i].prob
-            if (!ducontext.containsAllEntityNeeded(candidates[i].slotTypes, agentMeta)) {
-                candidates[i].score = 0f
-                candidates[i].exactMatch = false
-            }
-            logger.debug("[recognizeFrame] Candidate: ${probes[i]}, yProb: ${intentResults[i].prob} after: ${candidates[i].score}")
-        }
-
         // now find the intent best explain the utterance
         // First we check whether we know enough about
-        val goodCandidatesSize = candidates.filter { it.score > intentSureThreshold }.size
-        if (goodCandidatesSize <= 0) {
+        if (candidates.isEmpty()) {
             logger.debug("Got no match for ${utterance}.")
             return null
         }
 
         // TODO: another choice is to return here and ask user to choose one interpretation.
-        if (goodCandidatesSize > 1) {
+        if (candidates.size > 1) {
             logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
         }
-
+0l
         // We might need to consider return multiple possibilities if there is no exact match.
-        return candidates
+        return candidates.map {it as ExampledLabel }
     }
 
 
@@ -223,39 +201,6 @@ data class DecoderStateTracker(
 
     private fun notEnding(segments: List<String>, index: Int): Boolean {
         return index + 1 < segments.size && segments[index + 1].startsWith("##")
-    }
-
-    /**
-     * Required slot names can be in the form of a.b.c, which will not be in getSlotMeta. So we need
-     * to handle these. For now, we assume all the top level slots are also required. This assumption
-     * can be changed down the road.
-     */
-    private fun getSlotMetas(
-        frame: String,
-        required: List<String> = emptyList()
-    ): Map<String, DUSlotMeta> {
-        // Including all the top level slots.
-        val slotsMetaMap = agentMeta.getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
-
-        // We will test the nested slot at the top level, note that only handles the ones has head.
-        for (slot in slotsMetaMap.keys.toList()) {
-            val slotMeta = agentMeta.getSlotMeta(frame, slot)
-            if (slotMeta != null) {
-                val nestedMetas = agentMeta.getSlotMetas(slotMeta.type!!)
-                for (nestedSlotMeta in nestedMetas) {
-                    if (nestedSlotMeta.isHead) {
-                        // What we need here to create the SlotMeta, based on the Outside meta,
-                        slotsMetaMap["$slot.${nestedSlotMeta.label}"] = nestedSlotMeta
-                    }
-                }
-            }
-        }
-
-        // include all the required slot matas.
-        for (slot in required) {
-            slotsMetaMap[slot]?.isMentioned = true
-        }
-        return slotsMetaMap
     }
 
     // When there is expectation presented.
@@ -432,7 +377,8 @@ data class DecoderStateTracker(
      */
     override fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = getSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
+        val slotMap = // Including all the top level slots.
+        agentMeta.getNestedSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
@@ -473,7 +419,8 @@ data class DecoderStateTracker(
     private fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotMapBef = getSlotMetas(IStateTracker.SlotUpdate)
+        val slotMapBef =         // Including all the top level slots.
+            agentMeta.getNestedSlotMetas(IStateTracker.SlotUpdate)
         val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
 
         // we need to rewrite the slot map to replace all the T into actual slot type.

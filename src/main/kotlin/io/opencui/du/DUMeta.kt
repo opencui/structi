@@ -215,6 +215,35 @@ interface DUMeta : ExtractiveMeta {
     }
 }
 
+// Use extension
+fun DUMeta.getNestedSlotMetas(
+        frame: String,
+        required: List<String> = emptyList()
+    ): Map<String, DUSlotMeta> {
+        // Including all the top level slots.
+        val slotsMetaMap = getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
+
+        // We will test the nested slot at the top level, note that only handles the ones has head.
+        for (slot in slotsMetaMap.keys.toList()) {
+            val slotMeta = getSlotMeta(frame, slot)
+            if (slotMeta != null) {
+                val nestedMetas = getSlotMetas(slotMeta.type!!)
+                for (nestedSlotMeta in nestedMetas) {
+                    if (nestedSlotMeta.isHead) {
+                        // What we need here to create the SlotMeta, based on the Outside meta,
+                        slotsMetaMap["$slot.${nestedSlotMeta.label}"] = nestedSlotMeta
+                    }
+                }
+            }
+        }
+
+        // include all the required slot matas.
+        for (slot in required) {
+            slotsMetaMap[slot]?.isMentioned = true
+        }
+        return slotsMetaMap
+    }
+
 fun DUMeta.getSlotMeta(frame:String, pslots:String) : DUSlotMeta? {
     // We can handle the nested slots if we need to.
     val slots = pslots.split(".")

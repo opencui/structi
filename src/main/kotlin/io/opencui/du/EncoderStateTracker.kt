@@ -392,27 +392,7 @@ data class BertStateTracker(
         required: List<String> = emptyList()
     ): Map<String, DUSlotMeta> {
         // Including all the top level slots.
-        val slotsMetaMap = agentMeta.getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
-
-        // We will test the nested slot at the top level, note that only handles the ones has head.
-        for (slot in slotsMetaMap.keys.toList()) {
-            val slotMeta = agentMeta.getSlotMeta(frame, slot)
-            if (slotMeta != null) {
-                val nestedMetas = agentMeta.getSlotMetas(slotMeta.type!!)
-                for (nestedSlotMeta in nestedMetas) {
-                    if (nestedSlotMeta.isHead) {
-                        // What we need here to create the SlotMeta, based on the Outside meta,
-                        slotsMetaMap["$slot.${nestedSlotMeta.label}"] = nestedSlotMeta
-                    }
-                }
-            }
-        }
-
-        // include all the required slot matas.
-        for (slot in required) {
-            slotsMetaMap[slot]?.isMentioned = true
-        }
-        return slotsMetaMap
+        return agentMeta.getNestedSlotMetas(frame, required)
     }
 
     // When there is expectation presented.
