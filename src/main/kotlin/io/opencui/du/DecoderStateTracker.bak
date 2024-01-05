@@ -155,10 +155,10 @@ data class DecoderStateTracker(
 
         // We assume true/false or null here.
         val pcandidates = nluService.detectSkills(utterance, expectations)
-        val candidates: List<ScoredDocument> = ChainedExampledLabelsTransformer(
+        val candidates = ChainedExampledLabelsTransformer(
             DontCareTransformer(ducontext.expectations),
             StatusTransformer(ducontext.expectations)
-        ).invoke(pcandidates).mapNotNull { it as? ScoredDocument }
+        ).invoke(pcandidates)
 
 
         // Do we really need this?
@@ -166,15 +166,14 @@ data class DecoderStateTracker(
         val matcher = NestedMatcher(ducontext)
         candidates.map { matcher.markMatch(it) }
         val exactMatches = candidates.filter { it.exactMatch }
-        exactMatches.map { it.score += 2.0f }
         if (exactMatches.isNotEmpty()) {
-            return pickDocViaFrames(exactMatches)
+            return exactMatches.map{ it as ExampledLabel }
         }
 
         // If we have potential exact match, we use that as well.
         val possibleExactMatches = candidates.filter { it.possibleExactMatch }
         if (possibleExactMatches.isNotEmpty()) {
-            return pickDocViaFrames(possibleExactMatches)
+            return possibleExactMatches.map{ it as ExampledLabel }
         }
 
         // now get the model score the similarity between each candidate and user utterance.
@@ -214,56 +213,7 @@ data class DecoderStateTracker(
         }
 
         // We might need to consider return multiple possibilities if there is no exact match.
-        return pickDocViaFrames(candidates)
-    }
-
-    private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ExampledLabel> {
-        // Return the best match for each frame.
-        val frames: Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
-        val exemplars = frames.values
-            .map { it.sortedByDescending { it.score }[0] }
-            .filter { it.score > intentSureThreshold }
-            .sortedByDescending { it.score }
-        return exemplars.map {
-            ExampledLabel(it.ownerFrame, it.typedExpression, it.contextFrame, it.label, it.entailedSlots).apply {
-                guessedSlot = it.guessedSlot
-            }
-        }
-    }
-
-    private fun dontCareFilter(
-        pcandidates: List<ScoredDocument>,
-        expectations: DialogExpectations
-    ): List<ScoredDocument> {
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ScoredDocument>()
-        val dontcare = expectations.allowDontCare()
-        for (doc in pcandidates) {
-            // DontCare phrase should only be useful when there don't care is expected.
-            if (doc.ownerFrame == "io.opencui.core.DontCare") {
-                if (dontcare) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-
-    private fun statusFilter(
-        pcandidates: List<ScoredDocument>,
-        expectations: DialogExpectations
-    ): List<ScoredDocument> {
-        val frames = expectations.activeFrames.map { it.frame }.toSet()
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ScoredDocument>()
-        for (doc in pcandidates) {
-            if (doc.ownerFrame in IStateTracker.IStatusSet) {
-                if (doc.ownerFrame in frames) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
+        return candidates
     }
 
 

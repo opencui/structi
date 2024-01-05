@@ -59,7 +59,7 @@ object SlotTypeResolver : Resolver {
                             }
                         }
                     }
-                    val newDoc = ScoredDocument(document.score, document.document)
+                    val newDoc = document.clone() as ScoredDocument
                     newDoc.typedExpression = stringBuilder.toString()
                     output.add(newDoc)
                 }

@@ -37,8 +37,8 @@ import kotlin.collections.ArrayList
  * if context is not null, and target is not same, we can deal with case for confirmation.
  */
 
-data class ScoredDocument(var score: Float, val document: Document) : ContextedExemplar {
-    val utterance: String = document.getField(UTTERANCE).stringValue()
+data class ScoredDocument(override var score: Float, val document: Document) : ContextedExemplar {
+    override val utterance: String = document.getField(UTTERANCE).stringValue()
     override var typedExpression: String = document.getField(EXPRESSION).stringValue()
     override val ownerFrame: String = document.getField(OWNER).stringValue()
     override val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
@@ -52,7 +52,7 @@ data class ScoredDocument(var score: Float, val document: Document) : ContextedE
     // The next two are used for potential exect match.
     override var possibleExactMatch: Boolean = false
     override var guessedSlot: DUSlotMeta? = null
-
+    override fun clone(): ContextedExemplar { return this.copy() }
 
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"

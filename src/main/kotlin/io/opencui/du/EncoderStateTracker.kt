@@ -368,7 +368,7 @@ data class BertStateTracker(
             .filter { it.score > intentSureThreshold }
             .sortedByDescending { it.score }
         return exemplars.map {
-            ExampledLabel(it.ownerFrame, it.typedExpression, it.contextFrame, it.label, it.entailedSlots).apply {
+            ExampledLabel(it.utterance, it.ownerFrame, it.entailedSlots, it.contextFrame, it.label).apply {
                 guessedSlot = it.guessedSlot
             }
         }
