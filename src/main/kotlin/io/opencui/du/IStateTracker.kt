@@ -521,7 +521,7 @@ interface LlmStateTracker: IStateTracker {
     fun handleExpectations(ducontext: DuContext): List<FrameEvent>?
 
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent>
-
+    fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent>
 
     // At the frameevent level, we can reuse standard implementation.
     // given a list of frame event, add the entailed slots to the right frame event.
@@ -543,8 +543,6 @@ interface LlmStateTracker: IStateTracker {
         }
         return events
     }
-
-    fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent>
 
     companion object {
         val logger = LoggerFactory.getLogger(LlmStateTracker::class.java)
