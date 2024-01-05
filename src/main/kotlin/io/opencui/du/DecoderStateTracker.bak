@@ -28,6 +28,13 @@ enum class DugMode {
     SEGMENT
 }
 
+enum class BinaryResult {
+    TRUE,
+    FALSE,
+    DONTCARE,
+    IRRELEVANT
+}
+
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -36,17 +43,11 @@ enum class DugMode {
  *
  * The encoder model works the same way, except the retrieval is done in the Kotlin side.
  */
-interface PromptService {
-    fun buildSkillPrompts(utterance: String): List<String>
-    fun buildSlotPrompts(utterance: String, slots: List<DUSlotMeta>): List<String>
-    fun buildYniPrompts(utterance: String, questions: String): List<String>
-}
 
+// Most likely, the agent dependent nlu and fine-tuned decoder are co-located, so it is better to
+// hide that from user.
 
-interface Generator {
-    fun generate(rompts: List<String>, mode: DugMode): List<String>
-}
-data class RestPromptService(val url: String): PromptService {
+data class RestNluService(val url: String) {
     data class TfRestPayload(val utterance: String, val probes: List<String>)
     data class TfRestRequest(val signature_name: String, val inputs: TfRestPayload)
     val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)
@@ -100,34 +101,27 @@ data class RestPromptService(val url: String): PromptService {
         val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
     }
 
-    override fun buildSkillPrompts(utterance: String): List<String> {
+    fun detectSkills(utterance: String, expectations: DialogExpectations): List<ExampledLabel> {
         TODO("Not yet implemented")
     }
 
-    override fun buildSlotPrompts(utterance: String, slots: List<DUSlotMeta>): List<String> {
+    fun fillSlots(utterance: String, frame: String): List<FrameEvent> {
         TODO("Not yet implemented")
     }
 
-    override fun buildYniPrompts(utterance: String, questions: String): List<String> {
+    fun yesNoInference(utterance: String, questions: String): BinaryResult {
         TODO("Not yet implemented")
     }
 }
 
 
-data class RestGenerator(val url: String): Generator {
-    override fun generate(rompts: List<String>, mode: DugMode): List<String> {
-        TODO("Not yet implemented")
-    }
-
-}
 
 /**
  * DecoderStateTracker assumes the underlying nlu module ended with decoder, or support .
  */
 data class DecoderStateTracker(
     override val agentMeta: DUMeta,
-    val generationServiceUrl: String,
-    val promptServiceUrl: String,
+    val nluServiceUrl: String,
     val intentK: Int = 32,
     val slotValueK: Int = 3,
     val intentSureThreshold: Float = 0.5f,
@@ -142,11 +136,7 @@ data class DecoderStateTracker(
 
     // If there are multi normalizer propose annotation on the same span, last one wins.
     override val normalizers = defaultRecognizers(agentMeta)
-    val generator: Generator = RestGenerator(generationServiceUrl)
-    val promptService: PromptService = RestPromptService(promptServiceUrl)
-
-    val nluModel: NLUModel = TfRestBertNLUModel()
-    private val searcher = ExpressionSearcher(agentMeta)
+    val nluService = RestNluService(nluServiceUrl)
 
     override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
     override val dontCareForPagedSelectable = DontCareForPagedSelectable()
@@ -163,16 +153,8 @@ data class DecoderStateTracker(
         val utterance = ducontext.utterance
         val expectations = ducontext.expectations
 
-        // First we get the prompts for skills from prompt service.
-        val skillPrompts = promptService.buildSkillPrompts(utterance)
-
-        if (skillPrompts.isEmpty()) {
-            logger.debug("find no expression match for $utterance")
-            return null
-        }
-
         // We assume true/false or null here.
-        val results = generator.generate(skillPrompts, DugMode.SKILL)
+        val pcandidates = nluService.detectSkills(utterance, expectations)
         val candidates = ChainedExampledLabelsTransformer(
             listOf(DontCareTransformer(ducontext.expectations), StatusTransformer(ducontext.expectations))
         ).invoke(pcandidates)

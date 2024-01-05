@@ -38,14 +38,18 @@ data class ExpectedFrame(
 
 // This is used to bridge encoder and decoder solution
 data class ExampledLabel(
-    val ownerFrame: String,
-    val typedExpression: String,
-    val contextFrame: String? = null,
-    val label: String? = null,
-    val entailedSlots: List<String>) {
+    override val ownerFrame: String,
+    override var typedExpression: String,
+    override val contextFrame: String? = null,
+    override val label: String? = null,
+    override val entailedSlots: List<String>) : ContextedExemplar {
+
+    // for now, we keep it as the last resort.
+    override var exactMatch: Boolean = false
+    override var possibleExactMatch: Boolean = false
 
     // this is used for generic typed slot by bert model.
-    var guessedSlot: DUSlotMeta? = null
+    override var guessedSlot: DUSlotMeta? = null
 
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"
@@ -582,13 +586,13 @@ interface Resolver {
 
 
 interface ExampledLabelsTransformer {
-    operator fun invoke(origin: List<ExampledLabel>): List<ExampledLabel>
+    operator fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar>
 }
 
 data class DontCareTransformer(val expectations: DialogExpectations): ExampledLabelsTransformer {
-    override fun invoke(pcandidates: List<ExampledLabel>): List<ExampledLabel> {
+    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
         // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ExampledLabel>()
+        val results = mutableListOf<ContextedExemplar>()
         val dontcare = expectations.allowDontCare()
         for (doc in pcandidates) {
             // DontCare phrase should only be useful when there don't care is expected.
@@ -603,10 +607,10 @@ data class DontCareTransformer(val expectations: DialogExpectations): ExampledLa
 }
 
 data class StatusTransformer(val expectations: DialogExpectations): ExampledLabelsTransformer {
-    override fun invoke(pcandidates: List<ExampledLabel>): List<ExampledLabel> {
+    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
         val frames = expectations.activeFrames.map { it.frame }.toSet()
         // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ExampledLabel>()
+        val results = mutableListOf<ContextedExemplar>()
         for (doc in pcandidates) {
             if (doc.ownerFrame in IStateTracker.IStatusSet) {
                 if (doc.ownerFrame in frames) results.add(doc)
@@ -619,7 +623,7 @@ data class StatusTransformer(val expectations: DialogExpectations): ExampledLabe
 }
 
 data class ChainedExampledLabelsTransformer(val transformers: List<ExampledLabelsTransformer>) : ExampledLabelsTransformer {
-    override fun invoke(origin: List<ExampledLabel>): List<ExampledLabel> {
+    override fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar> {
         var current = origin
         for( transform in transformers) {
             current = transform(current)
