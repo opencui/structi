@@ -131,10 +131,15 @@ data class DecoderStateTracker(
 
     override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
     override val dontCareForPagedSelectable = DontCareForPagedSelectable()
-    
+
+    // Eventually we should use this new paradigm.
+    // First, we detect triggereables this should imply skill understanding.
+    // then we first handle the expectation
+    // then we fill the slot.
+
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {
+    override fun recognizeTriggerables(ducontext: DuContext): List<ExampledLabel>? {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance
@@ -176,14 +181,19 @@ data class DecoderStateTracker(
         if (candidates.size > 1) {
             logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
         }
-0l
+
         // We might need to consider return multiple possibilities if there is no exact match.
         return candidates.map {it as ExampledLabel }
     }
 
     // When there is expectation presented.
-    override fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>? {
+    override fun handleExpectations(ducontext: DuContext): List<FrameEvent>? {
+        val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
+        if (candidates?.size == 1
+            && !agentMeta.isSystemFrame(candidates[0].ownerFrame)
+            && !expectations.isFrameCompatible(candidates[0].ownerFrame)) return null
+
         logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
                 ducontext.matchedIn(
@@ -358,6 +368,10 @@ data class DecoderStateTracker(
             .getNestedSlotMetas(topLevelFrameType, emptyList())
             .filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
+    }
+
+    override fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+        TODO("Not yet implemented")
     }
 
     private fun fillSlots(

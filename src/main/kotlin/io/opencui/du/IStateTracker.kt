@@ -470,11 +470,11 @@ interface LlmStateTracker: IStateTracker {
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
         // this is used to detect frames.
-        ducontext.exemplars = recognizeFrame(ducontext)
+        ducontext.exemplars = recognizeTriggerables(ducontext)
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
-            val events = convertWithExpectation(ducontext)
+            val events = handleExpectations(ducontext)
             if (events != null) return events
         }
 
@@ -515,9 +515,11 @@ interface LlmStateTracker: IStateTracker {
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
+    // This is used to recognize the triggerable skills.
+    fun recognizeTriggerables(ducontext: DuContext): List<ExampledLabel>?
 
-    fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>?
-    fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>?
+    fun handleExpectations(ducontext: DuContext): List<FrameEvent>?
+
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent>
 
 
@@ -542,6 +544,7 @@ interface LlmStateTracker: IStateTracker {
         return events
     }
 
+    fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent>
 
     companion object {
         val logger = LoggerFactory.getLogger(LlmStateTracker::class.java)

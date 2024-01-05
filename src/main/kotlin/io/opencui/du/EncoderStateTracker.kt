@@ -288,7 +288,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {
+    override fun recognizeTriggerables(ducontext: DuContext): List<ExampledLabel>? {
         // recognize entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
         val utterance = ducontext.utterance
@@ -383,7 +383,7 @@ data class BertStateTracker(
     }
 
     // When there is expectation presented.
-    override fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>? {
+    override fun handleExpectations(ducontext: DuContext): List<FrameEvent>? {
         val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
         if (candidates?.size == 1
@@ -600,7 +600,7 @@ data class BertStateTracker(
     }
 
 
-    private fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+    override fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
         val slotMapBef =         // Including all the top level slots.
