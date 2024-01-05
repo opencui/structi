@@ -155,9 +155,10 @@ data class DecoderStateTracker(
 
         // We assume true/false or null here.
         val pcandidates = nluService.detectSkills(utterance, expectations)
-        val candidates = ChainedExampledLabelsTransformer(
-            listOf(DontCareTransformer(ducontext.expectations), StatusTransformer(ducontext.expectations))
-        ).invoke(pcandidates)
+        val candidates: List<ScoredDocument> = ChainedExampledLabelsTransformer(
+            DontCareTransformer(ducontext.expectations),
+            StatusTransformer(ducontext.expectations)
+        ).invoke(pcandidates).mapNotNull { it as? ScoredDocument }
 
 
         // Do we really need this?

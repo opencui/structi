@@ -51,6 +51,7 @@ data class ExampledLabel(
     // this is used for generic typed slot by bert model.
     override var guessedSlot: DUSlotMeta? = null
 
+
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"
     }
@@ -585,11 +586,11 @@ interface Resolver {
 }
 
 
-interface ExampledLabelsTransformer {
+interface ContextedExemplarsTransformer {
     operator fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar>
 }
 
-data class DontCareTransformer(val expectations: DialogExpectations): ExampledLabelsTransformer {
+data class DontCareTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
     override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
         // filter out the dontcare candidate if no dontcare is expected.
         val results = mutableListOf<ContextedExemplar>()
@@ -606,7 +607,7 @@ data class DontCareTransformer(val expectations: DialogExpectations): ExampledLa
     }
 }
 
-data class StatusTransformer(val expectations: DialogExpectations): ExampledLabelsTransformer {
+data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
     override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
         val frames = expectations.activeFrames.map { it.frame }.toSet()
         // filter out the dontcare candidate if no dontcare is expected.
@@ -622,7 +623,9 @@ data class StatusTransformer(val expectations: DialogExpectations): ExampledLabe
     }
 }
 
-data class ChainedExampledLabelsTransformer(val transformers: List<ExampledLabelsTransformer>) : ExampledLabelsTransformer {
+data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
+    constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
+
     override fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar> {
         var current = origin
         for( transform in transformers) {

@@ -300,8 +300,10 @@ data class BertStateTracker(
             return null
         }
 
-        val candidates0 = dontCareFilter(pcandidates, expectations)
-        val candidates = statusFilter(candidates0, expectations)
+        val candidates: List<ScoredDocument> = ChainedExampledLabelsTransformer(
+            DontCareTransformer(ducontext.expectations),
+            StatusTransformer(ducontext.expectations)
+        ).invoke(pcandidates).map { it as ScoredDocument }
 
         // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
@@ -371,42 +373,6 @@ data class BertStateTracker(
             }
         }
     }
-
-    private fun dontCareFilter(
-        pcandidates: List<ScoredDocument>,
-        expectations: DialogExpectations
-    ): List<ScoredDocument> {
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ScoredDocument>()
-        val dontcare = expectations.allowDontCare()
-        for (doc in pcandidates) {
-            // DontCare phrase should only be useful when there don't care is expected.
-            if (doc.ownerFrame == "io.opencui.core.DontCare") {
-                if (dontcare) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-
-    private fun statusFilter(
-        pcandidates: List<ScoredDocument>,
-        expectations: DialogExpectations
-    ): List<ScoredDocument> {
-        val frames = expectations.activeFrames.map { it.frame }.toSet()
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ScoredDocument>()
-        for (doc in pcandidates) {
-            if (doc.ownerFrame in IStateTracker.IStatusSet) {
-                if (doc.ownerFrame in frames) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-
 
     private fun notBeginning(segments: List<String>, index: Int): Boolean {
         return index < segments.size && segments[index].startsWith("##")

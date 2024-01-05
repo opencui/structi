@@ -14,4 +14,5 @@ interface ContextedExemplar {
     // The next two are used for potential exect match.
     var possibleExactMatch: Boolean
     var guessedSlot: DUSlotMeta?
+
 }
