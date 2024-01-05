@@ -244,6 +244,13 @@ fun DUMeta.getNestedSlotMetas(
     return slotsMetaMap
 }
 
+
+// If the frame is system frame or not.
+fun DUMeta.isSystemFrame(frame: String): Boolean {
+    return frame.startsWith("io.opencui.core")
+}
+
+
 fun DUMeta.getSlotMeta(frame:String, pslots:String) : DUSlotMeta? {
     // We can handle the nested slots if we need to.
     val slots = pslots.split(".")

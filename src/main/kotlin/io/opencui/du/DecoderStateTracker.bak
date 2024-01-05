@@ -119,34 +119,19 @@ data class RestNluService(val url: String) {
 
 
 /**
- * DecoderStateTracker assumes the underlying nlu module ended with decoder, or support .
+ * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
 data class DecoderStateTracker(
     override val agentMeta: DUMeta,
     val nluServiceUrl: String,
-    val intentK: Int = 32,
-    val slotValueK: Int = 3,
-    val intentSureThreshold: Float = 0.5f,
-    val intentPossibleThreshold: Float = 0.1f,
-    val slotThreshold: Float = 0.5f,
-    val expectedSlotBonus: Float = 1.6f,
-    val prefixSuffixBonus: Float = 1.0f,
-    val caseSensitivity: Boolean = false
 ) : LlmStateTracker {
-
-    private val expressedSlotBonus: Float = 5.0f
-
     // If there are multi normalizer propose annotation on the same span, last one wins.
     override val normalizers = defaultRecognizers(agentMeta)
     val nluService = RestNluService(nluServiceUrl)
 
     override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
     override val dontCareForPagedSelectable = DontCareForPagedSelectable()
-
-
-    /**
-     *
-     */
+    
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
     override fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>? {

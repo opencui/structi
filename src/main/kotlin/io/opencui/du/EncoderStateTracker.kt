@@ -384,7 +384,12 @@ data class BertStateTracker(
 
     // When there is expectation presented.
     override fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>? {
+        val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
+        if (candidates?.size == 1
+            && !agentMeta.isSystemFrame(candidates[0].ownerFrame)
+            && !expectations.isFrameCompatible(candidates[0].ownerFrame)) return null
+
         logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
                 ducontext.matchedIn(

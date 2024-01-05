@@ -474,15 +474,8 @@ interface LlmStateTracker: IStateTracker {
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
-            // TODO(sean): assuming single intent here.
-            val candidates = ducontext.exemplars
-            if (candidates?.size != 1
-                || candidates[0].ownerFrame.startsWith("io.opencui.core")
-                || expectations.isFrameCompatible(candidates[0].ownerFrame)
-            ) {
-                val events = convertWithExpectation(ducontext)
-                if (events != null) return events
-            }
+            val events = convertWithExpectation(ducontext)
+            if (events != null) return events
         }
 
         // Now, we have no dialog expectation. There are three different cases:
