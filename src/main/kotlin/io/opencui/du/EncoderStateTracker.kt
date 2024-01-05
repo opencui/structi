@@ -382,19 +382,6 @@ data class BertStateTracker(
         return index + 1 < segments.size && segments[index + 1].startsWith("##")
     }
 
-    /**
-     * Required slot names can be in the form of a.b.c, which will not be in getSlotMeta. So we need
-     * to handle these. For now, we assume all the top level slots are also required. This assumption
-     * can be changed down the road.
-     */
-    private fun getSlotMetas(
-        frame: String,
-        required: List<String> = emptyList()
-    ): Map<String, DUSlotMeta> {
-        // Including all the top level slots.
-        return agentMeta.getNestedSlotMetas(frame, required)
-    }
-
     // When there is expectation presented.
     override fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>? {
         val expectations = ducontext.expectations
@@ -569,7 +556,8 @@ data class BertStateTracker(
      */
     override fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = getSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
+        val slotMap = // Including all the top level slots.
+        agentMeta.getNestedSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
@@ -610,7 +598,8 @@ data class BertStateTracker(
     private fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotMapBef = getSlotMetas(IStateTracker.SlotUpdate)
+        val slotMapBef =         // Including all the top level slots.
+            agentMeta.getNestedSlotMetas(IStateTracker.SlotUpdate)
         val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
 
         // we need to rewrite the slot map to replace all the T into actual slot type.
@@ -913,27 +902,6 @@ data class BertStateTracker(
             return ret
         }
     }
-
-    // given a list of frame event, add the entailed slots to the right frame event.
-    override fun addEntailedSlot(bestCandidate: ExampledLabel?, frameEvents: List<FrameEvent>): List<FrameEvent> {
-        if (bestCandidate == null) return frameEvents
-        if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
-
-        val events = mutableListOf<FrameEvent>()
-
-        for (frameEvent in frameEvents) {
-            if (bestCandidate.isCompatible(frameEvent.type, frameEvent.packageName)) {
-                // merge function slot event with compatible event
-                val allSlots = frameEvent.slots.toMutableList()
-                allSlots.addAll(bestCandidate.entailedSlots.map { EntityEvent("\"_context\"", it) })
-                events.add(FrameEvent(frameEvent.type, allSlots.toList(), packageName = frameEvent.packageName))
-            } else {
-                events.add(frameEvent)
-            }
-        }
-        return events
-    }
-
 
     override fun recycle() {
         nluModel.shutdown()
