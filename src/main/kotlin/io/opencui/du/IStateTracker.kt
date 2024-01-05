@@ -515,6 +515,7 @@ interface LlmStateTracker: IStateTracker {
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
+
     fun convertWithExpectation(ducontext: DuContext): List<FrameEvent>?
     fun recognizeFrame(ducontext: DuContext): List<ExampledLabel>?
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent>
@@ -577,4 +578,52 @@ fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
 
 interface Resolver {
     fun resolve(ducontext: DuContext, before: List<ScoredDocument>): List<ScoredDocument>
+}
+
+
+interface ExampledLabelsTransformer {
+    operator fun invoke(origin: List<ExampledLabel>): List<ExampledLabel>
+}
+
+data class DontCareTransformer(val expectations: DialogExpectations): ExampledLabelsTransformer {
+    override fun invoke(pcandidates: List<ExampledLabel>): List<ExampledLabel> {
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<ExampledLabel>()
+        val dontcare = expectations.allowDontCare()
+        for (doc in pcandidates) {
+            // DontCare phrase should only be useful when there don't care is expected.
+            if (doc.ownerFrame == "io.opencui.core.DontCare") {
+                if (dontcare) results.add(doc)
+            } else {
+                results.add(doc)
+            }
+        }
+        return results
+    }
+}
+
+data class StatusTransformer(val expectations: DialogExpectations): ExampledLabelsTransformer {
+    override fun invoke(pcandidates: List<ExampledLabel>): List<ExampledLabel> {
+        val frames = expectations.activeFrames.map { it.frame }.toSet()
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<ExampledLabel>()
+        for (doc in pcandidates) {
+            if (doc.ownerFrame in IStateTracker.IStatusSet) {
+                if (doc.ownerFrame in frames) results.add(doc)
+            } else {
+                results.add(doc)
+            }
+        }
+        return results
+    }
+}
+
+data class ChainedExampledLabelsTransformer(val transformers: List<ExampledLabelsTransformer>) : ExampledLabelsTransformer {
+    override fun invoke(origin: List<ExampledLabel>): List<ExampledLabel> {
+        var current = origin
+        for( transform in transformers) {
+            current = transform(current)
+        }
+        return current
+    }
 }
