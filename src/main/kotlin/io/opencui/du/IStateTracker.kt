@@ -85,7 +85,131 @@ open class DuContext(
     open val session: String,
     open val utterance: String,
     open val expectations: DialogExpectations = DialogExpectations(),
-    open val duMeta: DUMeta? = null)
+    open val duMeta: DUMeta? = null) {
+
+    // These are used to keep the entity values.
+    val entityTypeToValueInfoMap = mutableMapOf<String, MutableList<ValueInfo>>()
+
+    var tokens : List<BoundToken>? = null
+    val previousTokenByChar = mutableMapOf<Int, Int>()
+    val nextTokenByChar = mutableMapOf<Int, Int>()
+
+
+    val emapByCharStart by lazy { convert() }
+
+    fun convert(): Map<Int, List<Pair<String, Int>>> {
+        // create the char end to token end.
+        val endMap = mutableMapOf<Int, Int>()
+        for ((index, token) in tokens!!.withIndex()) {
+            endMap[token.end] = index + 1
+        }
+
+        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
+        for((key, spans) in entityTypeToValueInfoMap) {
+            for (span in spans) {
+                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
+                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
+            }
+        }
+        return result
+    }
+
+    fun updateTokens(tkns: List<BoundToken>) {
+        tokens = tkns
+        for( (index, tkn) in tokens!!.withIndex() ) {
+            if(index >  0) {
+                previousTokenByChar[tkn.start] = index - 1
+            }
+            if(index < tokens!!.size - 1) {
+                nextTokenByChar[tkn.end] = index + 1
+            }
+        }
+    }
+
+    fun putAll(lmap : Map<String, List<ValueInfo>>) {
+        for ((k, vs) in lmap) {
+            for (v in vs) {
+                entityTypeToValueInfoMap.put(k, v)
+            }
+        }
+    }
+
+    fun containsAllEntityNeeded(entities: List<String>, bot: DUMeta) : Boolean {
+        // if the entities is empty, then we already contain all entity needed.
+        for (entity in entities) {
+            // If we do not have this required entity, it is bad.
+            if(findMentions(entity, bot).isEmpty()) return false
+        }
+        return true
+    }
+
+    private fun findMentions(entity: String, bot: DUMeta) : List<ValueInfo> {
+        // if we do not have at least one that is not partial match, it is bad.
+        var mentions = entityTypeToValueInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
+        if (!mentions.isNullOrEmpty()) return mentions
+        val entityMeta = bot.getEntityMeta(entity) ?: return emptyList()
+        logger.debug("Did not find $entity, trying ${entityMeta.children}")
+        for (child in entityMeta.children) {
+            mentions = entityTypeToValueInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
+            if (!mentions.isNullOrEmpty()) return mentions
+        }
+        return emptyList()
+    }
+
+    fun expectedEntityType(bot: DUMeta) : List<String> {
+        if (expectations.activeFrames.isEmpty()) return listOf()
+        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
+
+        // TODO: handle the a.b.c case
+        val resList = mutableListOf<String>()
+        if (expectations.expected!!.slot != null) {
+            val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected!!.slot!!)
+            resList.add(expectedType)
+        } else {
+            // Found the frame that has the slot
+            for (active in expectations.activeFrames.reversed()) {
+                if (active.slot != null) {
+                    val activeType = bot.getSlotType(active.frame, active.slot)
+                    resList.add(activeType)
+                }
+            }
+        }
+        return resList
+    }
+
+    fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, entity: ValueInfo): Float {
+        var bonus = 0f
+        var denominator = 0.0000001f
+        // for now, we assume simple unigram model.
+        if (slotMeta.prefixes?.isNotEmpty() == true) {
+            denominator += 1
+            val previousTokenIndex = previousTokenByChar[entity.start]
+            if (previousTokenIndex != null) {
+                val tkn = tokens!![previousTokenIndex].token
+                if (slotMeta.prefixes!!.contains(tkn)) {
+                    bonus += 1
+                }
+            }
+        }
+        if (slotMeta.suffixes?.isNotEmpty() == true) {
+            denominator += 1
+            val nextTokenIndex = nextTokenByChar[entity.end]
+            if (nextTokenIndex != null) {
+                val tkn = tokens!![nextTokenIndex].token
+                if (slotMeta.suffixes!!.contains(tkn)) {
+                    bonus += 1
+                }
+            }
+        }
+        return bonus/denominator
+    }
+
+    companion object {
+        val logger = LoggerFactory.getLogger(DuContext::class.java)
+    }
+
+
+}
 
 
 

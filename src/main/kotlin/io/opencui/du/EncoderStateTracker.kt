@@ -27,49 +27,12 @@ data class BertDuContext(
     override val utterance: String,
     override val expectations: DialogExpectations = DialogExpectations(),
     override val duMeta: DUMeta? = null) : DuContext(session, utterance, expectations, duMeta) {
-        
-    val entityTypeToValueInfoMap = mutableMapOf<String, MutableList<ValueInfo>>()
 
-    var tokens : List<BoundToken>? = null
-    val previousTokenByChar = mutableMapOf<Int, Int>()
-    val nextTokenByChar = mutableMapOf<Int, Int>()
-
-
-    val emapByCharStart by lazy { convert() }
-
-    // for bert based state tracker only.
+    // For bert based state tracker only, since it heavily depends on exemplar.
     var exemplars : List<ScoredDocument>? = null
+
     val bestCandidate : ScoredDocument?
         get() = exemplars?.get(0)
-
-    fun convert(): Map<Int, List<Pair<String, Int>>> {
-        // create the char end to token end.
-        val endMap = mutableMapOf<Int, Int>()
-        for ((index, token) in tokens!!.withIndex()) {
-            endMap[token.end] = index + 1
-        }
-
-        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
-        for((key, spans) in entityTypeToValueInfoMap) {
-            for (span in spans) {
-                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
-                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
-            }
-        }
-        return result
-    }
-
-    fun updateTokens(tkns: List<BoundToken>) {
-        tokens = tkns
-        for( (index, tkn) in tokens!!.withIndex() ) {
-            if(index >  0) {
-                previousTokenByChar[tkn.start] = index - 1
-            }
-            if(index < tokens!!.size - 1) {
-                nextTokenByChar[tkn.end] = index + 1
-            }
-        }
-    }
 
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
@@ -90,83 +53,6 @@ data class BertDuContext(
         } else {
             null
         }
-    }
-
-    fun putAll(lmap : Map<String, List<ValueInfo>>) {
-        for ((k, vs) in lmap) {
-            for (v in vs) {
-                entityTypeToValueInfoMap.put(k, v)
-            }
-        }
-    }
-
-    fun containsAllEntityNeeded(entities: List<String>, bot: DUMeta) : Boolean {
-        // if the entities is empty, then we already contain all entity needed.
-        for (entity in entities) {
-            // If we do not have this required entity, it is bad.
-            if(findMentions(entity, bot).isEmpty()) return false
-        }
-        return true
-    }
-
-    private fun findMentions(entity: String, bot: DUMeta) : List<ValueInfo> {
-        // if we do not have at least one that is not partial match, it is bad.
-        var mentions = entityTypeToValueInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-        if (!mentions.isNullOrEmpty()) return mentions
-        val entityMeta = bot.getEntityMeta(entity) ?: return emptyList()
-        logger.debug("Did not find $entity, trying ${entityMeta.children}")
-        for (child in entityMeta.children) {
-            mentions = entityTypeToValueInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-            if (!mentions.isNullOrEmpty()) return mentions
-        }
-        return emptyList()
-    }
-
-    fun expectedEntityType(bot: DUMeta) : List<String> {
-        if (expectations.activeFrames.isEmpty()) return listOf()
-        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
-        // TODO: handle the a.b.c case
-        val resList = mutableListOf<String>()
-        if (expectations.expected!!.slot != null) {
-            val expectedType = bot.getSlotType(expectations.expected.frame, expectations.expected.slot!!)
-            resList.add(expectedType)
-        } else {
-            // Found the frame that has the slot
-            for (active in expectations.activeFrames.reversed()) {
-                if (active.slot != null) {
-                    val activeType = bot.getSlotType(active.frame, active.slot)
-                    resList.add(activeType)
-                }
-            }
-        }
-        return resList
-    }
-
-    fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, entity: ValueInfo): Float {
-        var bonus = 0f
-        var denominator = 0.0000001f
-        // for now, we assume simple unigram model.
-        if (slotMeta.prefixes?.isNotEmpty() == true) {
-            denominator += 1
-            val previousTokenIndex = previousTokenByChar[entity.start]
-            if (previousTokenIndex != null) {
-                val tkn = tokens!![previousTokenIndex].token
-                if (slotMeta.prefixes!!.contains(tkn)) {
-                    bonus += 1
-                }
-            }
-        }
-        if (slotMeta.suffixes?.isNotEmpty() == true) {
-            denominator += 1
-            val nextTokenIndex = nextTokenByChar[entity.end]
-            if (nextTokenIndex != null) {
-                val tkn = tokens!![nextTokenIndex].token
-                if (slotMeta.suffixes!!.contains(tkn)) {
-                    bonus += 1
-                }
-            }
-        }
-        return bonus/denominator
     }
 
     companion object {
@@ -401,46 +287,6 @@ data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
 
     companion object {
         val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
-    }
-}
-
-
-//
-data class BertNluService(val agentMeta: DUMeta,
-    val intentK: Int = 32,
-    val slotValueK: Int = 3,
-    val intentSureThreshold: Float = 0.5f,
-    val intentPossibleThreshold: Float = 0.1f,
-    val slotThreshold: Float = 0.5f,
-    val expectedSlotBonus: Float = 1.6f,
-    val prefixSuffixBonus: Float = 1.0f,
-    val caseSensitivity: Boolean = false
-) : NluService {
-
-    private val expressedSlotBonus: Float = 5.0f
-
-    // If there are multi normalizer propose annotation on the same span, last one wins.
-    val nluModel: NLUModel = TfRestBertNLUModel()
-    private val searcher = ExpressionSearcher(agentMeta)
-
-    val lang = agentMeta.getLang().lowercase(Locale.getDefault())
-    val dontCareForPagedSelectable = DontCareForPagedSelectable()
-
-    override fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ScoredDocument> {
-        TODO("Not yet implemented")
-    }
-
-
-    override fun fillSlots(
-        utterance: String,
-        slots: Map<String, DUSlotMeta>,
-        entities: Map<String, List<String>>
-    ): Map<String, SlotValue> {
-        TODO("Not yet implemented")
-    }
-
-    override fun yesNoInference(utterance: String, question: String): BinaryResult {
-        TODO("Not yet implemented")
     }
 }
 

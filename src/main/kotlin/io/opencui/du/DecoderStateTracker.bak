@@ -81,14 +81,14 @@ class RestNluService {
  * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
 data class DecoderStateTracker(
-    val agentMeta: DUMeta,
+    override val agentMeta: DUMeta,
 ) : LlmStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
-    val normalizers = defaultRecognizers(agentMeta)
+    override val normalizers = defaultRecognizers(agentMeta)
     val nluService = RestNluService()
 
-    val lang = agentMeta.getLang().lowercase(Locale.getDefault())
-    val dontCareForPagedSelectable = DontCareForPagedSelectable()
+    override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+    override val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
     // Eventually we should use this new paradigm.
     // First, we detect triggereables this should imply skill understanding.
@@ -103,19 +103,30 @@ data class DecoderStateTracker(
     }
 
     override fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
-        TODO("Not yet implemented")
+        val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, agentMeta)
+        var allNormalizers = normalizers.toMutableList()
+        // Session and turn based recognizers
+        if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
+        if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
+
+        allNormalizers.recognizeAll(
+            utterance,
+            ducontext.expectedEntityType(agentMeta),
+            ducontext.entityTypeToValueInfoMap
+        )
+        ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
+        return ducontext
     }
 
     override fun convertImpl(ducontext: DuContext): List<FrameEvent> {
         TODO("Not yet implemented")
     }
 
-
     fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>? {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance
-        val emap = ducontext.entityTypeToSpanInfoMap
+        val emap = ducontext.entityTypeToValueInfoMap
         val utterance = ducontext.utterance
         val expectations = ducontext.expectations
 
