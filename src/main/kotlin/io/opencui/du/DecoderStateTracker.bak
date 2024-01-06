@@ -48,12 +48,12 @@ data class SlotValue(val operator: String, val values: List<String>)
 // Most likely, the agent dependent nlu and fine-tuned decoder are co-located, so it is better to
 // hide that from user.
 
-data class RestNluService(val url: String) {
+class RestNluService {
     data class TfRestPayload(val utterance: String, val probes: List<String>)
     data class TfRestRequest(val signature_name: String, val inputs: TfRestPayload)
     val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)
     val client: HttpClient = HttpClient.newHttpClient()
-    // val url: String = "${config.third}://${config.first}:${config.second}"
+    val url: String = "${config.third}://${config.first}:${config.second}"
     val timeout: Long = 10000
 
 
@@ -102,7 +102,8 @@ data class RestNluService(val url: String) {
         val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
     }
 
-    fun detectSkills(utterance: String, expectations: DialogExpectations): List<ExampledLabel> {
+    // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
+    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ExampledLabel> {
         TODO("Not yet implemented")
     }
 
@@ -111,26 +112,24 @@ data class RestNluService(val url: String) {
         TODO("Not yet implemented")
     }
 
-    fun yesNoInference(utterance: String, questions: String): BinaryResult {
+    fun yesNoInference(utterance: String, question: String): BinaryResult {
         TODO("Not yet implemented")
     }
 }
-
 
 
 /**
  * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
 data class DecoderStateTracker(
-    override val agentMeta: DUMeta,
-    val nluServiceUrl: String,
-) : LlmStateTracker {
+    val agentMeta: DUMeta,
+) : IStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
-    override val normalizers = defaultRecognizers(agentMeta)
-    val nluService = RestNluService(nluServiceUrl)
+    val normalizers = defaultRecognizers(agentMeta)
+    val nluService = RestNluService()
 
-    override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
-    override val dontCareForPagedSelectable = DontCareForPagedSelectable()
+    val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+    val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
     // Eventually we should use this new paradigm.
     // First, we detect triggereables this should imply skill understanding.
@@ -139,7 +138,13 @@ data class DecoderStateTracker(
 
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>? {
+
+    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        TODO("Not yet implemented")
+    }
+
+
+    fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>? {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance
@@ -192,7 +197,7 @@ data class DecoderStateTracker(
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
 
-    override fun handleExpectations(ducontext: DuContext): List<FrameEvent>? {
+    fun handleExpectations(ducontext: DuContext): List<FrameEvent>? {
         val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
         if (candidates?.size == 1
@@ -369,7 +374,7 @@ data class DecoderStateTracker(
     /**
      * fillSlots is used to create entity event.
      */
-    override fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
+    fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val slotMap = agentMeta
             .getNestedSlotMetas(topLevelFrameType, emptyList())
@@ -377,7 +382,7 @@ data class DecoderStateTracker(
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
-    override fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+    fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         TODO("Not yet implemented")
     }
 
@@ -390,7 +395,6 @@ data class DecoderStateTracker(
         // we need to make sure we include slots mentioned in the intent expression
         val valuesFound = mapOf<String, List<String>>()
         val result = nluService.fillSlots(ducontext.utterance, slotMap, valuesFound)
-
         return  listOf(buildFrameEvent(topLevelFrameType))
     }
 

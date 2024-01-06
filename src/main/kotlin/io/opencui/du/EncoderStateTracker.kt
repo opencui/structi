@@ -20,6 +20,56 @@ import java.net.http.HttpResponse
 import io.opencui.serialization.*
 import java.time.Duration
 
+interface ContextedExemplarsTransformer {
+    operator fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar>
+}
+
+data class DontCareTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
+    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<ContextedExemplar>()
+        val dontcare = expectations.allowDontCare()
+        for (doc in pcandidates) {
+            // DontCare phrase should only be useful when there don't care is expected.
+            if (doc.ownerFrame == "io.opencui.core.DontCare") {
+                if (dontcare) results.add(doc)
+            } else {
+                results.add(doc)
+            }
+        }
+        return results
+    }
+}
+
+data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
+    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
+        val frames = expectations.activeFrames.map { it.frame }.toSet()
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<ContextedExemplar>()
+        for (doc in pcandidates) {
+            if (doc.ownerFrame in IStateTracker.IStatusSet) {
+                if (doc.ownerFrame in frames) results.add(doc)
+            } else {
+                results.add(doc)
+            }
+        }
+        return results
+    }
+}
+
+data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
+    constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
+
+    override fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar> {
+        var current = origin
+        for( transform in transformers) {
+            current = transform(current)
+        }
+        return current
+    }
+}
+
+
 /**
  * This data structure is used for capturing the response from slot model.
  */
@@ -196,6 +246,47 @@ data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
         val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
     }
 }
+
+
+//
+data class BertNluService(val agentMeta: DUMeta,
+    val intentK: Int = 32,
+    val slotValueK: Int = 3,
+    val intentSureThreshold: Float = 0.5f,
+    val intentPossibleThreshold: Float = 0.1f,
+    val slotThreshold: Float = 0.5f,
+    val expectedSlotBonus: Float = 1.6f,
+    val prefixSuffixBonus: Float = 1.0f,
+    val caseSensitivity: Boolean = false
+) : NluService {
+
+    private val expressedSlotBonus: Float = 5.0f
+
+    // If there are multi normalizer propose annotation on the same span, last one wins.
+    val nluModel: NLUModel = TfRestBertNLUModel()
+    private val searcher = ExpressionSearcher(agentMeta)
+
+    val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+    val dontCareForPagedSelectable = DontCareForPagedSelectable()
+
+    override fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ExampledLabel> {
+        TODO("Not yet implemented")
+    }
+
+    override fun fillSlots(
+        utterance: String,
+        slots: Map<String, DUSlotMeta>,
+        entities: Map<String, List<String>>
+    ): Map<String, SlotValue> {
+        TODO("Not yet implemented")
+    }
+
+    override fun yesNoInference(utterance: String, question: String): BinaryResult {
+        TODO("Not yet implemented")
+    }
+
+}
+
 
 data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
     data class PtRestPayload(val utterance: String, val probes: List<String>)

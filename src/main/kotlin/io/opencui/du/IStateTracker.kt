@@ -69,6 +69,7 @@ data class DuContext(
     val expectations: DialogExpectations = DialogExpectations(),
     val duMeta: DUMeta? = null) {
     val entityTypeToSpanInfoMap = mutableMapOf<String, MutableList<SpanInfo>>()
+
     var tokens : List<BoundToken>? = null
     val previousTokenByChar = mutableMapOf<Int, Int>()
     val nextTokenByChar = mutableMapOf<Int, Int>()
@@ -379,6 +380,17 @@ data class ComponentSkillConverter(
     }
 }
 
+data class ChainedFrameEventProcesser(val processers: List<FrameEventProcessor>) : FrameEventProcessor {
+    constructor(vararg transformers: FrameEventProcessor): this(transformers.toList())
+    override fun invoke(p1: FrameEvent): FrameEvent {
+        var current = p1
+        for( transform in processers) {
+            current = transform(current)
+        }
+        return current
+    }
+}
+
 
 /**
  * BertStateTracker assumes the underlying nlu module is bert based.
@@ -418,12 +430,19 @@ interface LlmStateTracker: IStateTracker {
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
         if (utterance.isEmpty()) return listOf()
 
-        // The first is to resolve the don't care for pagedselectable.
-        val res0 = convertImpl(session, putterance, expectations)
-        val res1 = res0.map { dontCareForPagedSelectable(it) }
-        val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
-        val res2 = res1.map { componentSkillConvert(it) }
-        return res2
+        val res = convertImpl(session, putterance, expectations)
+
+        // get the post process done
+        val postProcess = buildPostProcessor(expectations)
+        return res.map { postProcess(it) }
+    }
+
+    fun buildPostProcessor(expectations: DialogExpectations): FrameEventProcessor {
+        // this build the post processors
+        return ChainedFrameEventProcesser(
+            dontCareForPagedSelectable,        // The first is to resolve the don't care for pagedselectable.
+            ComponentSkillConverter(agentMeta, expectations)
+        )
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
@@ -584,51 +603,3 @@ interface Resolver {
 }
 
 
-interface ContextedExemplarsTransformer {
-    operator fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar>
-}
-
-data class DontCareTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
-    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ContextedExemplar>()
-        val dontcare = expectations.allowDontCare()
-        for (doc in pcandidates) {
-            // DontCare phrase should only be useful when there don't care is expected.
-            if (doc.ownerFrame == "io.opencui.core.DontCare") {
-                if (dontcare) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-}
-
-data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
-    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
-        val frames = expectations.activeFrames.map { it.frame }.toSet()
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ContextedExemplar>()
-        for (doc in pcandidates) {
-            if (doc.ownerFrame in IStateTracker.IStatusSet) {
-                if (doc.ownerFrame in frames) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-}
-
-data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
-    constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
-
-    override fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar> {
-        var current = origin
-        for( transform in transformers) {
-            current = transform(current)
-        }
-        return current
-    }
-}
