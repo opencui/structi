@@ -351,6 +351,7 @@ class DontCareForPagedSelectable: FrameEventProcessor {
     }
 }
 
+
 /**
  * When the current active frames contains a skill for the new skill.
  */
@@ -377,6 +378,7 @@ data class ComponentSkillConverter(
         }
     }
 }
+
 
 /**
  * BertStateTracker assumes the underlying nlu module is bert based.
@@ -416,6 +418,7 @@ interface LlmStateTracker: IStateTracker {
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
         if (utterance.isEmpty()) return listOf()
 
+        // The first is to resolve the don't care for pagedselectable.
         val res0 = convertImpl(session, putterance, expectations)
         val res1 = res0.map { dontCareForPagedSelectable(it) }
         val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
@@ -439,27 +442,6 @@ interface LlmStateTracker: IStateTracker {
         return ducontext
     }
 
-    /**
-     * Dialog expectation is used to inform DU module to be sensitive to certain information. This is important
-     * as many expression can mean different things, and use expectation can make understanding a bit easy as
-     * listening can be more focused.
-     * Currently, there are couple different expectations:
-     * 1. expecting a slot.
-     * 2. expecting multi value.
-     * 3. expecting confirmation.
-     * 4. expecting value recommendation.
-     * Of course, we can have combination of these.
-     *
-     * The main goal of this method is taking user utterance and convert that into frame events.
-     * We follow the following process:
-     * 1. find related expressions.
-     * 2. use intent model to rerank the expression candidate and pick the best match and determine the frame.
-     * 3. use slot model to find values for the slot for the given frame.
-     * 4. generate frame events so that dialog engine can process it.
-     *
-     * Assumptions:
-     * 1. We assume that index can be shared by different agent.
-     */
     fun convertImpl(
         session: UserSession,
         utterance: String,
