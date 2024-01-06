@@ -177,13 +177,13 @@ data class BertDuContext(
 
 
 interface ContextedExemplarsTransformer {
-    operator fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar>
+    operator fun invoke(origin: List<Triggerable>): List<Triggerable>
 }
 
 data class DontCareTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
-    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
+    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
         // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ContextedExemplar>()
+        val results = mutableListOf<Triggerable>()
         val dontcare = expectations.allowDontCare()
         for (doc in pcandidates) {
             // DontCare phrase should only be useful when there don't care is expected.
@@ -198,10 +198,10 @@ data class DontCareTransformer(val expectations: DialogExpectations): ContextedE
 }
 
 data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
-    override fun invoke(pcandidates: List<ContextedExemplar>): List<ContextedExemplar> {
+    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
         val frames = expectations.activeFrames.map { it.frame }.toSet()
         // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ContextedExemplar>()
+        val results = mutableListOf<Triggerable>()
         for (doc in pcandidates) {
             if (doc.ownerFrame in IStateTracker.IStatusSet) {
                 if (doc.ownerFrame in frames) results.add(doc)
@@ -216,7 +216,7 @@ data class StatusTransformer(val expectations: DialogExpectations): ContextedExe
 data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
     constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
 
-    override fun invoke(origin: List<ContextedExemplar>): List<ContextedExemplar> {
+    override fun invoke(origin: List<Triggerable>): List<Triggerable> {
         var current = origin
         for( transform in transformers) {
             current = transform(current)

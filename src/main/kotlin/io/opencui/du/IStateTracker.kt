@@ -19,6 +19,24 @@ import java.util.*
  * their apis is defined as the corresponding document.
  */
 
+// Exemplars are used to make decisions for now.
+interface Triggerable {
+    val utterance: String
+    var typedExpression: String
+    val ownerFrame: String
+    val contextFrame: String?
+    val entailedSlots: List<String>
+    val label: String?
+
+    // whether it is exact match.
+    var exactMatch: Boolean
+    // The next two are used for potential exect match.
+    var possibleExactMatch: Boolean
+    var guessedSlot: DUSlotMeta?
+    var score: Float
+
+    fun clone(): Triggerable
+}
 
 /**
  * For now, we assume the most simple expectation, current frame, and current slot, and whether do-not-care
@@ -42,7 +60,7 @@ data class ExampledLabel(
     override val ownerFrame: String,
     override val entailedSlots: List<String>,
     override val contextFrame: String? = null,
-    override val label: String? = null) : ContextedExemplar {
+    override val label: String? = null) : Triggerable {
     override var typedExpression: String = ""
     // for now, we keep it as the last resort.
     override var exactMatch: Boolean = false
@@ -56,7 +74,7 @@ data class ExampledLabel(
         return ownerFrame == "${packageName}.${type}"
     }
 
-    override fun clone(): ContextedExemplar { return this.copy() }
+    override fun clone(): Triggerable { return this.copy() }
 }
 
 /**
