@@ -25,7 +25,7 @@ interface NluService {
     }
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ExampledLabel>
+    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<Triggerable>
 
     // handle all slots.
     fun fillSlots(utterance: String, slots: Map<String, DUSlotMeta>, entities: Map<String, List<String>>): Map<String, SlotValue>

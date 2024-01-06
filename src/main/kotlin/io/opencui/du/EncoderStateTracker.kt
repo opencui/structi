@@ -425,9 +425,10 @@ data class BertNluService(val agentMeta: DUMeta,
     val lang = agentMeta.getLang().lowercase(Locale.getDefault())
     val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
-    override fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ExampledLabel> {
+    override fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ScoredDocument> {
         TODO("Not yet implemented")
     }
+
 
     override fun fillSlots(
         utterance: String,
@@ -440,7 +441,6 @@ data class BertNluService(val agentMeta: DUMeta,
     override fun yesNoInference(utterance: String, question: String): BinaryResult {
         TODO("Not yet implemented")
     }
-
 }
 
 
