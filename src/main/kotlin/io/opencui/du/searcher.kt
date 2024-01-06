@@ -181,7 +181,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
      */
     fun search(rquery: String,
                expectations: DialogExpectations = DialogExpectations(),
-               emap: MutableMap<String, MutableList<SpanInfo>>? = null): List<ScoredDocument> {
+               emap: MutableMap<String, MutableList<ValueInfo>>? = null): List<ScoredDocument> {
         if (rquery.isEmpty()) return listOf()
 
         var searchQuery = QueryParser.escape(rquery)

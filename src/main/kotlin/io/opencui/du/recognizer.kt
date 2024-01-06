@@ -20,7 +20,7 @@ import java.util.*
  * The normalizer is used to find the all occurrence of entities, and mark it with annotation.
  * Value should be in json format.
  */
-class SpanInfo(
+class ValueInfo(
     val type: String,
     val start: Int,
     val end: Int,
@@ -62,13 +62,13 @@ interface EntityRecognizer {
      * Takes a user utterance, and current expected types, it emits the recognized entity input
      * entity map, where key is the type of entity, and value is list of spans for that entity type.
      */
-    fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>)
+    fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>)
 
     /**
      *  Return null if there is no normalization info, or string that can be decoded back to the object
      *  via Json deserialization.
      */
-    fun getNormedValue(value: SpanInfo): String?
+    fun getNormedValue(value: ValueInfo): String?
 }
 
 
@@ -90,12 +90,12 @@ class RegexRecognizer: EntityRecognizer {
 
     val regexes = mutableMapOf<String, Regex>()
 
-    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
+    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
         for ((key, pattern) in regexes) {
             val matches = pattern.findAll(input)
-            val spans = mutableListOf<SpanInfo>()
+            val spans = mutableListOf<ValueInfo>()
             for (match in matches) {
-                spans.add(SpanInfo(
+                spans.add(ValueInfo(
                     key,
                     match.range.start,
                     match.range.endInclusive + 1,
@@ -106,7 +106,7 @@ class RegexRecognizer: EntityRecognizer {
         }
     }
 
-    override fun getNormedValue(value: SpanInfo): String? {
+    override fun getNormedValue(value: ValueInfo): String? {
         return value.value as String
     }
 
@@ -155,15 +155,15 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         }
     }
 
-    fun convert(type: String, items: JsonObject): SpanInfo {
+    fun convert(type: String, items: JsonObject): ValueInfo {
         val start = items.getPrimitive("start").content().toInt()
         val end = items.getPrimitive("end").content().toInt()
         val latent = items.getPrimitive("latent").content().toBoolean()
         val value = items.get("value") as JsonElement
-        return SpanInfo(type, start, end, value, this, true)
+        return ValueInfo(type, start, end, value, this, true)
     }
 
-    fun fill(input: String, sres: JsonArray, emap: MutableMap<String, MutableList<SpanInfo>>) {
+    fun fill(input: String, sres: JsonArray, emap: MutableMap<String, MutableList<ValueInfo>>) {
         for (items in sres) {
             val types = getType(items as JsonObject)
             logger.info(types.toString())
@@ -183,7 +183,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
     }
 
     // TODO: need to change this for different types.
-    override fun getNormedValue(value: SpanInfo): String? {
+    override fun getNormedValue(value: ValueInfo): String? {
         return when(value.type) {
             "java.time.LocalDateTime" -> parseLocalDateTime(value.value)
             "java.time.LocalTime" -> parseLocalTime(value.value)
@@ -241,7 +241,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         return (value["value"] as JsonPrimitive).content()
     }
 
-    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
+    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
         // Because of a bug in duckling, we need to call duckling more than once.
         if (types.contains("io.opencui.core.Ordinal")) {
             parseImpl(input, listOf("ordinal"), emap)
@@ -256,18 +256,18 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
      *
      * The long term solution for this is replaced duckling with expectation driven understanding.
      */
-    fun postprocess(utterance: String, v: SpanInfo) : SpanInfo? {
+    fun postprocess(utterance: String, v: ValueInfo) : ValueInfo? {
         if (agent.getLang() == "en") {
             val substr = utterance.substring(v.start).lowercase(Locale.getDefault())
             if (v.type == "java.time.LocalDate") {
                 if (substr.startsWith("on ")) {
-                    return SpanInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
+                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
                 }
                 if (substr.startsWith("at ")) return null
             }
             if (v.type == "java.time.LocalTime") {
                 if (substr.startsWith("at ")) {
-                    return SpanInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
+                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
                 }
                 if (substr.startsWith("on ")) return null
             }
@@ -276,7 +276,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
     }
 
 
-    fun parseImpl(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
+    fun parseImpl(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
         val data: MutableMap<String, String> = HashMap()
         data["locale"] = lang
         data["text"] = input
@@ -385,11 +385,11 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
     }
 
     // TODO(sean) we need to make sure input is simple space separated for en.
-    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
+    override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
         val spanlist = analyzer!!.tokenize(input)
         // We should try the longest match.
         val typedSpans = HashMap<Int, MutableList<Pair<Int, Int>>>()
-        val partialMatch = mutableListOf<SpanInfo>()
+        val partialMatch = mutableListOf<ValueInfo>()
         for (i in 0..spanlist.size) {
             for (k in 0..maxNgramSize) {
                 if ( i + k >= spanlist.size) continue
@@ -415,7 +415,7 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
                         }
 
                         typedSpans[typeId]!!.add(Pair(spanlist[i].start, spanlist[i + k].end))
-                        emap[type]!!.add(SpanInfo(type, spanlist[i].start, spanlist[i + k].end, label, this, leaf))
+                        emap[type]!!.add(ValueInfo(type, spanlist[i].start, spanlist[i + k].end, label, this, leaf))
                     }
                 }  else {
                     // when this is not mention match
@@ -427,7 +427,7 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
                             val type = typeTable.getString(typeId)
                             val label = PARTIALMATCH
                             partialMatch.add(
-                                SpanInfo(
+                                ValueInfo(
                                     type,
                                     spanlist[i].start,
                                     spanlist[i + k].end,
@@ -473,7 +473,7 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
     }
 
 
-    override fun getNormedValue(value: SpanInfo): String? {
+    override fun getNormedValue(value: ValueInfo): String? {
         // TODO: should we make sure that label of entity instance has no space?
         return when (value.type) {
             "kotlin.Boolean" -> value.value as String?
@@ -625,7 +625,7 @@ fun defaultRecognizers(agent: DUMeta) : List<EntityRecognizer> {
     )
 }
 
-fun List<EntityRecognizer>.recognizeAll(utterance:String, types: List<String>, emap: MutableMap<String, MutableList<SpanInfo>>) {
+fun List<EntityRecognizer>.recognizeAll(utterance:String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
     forEach { it.parse(utterance, types, emap) }
 }
 

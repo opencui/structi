@@ -119,7 +119,7 @@ class RecognizerTest : DuTestHelper() {
             }
         }
         val listRecognizer = ListRecognizerBuilder(zhAgent)
-        val emap = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         listRecognizer.parse("我想去北京", listOf(), emap)
         assertEquals("\"北京1\"", emap["city"]!![0].norm())
 
@@ -133,7 +133,7 @@ class RecognizerTest : DuTestHelper() {
     @Test
     fun testConvertWithExpectation() {
         val s = "I will leave tomorrow at eight, my email is sean.wu@naturali.io"
-        val emap = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         recognizer.parse(s, listOf(), emap)
 
         val email = emap["io.opencui.core.Email"]!![0]

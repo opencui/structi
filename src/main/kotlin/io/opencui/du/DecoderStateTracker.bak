@@ -1,16 +1,8 @@
 package io.opencui.du
 
 import io.opencui.core.*
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
-import kotlinx.coroutines.async
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.math.max
-import kotlin.math.min
 
 import io.opencui.core.RuntimeConfig
 import java.net.URI
@@ -20,22 +12,6 @@ import java.net.http.HttpResponse
 import io.opencui.serialization.*
 import java.time.Duration
 
-
-enum class DugMode {
-    SKILL,
-    SLOT,
-    BINARY,
-    SEGMENT
-}
-
-enum class BinaryResult {
-    TRUE,
-    FALSE,
-    DONTCARE,
-    IRRELEVANT
-}
-
-data class SlotValue(val operator: String, val values: List<String>)
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -81,23 +57,6 @@ class RestNluService {
 
     fun shutdown() { }
 
-    fun predictIntent(lang: String, utterance: String, exemplars: List<String>): IntentModelResult? {
-        val outputs = parse("${lang}_intent", "intent", utterance, exemplars)!!
-        val classLogits = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.unifiedLogitsStr)).flatten()
-        return IntentModelResult(classLogits)
-    }
-
-    fun predictSlot(lang: String, utterance: String, probes: List<String>): UnifiedModelResult {
-        val outputs = parse("${lang}_slot", "slot", utterance, probes)!!
-        val segments = Json.decodeFromJsonElement<List<List<String>>>(outputs.get(TfBertNLUModel.segmentsStr)).flatten()
-        val startLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.startLogitsStr))
-        val endLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.endLogitsStr))
-        val classLogits = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.unifiedLogitsStr)).flatten()
-        val segStarts = Json.decodeFromJsonElement<List<List<Long>>>(outputs.get(TfBertNLUModel.segStartStr)).flatten()
-        val segEnds = Json.decodeFromJsonElement<List<List<Long>>>(outputs.get(TfBertNLUModel.segEndStr)).flatten()
-        return UnifiedModelResult(segments, classLogits, startLogitss, endLogitss, segStarts, segEnds)
-    }
-
     companion object {
         val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
     }
@@ -112,7 +71,7 @@ class RestNluService {
         TODO("Not yet implemented")
     }
 
-    fun yesNoInference(utterance: String, question: String): BinaryResult {
+    fun yesNoInference(utterance: String, question: List<String>): List<BinaryResult> {
         TODO("Not yet implemented")
     }
 }
@@ -123,7 +82,7 @@ class RestNluService {
  */
 data class DecoderStateTracker(
     val agentMeta: DUMeta,
-) : IStateTracker {
+) : LlmStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
     val normalizers = defaultRecognizers(agentMeta)
     val nluService = RestNluService()
@@ -140,6 +99,14 @@ data class DecoderStateTracker(
     // to cut multiple intent input into multiple single intent ones.
 
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        TODO("Not yet implemented")
+    }
+
+    override fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
+        TODO("Not yet implemented")
+    }
+
+    override fun convertImpl(ducontext: DuContext): List<FrameEvent> {
         TODO("Not yet implemented")
     }
 
@@ -338,8 +305,8 @@ data class DecoderStateTracker(
         return null
     }
 
-    private fun isSlotMatched(spanInfo: SpanInfo, activeFrame: String): Boolean {
-        val spanTargetSlot = spanInfo.value.toString()
+    private fun isSlotMatched(valueInfo: ValueInfo, activeFrame: String): Boolean {
+        val spanTargetSlot = valueInfo.value.toString()
         val parts = spanTargetSlot.split(".")
         val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
         val slotName = parts.last()

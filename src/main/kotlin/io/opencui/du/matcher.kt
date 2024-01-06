@@ -119,7 +119,7 @@ class NestedMatcher(val context: BertDuContext) : Matcher {
         val segments = Expression.segment(document.typedExpression, document.ownerFrame)
         val slotTypes = segments.segments.filter { it is MetaSegment && it.meta == SLOTTYPE}
         if (slotTypes.size > 1) throw IllegalStateException("Don't support multiple slots with SlotType yet.")
-        if (slotTypes.isEmpty() || context.entityTypeToSpanInfoMap[SLOTTYPE].isNullOrEmpty()) {
+        if (slotTypes.isEmpty() || context.entityTypeToValueInfoMap[SLOTTYPE].isNullOrEmpty()) {
             if (!segments.useGenericType()) {
                 trueType = null
                 document.exactMatch = coverFind(0, segments) == context.tokens!!.size
@@ -128,7 +128,7 @@ class NestedMatcher(val context: BertDuContext) : Matcher {
                 // Another choice when there are multiple choices we clarify.
                 val slots = duMeta.getSlotMetas(context.expectations)
                 for (slot in slots) {
-                    if (context.entityTypeToSpanInfoMap.containsKey(slot.type)) {
+                    if (context.entityTypeToValueInfoMap.containsKey(slot.type)) {
                         trueType = slot.type
                         val matched = coverFind(0, segments) == context.tokens!!.size
                         if (matched) {
@@ -142,7 +142,7 @@ class NestedMatcher(val context: BertDuContext) : Matcher {
                 }
             }
         } else {
-            val matchedSlots = context.entityTypeToSpanInfoMap[SLOTTYPE]!!
+            val matchedSlots = context.entityTypeToValueInfoMap[SLOTTYPE]!!
             for (matchedSlot in matchedSlots) {
                 val trueSlot = matchedSlot.value as String
                 val tkns = trueSlot.split(".")

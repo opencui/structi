@@ -3,7 +3,6 @@ package io.opencui.du
 import io.opencui.core.IChatbot
 import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
-import io.opencui.serialization.JsonArray
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.StringField
@@ -186,7 +185,7 @@ class DslTest() : DuTestHelper() {
     // "today" -> recognized date_time=today -> search with query "today (date_time)"
     fun testSearchWithEntityValue() {
         val searcher = ExpressionSearcher(agent)
-        val emap = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         normalizers.recognizeAll("today", listOf(), emap)
         val results = searcher.search("today", DialogExpectations(), emap)
         //TODO we are change how we match enity only expression. so revisit when done.
@@ -228,7 +227,7 @@ class DslTest() : DuTestHelper() {
         // recipient: DontCare (2)
         // date_time: today, tomorrow, October1 (4)
         // someFrame: DontCare (2)
-        val emap = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         val utt = "we like to deposit this into your savings account to any recipient, whatever frame"
         recognizer.parse(utt, listOf(), emap)
         println("emap: $emap")
@@ -246,14 +245,14 @@ class DslTest() : DuTestHelper() {
         */
 
         val utt2 = "I'd like to get the weather for october 1"
-        val emap2 = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap2 = mutableMapOf<String, MutableList<ValueInfo>>()
         recognizer.parse(utt2, listOf(), emap2)
         println("emap2: $emap2")
         assert(emap2.containsKey("date_time"))
         assertEquals("\"October1\"", emap2["date_time"]!![0].norm())
 
         val utt3 = "I'd like to use account"
-        val emap3 = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap3 = mutableMapOf<String, MutableList<ValueInfo>>()
         recognizer.parse(utt3, listOf(), emap3)
         println("emap3: $emap3")
         // assertEquals("\"_partial_match\"", emap3["account_type"]!![0].norm())
@@ -261,7 +260,7 @@ class DslTest() : DuTestHelper() {
         assertEquals(2, eevent.size)
 
         val utt4 = "I'd like to the second"
-        val emap4 = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap4 = mutableMapOf<String, MutableList<ValueInfo>>()
         recognizer.parse(utt4, listOf(), emap4)
         assertEquals(0, emap4.size)
     }

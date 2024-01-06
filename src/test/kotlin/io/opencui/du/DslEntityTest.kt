@@ -180,14 +180,14 @@ class DslEntityTest() : DuTestHelper() {
 
     @Test
     fun testEntityValue0() {
-        val emap = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         normalizers.recognizeAll("order chicken wings", listOf(), emap)
         assertEquals(emap.size, 1)
     }
 
     @Test
     fun testEntityValue1() {
-        val emap = mutableMapOf<String, MutableList<SpanInfo>>()
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         normalizers.recognizeAll("order house special", listOf(), emap)
         assertEquals(emap.size, 1)
         val value = emap["me.test.abstractEntity_1007.Dish"]!![0]

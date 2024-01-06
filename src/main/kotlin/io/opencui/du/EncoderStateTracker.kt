@@ -27,7 +27,8 @@ data class BertDuContext(
     override val utterance: String,
     override val expectations: DialogExpectations = DialogExpectations(),
     override val duMeta: DUMeta? = null) : DuContext(session, utterance, expectations, duMeta) {
-    val entityTypeToSpanInfoMap = mutableMapOf<String, MutableList<SpanInfo>>()
+        
+    val entityTypeToValueInfoMap = mutableMapOf<String, MutableList<ValueInfo>>()
 
     var tokens : List<BoundToken>? = null
     val previousTokenByChar = mutableMapOf<Int, Int>()
@@ -49,7 +50,7 @@ data class BertDuContext(
         }
 
         val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
-        for((key, spans) in entityTypeToSpanInfoMap) {
+        for((key, spans) in entityTypeToValueInfoMap) {
             for (span in spans) {
                 if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
                 result[span.start]!!.add(Pair(key, endMap[span.end]!!))
@@ -77,7 +78,7 @@ data class BertDuContext(
 
     fun getEntityValue(typeName: String): String? {
         //TODO("Not yet implemented")
-        val spans = entityTypeToSpanInfoMap[typeName]
+        val spans = entityTypeToValueInfoMap[typeName]
         if (spans.isNullOrEmpty()) {
             return null
         }
@@ -91,10 +92,10 @@ data class BertDuContext(
         }
     }
 
-    fun putAll(lmap : Map<String, List<SpanInfo>>) {
+    fun putAll(lmap : Map<String, List<ValueInfo>>) {
         for ((k, vs) in lmap) {
             for (v in vs) {
-                entityTypeToSpanInfoMap.put(k, v)
+                entityTypeToValueInfoMap.put(k, v)
             }
         }
     }
@@ -108,14 +109,14 @@ data class BertDuContext(
         return true
     }
 
-    private fun findMentions(entity: String, bot: DUMeta) : List<SpanInfo> {
+    private fun findMentions(entity: String, bot: DUMeta) : List<ValueInfo> {
         // if we do not have at least one that is not partial match, it is bad.
-        var mentions = entityTypeToSpanInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
+        var mentions = entityTypeToValueInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
         if (!mentions.isNullOrEmpty()) return mentions
         val entityMeta = bot.getEntityMeta(entity) ?: return emptyList()
         logger.debug("Did not find $entity, trying ${entityMeta.children}")
         for (child in entityMeta.children) {
-            mentions = entityTypeToSpanInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
+            mentions = entityTypeToValueInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
             if (!mentions.isNullOrEmpty()) return mentions
         }
         return emptyList()
@@ -141,7 +142,7 @@ data class BertDuContext(
         return resList
     }
 
-    fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, entity: SpanInfo): Float {
+    fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, entity: ValueInfo): Float {
         var bonus = 0f
         var denominator = 0.0000001f
         // for now, we assume simple unigram model.
@@ -529,7 +530,7 @@ data class BertStateTracker(
         allNormalizers.recognizeAll(
             utterance,
             ducontext.expectedEntityType(agentMeta),
-            ducontext.entityTypeToSpanInfoMap
+            ducontext.entityTypeToValueInfoMap
         )
         ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
         return ducontext
@@ -610,7 +611,7 @@ data class BertStateTracker(
     fun detectTriggerableImpl(pducontext: DuContext): List<ScoredDocument>? {
         val ducontext = pducontext as BertDuContext
         // recognize entities in utterance
-        val emap = ducontext.entityTypeToSpanInfoMap
+        val emap = ducontext.entityTypeToValueInfoMap
         val utterance = ducontext.utterance
         val expectations = ducontext.expectations
 
@@ -764,7 +765,7 @@ data class BertStateTracker(
         if (ducontext.bestCandidate?.ownerFrame == IStateTracker.SlotUpdate && expectations.hasExpectation()) {
             logger.debug("enter slot update.")
             // We need to figure out which slot user are interested in first.
-            val slotTypeSpanInfo = ducontext.entityTypeToSpanInfoMap[IStateTracker.SlotType]
+            val slotTypeSpanInfo = ducontext.entityTypeToValueInfoMap[IStateTracker.SlotType]
             // Make sure there are slot type entity matches.
             if (slotTypeSpanInfo != null) {
                 // We assume the expectation is stack, with most recent frames in the end
@@ -838,8 +839,8 @@ data class BertStateTracker(
         return null
     }
 
-    private fun isSlotMatched(spanInfo: SpanInfo, activeFrame: String): Boolean {
-        val spanTargetSlot = spanInfo.value.toString()
+    private fun isSlotMatched(valueInfo: ValueInfo, activeFrame: String): Boolean {
+        val spanTargetSlot = valueInfo.value.toString()
         val parts = spanTargetSlot.split(".")
         val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
         val slotName = parts.last()
@@ -1019,7 +1020,7 @@ data class BertStateTracker(
         logger.info("extractSlotValues: class logits: $result.class_logits")
         // for now: for each slot we check whether its class_logits high enough,
         // if it is, we find the span for it. we assume all top level slots are required.
-        val emap = ducontext.entityTypeToSpanInfoMap
+        val emap = ducontext.entityTypeToValueInfoMap
 
         val slots = slotMap.keys.toList()
         // First let's add support for frame slot in entirety.
@@ -1134,7 +1135,7 @@ data class BertStateTracker(
         duContext: BertDuContext,
         slotMeta: DUSlotMeta,
         prediction: SlotPrediction,
-        entities: List<SpanInfo>? = null
+        entities: List<ValueInfo>? = null
     ): List<ScoredSpan>? {
         logger.info("handle ${duContext.utterance} for $slotMeta. with ${slotMeta.isMentioned}")
         val startIndexes = top(slotValueK, prediction.startLogits)
