@@ -37,21 +37,22 @@ import kotlin.collections.ArrayList
  * if context is not null, and target is not same, we can deal with case for confirmation.
  */
 
-data class ScoredDocument(override var score: Float, val document: Document) : Triggerable {
+data class ScoredDocument(var score: Float, val document: Document) : Triggerable {
     override val utterance: String = document.getField(UTTERANCE).stringValue()
     override var typedExpression: String = document.getField(EXPRESSION).stringValue()
     override val ownerFrame: String = document.getField(OWNER).stringValue()
-    override val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
+    val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
     val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
-    override val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
+    val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
     override val label: String? = if (document.get(LABEL) == null) "" else document.get(LABEL)
 
     // whether it is exact match.
-    override var exactMatch: Boolean = false
+    var exactMatch: Boolean = false
 
     // The next two are used for potential exect match.
-    override var possibleExactMatch: Boolean = false
-    override var guessedSlot: DUSlotMeta? = null
+    var possibleExactMatch: Boolean = false
+    var guessedSlot: DUSlotMeta? = null
+
     override fun clone(): Triggerable { return this.copy() }
 
     fun isCompatible(type: String, packageName: String?) : Boolean {

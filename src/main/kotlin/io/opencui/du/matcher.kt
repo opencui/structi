@@ -18,7 +18,7 @@ package io.opencui.du
  *
  */
 interface Matcher {
-    fun markMatch(document: Triggerable)
+    fun markMatch(document: ScoredDocument)
 }
 
 //
@@ -114,7 +114,7 @@ class NestedMatcher(val context: BertDuContext) : Matcher {
         return false
     }
 
-    override fun markMatch(document: Triggerable) {
+    override fun markMatch(document: ScoredDocument) {
         // We need to figure out whether there are special match.
         val segments = Expression.segment(document.typedExpression, document.ownerFrame)
         val slotTypes = segments.segments.filter { it is MetaSegment && it.meta == SLOTTYPE}

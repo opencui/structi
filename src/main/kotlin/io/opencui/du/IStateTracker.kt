@@ -24,16 +24,7 @@ interface Triggerable {
     val utterance: String
     var typedExpression: String
     val ownerFrame: String
-    val contextFrame: String?
-    val entailedSlots: List<String>
     val label: String?
-
-    // whether it is exact match.
-    var exactMatch: Boolean
-    // The next two are used for potential exect match.
-    var possibleExactMatch: Boolean
-    var guessedSlot: DUSlotMeta?
-    var score: Float
 
     fun clone(): Triggerable
 }
@@ -54,22 +45,15 @@ data class ExpectedFrame(
     }
 }
 
+
+
 // This is used to bridge encoder and decoder solution
 data class ExampledLabel(
     override val utterance: String,
     override val ownerFrame: String,
-    override val entailedSlots: List<String>,
-    override val contextFrame: String? = null,
     override val label: String? = null) : Triggerable {
     override var typedExpression: String = ""
     // for now, we keep it as the last resort.
-    override var exactMatch: Boolean = false
-    override var possibleExactMatch: Boolean = false
-
-    // this is used for generic typed slot by bert model.
-    override var guessedSlot: DUSlotMeta? = null
-    override var score: Float = 0.0f
-
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"
     }
