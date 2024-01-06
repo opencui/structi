@@ -285,7 +285,8 @@ interface LlmStateTracker: IStateTracker {
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
         if (utterance.isEmpty()) return listOf()
 
-        val res = convertImpl(session, putterance, expectations)
+        val duContext = buildDuContext(session, putterance, expectations)
+        val res = convertImpl(duContext)
 
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
@@ -302,11 +303,7 @@ interface LlmStateTracker: IStateTracker {
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext
 
-    fun convertImpl(
-        session: UserSession,
-        utterance: String,
-        expectations: DialogExpectations
-    ): List<FrameEvent>
+    fun convertImpl(ducontext: DuContext): List<FrameEvent>
 
     // This is used to recognize the triggerable skills.
     fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>?

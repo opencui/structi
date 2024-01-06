@@ -535,12 +535,10 @@ data class BertStateTracker(
         return ducontext
     }
 
-    override fun convertImpl(
-        session: UserSession,
-        utterance: String,
-        expectations: DialogExpectations
-    ): List<FrameEvent> {
-        val ducontext = buildDuContext(session, utterance, expectations)
+    override fun convertImpl(pducontext: DuContext): List<FrameEvent> {
+        val ducontext = pducontext as BertDuContext
+        val expectations = ducontext.expectations
+        val utterance = ducontext.utterance
 
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
