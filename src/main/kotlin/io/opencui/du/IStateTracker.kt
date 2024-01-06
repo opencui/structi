@@ -470,7 +470,7 @@ interface LlmStateTracker: IStateTracker {
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
         // this is used to detect frames.
-        ducontext.exemplars = recognizeTriggerables(ducontext)
+        ducontext.exemplars = detectTriggerables(ducontext)
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
@@ -516,7 +516,7 @@ interface LlmStateTracker: IStateTracker {
     }
 
     // This is used to recognize the triggerable skills.
-    fun recognizeTriggerables(ducontext: DuContext): List<ExampledLabel>?
+    fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>?
 
     fun handleExpectations(ducontext: DuContext): List<FrameEvent>?
 

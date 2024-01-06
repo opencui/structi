@@ -139,7 +139,7 @@ data class DecoderStateTracker(
 
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun recognizeTriggerables(ducontext: DuContext): List<ExampledLabel>? {
+    override fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>? {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance
@@ -187,6 +187,11 @@ data class DecoderStateTracker(
     }
 
     // When there is expectation presented.
+    // For each active expectation, we do the following:
+    // 1. check what type the focused slot is,
+    // 2. if it is boolean/IStatus, run Yes/No inference.
+    // 3. run fillSlot for the target frame.
+
     override fun handleExpectations(ducontext: DuContext): List<FrameEvent>? {
         val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
@@ -201,6 +206,8 @@ data class DecoderStateTracker(
                 )
             }"
         )
+
+
 
         // what happens we have good match, and these matches are related to expectations.
         // There are at least couple different use cases.

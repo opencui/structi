@@ -288,7 +288,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun recognizeTriggerables(ducontext: DuContext): List<ExampledLabel>? {
+    override fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>? {
         // recognize entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
         val utterance = ducontext.utterance
