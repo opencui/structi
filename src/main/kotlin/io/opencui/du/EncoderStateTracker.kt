@@ -37,8 +37,8 @@ data class BertDuContext(
     val emapByCharStart by lazy { convert() }
 
     // for bert based state tracker only.
-    var exemplars : List<ExampledLabel>? = null
-    val bestCandidate : ExampledLabel?
+    var exemplars : List<ScoredDocument>? = null
+    val bestCandidate : ScoredDocument?
         get() = exemplars?.get(0)
 
     fun convert(): Map<Int, List<Pair<String, Int>>> {
@@ -543,7 +543,7 @@ data class BertStateTracker(
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
         // this is used to detect frames.
-        ducontext.exemplars = detectTriggerables(ducontext)
+        detectTriggerables(ducontext)
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
@@ -602,7 +602,12 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun detectTriggerables(pducontext: DuContext): List<ExampledLabel>? {
+    override fun detectTriggerables(pducontext: DuContext) {
+        val ducontext = pducontext as BertDuContext
+        ducontext.exemplars = detectTriggerableImpl(pducontext)
+    }
+
+    fun detectTriggerableImpl(pducontext: DuContext): List<ScoredDocument>? {
         val ducontext = pducontext as BertDuContext
         // recognize entities in utterance
         val emap = ducontext.entityTypeToSpanInfoMap
@@ -675,18 +680,13 @@ data class BertStateTracker(
         return pickDocViaFrames(candidates)
     }
 
-    private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ExampledLabel> {
+    private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ScoredDocument> {
         // Return the best match for each frame.
         val frames: Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
-        val exemplars = frames.values
+        return frames.values
             .map { it.sortedByDescending { it.score }[0] }
             .filter { it.score > intentSureThreshold }
             .sortedByDescending { it.score }
-        return exemplars.map {
-            ExampledLabel(it.utterance, it.ownerFrame, it.entailedSlots, it.contextFrame, it.label).apply {
-                guessedSlot = it.guessedSlot
-            }
-        }
     }
 
     private fun notBeginning(segments: List<String>, index: Int): Boolean {
@@ -1228,7 +1228,7 @@ data class BertStateTracker(
     
     // At the frameevent level, we can reuse standard implementation.
     // given a list of frame event, add the entailed slots to the right frame event.
-    fun addEntailedSlot(bestCandidate: ExampledLabel?, frameEvents: List<FrameEvent>): List<FrameEvent> {
+    fun addEntailedSlot(bestCandidate: ScoredDocument?, frameEvents: List<FrameEvent>): List<FrameEvent> {
         if (bestCandidate == null) return frameEvents
         if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
 

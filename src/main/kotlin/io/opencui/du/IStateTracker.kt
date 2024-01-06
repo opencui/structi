@@ -324,7 +324,7 @@ interface LlmStateTracker: IStateTracker {
     fun convertImpl(ducontext: DuContext): List<FrameEvent>
 
     // This is used to recognize the triggerable skills.
-    fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>?
+    fun detectTriggerables(ducontext: DuContext)
 
     fun handleExpectations(ducontext: DuContext): List<FrameEvent>?
 
