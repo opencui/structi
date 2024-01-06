@@ -1225,6 +1225,29 @@ data class BertStateTracker(
             return ret
         }
     }
+    
+    // At the frameevent level, we can reuse standard implementation.
+    // given a list of frame event, add the entailed slots to the right frame event.
+    fun addEntailedSlot(bestCandidate: ExampledLabel?, frameEvents: List<FrameEvent>): List<FrameEvent> {
+        if (bestCandidate == null) return frameEvents
+        if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
+
+        val events = mutableListOf<FrameEvent>()
+
+        for (frameEvent in frameEvents) {
+            // The entailment is for cor-reference resolution. But this solution is based on exemplar,
+            // this is not 100% accurate, we should try to find other method.
+            if (bestCandidate.isCompatible(frameEvent.type, frameEvent.packageName)) {
+                // merge function slot event with compatible event
+                val allSlots = frameEvent.slots.toMutableList()
+                allSlots.addAll(bestCandidate.entailedSlots.map { EntityEvent("\"_context\"", it) })
+                events.add(FrameEvent(frameEvent.type, allSlots.toList(), packageName = frameEvent.packageName))
+            } else {
+                events.add(frameEvent)
+            }
+        }
+        return events
+    }
 
     override fun recycle() {
         nluModel.shutdown()
