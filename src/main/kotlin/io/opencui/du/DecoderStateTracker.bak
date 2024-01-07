@@ -141,7 +141,7 @@ data class DecoderStateTracker(
         TODO("Not yet implemented")
     }
 
-    fun detectTriggerables(ducontext: DuContext): List<ExampledLabel>? {
+    override fun detectTriggerables(ducontext: DuContext): List<ExampledLabel> {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance

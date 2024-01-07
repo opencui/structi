@@ -390,7 +390,7 @@ data class BertStateTracker(
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
         // this is used to detect frames.
-        detectTriggerables(ducontext)
+        ducontext.exemplars= detectTriggerables(ducontext)
 
         // What happens if there are expectations.
         if (expectations.activeFrames.isNotEmpty()) {
@@ -449,12 +449,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun detectTriggerables(pducontext: DuContext) {
-        val ducontext = pducontext as BertDuContext
-        ducontext.exemplars = detectTriggerableImpl(pducontext)
-    }
-
-    fun detectTriggerableImpl(pducontext: DuContext): List<ScoredDocument>? {
+    override fun detectTriggerables(pducontext: DuContext): List<ScoredDocument>? {
         val ducontext = pducontext as BertDuContext
         // recognize entities in utterance
         val emap = ducontext.entityTypeToValueInfoMap
