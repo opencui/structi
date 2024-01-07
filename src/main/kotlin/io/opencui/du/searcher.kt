@@ -41,7 +41,7 @@ data class ScoredDocument(var score: Float, val document: Document) : Triggerabl
     override val utterance: String = document.getField(UTTERANCE).stringValue()
     override var typedExpression: String = document.getField(EXPRESSION).stringValue()
     override val ownerFrame: String = document.getField(OWNER).stringValue()
-    val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
+    override val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
     val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
     val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
     override val label: String? = if (document.get(LABEL) == null) "" else document.get(LABEL)

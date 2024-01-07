@@ -24,6 +24,7 @@ interface Triggerable {
     val utterance: String
     var typedExpression: String
     val ownerFrame: String
+    val contextFrame: String?
     val label: String?
 
     fun clone(): Triggerable
@@ -45,21 +46,6 @@ data class ExpectedFrame(
     }
 }
 
-
-
-// This is used to bridge encoder and decoder solution
-data class ExampledLabel(
-    override val utterance: String,
-    override val ownerFrame: String,
-    override val label: String? = null) : Triggerable {
-    override var typedExpression: String = ""
-    // for now, we keep it as the last resort.
-    fun isCompatible(type: String, packageName: String?) : Boolean {
-        return ownerFrame == "${packageName}.${type}"
-    }
-
-    override fun clone(): Triggerable { return this.copy() }
-}
 
 /**
  * This can be used to capture the intermediate result from understanding.

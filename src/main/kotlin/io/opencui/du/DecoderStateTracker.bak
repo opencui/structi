@@ -13,6 +13,25 @@ import io.opencui.serialization.*
 import java.time.Duration
 
 
+
+// This is used to bridge encoder and decoder solution
+data class ExampledLabel(
+    override val utterance: String,
+    override val ownerFrame: String,
+    override val contextFrame: String? = null,
+    override val label: String? = null) : Triggerable {
+    override var typedExpression: String = ""
+    // for now, we keep it as the last resort.
+
+    fun isCompatible(type: String, packageName: String?) : Boolean {
+        return ownerFrame == "${packageName}.${type}"
+    }
+
+    override fun clone(): Triggerable { return this.copy() }
+}
+
+
+
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
  * the generated prompt. It is possible that we have two different service, one for prompt (which is agent
