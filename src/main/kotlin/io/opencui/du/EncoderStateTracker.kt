@@ -449,7 +449,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun detectTriggerables(pducontext: DuContext): List<ScoredDocument> {
+    fun detectTriggerables(pducontext: DuContext): List<ScoredDocument> {
         val ducontext = pducontext as BertDuContext
         // recognize entities in utterance
         val emap = ducontext.entityTypeToValueInfoMap
@@ -540,7 +540,7 @@ data class BertStateTracker(
     }
 
     // When there is expectation presented.
-    override fun handleExpectations(pducontext: DuContext): List<FrameEvent>? {
+    fun handleExpectations(pducontext: DuContext): List<FrameEvent>? {
         val ducontext = pducontext as BertDuContext
         val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
@@ -717,7 +717,7 @@ data class BertStateTracker(
     /**
      * fillSlots is used to create entity event.
      */
-    override fun fillSlots(pducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
+    fun fillSlots(pducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         val ducontext = pducontext as BertDuContext
         // we need to make sure we include slots mentioned in the intent expression
         val slotMap = // Including all the top level slots.
@@ -759,7 +759,7 @@ data class BertStateTracker(
     }
 
 
-    override fun fillSlotUpdate(pducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+    fun fillSlotUpdate(pducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
         val ducontext = pducontext as BertDuContext
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance

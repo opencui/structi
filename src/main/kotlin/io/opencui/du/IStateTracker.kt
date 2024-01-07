@@ -177,10 +177,7 @@ open class DuContext(
     companion object {
         val logger = LoggerFactory.getLogger(DuContext::class.java)
     }
-
-
 }
-
 
 
 /**
@@ -398,6 +395,7 @@ interface LlmStateTracker: IStateTracker {
         if (utterance.isEmpty()) return listOf()
 
         val duContext = buildDuContext(session, putterance, expectations)
+
         val res = convertImpl(duContext)
 
         // get the post process done
@@ -416,15 +414,6 @@ interface LlmStateTracker: IStateTracker {
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext
 
     fun convertImpl(ducontext: DuContext): List<FrameEvent>
-
-    // This is used to recognize the triggerable skills.
-    fun detectTriggerables(ducontext: DuContext): List<Triggerable>
-
-    fun handleExpectations(ducontext: DuContext): List<FrameEvent>?
-
-    fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent>
-    fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent>
-
 
     companion object {
         val logger = LoggerFactory.getLogger(LlmStateTracker::class.java)

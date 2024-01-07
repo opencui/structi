@@ -15,7 +15,7 @@ import java.time.Duration
 
 
 // This is used to bridge encoder and decoder solution
-data class ExampledLabel(
+data class TriggerDecision(
     override val utterance: String,
     override val ownerFrame: String,
     override val contextFrame: String? = null,
@@ -81,7 +81,7 @@ class RestNluService {
     }
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<ExampledLabel> {
+    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         TODO("Not yet implemented")
     }
 
@@ -141,7 +141,7 @@ data class DecoderStateTracker(
         TODO("Not yet implemented")
     }
 
-    override fun detectTriggerables(ducontext: DuContext): List<ExampledLabel> {
+    override fun detectTriggerables(ducontext: DuContext): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance
@@ -150,7 +150,8 @@ data class DecoderStateTracker(
         val expectations = ducontext.expectations
 
         // We assume true/false or null here.
-        val pcandidates = nluService.detectSkills(utterance, expectations)
+        val pcandidates = nluService.detectTriggerables(utterance, expectations)
+
         val candidates = ChainedExampledLabelsTransformer(
             DontCareTransformer(ducontext.expectations),
             StatusTransformer(ducontext.expectations)
@@ -159,19 +160,6 @@ data class DecoderStateTracker(
 
         // Do we really need this?
         // First, try to exact match expressions
-        val matcher = NestedMatcher(ducontext)
-        candidates.map { matcher.markMatch(it) }
-        val exactMatches = candidates.filter { it.exactMatch }
-        if (exactMatches.isNotEmpty()) {
-            return exactMatches.map{ it as ExampledLabel }
-        }
-
-        // If we have potential exact match, we use that as well.
-        val possibleExactMatches = candidates.filter { it.possibleExactMatch }
-        if (possibleExactMatches.isNotEmpty()) {
-            return possibleExactMatches.map{ it as ExampledLabel }
-        }
-
         // now find the intent best explain the utterance
         // First we check whether we know enough about
         if (candidates.isEmpty()) {
@@ -185,7 +173,7 @@ data class DecoderStateTracker(
         }
 
         // We might need to consider return multiple possibilities if there is no exact match.
-        return candidates.map {it as ExampledLabel }
+        return candidates.map {it as TriggerDecision }
     }
 
     // When there is expectation presented.
