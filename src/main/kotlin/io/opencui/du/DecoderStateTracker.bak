@@ -118,6 +118,7 @@ data class DecoderStateTracker(
     // to cut multiple intent input into multiple single intent ones.
 
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+
         TODO("Not yet implemented")
     }
 
@@ -138,10 +139,10 @@ data class DecoderStateTracker(
     }
 
     override fun convertImpl(ducontext: DuContext): List<FrameEvent> {
-        TODO("Not yet implemented")
+        val triggerables = nluService.detectTriggerables()
     }
 
-    override fun detectTriggerables(ducontext: DuContext): List<TriggerDecision> {
+    fun detectTriggerables(ducontext: DuContext): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
 
         // recognized entities in utterance

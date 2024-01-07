@@ -346,7 +346,7 @@ data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
  * BertStateTracker assumes the underlying nlu module is bert based.
  */
 data class BertStateTracker(
-    override val agentMeta: DUMeta,
+    val agentMeta: DUMeta,
     val intentK: Int = 32,
     val slotValueK: Int = 3,
     val intentSureThreshold: Float = 0.5f,
@@ -355,18 +355,19 @@ data class BertStateTracker(
     val expectedSlotBonus: Float = 1.6f,
     val prefixSuffixBonus: Float = 1.0f,
     val caseSensitivity: Boolean = false
-) : LlmStateTracker {
+) : IStateTracker {
 
     private val expressedSlotBonus: Float = 5.0f
 
     // If there are multi normalizer propose annotation on the same span, last one wins.
-    override val normalizers = defaultRecognizers(agentMeta)
+    val normalizers = defaultRecognizers(agentMeta)
     val nluModel: NLUModel = TfRestBertNLUModel()
     private val searcher = ExpressionSearcher(agentMeta)
 
-    override val lang = agentMeta.getLang().lowercase(Locale.getDefault())
-    override val dontCareForPagedSelectable = DontCareForPagedSelectable()
-    override fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): BertDuContext {
+    val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+    val dontCareForPagedSelectable = DontCareForPagedSelectable()
+
+    fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): BertDuContext {
         val ducontext = BertDuContext(session.userIdentifier.toString(), utterance, expectations, agentMeta)
         var allNormalizers = normalizers.toMutableList()
         // Session and turn based recognizers
@@ -381,8 +382,30 @@ data class BertStateTracker(
         ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
         return ducontext
     }
+    fun buildPostProcessor(expectations: DialogExpectations): FrameEventProcessor {
+        // this build the post processors
+        return ChainedFrameEventProcesser(
+            dontCareForPagedSelectable,        // The first is to resolve the don't care for pagedselectable.
+            ComponentSkillConverter(agentMeta, expectations)
+        )
+    }
 
-    override fun convertImpl(pducontext: DuContext): List<FrameEvent> {
+    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        logger.info("Getting $putterance under $expectations")
+        // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
+        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+        if (utterance.isEmpty()) return listOf()
+
+        val duContext = buildDuContext(session, putterance, expectations)
+
+        val res = convertImpl(duContext)
+
+        // get the post process done
+        val postProcess = buildPostProcessor(expectations)
+        return res.map { postProcess(it) }
+    }
+
+    fun convertImpl(pducontext: DuContext): List<FrameEvent> {
         val ducontext = pducontext as BertDuContext
         val expectations = ducontext.expectations
         val utterance = ducontext.utterance
