@@ -29,10 +29,10 @@ data class BertDuContext(
     override val duMeta: DUMeta? = null) : DuContext(session, utterance, expectations, duMeta) {
 
     // For bert based state tracker only, since it heavily depends on exemplar.
-    var exemplars : List<ScoredDocument>? = null
+    var exemplars : List<ScoredDocument> = emptyList()
 
     val bestCandidate : ScoredDocument?
-        get() = exemplars?.get(0)
+        get() = exemplars.getOrNull(0)
 
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
@@ -449,7 +449,7 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    override fun detectTriggerables(pducontext: DuContext): List<ScoredDocument>? {
+    override fun detectTriggerables(pducontext: DuContext): List<ScoredDocument> {
         val ducontext = pducontext as BertDuContext
         // recognize entities in utterance
         val emap = ducontext.entityTypeToValueInfoMap
@@ -459,7 +459,7 @@ data class BertStateTracker(
         val pcandidates = searcher.search(utterance, expectations, emap)
         if (pcandidates.isEmpty()) {
             logger.debug("find no expression match for $utterance")
-            return null
+            return emptyList()
         }
 
         val candidates: List<ScoredDocument> = ChainedExampledLabelsTransformer(
@@ -492,7 +492,7 @@ data class BertStateTracker(
 
         if (intentResults == null) {
             logger.info("Did not get any return from NLU server => do not understand.")
-            return null
+            return emptyList()
         }
 
         logger.info(intentResults.toString())
@@ -510,7 +510,7 @@ data class BertStateTracker(
         val goodCandidatesSize = candidates.filter { it.score > intentSureThreshold }.size
         if (goodCandidatesSize <= 0) {
             logger.debug("Got no match for ${utterance}.")
-            return null
+            return emptyList()
         }
 
         // TODO: another choice is to return here and ask user to choose one interpretation.
