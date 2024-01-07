@@ -22,7 +22,7 @@ interface Matcher {
 }
 
 //
-class NestedMatcher(val context: BertDuContext) : Matcher {
+class NestedMatcher(val context: DuContext) : Matcher {
     private val analyzer = LanguageAnalyzer.get(context.duMeta!!.getLang(), stop = false)
     private val duMeta = context.duMeta!!
     private var trueType : String? = null
