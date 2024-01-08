@@ -1,5 +1,6 @@
 package io.opencui.du
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
@@ -7,6 +8,8 @@ import io.opencui.serialization.*
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
+import java.io.IOException
 import java.io.Serializable
 import java.util.*
 import java.util.regex.Pattern
@@ -92,6 +95,13 @@ interface LangBase {
     }
 }
 
+
+data class FrameMeta(
+    val name: String,
+    val description: String,
+    val paremeters: List<DUSlotMeta>
+)
+
 interface ExtractiveMeta : LangBase {
     fun getEntities(): Set<String>
 
@@ -103,6 +113,7 @@ interface ExtractiveMeta : LangBase {
 
     val expressionsByFrame: Map<String, List<Expression>>
 }
+
 
 interface DUMeta : ExtractiveMeta {
 
@@ -244,6 +255,29 @@ fun DUMeta.getNestedSlotMetas(
     return slotsMetaMap
 }
 
+fun DUMeta.dump(path: String) {
+    // We need to dump the meta out for python code to index. for now just schema
+    val frames = expressionsByFrame.keys
+    val schemas = mutableListOf<FrameMeta>()
+    for (frame in frames) {
+        val description = getTriggers(frame)[0]
+        val slots = getSlotMetas(frame)
+        schemas.add(FrameMeta(frame, description, slots))
+    }
+
+    val mapper = ObjectMapper()
+    try {
+        mapper.writeValue(File(path + "/schemas.json"), schemas)
+    } catch (e: IOException) {
+        e.printStackTrace()
+    }
+
+    try {
+        mapper.writeValue(File(path + "/exemplars.json"), schemas)
+    } catch (e: IOException) {
+        e.printStackTrace()
+    }
+}
 
 // If the frame is system frame or not.
 fun DUMeta.isSystemFrame(frame: String): Boolean {
