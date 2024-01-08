@@ -196,6 +196,11 @@ data class UserSession(
     val userIdentifier: IUserIdentifier
         get() = this
 
+    fun getLocale(): Locale {
+        // For now, we use language to determine locale, but we can accept the client suggested value later.
+        return Locale(botInfo.lang)
+    }
+
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)

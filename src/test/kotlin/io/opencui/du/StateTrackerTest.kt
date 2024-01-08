@@ -486,9 +486,9 @@ class StateTrackerTest : DuTestHelper() {
         endLogits.add(listOf(1.469735E-6f, 1.6144468E-6f, 5.9993013E-6f, 7.2088346E-6f, 3.1644202E-4f, 0.13221303f, 4.2701727E-6f, 0.8674499f))
 
         val originalInput = "buy a ticket from beijing city to shanghai"
-        val recognizedEntities = mutableMapOf<String, List<SpanInfo>>()
-        recognizedEntities["city"] = listOf(SpanInfo("city", 18, 25, value = "beijing", score = 2.0f),
-                SpanInfo("city", 34, 42, value = "shanghai", score = 2.0f))
+        val recognizedEntities = mutableMapOf<String, List<ValueInfo>>()
+        recognizedEntities["city"] = listOf(ValueInfo("city", 18, 25, value = "beijing", score = 2.0f),
+                ValueInfo("city", 34, 42, value = "shanghai", score = 2.0f))
         val slotMap = mapOf(
                 "from" to DUSlotMeta("from", listOf("from"), "city"),
                 "to" to DUSlotMeta("to", listOf("to"), "city"))
@@ -508,7 +508,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(
                 "{=[EntityEvent(value=shanghai, attribute=to), EntityEvent(value=beijing, attribute=from)]}",
                 stateTracker.extractSlotValues(
-                        DUContext("", originalInput).apply {putAll(recognizedEntities)},
+                        BertDuContext("", originalInput).apply {putAll(recognizedEntities)},
                         "",
                         slotMap,
                         prediction).toString(),
@@ -525,11 +525,11 @@ class StateTrackerTest : DuTestHelper() {
                 listOf(listOf(0.1f), listOf(0.1f)),
                 listOf(0),
                 listOf(1))
-        val emap2 = mapOf("city" to listOf(SpanInfo("city", 0, 7)))
+        val emap2 = mapOf("city" to listOf(ValueInfo("city", 0, 7)))
         assertEquals(
                 "{=[EntityEvent(value=beijing, attribute=from)]}",
                 stateTracker.extractSlotValues(
-                        DUContext("", "beijing").apply{ putAll(emap2) },
+                        BertDuContext("", "beijing").apply{ putAll(emap2) },
                         "from",
                         slotMap,
                         prediction2).toString(),
@@ -541,7 +541,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(
                 "{=[EntityEvent(value=beijing, attribute=to)]}",
                 stateTracker.extractSlotValues(
-                        DUContext( "","beijing").apply {putAll(emap2)},
+                        BertDuContext( "","beijing").apply {putAll(emap2)},
                         "to",
                         slotMap,
                         prediction2).toString(),
@@ -552,9 +552,9 @@ class StateTrackerTest : DuTestHelper() {
     fun testPrefixSuffixBoost() {
         val originalInput = "Alice want to buy a ticket from shanghai to beijing at today"
         // test low level function: extractValues
-        val recognizedEntities = mutableMapOf<String, List<SpanInfo>>()
-        recognizedEntities["city"] = listOf(SpanInfo("city", 44, 51, value = "beijing", score = 2.0f),
-                SpanInfo("city", 32, 40, value = "shanghai", score = 2.0f))
+        val recognizedEntities = mutableMapOf<String, List<ValueInfo>>()
+        recognizedEntities["city"] = listOf(ValueInfo("city", 44, 51, value = "beijing", score = 2.0f),
+                ValueInfo("city", 32, 40, value = "shanghai", score = 2.0f))
         val slotMap = mapOf(
                 "from" to DUSlotMeta("from", listOf("departure"),
                         "city").apply{ prefixes = mutableSetOf("from"); suffixes = mutableSetOf("to")},
@@ -573,7 +573,7 @@ class StateTrackerTest : DuTestHelper() {
         // expected slot: null
         // with prefix suffix bonus, shanghai should fill from, beijing to
         // should fill both from and to: {from: shanghai, to: beijing}
-        val context = DUContext("", originalInput).apply{putAll(recognizedEntities)}
+        val context = BertDuContext("", originalInput).apply{putAll(recognizedEntities)}
         context.updateTokens(LanguageAnalyzer.get("en", stop = false)!!.tokenize(originalInput))
         assertEquals(
                 "{=[EntityEvent(value=shanghai, attribute=from), EntityEvent(value=beijing, attribute=to)]}",
@@ -662,7 +662,7 @@ class StateTrackerTest : DuTestHelper() {
     @Test
     fun testSlotModel() {
         val utterance = "march"
-        val ducontext = DUContext("s", utterance, DialogExpectations())
+        val ducontext = BertDuContext("s", utterance, DialogExpectations())
         val probes = listOf("departure?")
         val predictions = stateTracker.nluModel.predictSlot("en", utterance, probes)
         print("request slot model, utterance: $utterance, probes: $probes")

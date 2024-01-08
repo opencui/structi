@@ -12,90 +12,36 @@ import kotlin.collections.HashMap
 import kotlin.math.max
 import kotlin.math.min
 
-
-
-// return the top k items from the collection.
-fun <T : Comparable<T>> top(k: Int, collection: Iterable<T>): List<IndexedValue<T>> {
-    val topList = ArrayList<IndexedValue<T>>()
-    for ((index, logit) in collection.withIndex()) {
-        if (topList.size < k || logit > topList.last().value) {
-            topList.add(IndexedValue(index, logit))
-            topList.sortByDescending { it.value }
-            if (topList.size > k) {
-                topList.removeAt(k)
-            }
-        }
-    }
-    return topList
-}
-
-fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
-    if (!this.containsKey(key)) {
-        put(key, mutableListOf())
-    }
-    get(key)!!.add(value)
-}
-
-
-interface Resolver {
-    fun resolve(ducontext: DUContext, before: List<ScoredDocument>): List<ScoredDocument>
-}
+import io.opencui.core.RuntimeConfig
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import io.opencui.serialization.*
+import java.time.Duration
 
 
 
-/**
- * This can be used to capture the intermediate result from understanding.
- * So that we can save some effort by avoiding repeated work.
- */
-data class DUContext(val session: String, val utterance: String, val expectations: DialogExpectations = DialogExpectations()) {
-    val entityTypeToSpanInfoMap = mutableMapOf<String, MutableList<SpanInfo>>()
-    var candidates : List<ScoredDocument>? = null
-    var bestCandidate : ScoredDocument? = null
+data class BertDuContext(
+    override val session: String,
+    override val utterance: String,
+    override val expectations: DialogExpectations = DialogExpectations(),
+    override val duMeta: DUMeta? = null) : DuContext(session, utterance, expectations, duMeta) {
 
-    var tokens : List<BoundToken>? = null
-    val previousTokenByChar = mutableMapOf<Int, Int>()
-    val nextTokenByChar = mutableMapOf<Int, Int>()
-    var duMeta : DUMeta? = null
+    // For bert based state tracker only, since it heavily depends on exemplar.
+    var exemplars : List<ScoredDocument> = emptyList()
 
-    val emapByCharStart by lazy { convert() }
-    fun convert(): Map<Int, List<Pair<String, Int>>> {
-        // create the char end to token end.
-        val endMap = mutableMapOf<Int, Int>()
-        for ((index, token) in tokens!!.withIndex()) {
-            endMap[token.end] = index + 1
-        }
-
-        val result = mutableMapOf<Int, MutableList<Pair<String, Int>>>()
-        for((key, spans) in entityTypeToSpanInfoMap) {
-            for (span in spans) {
-                if (!result.containsKey(span.start)) result[span.start] = mutableListOf()
-                result[span.start]!!.add(Pair(key, endMap[span.end]!!))
-            }
-        }
-        return result
-    }
-
-    fun updateTokens(tkns: List<BoundToken>) {
-        tokens = tkns
-        for( (index, tkn) in tokens!!.withIndex() ) {
-            if(index >  0) {
-                previousTokenByChar[tkn.start] = index - 1
-            }
-            if(index < tokens!!.size - 1) {
-                nextTokenByChar[tkn.end] = index + 1
-            }
-        }
-    }
+    val bestCandidate : ScoredDocument?
+        get() = exemplars.getOrNull(0)
 
     fun matchedIn(frameNames: List<String>): Boolean {
         // Right now, we only consider the best candidate, but we can extend this to other frames.
-        if (!candidates.isNullOrEmpty()) bestCandidate = candidates!![0]
         return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
     }
 
     fun getEntityValue(typeName: String): String? {
         //TODO("Not yet implemented")
-        val spans = entityTypeToSpanInfoMap[typeName]
+        val spans = entityTypeToValueInfoMap[typeName]
         if (spans.isNullOrEmpty()) {
             return null
         }
@@ -109,60 +55,291 @@ data class DUContext(val session: String, val utterance: String, val expectation
         }
     }
 
-    fun putAll(lmap : Map<String, List<SpanInfo>>) {
-        for ((k, vs) in lmap) {
-            for (v in vs) {
-                entityTypeToSpanInfoMap.put(k, v)
+    companion object {
+        val logger = LoggerFactory.getLogger(BertDuContext::class.java)
+    }
+}
+
+
+
+
+interface ContextedExemplarsTransformer {
+    operator fun invoke(origin: List<Triggerable>): List<Triggerable>
+}
+
+data class DontCareTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
+    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<Triggerable>()
+        val dontcare = expectations.allowDontCare()
+        for (doc in pcandidates) {
+            // DontCare phrase should only be useful when there don't care is expected.
+            if (doc.ownerFrame == "io.opencui.core.DontCare") {
+                if (dontcare) results.add(doc)
+            } else {
+                results.add(doc)
             }
         }
+        return results
     }
+}
 
-    fun containsAllEntityNeeded(entities: List<String>, bot: DUMeta) : Boolean {
-        // if the entities is empty, then we already contain all entity needed.
-        for (entity in entities) {
-            // If we do not have this required entity, it is bad.
-            if(findMentions(entity, bot).isEmpty()) return false
+data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
+    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
+        val frames = expectations.activeFrames.map { it.frame }.toSet()
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<Triggerable>()
+        for (doc in pcandidates) {
+            if (doc.ownerFrame in IStateTracker.IStatusSet) {
+                if (doc.ownerFrame in frames) results.add(doc)
+            } else {
+                results.add(doc)
+            }
         }
-        return true
+        return results
     }
+}
 
-    private fun findMentions(entity: String, bot: DUMeta) : List<SpanInfo> {
-        // if we do not have at least one that is not partial match, it is bad.
-        var mentions = entityTypeToSpanInfoMap[entity]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-        if (!mentions.isNullOrEmpty()) return mentions
-        val entityMeta = bot.getEntityMeta(entity) ?: return emptyList()
-        logger.debug("Did not find $entity, trying ${entityMeta.children}")
-        for (child in entityMeta.children) {
-            mentions = entityTypeToSpanInfoMap[child]?.filter { !ListRecognizer.isPartialMatch(it.norm()) }
-            if (!mentions.isNullOrEmpty()) return mentions
+data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
+    constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
+
+    override fun invoke(origin: List<Triggerable>): List<Triggerable> {
+        var current = origin
+        for( transform in transformers) {
+            current = transform(current)
         }
-        return emptyList()
+        return current
     }
+}
 
-    fun expectedEntityType(bot: DUMeta) : List<String> {
-        if (expectations.activeFrames.isEmpty()) return listOf()
-        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
-        // TODO: handle the a.b.c case
-        val resList = mutableListOf<String>()
-        if (expectations.expected!!.slot != null) {
-            val expectedType = bot.getSlotType(expectations.expected.frame, expectations.expected.slot!!)
-            resList.add(expectedType)
+
+/**
+ * This data structure is used for capturing the response from slot model.
+ */
+data class SlotPrediction(val result: UnifiedModelResult, val index: Int) {
+    val segments: List<String> = result.segments
+    val classLogit: Float = result.classLogits[3*index + 1]
+    val startLogits: List<Float> = result.startLogitss[index]
+    val endLogits: List<Float> = result.endLogitss[index]
+    val segStarts: List<Long> = result.segStarts
+    val segEnds: List<Long> = result.segEnds
+}
+
+data class UnifiedModelResult(
+        // The tokens used by the model on the server side.
+        val segments: List<String>,
+        // Eor each slot, the probability of user: whether mentioned a value, or do not care about the slot.
+        val classLogits: List<Float>,
+
+        // The probability of the starting position (in tokens) of the value for the slot value questions.
+        val startLogitss: List<List<Float>>,
+        // The probability of the ending position (in tokens) of the value for the slot value questions.
+        val endLogitss: List<List<Float>>,
+
+        // The starting character position for each token.
+        val segStarts: List<Long>,
+        // The ending character position for each token.
+        val segEnds: List<Long>) {
+    operator fun get(index:Int) : SlotPrediction { return SlotPrediction(this, index)}
+}
+
+
+/**
+ * For now, we only use probability of the utterance means the same as probe.
+ * In the future, when we start to deal with multiple intents in one utterance,
+ * the span host the start and end of the utterance
+ * that matches the probe.
+ */
+data class IntentPrediction(val prob: Float)
+
+data class IntentModelResult(val probs: List<Float>) {
+    val size = probs.size/2
+    operator fun get(index: Int): IntentPrediction {
+        check(2*index+1 < probs.size)
+        return IntentPrediction(probs[2*index+1])
+    }
+}
+
+
+/**
+ * This is api that current nlu model provide. But we should expose more kotlin friendly
+ * returns so that it is easy to provide implementation from other framework.
+ *
+ */
+interface NLUModel {
+    fun shutdown() {}
+
+    /**
+     * Given a user [utterance] in specified [language] and a list of expression [exemplars],
+     * @returns the probability of the user utterance have the same meaning of each of exemplars.
+     */
+    fun predictIntent(lang:String, utterance: String, exemplars: List<String>) :  IntentModelResult?
+
+
+    /**
+     * Given a user [utterance] in specified [language] and a list of slot value probes
+     * @return the result that include tokenization used by model, yes/no/dontcare of the value for
+     * each slot, and proability of start and end of the value. Notice this only handles the single
+     * value use case.
+     */
+    fun predictSlot(lang:String, utterance: String, probes: List<String>): UnifiedModelResult
+}
+
+
+/**
+ * This host all the string literals used by
+ */
+object TfBertNLUModel {
+    const val unifiedLogitsStr = "class_logits"
+    const val startLogitsStr = "start_logits"
+    const val endLogitsStr = "end_logits"
+    const val segmentsStr = "segments"
+    const val segStartStr = "pos_starts"
+    const val segEndStr = "pos_ends"
+
+    const val classificationProbs = "probs"
+
+    const val outputs = "outputs"
+}
+
+object PtBertNLUModel {
+    const val classLogitsStr = "classLogits"
+    const val startLogitsStr = "startLogits"
+    const val endLogitsStr = "endLogits"
+    const val segmentsStr = "segments"
+    const val segStartStr = "segStarts"
+    const val segEndStr = "segEnds"
+
+    const val intentProbs = "probs"
+
+    const val outputs = "outputs"
+}
+
+
+/**
+ * Dialog state tracker takes natural language user utterance, and convert that into frame event
+ * based on conversation history.
+ *
+ * For now, this functionality is seperated into two levels, lower level nlu where context is not
+ * taking into consideration, high level that use the output from low lever api and conversational
+ * history to finish the conversion in context dependent way.
+ *
+ * We will have potentially different lower level apis, for now, we assume the bert based on api
+ * which is defined per document. We assume there are two models (intents and slots) for now, and
+ * their apis is defined as the corresponding document.
+ *
+ * For tensorflow, we can serve in model grpc/rest automatically.
+ * https://www.tensorflow.org/tfx/serving/api_rest
+ *
+ * By using restful instead grpc, we can remove another piece of dependency that may be hurting
+ * quarkus native potentially.
+ */
+data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
+    data class TfRestPayload(val utterance: String, val probes: List<String>)
+    data class TfRestRequest(val signature_name: String, val inputs: TfRestPayload)
+    val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)
+    val client: HttpClient = HttpClient.newHttpClient()
+    val url: String = "${config.third}://${config.first}:${config.second}"
+    val timeout: Long = 10000
+
+
+    fun parse(modelName: String, signatureName: String, utterance: String, probes: List<String>) : JsonObject? {
+        val payload = TfRestPayload(utterance, probes)
+        val input = TfRestRequest(signatureName, payload)
+        logger.debug("connecting to $url/v1/models/${modelName}:predict")
+        logger.debug("utterance = $utterance and probes = $probes")
+        val request: HttpRequest = HttpRequest.newBuilder()
+            .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
+            .uri(URI.create("$url/v1/models/${modelName}:predict"))
+            .timeout(Duration.ofMillis(timeout))
+            .build()
+
+        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
+        return if (response.statusCode() == 200) {
+            val body = response.body()
+            Json.parseToJsonElement(body).get(TfBertNLUModel.outputs) as JsonObject
         } else {
-            // Found the frame that has the slot
-            for (active in expectations.activeFrames.reversed()) {
-                if (active.slot != null) {
-                    val activeType = bot.getSlotType(active.frame, active.slot)
-                    resList.add(activeType)
-                }
-            }
+            // We should not be here.
+            logger.error("NLU request error: ${response.toString()}")
+            null
         }
-        return resList
+    }
+
+    override fun shutdown() { }
+
+
+    override fun predictIntent(lang: String, utterance: String, exemplars: List<String>): IntentModelResult? {
+        val outputs = parse("${lang}_intent", "intent", utterance, exemplars)!!
+        val classLogits = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.unifiedLogitsStr)).flatten()
+        return IntentModelResult(classLogits)
+    }
+
+    override fun predictSlot(lang: String, utterance: String, probes: List<String>): UnifiedModelResult {
+        val outputs = parse("${lang}_slot", "slot", utterance, probes)!!
+        val segments = Json.decodeFromJsonElement<List<List<String>>>(outputs.get(TfBertNLUModel.segmentsStr)).flatten()
+        val startLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.startLogitsStr))
+        val endLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.endLogitsStr))
+        val classLogits = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(TfBertNLUModel.unifiedLogitsStr)).flatten()
+        val segStarts = Json.decodeFromJsonElement<List<List<Long>>>(outputs.get(TfBertNLUModel.segStartStr)).flatten()
+        val segEnds = Json.decodeFromJsonElement<List<List<Long>>>(outputs.get(TfBertNLUModel.segEndStr)).flatten()
+        return UnifiedModelResult(segments, classLogits, startLogitss, endLogitss, segStarts, segEnds)
     }
 
     companion object {
-        val logger = LoggerFactory.getLogger(DUContext::class.java)
+        val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
     }
 }
+
+
+data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
+    data class PtRestPayload(val utterance: String, val probes: List<String>)
+    data class PtRestRequest(val signature_name: String, val inputs: PtRestPayload)
+    data class PtInput(val utterance: String, val probes: String)
+    val config: Pair<String, Int> = RuntimeConfig.get(PtRestBertNLUModel::class)
+    val client: HttpClient = HttpClient.newHttpClient()
+    val url: String  = "http://${config.first}:${config.second}"
+    val timeout: Long = 2000
+
+    fun parse(modelName: String, signatureName: String, utterance: String, probes: List<String>) : JsonObject? {
+        val payload = PtRestPayload(utterance, probes)
+        val input = PtRestRequest(signatureName, payload)
+
+        val request: HttpRequest = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
+                .uri(URI.create("$url/predictions/${modelName}"))
+                .timeout(Duration.ofMillis(timeout))
+                .build()
+
+        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+        return if (response.statusCode() == 200) {
+            Json.parseToJsonElement(response.body()).get(PtBertNLUModel.outputs) as JsonObject
+        } else {
+            null
+        }
+    }
+
+    override fun shutdown() { }
+
+
+    override fun predictIntent(lang: String, utterance: String, exemplars: List<String>): IntentModelResult? {
+        val outputs = parse("${lang}_intent", "intent", utterance, exemplars)!!
+        val fprobs = Json.decodeFromJsonElement<List<Float>>(outputs.get(PtBertNLUModel.intentProbs))
+        return IntentModelResult(fprobs)
+    }
+
+    override fun predictSlot(lang: String, utterance: String, probes: List<String>): UnifiedModelResult {
+        val outputs = parse("${lang}_slot", "slot", utterance, probes)!!
+        val segments = Json.decodeFromJsonElement<List<String>>(outputs.get(PtBertNLUModel.segmentsStr))
+        val startLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(PtBertNLUModel.startLogitsStr))
+        val endLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(PtBertNLUModel.endLogitsStr))
+        val classLogits = Json.decodeFromJsonElement<List<Float>>(outputs.get(PtBertNLUModel.classLogitsStr))
+        val segStarts = Json.decodeFromJsonElement<List<Long>>(outputs.get(PtBertNLUModel.segStartStr))
+        val segEnds = Json.decodeFromJsonElement<List<Long>>(outputs.get(PtBertNLUModel.segEndStr))
+        return UnifiedModelResult(segments, classLogits, startLogitss, endLogitss, segStarts, segEnds)
+    }
+}
+
 
 
 /**
@@ -183,105 +360,77 @@ data class BertStateTracker(
     private val expressedSlotBonus: Float = 5.0f
 
     // If there are multi normalizer propose annotation on the same span, last one wins.
-    private val normalizers = defaultRecognizers(agentMeta)
+    val normalizers = defaultRecognizers(agentMeta)
     val nluModel: NLUModel = TfRestBertNLUModel()
     private val searcher = ExpressionSearcher(agentMeta)
 
-    private val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+    val lang = agentMeta.getLang().lowercase(Locale.getDefault())
+    val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
-    /**
-     * Dialog expectation is used to inform DU module to be sensitive to certain information. This is important
-     * as many expression can mean different things, and use expectation can make understanding a bit easy as
-     * listening can be more focused.
-     * Currently, there are couple different expectations:
-     * 1. expecting a slot.
-     * 2. expecting multi value.
-     * 3. expecting confirmation.
-     * 4. expecting value recommendation.
-     * Of course, we can have combination of these.
-     *
-     * The main goal of this method is taking user utterance and convert that into frame events.
-     * We follow the following process:
-     * 1. find related expressions.
-     * 2. use intent model to rerank the expression candidate and pick the best match and determine the frame.
-     * 3. use slot model to find values for the slot for the given frame.
-     * 4. generate frame events so that dialog engine can process it.
-     *
-     * Assumptions:
-     * 1. We assume that index can be shared by different agent.
-     */
-    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
-        val res0 = convertImpl(session, putterance, expectations)
-        val res1 = res0.map { dontCareConvert(it) }
-        val componentSkillConvert = ComponentSkillConverter(agentMeta, expectations)
-        val res2 = res1.map{ componentSkillConvert(it) }
-        return res2
-    }
-
-    private fun dontCareConvert(event: FrameEvent): FrameEvent {
-        // If user does not care in VR, we return the first choice.
-        if (event.type == "PagedSelectable" &&
-            event.slots.size == 1 &&
-            event.slots[0].attribute == "index" &&
-            event.slots[0].value == "\"_DontCare\""
-        ) {
-            return buildFrameEvent(
-                "io.opencui.core.PagedSelectable",
-                listOf(EntityEvent(value = """"1"""", attribute = "index"))
-            )
-        }
-        return event
-    }
-
-    fun buildDUContext(session: UserSession, putterance: String, expectations: DialogExpectations): DUContext {
-        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
-
-        val ducontext = DUContext(session.userIdentifier.toString(), utterance, expectations).apply { duMeta = agentMeta }
-        var allNormalizers = normalizers
+    fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): BertDuContext {
+        val ducontext = BertDuContext(session.userIdentifier.toString(), utterance, expectations, agentMeta)
+        var allNormalizers = normalizers.toMutableList()
+        // Session and turn based recognizers
         if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
         if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
-        allNormalizers.recognizeAll(utterance, ducontext.expectedEntityType(agentMeta), ducontext.entityTypeToSpanInfoMap)
+
+        allNormalizers.recognizeAll(
+            utterance,
+            ducontext.expectedEntityType(agentMeta),
+            ducontext.entityTypeToValueInfoMap
+        )
         ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
-        logger.info("entity recognized: ${ducontext.entityTypeToSpanInfoMap} with ${allNormalizers.size}:${normalizers.size} recognizers")
         return ducontext
     }
+    fun buildPostProcessor(expectations: DialogExpectations): FrameEventProcessor {
+        // this build the post processors
+        return ChainedFrameEventProcesser(
+            dontCareForPagedSelectable,        // The first is to resolve the don't care for pagedselectable.
+            ComponentSkillConverter(agentMeta, expectations)
+        )
+    }
 
-    private fun convertImpl(
-        session: UserSession,
-        putterance: String,
-        expectations: DialogExpectations
-    ): List<FrameEvent> {
-        if (putterance.trim { it.isWhitespace() }.isEmpty()) return listOf()
+    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         logger.info("Getting $putterance under $expectations")
+        // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
-        val ducontext = buildDUContext(session, utterance, expectations)
+        if (utterance.isEmpty()) return listOf()
+
+        val duContext = buildDuContext(session, putterance, expectations)
+
+        val res = convertImpl(duContext)
+
+        // get the post process done
+        val postProcess = buildPostProcessor(expectations)
+        return res.map { postProcess(it) }
+    }
+
+    fun convertImpl(pducontext: DuContext): List<FrameEvent> {
+        val ducontext = pducontext as BertDuContext
+        val expectations = ducontext.expectations
+        val utterance = ducontext.utterance
 
         // TODO: support multiple intention in one utterance, abstractively.
         // Find best matched frame, assume one intention in one utterance.
-        val candidates = recognizeFrame(ducontext)
-        ducontext.candidates = candidates
+        // this is used to detect frames.
+        ducontext.exemplars= detectTriggerables(ducontext)
 
         // What happens if there are expectations.
-        if (expectations.activeFrames.isNotEmpty() && expectations.hasExpectation()) {
-            // TODO(sean): assuming single intent here.
-            if (candidates?.size != 1
-                || candidates[0].ownerFrame.startsWith("io.opencui.core")
-                || expectations.isFrameCompatible(candidates[0].ownerFrame)) {
-                val events = convertWithExpectation(ducontext)
-                if (events != null) return events
-            }
+        if (expectations.activeFrames.isNotEmpty()) {
+            val events = handleExpectations(ducontext)
+            if (events != null) return events
         }
 
         // Now, we have no dialog expectation. There are three different cases:
         // 1. found no candidates. If best candidate is null, return empty list.
-        logger.debug("ducontext: $ducontext : ${ducontext.candidates}" )
-        if (candidates.isNullOrEmpty()) {
+        logger.debug("ducontext: $ducontext : ${ducontext.exemplars}")
+        if (ducontext.exemplars.isNullOrEmpty()) {
             return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
         }
 
         // 2. found more than one candidate. (currently we do not handle.)
-        if (candidates.size > 1) {
-            val components = ducontext.candidates!!.map {
+        if (ducontext.exemplars != null && ducontext.exemplars!!.size > 1) {
+            val components = ducontext.exemplars!!.map {
                 buildFrameEvent(it.ownerFrame).apply { query = utterance }
             }
 
@@ -291,8 +440,7 @@ data class BertStateTracker(
         }
 
         // 3. found just one candidate. Now we have one best candidate.
-        val bestCandidate = candidates[0]
-        ducontext.bestCandidate = bestCandidate
+        val bestCandidate = ducontext.exemplars!![0]
         logger.debug("Found the best match ${bestCandidate}")
 
         // Of course, there are another dimension: whether we have expectation.
@@ -310,20 +458,6 @@ data class BertStateTracker(
         return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
     }
 
-    fun isPartialMatch(event: EntityEvent): Boolean {
-        return ListRecognizer.isPartialMatch(event.value)
-    }
-
-    fun findRelatedEntity(event: EntityEvent): List<String>? {
-        if (isPartialMatch(event)) {
-            val recognizer = normalizers[0] as ListRecognizer
-            val type = event.type
-            val token = event.origValue
-            if (type == null || token == null) return null
-            return recognizer.findRelatedEntity(type, token)
-        }
-        return null
-    }
 
     /**
      * There are four different things we can do to improve the implementation here.
@@ -338,26 +472,29 @@ data class BertStateTracker(
      */
     // For now, we assume single intent input, and we need a model before this
     // to cut multiple intent input into multiple single intent ones.
-    private fun recognizeFrame(ducontext: DUContext): List<ScoredDocument>? {
+    fun detectTriggerables(pducontext: DuContext): List<ScoredDocument> {
+        val ducontext = pducontext as BertDuContext
         // recognize entities in utterance
-        val emap = ducontext.entityTypeToSpanInfoMap
+        val emap = ducontext.entityTypeToValueInfoMap
         val utterance = ducontext.utterance
         val expectations = ducontext.expectations
 
         val pcandidates = searcher.search(utterance, expectations, emap)
         if (pcandidates.isEmpty()) {
             logger.debug("find no expression match for $utterance")
-            return null
+            return emptyList()
         }
 
-        val candidates0 = dontCareFilter(pcandidates, expectations)
-        val candidates = statusFilter(candidates0, expectations)
+        val candidates: List<ScoredDocument> = ChainedExampledLabelsTransformer(
+            DontCareTransformer(ducontext.expectations),
+            StatusTransformer(ducontext.expectations)
+        ).invoke(pcandidates).map { it as ScoredDocument }
 
         // First, try to exact match expressions
         val matcher = NestedMatcher(ducontext)
-        candidates.map{ matcher.markMatch(it) }
-        val exactMatches = candidates.filter {it.exactMatch}
-        exactMatches.map{ it.score += 2.0f }
+        candidates.map { matcher.markMatch(it) }
+        val exactMatches = candidates.filter { it.exactMatch }
+        exactMatches.map { it.score += 2.0f }
         if (exactMatches.isNotEmpty()) {
             return pickDocViaFrames(exactMatches)
         }
@@ -378,7 +515,7 @@ data class BertStateTracker(
 
         if (intentResults == null) {
             logger.info("Did not get any return from NLU server => do not understand.")
-            return null
+            return emptyList()
         }
 
         logger.info(intentResults.toString())
@@ -396,7 +533,7 @@ data class BertStateTracker(
         val goodCandidatesSize = candidates.filter { it.score > intentSureThreshold }.size
         if (goodCandidatesSize <= 0) {
             logger.debug("Got no match for ${utterance}.")
-            return null
+            return emptyList()
         }
 
         // TODO: another choice is to return here and ask user to choose one interpretation.
@@ -404,59 +541,18 @@ data class BertStateTracker(
             logger.debug("StateTracker.convert there is too many good matches for ${utterance}.")
         }
 
-        // now we pick the best one to operate on.
-        val iIndex = candidates.withIndex().maxByOrNull { it.value.score }!!.index
-        val bestCandidate = candidates[iIndex]
-        logger.debug("[recognizeFrame convert] best candidate: ${bestCandidate.typedExpression}")
-
         // We might need to consider return multiple possibilities if there is no exact match.
         return pickDocViaFrames(candidates)
     }
 
     private fun pickDocViaFrames(candidates: List<ScoredDocument>): List<ScoredDocument> {
         // Return the best match for each frame.
-        val frames : Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
+        val frames: Map<String, List<ScoredDocument>> = candidates.groupBy { it.ownerFrame }
         return frames.values
-            .map { it.sortedByDescending{it.score}[0] }
+            .map { it.sortedByDescending { it.score }[0] }
             .filter { it.score > intentSureThreshold }
             .sortedByDescending { it.score }
     }
-
-    private fun dontCareFilter(
-        pcandidates: List<ScoredDocument>,
-        expectations: DialogExpectations
-    ): List<ScoredDocument> {
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ScoredDocument>()
-        val dontcare = expectations.allowDontCare()
-        for (doc in pcandidates) {
-            // DontCare phrase should only be useful when there don't care is expected.
-            if (doc.ownerFrame == "io.opencui.core.DontCare") {
-                if (dontcare) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-
-    private fun statusFilter(
-        pcandidates: List<ScoredDocument>,
-        expectations: DialogExpectations
-    ): List<ScoredDocument> {
-        val frames = expectations.activeFrames.map { it.frame }.toSet()
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<ScoredDocument>()
-        for (doc in pcandidates) {
-            if (doc.ownerFrame in IStateTracker.IStatusSet) {
-                if (doc.ownerFrame in frames) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-
 
     private fun notBeginning(segments: List<String>, index: Int): Boolean {
         return index < segments.size && segments[index].startsWith("##")
@@ -466,42 +562,15 @@ data class BertStateTracker(
         return index + 1 < segments.size && segments[index + 1].startsWith("##")
     }
 
-    /**
-     * Required slot names can be in the form of a.b.c, which will not be in getSlotMeta. So we need
-     * to handle these. For now, we assume all the top level slots are also required. This assumption
-     * can be changed down the road.
-     */
-    private fun getSlotMetas(
-        frame: String,
-        required: List<String> = emptyList()
-    ): Map<String, DUSlotMeta> {
-        // Including all the top level slots.
-        val slotsMetaMap = agentMeta.getSlotMetas(frame).map { it.label to it }.toMap().toMutableMap()
-
-        // We will test the nested slot at the top level, note that only handles the ones has head.
-        for (slot in slotsMetaMap.keys.toList()) {
-            val slotMeta = agentMeta.getSlotMeta(frame, slot)
-            if (slotMeta != null) {
-                val nestedMetas = agentMeta.getSlotMetas(slotMeta.type!!)
-                for (nestedSlotMeta in nestedMetas) {
-                    if (nestedSlotMeta.isHead) {
-                        // What we need here to create the SlotMeta, based on the Outside meta,
-                        slotsMetaMap["$slot.${nestedSlotMeta.label}"] = nestedSlotMeta
-                    }
-                }
-            }
-        }
-        
-        // include all the required slot matas.
-        for (slot in required) {
-            slotsMetaMap[slot]?.isMentioned = true
-        }
-        return slotsMetaMap
-    }
-
     // When there is expectation presented.
-    fun convertWithExpectation(ducontext: DUContext): List<FrameEvent>? {
+    fun handleExpectations(pducontext: DuContext): List<FrameEvent>? {
+        val ducontext = pducontext as BertDuContext
+        val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
+        if (candidates?.size == 1
+            && !agentMeta.isSystemFrame(candidates[0].ownerFrame)
+            && !expectations.isFrameCompatible(candidates[0].ownerFrame)) return null
+
         logger.debug(
             "${ducontext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
                 ducontext.matchedIn(
@@ -541,9 +610,7 @@ data class BertStateTracker(
             // we need to go through all the expectation
             for (expected in ducontext.expectations.activeFrames) {
                 if (!expected.allowDontCare()) continue
-                if (bestCandidate.contextFrame == null ||
-                    (bestCandidate.contextFrame == expected.frame && bestCandidate.contextSlot == expected.slot)
-                ) {
+                if (bestCandidate.contextFrame == null || bestCandidate.contextFrame == expected.frame) {
                     val slotType = agentMeta.getSlotType(expected.frame, expected.slot!!)
                     // TODO: handle the frame slot case.
                     if (agentMeta.isEntity(slotType)) {
@@ -562,7 +629,7 @@ data class BertStateTracker(
         if (ducontext.bestCandidate?.ownerFrame == IStateTracker.SlotUpdate && expectations.hasExpectation()) {
             logger.debug("enter slot update.")
             // We need to figure out which slot user are interested in first.
-            val slotTypeSpanInfo = ducontext.entityTypeToSpanInfoMap[IStateTracker.SlotType]
+            val slotTypeSpanInfo = ducontext.entityTypeToValueInfoMap[IStateTracker.SlotType]
             // Make sure there are slot type entity matches.
             if (slotTypeSpanInfo != null) {
                 // We assume the expectation is stack, with most recent frames in the end
@@ -589,7 +656,8 @@ data class BertStateTracker(
                         return fillSlotUpdate(ducontext, targetEntitySlot)
                     } else {
                         // This find the headed frame slot.
-                        val targetFrameType = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
+                        val targetFrameType =
+                            partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
                         val targetEntitySlot = agentMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
                         return fillSlotUpdate(ducontext, targetEntitySlot)
                     }
@@ -635,8 +703,8 @@ data class BertStateTracker(
         return null
     }
 
-    private fun isSlotMatched(spanInfo: SpanInfo, activeFrame: String): Boolean {
-        val spanTargetSlot = spanInfo.value.toString()
+    private fun isSlotMatched(valueInfo: ValueInfo, activeFrame: String): Boolean {
+        val spanTargetSlot = valueInfo.value.toString()
         val parts = spanTargetSlot.split(".")
         val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
         val slotName = parts.last()
@@ -645,13 +713,13 @@ data class BertStateTracker(
 
         val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
         // now we need to figure out whether active Frame as a frame slot of this time.
-        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter {it.type == spanTargetFrame}
+        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter { it.type == spanTargetFrame }
         return spanTargetFrameHasHead && matchedFrameSlots.size == 1
     }
 
 
     // This need to called if status is expected.
-    private fun handleExpectedBoolean(ducontext: DUContext, valueChoices: List<String>): List<FrameEvent>? {
+    private fun handleExpectedBoolean(ducontext: BertDuContext, valueChoices: List<String>): List<FrameEvent>? {
         if (ducontext.matchedIn(valueChoices)) {
             return listOf(buildFrameEvent(ducontext.bestCandidate?.label!!))
         }
@@ -672,20 +740,17 @@ data class BertStateTracker(
     /**
      * fillSlots is used to create entity event.
      */
-    private fun fillSlots(
-        ducontext: DUContext,
-        topLevelFrameType: String,
-        focusedSlot: String?
-    ): List<FrameEvent> {
-        val qualifiedSlotNamesInExpr = ducontext.bestCandidate?.slotNames() ?: emptyList()
+    fun fillSlots(pducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
+        val ducontext = pducontext as BertDuContext
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = getSlotMetas(topLevelFrameType, qualifiedSlotNamesInExpr).filter { it.value.triggers.isNotEmpty() }
+        val slotMap = // Including all the top level slots.
+        agentMeta.getNestedSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
     private fun fillSlots(
         slotMap: Map<String, DUSlotMeta>,
-        ducontext: DUContext,
+        ducontext: BertDuContext,
         topLevelFrameType: String,
         focusedSlot: String?
     ): List<FrameEvent> {
@@ -707,7 +772,8 @@ data class BertStateTracker(
         if (result.isEmpty()) return result
         return if (result.find {
                 topLevelFrameType.startsWith(it.packageName!!) && topLevelFrameType.endsWith(it.type)
-                        || it.packageName == "io.opencui.core"} != null) {
+                        || it.packageName == "io.opencui.core"
+            } != null) {
             result
         } else {
             // Make sure that we have at least one topLevelFrameType
@@ -716,10 +782,12 @@ data class BertStateTracker(
     }
 
 
-    private fun fillSlotUpdate(ducontext: DUContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+    fun fillSlotUpdate(pducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+        val ducontext = pducontext as BertDuContext
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
-        val slotMapBef = getSlotMetas(IStateTracker.SlotUpdate)
+        val slotMapBef =         // Including all the top level slots.
+            agentMeta.getNestedSlotMetas(IStateTracker.SlotUpdate)
         val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
 
         // we need to rewrite the slot map to replace all the T into actual slot type.
@@ -728,7 +796,8 @@ data class BertStateTracker(
             if (slotMeta.isGenericTyped()) {
                 // NOTE: assume the pattern for generated type is <T>
                 val targetTrigger = targetSlot.triggers[0]
-                val newTriggers = slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger)}
+                val newTriggers =
+                    slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger) }
                 slotMapTransformed[key] = slotMeta.typeReplaced(targetSlot.type!!, newTriggers)
             } else {
                 slotMapTransformed[key] = slotMeta
@@ -758,7 +827,7 @@ data class BertStateTracker(
      * we extract the frame event rooted for frame type.
      */
     private fun extractEntityEvents(
-        ducontext: DUContext,
+        ducontext: BertDuContext,
         frameType: String,
         requiredSlotMap: Map<String, DUSlotMeta>,
         expectedSlot: String?,
@@ -807,7 +876,7 @@ data class BertStateTracker(
     }
 
     fun extractSlotValues(
-        ducontext: DUContext,
+        ducontext: BertDuContext,
         expectedSlot: String?,
         slotMap: Map<String, DUSlotMeta>,
         result: UnifiedModelResult
@@ -815,7 +884,7 @@ data class BertStateTracker(
         logger.info("extractSlotValues: class logits: $result.class_logits")
         // for now: for each slot we check whether its class_logits high enough,
         // if it is, we find the span for it. we assume all top level slots are required.
-        val emap = ducontext.entityTypeToSpanInfoMap
+        val emap = ducontext.entityTypeToValueInfoMap
 
         val slots = slotMap.keys.toList()
         // First let's add support for frame slot in entirety.
@@ -927,10 +996,10 @@ data class BertStateTracker(
     )
 
     fun extractValue(
-        duContext: DUContext,
+        duContext: BertDuContext,
         slotMeta: DUSlotMeta,
         prediction: SlotPrediction,
-        entities: List<SpanInfo>? = null
+        entities: List<ValueInfo>? = null
     ): List<ScoredSpan>? {
         logger.info("handle ${duContext.utterance} for $slotMeta. with ${slotMeta.isMentioned}")
         val startIndexes = top(slotValueK, prediction.startLogits)
@@ -960,12 +1029,11 @@ data class BertStateTracker(
             }
         }
 
-
         // Now use extractive entity information.
         if (entities != null) {
             for (entity in entities) {
                 val span = IntRange(entity.start, entity.end - 1)
-                val bonus = getSurroundingWordsBonus(slotMeta, duContext, entity)
+                val bonus = duContext.getSurroundingWordsBonus(slotMeta, entity)
                 if (spans.containsKey(span)) {
                     spans[span]!!.score += entity.score + bonus
                     spans[span]!!.norm = entity.norm()
@@ -1022,44 +1090,18 @@ data class BertStateTracker(
             return ret
         }
     }
-
-
-
-    private fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, ducontext: DUContext, entity: SpanInfo): Float {
-        var bonus = 0f
-        var denominator = 0.0000001f
-        // for now, we assume simple unigram model.
-        if (slotMeta.prefixes?.isNotEmpty() == true) {
-            denominator += 1
-            val previousTokenIndex = ducontext.previousTokenByChar[entity.start]
-            if (previousTokenIndex != null) {
-                val tkn = ducontext.tokens!![previousTokenIndex].token
-                if (slotMeta.prefixes!!.contains(tkn)) {
-                    bonus += 1
-                }
-            }
-        }
-        if (slotMeta.suffixes?.isNotEmpty() == true) {
-            denominator += 1
-            val nextTokenIndex = ducontext.nextTokenByChar[entity.end]
-            if (nextTokenIndex != null) {
-                val tkn = ducontext.tokens!![nextTokenIndex].token
-                if (slotMeta.suffixes!!.contains(tkn)) {
-                    bonus += 1
-                }
-            }
-        }
-        return bonus/denominator
-    }
-
+    
+    // At the frameevent level, we can reuse standard implementation.
     // given a list of frame event, add the entailed slots to the right frame event.
-    private fun addEntailedSlot(bestCandidate: ScoredDocument?, frameEvents: List<FrameEvent>): List<FrameEvent> {
+    fun addEntailedSlot(bestCandidate: ScoredDocument?, frameEvents: List<FrameEvent>): List<FrameEvent> {
         if (bestCandidate == null) return frameEvents
         if (bestCandidate.entailedSlots.isEmpty()) return frameEvents
 
         val events = mutableListOf<FrameEvent>()
 
         for (frameEvent in frameEvents) {
+            // The entailment is for cor-reference resolution. But this solution is based on exemplar,
+            // this is not 100% accurate, we should try to find other method.
             if (bestCandidate.isCompatible(frameEvent.type, frameEvent.packageName)) {
                 // merge function slot event with compatible event
                 val allSlots = frameEvent.slots.toMutableList()
@@ -1072,13 +1114,13 @@ data class BertStateTracker(
         return events
     }
 
-
     override fun recycle() {
         nluModel.shutdown()
     }
 
     companion object : ExtensionBuilder<IStateTracker> {
         val logger = LoggerFactory.getLogger(BertStateTracker::class.java)
+
         // TODO(sean): make sure entity side return this as label for DONTCARE
         const val DONTCARE = "DontCare"
         override fun invoke(p1: Configuration): IStateTracker {
@@ -1087,42 +1129,3 @@ data class BertStateTracker(
     }
 }
 
-
-fun buildFrameEvent(
-    topLevelFrame: String,
-    slots: List<EntityEvent> = listOf(),
-    frames: List<FrameEvent> = listOf()
-): FrameEvent {
-    val parts = topLevelFrame.splitToSequence(".")
-    val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
-    return FrameEvent(parts.last(), slots, frames, packageName)
-}
-
-
-fun buildEntityEvent(key: String, value: String): EntityEvent {
-    return EntityEvent(value=""""$value"""", attribute=key)
-}
-
-/**
- * When the current active frames contains a skill for the new skill, we
- */
-data class ComponentSkillConverter(val duMeta: DUMeta, val dialogExpectation: DialogExpectations) : (FrameEvent) -> FrameEvent {
-    private val expectedFrames = dialogExpectation.expectations.map { it.activeFrames }.flatten()
-
-    override fun invoke(p1: FrameEvent): FrameEvent {
-        val matched = expectedFrames.firstOrNull { expectedFrame ->
-            duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
-        }
-
-        return if (matched == null) {
-            return p1
-        } else {
-            val componentSlot = duMeta.getSlotMetas(matched.frame).firstOrNull { it.type == p1.fullType}!!
-            val entityEvents = listOf(
-                buildEntityEvent("compositeSkillName", matched.frame),
-                buildEntityEvent("componentSkillName", componentSlot.type!!)
-            )
-            return buildFrameEvent(IStateTracker.TriggerComponentSkill, entityEvents)
-        }
-    }
-}

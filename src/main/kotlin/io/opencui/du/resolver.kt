@@ -5,7 +5,7 @@ package io.opencui.du
  * before it can be fed into model.
  */
 object SlotTypeResolver : Resolver {
-    class InternalResolver(val context:DUContext) {
+    class InternalResolver(val context:BertDuContext) {
         private val analyzer = LanguageAnalyzer.get(context.duMeta!!.getLang(), stop = false)
         private val duMeta = context.duMeta!!
 
@@ -23,11 +23,11 @@ object SlotTypeResolver : Resolver {
 
             val actualSlotTypes = segments.filter {
                 it is MetaSegment && context.duMeta!!.getSlotType(document.ownerFrame, it.meta) == SLOTTYPE }
-            if (actualSlotTypes.isEmpty() || !context.entityTypeToSpanInfoMap.containsKey(SLOTTYPE)) {
+            if (actualSlotTypes.isEmpty() || !context.entityTypeToValueInfoMap.containsKey(SLOTTYPE)) {
                 //  TODO: guess the true type for generic type.
                 output.add(document)
             } else {
-                val matchedSlots = context.entityTypeToSpanInfoMap[SLOTTYPE]!!
+                val matchedSlots = context.entityTypeToValueInfoMap[SLOTTYPE]!!
                 for (matchedSlot in matchedSlots) {
                     val trueSlot = matchedSlot.value as String
                     val tkns = trueSlot.split(".")
@@ -59,7 +59,7 @@ object SlotTypeResolver : Resolver {
                             }
                         }
                     }
-                    val newDoc = ScoredDocument(document.score, document.document)
+                    val newDoc = document.clone() as ScoredDocument
                     newDoc.typedExpression = stringBuilder.toString()
                     output.add(newDoc)
                 }
@@ -72,7 +72,7 @@ object SlotTypeResolver : Resolver {
     }
 
     // We might produce more than one documents for some input.
-    override fun resolve(ducontext: DUContext, before: List<ScoredDocument>): List<ScoredDocument> {
+    override fun resolve(ducontext: BertDuContext, before: List<ScoredDocument>): List<ScoredDocument> {
         val result = mutableListOf<ScoredDocument>()
         val internalResolver =  InternalResolver(ducontext)
         before.map {

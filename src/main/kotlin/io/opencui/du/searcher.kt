@@ -37,15 +37,14 @@ import kotlin.collections.ArrayList
  * if context is not null, and target is not same, we can deal with case for confirmation.
  */
 
-data class ScoredDocument(var score: Float, val document: Document) {
-    val utterance: String = document.getField(UTTERANCE).stringValue()
-    var typedExpression: String = document.getField(EXPRESSION).stringValue()
-    val ownerFrame: String = document.getField(OWNER).stringValue()
-    val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
-    val contextSlot: String? = document.getField(CONTEXTSLOT)?.stringValue()
+data class ScoredDocument(var score: Float, val document: Document) : Triggerable {
+    override val utterance: String = document.getField(UTTERANCE).stringValue()
+    override var typedExpression: String = document.getField(EXPRESSION).stringValue()
+    override val ownerFrame: String = document.getField(OWNER).stringValue()
+    override val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
     val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
     val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
-    val label: String = if (document.get(LABEL) == null) "" else document.get(LABEL)
+    override val label: String? = if (document.get(LABEL) == null) "" else document.get(LABEL)
 
     // whether it is exact match.
     var exactMatch: Boolean = false
@@ -53,7 +52,8 @@ data class ScoredDocument(var score: Float, val document: Document) {
     // The next two are used for potential exect match.
     var possibleExactMatch: Boolean = false
     var guessedSlot: DUSlotMeta? = null
-    var hasAllSlots: Boolean = true
+
+    override fun clone(): Triggerable { return this.copy() }
 
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"
@@ -182,7 +182,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
      */
     fun search(rquery: String,
                expectations: DialogExpectations = DialogExpectations(),
-               emap: MutableMap<String, MutableList<SpanInfo>>? = null): List<ScoredDocument> {
+               emap: MutableMap<String, MutableList<ValueInfo>>? = null): List<ScoredDocument> {
         if (rquery.isEmpty()) return listOf()
 
         var searchQuery = QueryParser.escape(rquery)
