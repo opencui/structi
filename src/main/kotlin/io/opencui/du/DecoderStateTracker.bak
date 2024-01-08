@@ -14,6 +14,9 @@ import java.time.Duration
 
 
 
+
+
+
 // This is used to bridge encoder and decoder solution
 data class TriggerDecision(
     override val utterance: String,
@@ -29,6 +32,7 @@ data class TriggerDecision(
 
     override fun clone(): Triggerable { return this.copy() }
 }
+
 
 
 
@@ -212,20 +216,15 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         val expectations = duContext.expectations
 
         // We need to check whether we have a binary question. For now, we only handle the top
-        // binary question.
+        // binary question. We assume the first on the top.
+        if (expectations.isBooleanSlot()) {
+            // The expectation top need to be binary and have prompt.
+            val question = expectations.expected!!.prompt!!
+            val status = nluService.yesNoInference(utterance, listOf(question))
+
+        }
 
 
-        if (candidates?.size == 1
-            && !agentMeta.isSystemFrame(candidates[0].ownerFrame)
-            && !expectations.isFrameCompatible(candidates[0].ownerFrame)) return null
-
-        logger.debug(
-            "${duContext.bestCandidate} enter convertWithExpection ${expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)} and ${
-                duContext.matchedIn(
-                    IStateTracker.FullConfirmationList
-                )
-            }"
-        )
 
         // what happens we have good match, and these matches are related to expectations.
         // There are at least couple different use cases.

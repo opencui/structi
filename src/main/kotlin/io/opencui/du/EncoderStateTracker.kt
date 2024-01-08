@@ -39,22 +39,6 @@ data class BertDuContext(
         return if (bestCandidate != null) frameNames.contains(bestCandidate!!.label) else false
     }
 
-    fun getEntityValue(typeName: String): String? {
-        //TODO("Not yet implemented")
-        val spans = entityTypeToValueInfoMap[typeName]
-        if (spans.isNullOrEmpty()) {
-            return null
-        }
-        val span = spans[0]
-
-        // If we do not have bestCandidate or we entire utterance is covered by entity.
-        return if (bestCandidate == null || (utterance.length == span.end && span.start ==0) ) {
-            span.norm()
-        } else {
-            null
-        }
-    }
-
     companion object {
         val logger = LoggerFactory.getLogger(BertDuContext::class.java)
     }

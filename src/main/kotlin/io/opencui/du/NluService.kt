@@ -9,12 +9,15 @@ enum class DugMode {
     SEGMENT
 }
 
-enum class BinaryResult {
-    TRUE,
-    FALSE,
-    DONTCARE,
-    IRRELEVANT
+
+// the result from YesNoInference
+enum class YesNoResult {
+    Affirmative,
+    Negative,
+    Indifferent,
+    Irrelevant
 }
+
 
 data class SlotValue(val operator: String, val values: List<String>)
 
@@ -30,6 +33,6 @@ interface NluService {
     // handle all slots.
     fun fillSlots(utterance: String, slots: Map<String, DUSlotMeta>, entities: Map<String, List<String>>): Map<String, SlotValue>
 
-    fun yesNoInference(utterance: String, question: String): BinaryResult
+    fun yesNoInference(utterance: String, question: List<String>): List<YesNoResult>
 }
 
