@@ -191,7 +191,6 @@ open class DuContext(
         }
     }
 
-
     companion object {
         val logger = LoggerFactory.getLogger(DuContext::class.java)
     }

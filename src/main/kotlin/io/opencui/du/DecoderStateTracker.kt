@@ -14,6 +14,14 @@ import java.time.Duration
 
 
 
+fun YesNoResult.toJsonAsBoolean() : String? {
+    return when (this) {
+        YesNoResult.Affirmative -> Json.encodeToString(true)
+        YesNoResult.Negative -> Json.encodeToString(false)
+        YesNoResult.Irrelevant -> Json.encodeToString(IStateTracker.DontCareLabel)
+        else -> null
+    }
+}
 
 
 
@@ -94,7 +102,7 @@ class RestNluService {
         TODO("Not yet implemented")
     }
 
-    fun yesNoInference(utterance: String, question: List<String>): List<BinaryResult> {
+    fun yesNoInference(utterance: String, question: List<String>): List<YesNoResult> {
         TODO("Not yet implemented")
     }
 }
@@ -156,9 +164,13 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
     fun convertImpl(session: UserSession, utterance: String, expectations: DialogExpectations): List<FrameEvent> {
         val triggerables = detectTriggerables(utterance, expectations)
 
-        if (triggerables.isEmpty()) {
+        if (expectations.hasExpectation()) {
+            // We always handle expectations first.
             val duContext = buildDuContext(session, utterance, expectations)
-            return handleExpectations(duContext)
+            val events = handleExpectations(duContext, triggerables)
+            if (events.isNullOrEmpty()) {
+                return events!!
+            }
         }
 
         val results = mutableListOf<FrameEvent>()
@@ -172,7 +184,6 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
                 .filter { it.value.triggers.isNotEmpty() }
             results.addAll(fillSlots(slotMap, duContext, triggerable.ownerFrame, focusedSlot))
         }
-
         return results
     }
 
@@ -210,7 +221,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    fun handleExpectations(duContext: DuContext): List<FrameEvent> {
+    fun handleExpectations(duContext: DuContext, triggerables: List<Triggerable>): List<FrameEvent>? {
 
         val utterance = duContext.utterance
         val expectations = duContext.expectations
@@ -220,104 +231,35 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         if (expectations.isBooleanSlot()) {
             // The expectation top need to be binary and have prompt.
             val question = expectations.expected!!.prompt!!
-            val status = nluService.yesNoInference(utterance, listOf(question))
 
-        }
-
-
-
-        // what happens we have good match, and these matches are related to expectations.
-        // There are at least couple different use cases.
-        // TODO(sean): should we start to pay attention to the order of the dialog expectation.
-        // Also the stack structure of dialog expectation is not used.
-        // a. confirm Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)) {
-            val events = handleExpectedBoolean(duContext, IStateTracker.FullConfirmationList)
-            if (events != null) return events
-        }
-
-        // b. boolgate Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.BoolGateStatus)) {
-            val events = handleExpectedBoolean(duContext, IStateTracker.FullBoolGateList)
-            if (events != null) return events
-        }
-
-        // c. hasMore Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.HasMoreStatus)) {
-            val events = handleExpectedBoolean(duContext, IStateTracker.FullHasMoreList)
-            if (events != null) return events
-        }
-
-        // d. match Dontcare expression abstractively
-        if (duContext.bestCandidate?.ownerFrame == IStateTracker.FullDontCare && expectations.hasExpectation()) {
-            logger.debug("enter dontcare check.")
-            // There are two cases where we have DontCare:
-            // the best candidate has no context or its context matches expectations
-            val bestCandidate = duContext.bestCandidate!!
-            // we need to go through all the expectation
-            for (expected in duContext.expectations.activeFrames) {
-                if (!expected.allowDontCare()) continue
-                if (bestCandidate.contextFrame == null || bestCandidate.contextFrame == expected.frame) {
-                    val slotType = agentMeta.getSlotType(expected.frame, expected.slot!!)
-                    // TODO: handle the frame slot case.
-                    if (agentMeta.isEntity(slotType)) {
-                        return listOf(
-                            buildFrameEvent(
-                                expected.frame,
-                                listOf(EntityEvent("\"_DontCare\"", expected.slot))
-                            )
-                        )
-                    }
+            val boolValue = duContext.getEntityValue(IStateTracker.KotlinBoolean)
+            if (boolValue != null) {
+                val yesNoFlag = when(boolValue) {
+                    "true" -> YesNoResult.Affirmative
+                    "false" -> YesNoResult.Negative
+                    "_DontCare" -> YesNoResult.Indifferent
+                    else -> YesNoResult.Irrelevant
                 }
+                val events = handleBooleanStatus(duContext, yesNoFlag)
+                if (events != null) return events
+            }
+
+            val status = nluService.yesNoInference(utterance, listOf(question))[0]
+            if (status != YesNoResult.Irrelevant) {
+                // First handle the frame wrappers we had for boolean type.
+                // what happens we have good match, and these matches are related to expectations.
+                // There are at least couple different use cases.
+                // TODO(sean): should we start to pay attention to the order of the dialog expectation.
+                // Also the stack structure of dialog expectation is not used.
+
+                val events = handleBooleanStatus(duContext, status)
+                if (events != null) return events
             }
         }
+
+        // now we need to handle the rest.
 
         // Now we need to figure out what happens for slotupdate.
-        if (duContext.bestCandidate?.ownerFrame == IStateTracker.SlotUpdate && expectations.hasExpectation()) {
-            logger.debug("enter slot update.")
-            // We need to figure out which slot user are interested in first.
-            val slotTypeSpanInfo = duContext.entityTypeToSpanInfoMap[IStateTracker.SlotType]
-            // Make sure there are slot type entity matches.
-            if (slotTypeSpanInfo != null) {
-                // We assume the expectation is stack, with most recent frames in the end
-                for (activeFrame in duContext.expectations.activeFrames) {
-                    val matchedSlotList = slotTypeSpanInfo.filter { isSlotMatched(it, activeFrame.frame) }
-                    if (matchedSlotList.isEmpty()) {
-                        continue
-                    }
-
-                    // Dedup first.
-                    val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
-                    if (matchedSlots.size > 1) {
-                        throw RuntimeException("Can not mapping two different slot yet")
-                    }
-
-                    // check if the current frame has the slot we cared about and go with that.
-                    val spanInfo = matchedSlotList[0]
-                    val partsInQualified = spanInfo.value.toString().split(".")
-                    val slotName = partsInQualified.last()
-                    val slotsInActiveFrame = agentMeta.getSlotMetas(activeFrame.frame)
-
-                    val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
-                    if (targetEntitySlot != null) {
-                        return fillSlotUpdate(duContext, targetEntitySlot)
-                    } else {
-                        // This find the headed frame slot.
-                        val targetFrameType =
-                            partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
-                        val targetEntitySlot = agentMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
-                        return fillSlotUpdate(duContext, targetEntitySlot)
-                    }
-                }
-            } else {
-                // TODO: now we need to handle the case for: change to tomorrow
-                // For now we assume there is only one generic type.
-                val bestCandidate = duContext.bestCandidate!!
-                val targetSlot = bestCandidate.guessedSlot!!
-                return fillSlotUpdate(duContext, targetSlot)
-            }
-        }
-
         // if there is no good match, we need to just find it using slot model.
         val extractedEvents0 = fillSlots(duContext, expectations.expected!!.frame, expectations.expected.slot)
         if (extractedEvents0.isNotEmpty()) {
@@ -350,37 +292,47 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         return null
     }
 
-    private fun isSlotMatched(valueInfo: ValueInfo, activeFrame: String): Boolean {
-        val spanTargetSlot = valueInfo.value.toString()
-        val parts = spanTargetSlot.split(".")
-        val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
-        val slotName = parts.last()
-        val slotMeta = agentMeta.getSlotMeta(spanTargetFrame, slotName)!!
-        if (spanTargetSlot.startsWith(activeFrame) && agentMeta.isEntity(slotMeta.type!!)) return true
-
-        val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
-        // now we need to figure out whether active Frame as a frame slot of this time.
-        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter { it.type == spanTargetFrame }
-        return spanTargetFrameHasHead && matchedFrameSlots.size == 1
+    // This need to called if status is expected.
+    private fun handleBooleanStatusImpl(boolValue: YesNoResult, valueChoices: List<String>): List<FrameEvent>? {
+        // if we have extractive match.
+        val frameName = when (boolValue) {
+            YesNoResult.Affirmative -> valueChoices[0]
+            YesNoResult.Negative -> valueChoices[1]
+            YesNoResult.Indifferent -> IStateTracker.FullDontCare
+            else -> null
+        }
+        return if (frameName != null) listOf(buildFrameEvent(frameName)) else null
     }
 
+    private fun handleBooleanStatus(duContext: DuContext, flag: YesNoResult): List<FrameEvent>? {
+        // First handling
+        val expectations = duContext.expectations
+        if (expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)) {
+            val events = handleBooleanStatusImpl(flag, IStateTracker.FullConfirmationList)
+            if (events != null) return events
+        }
 
-    // This need to called if status is expected.
-    private fun handleExpectedBoolean(ducontext: DuContext, valueChoices: List<String>): List<FrameEvent>? {
-        if (ducontext.matchedIn(valueChoices)) {
-            return listOf(buildFrameEvent(ducontext.bestCandidate?.label!!))
+        // b. boolgate Yes/No
+        if (expectations.isFrameCompatible(IStateTracker.BoolGateStatus)) {
+            val events = handleBooleanStatusImpl(flag, IStateTracker.FullBoolGateList)
+            if (events != null) return events
         }
-        // if we have extractive match.
-        val boolValue = ducontext.getEntityValue(IStateTracker.KotlinBoolean)
-        if (boolValue != null) {
-            val frameName = when (boolValue) {
-                "true" -> valueChoices[0]
-                "false" -> valueChoices[1]
-                else -> null
-            }
-            if (frameName != null) return listOf(buildFrameEvent(frameName))
+
+        // c. hasMore Yes/No
+        if (expectations.isFrameCompatible(IStateTracker.HasMoreStatus)) {
+            val events = handleBooleanStatusImpl(flag, IStateTracker.FullHasMoreList)
+            if (events != null) return events
         }
-        return null
+
+        // This is used for boolean slot.
+        val expected = duContext.expectations.expected
+        val flagStr = flag.toJsonAsBoolean()
+        // TODO(sean): make sure that expected.slot is not empty here.
+        return if (expected != null && flagStr != null && expected.slot != null) {
+            listOf(buildFrameEvent(expected.frame, listOf(EntityEvent(flagStr, expected.slot))))
+        } else {
+            return null
+        }
     }
 
     /**
@@ -417,8 +369,8 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
 
     companion object : ExtensionBuilder<IStateTracker> {
         val logger = LoggerFactory.getLogger(DecoderStateTracker::class.java)
+
         // TODO(sean): make sure entity side return this as label for DONTCARE
-        const val DONTCARE = "DontCare"
         override fun invoke(p1: Configuration): IStateTracker {
             TODO("Not yet implemented")
         }
