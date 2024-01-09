@@ -10,7 +10,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
-import jdk.jfr.Event
 import java.time.Duration
 
 
@@ -61,47 +60,89 @@ class RestNluService {
     val url: String = "${config.third}://${config.first}:${config.second}"
     val timeout: Long = 10000
 
+    fun shutdown() { }
 
-    fun parse(modelName: String, signatureName: String, utterance: String, probes: List<String>) : JsonObject? {
-        val payload = TfRestPayload(utterance, probes)
-        val input = TfRestRequest(signatureName, payload)
-        logger.debug("connecting to $url/v1/models/${modelName}:predict")
-        logger.debug("utterance = $utterance and probes = $probes")
+    companion object {
+        val logger = LoggerFactory.getLogger(RestNluService::class.java)
+    }
+
+    data class Request(
+        val mode: DugMode,
+        val utterance: String,
+        val expectations: List<ExpectedFrame> = emptyList(),
+        val slotMetas: List<DUSlotMeta> = emptyList(),
+        val entityValues: Map<String, List<String>> = emptyMap(),
+        val questions: List<String> = emptyList())
+
+
+    data class Response(
+        val mode: DugMode,
+        val triggerables: List<TriggerDecision>,
+        val values: Map<String, SlotValue>,
+        val yesNoResult: List<YesNoResult>
+    )
+
+
+    // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
+    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
+        val input = Request(DugMode.SKILL, utterance, expectations.activeFrames)
+        logger.debug("connecting to $url/v1/predict")
+        logger.debug("utterance = $utterance and expectations = $expectations")
         val request: HttpRequest = HttpRequest.newBuilder()
             .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
-            .uri(URI.create("$url/v1/models/${modelName}:predict"))
+            .uri(URI.create("$url/v1/predict"))
             .timeout(Duration.ofMillis(timeout))
             .build()
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-        return if (response.statusCode() == 200) {
-            val body = response.body()
-            Json.parseToJsonElement(body).get(TfBertNLUModel.outputs) as JsonObject
-        } else {
-            // We should not be here.
+        if (response.statusCode() != 200) {
             logger.error("NLU request error: ${response.toString()}")
-            null
+            return emptyList()
         }
-    }
 
-    fun shutdown() { }
-
-    companion object {
-        val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
-    }
-
-    // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
-        TODO("Not yet implemented")
+        val res = Json.decodeFromString<Response>(response.body())
+        return res.triggerables
     }
 
     // handle all slots.
     fun fillSlots(utterance: String, slots: Map<String, DUSlotMeta>, entities: Map<String, List<String>>): Map<String, SlotValue> {
-        TODO("Not yet implemented")
+        val input = Request(DugMode.SLOT, utterance, slotMetas = slots.values.toList(), entityValues =  entities)
+        logger.debug("connecting to $url/v1/predict")
+        logger.debug("utterance = $utterance and expectations = $slots, entities = $entities")
+        val request: HttpRequest = HttpRequest.newBuilder()
+            .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
+            .uri(URI.create("$url/v1/predict"))
+            .timeout(Duration.ofMillis(timeout))
+            .build()
+
+        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() != 200) {
+            logger.error("NLU request error: ${response.toString()}")
+            return emptyMap()
+        }
+
+        val res = Json.decodeFromString<Response>(response.body())
+        return res.values
     }
 
-    fun yesNoInference(utterance: String, question: List<String>): List<YesNoResult> {
-        TODO("Not yet implemented")
+    fun yesNoInference(utterance: String, questions: List<String>): List<YesNoResult> {
+        val input = Request(DugMode.BINARY, utterance, questions = questions)
+        logger.debug("connecting to $url/v1/predict")
+        logger.debug("utterance = $utterance and questions = $questions")
+        val request: HttpRequest = HttpRequest.newBuilder()
+            .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
+            .uri(URI.create("$url/v1/predict"))
+            .timeout(Duration.ofMillis(timeout))
+            .build()
+
+        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() != 200) {
+            logger.error("NLU request error: ${response.toString()}")
+            return emptyList()
+        }
+
+        val res = Json.decodeFromString<Response>(response.body())
+        return res.yesNoResult
     }
 }
 
