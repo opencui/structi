@@ -10,6 +10,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
+import jdk.jfr.Event
 import java.time.Duration
 
 
@@ -40,9 +41,6 @@ data class TriggerDecision(
 
     override fun clone(): Triggerable { return this.copy() }
 }
-
-
-
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -257,8 +255,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
             }
         }
 
-        // now we need to handle the rest.
-
+        // now we need to handle non-boolean types
         // Now we need to figure out what happens for slotupdate.
         // if there is no good match, we need to just find it using slot model.
         val extractedEvents0 = fillSlots(duContext, expectations.expected!!.frame, expectations.expected.slot)
@@ -346,10 +343,6 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
-    fun fillSlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
-        TODO("Not yet implemented")
-    }
-
     private fun fillSlots(
         slotMap: Map<String, DUSlotMeta>,
         ducontext: DuContext,
@@ -358,8 +351,16 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
     ): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val valuesFound = mapOf<String, List<String>>()
-        val result = nluService.fillSlots(ducontext.utterance, slotMap, valuesFound)
-        return  listOf(buildFrameEvent(topLevelFrameType))
+        val results = nluService.fillSlots(ducontext.utterance, slotMap, valuesFound)
+        val entityEvents = mutableListOf<EntityEvent>()
+        for (result in results) {
+            val slotName = result.key
+            val slotValues = result.value
+            // For now, assume the operator are always equal
+            entityEvents.add(EntityEvent(slotValues.values[0],slotName))
+        }
+
+        return  listOf(buildFrameEvent(topLevelFrameType, entityEvents))
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
