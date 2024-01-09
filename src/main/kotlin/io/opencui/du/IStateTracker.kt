@@ -38,7 +38,8 @@ data class ExpectedFrame(
     val frame: String,
     val slot: String? = null,
     @JsonIgnore val slotType: String? = null,
-    @JsonIgnore val allowDontCare: Boolean? = null) {
+    @JsonIgnore val allowDontCare: Boolean? = null,
+    @JsonIgnore val prompt: String? = null) {
     fun allowDontCare() : Boolean {
         // TODO(sean) remove the hard code later.
         if (frame == "io.opencui.core.PagedSelectable" && slot == "index") return true
@@ -174,6 +175,22 @@ open class DuContext(
         return bonus/denominator
     }
 
+    fun getEntityValue(typeName: String): String? {
+        //TODO("Only entity for now, Not yet implemented for frame")
+        val spans = entityTypeToValueInfoMap[typeName]
+        if (spans.isNullOrEmpty()) {
+            return null
+        }
+        val span = spans[0]
+
+        // If we do not have bestCandidate or we entire utterance is covered by entity.
+        return if (utterance.length == span.end && span.start == 0) {
+            span.norm()
+        } else {
+            null
+        }
+    }
+
     companion object {
         val logger = LoggerFactory.getLogger(DuContext::class.java)
     }
@@ -230,6 +247,19 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     fun hasExpectation(): Boolean {
         return activeFrames.isNotEmpty()
     }
+
+    // For all the boolean questions, we run a yes/no inference.
+    fun isBooleanSlot(): Boolean {
+        if (isFrameCompatible(IStateTracker.ConfirmationStatus) ||
+            isFrameCompatible(IStateTracker.BoolGateStatus) ||
+            isFrameCompatible(IStateTracker.HasMoreStatus)) {
+            return true
+        }
+        val slotType = expected?.slotType
+        return slotType == IStateTracker.KotlinBoolean
+    }
+
+
 }
 
 /**
