@@ -276,8 +276,12 @@ fun DUMeta.dump(path: String) {
         e.printStackTrace()
     }
 
+    val exemplarByFrame = expressionsByFrame.mapValues{
+        it.value.map { it -> it.toAnnotatedExemplar() }
+    }
+
     try {
-        mapper.writeValue(File("$path/exemplars.json"), expressionsByFrame)
+        mapper.writeValue(File("$path/exemplars.json"), exemplarByFrame)
     } catch (e: IOException) {
         e.printStackTrace()
     }
@@ -439,8 +443,20 @@ data class Expression(
         val utterance: String,
         val partialApplications: List<String>?,
         val bot: DUMeta) {
+
     fun toMetaExpression(): String {
         return buildTypedExpression(utterance, owner, bot)
+    }
+
+    fun toAnnotatedExemplar(): Map<String, String?> {
+        return mapOf(
+            "owner" to owner,
+            "utterance" to null,
+            "template" to utterance,
+            "owner_mode" to label,
+            "context_frame" to context?.frame,
+            "context_slot" to context?.slot
+            )
     }
 
     /**
