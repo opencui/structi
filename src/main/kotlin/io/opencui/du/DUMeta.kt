@@ -277,7 +277,7 @@ fun DUMeta.dump(path: String) {
     }
 
     try {
-        mapper.writeValue(File("$path/exemplars.json"), frames)
+        mapper.writeValue(File("$path/exemplars.json"), expressionsByFrame)
     } catch (e: IOException) {
         e.printStackTrace()
     }
