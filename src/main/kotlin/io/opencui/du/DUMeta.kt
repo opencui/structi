@@ -256,6 +256,10 @@ fun DUMeta.getNestedSlotMetas(
 }
 
 fun DUMeta.dump(path: String) {
+    val dir = File(path)
+    if (!dir.exists()) {
+        dir.mkdirs()
+    }
     // We need to dump the meta out for python code to index. for now just schema
     val frames = expressionsByFrame.keys
     val schemas = mutableListOf<FrameMeta>()
@@ -267,13 +271,13 @@ fun DUMeta.dump(path: String) {
 
     val mapper = ObjectMapper()
     try {
-        mapper.writeValue(File(path + "/schemas.json"), schemas)
+        mapper.writeValue(File("$path/schemas.json"), schemas)
     } catch (e: IOException) {
         e.printStackTrace()
     }
 
     try {
-        mapper.writeValue(File(path + "/exemplars.json"), schemas)
+        mapper.writeValue(File("$path/exemplars.json"), expressionsByFrame)
     } catch (e: IOException) {
         e.printStackTrace()
     }
