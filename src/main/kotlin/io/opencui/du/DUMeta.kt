@@ -96,12 +96,6 @@ interface LangBase {
 }
 
 
-data class FrameMeta(
-    val name: String,
-    val description: String,
-    val paremeters: List<DUSlotMeta>
-)
-
 interface ExtractiveMeta : LangBase {
     fun getEntities(): Set<String>
 
@@ -255,6 +249,30 @@ fun DUMeta.getNestedSlotMetas(
     return slotsMetaMap
 }
 
+data class FrameSchema(
+    val name: String,
+    val description: String,
+    val slots: List<String>
+)
+
+data class SlotSchema(
+    val name: String,
+    val description: String,
+    val type: String?
+)
+
+fun DUSlotMeta.toSlotSchema() : SlotSchema {
+    val description = triggers[0].ifEmpty { triggers[1] }
+    val name = triggers[1]
+    return SlotSchema(name, description, type)
+}
+
+
+data class Schema(
+    val skills: Map<String, FrameSchema>,
+    val slots: Map<String, SlotSchema>
+)
+
 fun DUMeta.dump(path: String) {
     val dir = File(path)
     if (!dir.exists()) {
@@ -262,16 +280,21 @@ fun DUMeta.dump(path: String) {
     }
     // We need to dump the meta out for python code to index. for now just schema
     val frames = expressionsByFrame.keys
-    val schemas = mutableListOf<FrameMeta>()
+    val skills = mutableMapOf<String, FrameSchema>()
+    val slots = mutableMapOf<String, SlotSchema>()
+
     for (frame in frames) {
         val description = getTriggers(frame)[0]
-        val slots = getSlotMetas(frame)
-        schemas.add(FrameMeta(frame, description, slots))
+        val lslots = getSlotMetas(frame)
+        skills[frame] = FrameSchema(frame, description, lslots.map {"$frame.${it.label}"})
+        for(slot in lslots) {
+            slots["$frame.${slot.label}"] = slot.toSlotSchema()
+        }
     }
 
     val mapper = ObjectMapper()
     try {
-        mapper.writeValue(File("$path/schemas.json"), schemas)
+        mapper.writeValue(File("$path/schemas.json"), Schema(skills, slots))
     } catch (e: IOException) {
         e.printStackTrace()
     }
