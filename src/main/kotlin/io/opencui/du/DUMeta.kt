@@ -262,8 +262,8 @@ data class SlotSchema(
 )
 
 fun DUSlotMeta.toSlotSchema() : SlotSchema {
-    val description = triggers[0].ifEmpty { triggers[1] }
-    val name = triggers[1]
+    val description = if (triggers.isNotEmpty()) triggers[0].ifEmpty { label } else label
+    val name = label
     return SlotSchema(name, description, type)
 }
 
