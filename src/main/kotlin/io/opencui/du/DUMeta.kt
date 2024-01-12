@@ -270,7 +270,8 @@ fun DUSlotMeta.toSlotSchema() : SlotSchema {
 
 data class Schema(
     val skills: Map<String, FrameSchema>,
-    val slots: Map<String, SlotSchema>
+    val slots: Map<String, SlotSchema>,
+    val backward: Map<String, String>? = null
 )
 
 fun DUMeta.dump(path: String) {
