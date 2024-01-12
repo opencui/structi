@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
@@ -270,7 +271,8 @@ fun DUSlotMeta.toSlotSchema() : SlotSchema {
 
 data class Schema(
     val skills: Map<String, FrameSchema>,
-    val slots: Map<String, SlotSchema>
+    val slots: Map<String, SlotSchema>,
+    val backward: Map<String, String>? = null
 )
 
 fun DUMeta.dump(path: String) {
@@ -293,6 +295,7 @@ fun DUMeta.dump(path: String) {
     }
 
     val mapper = ObjectMapper()
+    mapper.enable(SerializationFeature.INDENT_OUTPUT)
     try {
         mapper.writeValue(File("$path/schemas.json"), Schema(skills, slots))
     } catch (e: IOException) {
