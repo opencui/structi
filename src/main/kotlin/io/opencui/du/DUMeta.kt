@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
@@ -294,6 +295,7 @@ fun DUMeta.dump(path: String) {
     }
 
     val mapper = ObjectMapper()
+    mapper.enable(SerializationFeature.INDENT_OUTPUT)
     try {
         mapper.writeValue(File("$path/schemas.json"), Schema(skills, slots))
     } catch (e: IOException) {
