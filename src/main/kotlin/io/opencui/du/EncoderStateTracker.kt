@@ -51,22 +51,6 @@ interface ContextedExemplarsTransformer {
     operator fun invoke(origin: List<Triggerable>): List<Triggerable>
 }
 
-data class DontCareTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
-    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<Triggerable>()
-        val dontcare = expectations.allowDontCare()
-        for (doc in pcandidates) {
-            // DontCare phrase should only be useful when there don't care is expected.
-            if (doc.ownerFrame == "io.opencui.core.DontCare") {
-                if (dontcare) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-}
 
 data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
     override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
@@ -470,7 +454,6 @@ data class BertStateTracker(
         }
 
         val candidates: List<ScoredDocument> = ChainedExampledLabelsTransformer(
-            DontCareTransformer(ducontext.expectations),
             StatusTransformer(ducontext.expectations)
         ).invoke(pcandidates).map { it as ScoredDocument }
 
@@ -593,7 +576,6 @@ data class BertStateTracker(
             val bestCandidate = ducontext.bestCandidate!!
             // we need to go through all the expectation
             for (expected in ducontext.expectations.activeFrames) {
-                if (!expected.allowDontCare()) continue
                 if (bestCandidate.contextFrame == null || bestCandidate.contextFrame == expected.frame) {
                     val slotType = agentMeta.getSlotType(expected.frame, expected.slot!!)
                     // TODO: handle the frame slot case.

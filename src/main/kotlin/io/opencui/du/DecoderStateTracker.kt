@@ -232,7 +232,6 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         val pcandidates = nluService.detectTriggerables(utterance, expectations)
 
         val candidates = ChainedExampledLabelsTransformer(
-            DontCareTransformer(expectations),
             StatusTransformer(expectations)
         ).invoke(pcandidates)
 
