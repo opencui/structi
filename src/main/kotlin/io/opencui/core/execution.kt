@@ -217,7 +217,10 @@ class DialogManager {
                     val potentialHasMoreFiller = targetFiller.parent?.parent?.parent?.parent
                     if ((potentialHasMoreFiller as? FrameFiller<*>)?.frame() is HasMore) {
                         // hardcode status for HasMore
-                        res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", io.opencui.core.hasMore.IStatus::class.qualifiedName!!)
+                        val typeStr = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
+                        val frameName = HasMore::class.qualifiedName!!
+                        val dialogActs = getDialogActs(session, potentialHasMoreFiller)
+                        res += ExpectedFrame(frameName, "status", typeStr, dialogActs)
                         val potentialMVFiller = potentialHasMoreFiller.parent?.parent
                         if (potentialMVFiller != null) {
                             findExpectationByFiller(session, potentialMVFiller)?.let {
@@ -229,10 +232,13 @@ class DialogManager {
                         if (recTargetExp != null) res += recTargetExp
                     }
                 }
+                // No need to
                 res += ExpectedFrame(PagedSelectable::class.qualifiedName!!, "index", Ordinal::class.qualifiedName!!)
             }
             is Confirmation -> {
-                res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", io.opencui.core.confirmation.IStatus::class.qualifiedName!!)
+                val typeStr = io.opencui.core.confirmation.IStatus::class.qualifiedName!!
+                val dialogActs = getDialogActs(session, topFrameWrapperFiller)
+                res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", typeStr, dialogActs)
                 val targetFiller = (topFrameWrapperFiller.parent as? AnnotatedWrapperFiller)?.targetFiller
                 if (targetFiller != null) {
                     val potentialPagedSelectableFiller = targetFiller.parent?.parent
@@ -253,7 +259,9 @@ class DialogManager {
                                 }
                             }
                             if (expectedTargetFiller is MultiValueFiller<*>) {
-                                res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", io.opencui.core.hasMore.IStatus::class.qualifiedName!!)
+                                val typeStr = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
+                                val dialogActs = getDialogActs(session, expectedTargetFiller)
+                                res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", typeStr)
                             }
                         }
                     }
@@ -263,7 +271,9 @@ class DialogManager {
                 }
             }
             is HasMore -> {
-                res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", io.opencui.core.hasMore.IStatus::class.qualifiedName!!)
+                val typeStr = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
+                val dialogActs = getDialogActs(session, topFrameWrapperFiller)
+                res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", typeStr, dialogActs)
                 val multiValueFiller = topFrameWrapperFiller.parent as? MultiValueFiller<*>
                 if (multiValueFiller != null) {
                     findExpectationByFiller(session, multiValueFiller)?.let {
@@ -272,7 +282,9 @@ class DialogManager {
                 }
             }
             is BoolGate -> {
-                res += ExpectedFrame(BoolGate::class.qualifiedName!!, "status", io.opencui.core.booleanGate.IStatus::class.qualifiedName!!)
+                val typeStr = io.opencui.core.booleanGate.IStatus::class.qualifiedName!!
+                val dialogActs = getDialogActs(session, topFrameWrapperFiller)
+                res += ExpectedFrame(BoolGate::class.qualifiedName!!, "status", typeStr)
                 val targetFiller = (topFrameWrapperFiller.parent as? AnnotatedWrapperFiller)?.targetFiller
                 if (targetFiller != null) {
                     if (targetFiller is FrameFiller<*>) {
@@ -293,7 +305,8 @@ class DialogManager {
                 val focus = focusFiller?.attribute
                 if (frameFiller.qualifiedTypeStr() != Confirmation::class.qualifiedName!!
                     && (focusFiller?.targetFiller as? InterfaceFiller<*>)?.qualifiedTypeStr() == CONFIRMATIONSTATUS) {
-                    res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTATUS)
+                    val dialogActs = getDialogActs(session, frameFiller)
+                    res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTATUS, dialogActs)
                 }
                 res += ExpectedFrame(frameFiller.qualifiedEventType()!!, focus, (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr())
                 // Now we check whether it is a frame with head.
@@ -310,7 +323,9 @@ class DialogManager {
         }
         if (res.firstOrNull { it.frame == HasMore::class.qualifiedName } == null && session.schedule.firstOrNull { it is FrameFiller<*> && it.frame() is HasMore } != null) {
             // check if there is undone HasMore
-            res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", HASMORESTATUS)
+            val filler = session.schedule.firstOrNull { it is FrameFiller<*> && it.frame() is HasMore } as IFiller
+            val dialogActs = getDialogActs(session, filler)
+            res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", HASMORESTATUS, dialogActs)
         }
         return res
     }
