@@ -145,8 +145,8 @@ object RuntimeConfig {
         configures[key] = value
     }
 
-    inline fun <reified T: Any> get(key: KClass<*>) : T {
-        return configures[key] as T
+    inline fun <reified T: Any> get(key: KClass<*>) : T? {
+        return configures[key] as T?
     }
 }
 

@@ -311,6 +311,13 @@ interface IStateTracker : IExtension {
             "io.opencui.core.confirmation.IStatus",
             "io.opencui.core.hasMore.IStatus",
             "io.opencui.core.booleanGate.IStatus")
+
+        fun buildTracker(dumeta: DUMeta) : IStateTracker {
+            // Instead of expose the implementation to code gen, let's first hide it. So that
+            // we can later change this to 
+            return BertStateTracker(dumeta)
+        }
+
     }
 }
 

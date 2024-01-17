@@ -116,7 +116,7 @@ class RegexRecognizer: EntityRecognizer {
 // For now assume we have all the information needed
 class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
     val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = RuntimeConfig.get(DucklingRecognizer::class)
+    val url: String = RuntimeConfig.get(DucklingRecognizer::class)!!
     private val timeOut = 5000L
 
     // For now just add bot timezone, if we want to handle user based timezone,
