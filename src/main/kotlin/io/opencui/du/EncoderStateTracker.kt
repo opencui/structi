@@ -205,7 +205,7 @@ object PtBertNLUModel {
 data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
     data class TfRestPayload(val utterance: String, val probes: List<String>)
     data class TfRestRequest(val signature_name: String, val inputs: TfRestPayload)
-    val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)
+    val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)!!
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String = "${config.third}://${config.first}:${config.second}"
     val timeout: Long = 10000
@@ -263,7 +263,7 @@ data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
     data class PtRestPayload(val utterance: String, val probes: List<String>)
     data class PtRestRequest(val signature_name: String, val inputs: PtRestPayload)
     data class PtInput(val utterance: String, val probes: String)
-    val config: Pair<String, Int> = RuntimeConfig.get(PtRestBertNLUModel::class)
+    val config: Pair<String, Int> = RuntimeConfig.get(PtRestBertNLUModel::class)!!
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String  = "http://${config.first}:${config.second}"
     val timeout: Long = 2000
