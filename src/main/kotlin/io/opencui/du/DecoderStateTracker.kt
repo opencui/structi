@@ -53,11 +53,8 @@ data class TriggerDecision(
 // hide that from user.
 
 class RestNluService {
-    data class TfRestPayload(val utterance: String, val probes: List<String>)
-    data class TfRestRequest(val signature_name: String, val inputs: TfRestPayload)
-    val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)
     val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = "${config.third}://${config.first}:${config.second}"
+    val url: String = RuntimeConfig.get(RestNluService::class) ?: "http://127.0.0.1:3001"
     val timeout: Long = 10000
 
     fun shutdown() { }
