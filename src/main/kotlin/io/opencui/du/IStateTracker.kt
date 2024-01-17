@@ -2,6 +2,7 @@ package io.opencui.du
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
+import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -38,8 +39,8 @@ data class ExpectedFrame(
     val frame: String,
     val slot: String? = null,
     @JsonIgnore val slotType: String? = null,
-    @JsonIgnore val prompt: String? = null) {
-}
+    @JsonIgnore val prompt: List<DialogAct> = emptyList())
+
 
 
 /**

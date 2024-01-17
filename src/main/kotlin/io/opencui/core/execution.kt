@@ -198,6 +198,12 @@ class DialogManager {
         return DialogExpectation(findExpectedFrames(session, topFrameWrapperFiller))
     }
 
+
+    private fun getDialogActs(session: UserSession, filler: IFiller): List<DialogAct> {
+        val actions = filler.slotAskAnnotation()?.actions ?: emptyList()
+        return SeqAction(actions).wrappedRun(session).botUtterance!!
+    }
+
     // This can be used recursively for cases like
     private fun findExpectedFrames(session: UserSession, topFrameWrapperFiller: AnnotatedWrapperFiller): List<ExpectedFrame> {
         assert(topFrameWrapperFiller.targetFiller is FrameFiller<*>)
@@ -311,11 +317,18 @@ class DialogManager {
 
     private fun findExpectationByFiller(session: UserSession, filler: IFiller): ExpectedFrame? {
         when (filler) {
-            is EntityFiller<*> -> return ExpectedFrame(filler.qualifiedEventType() + (extractSlotType(filler)?.let { "$${it}" } ?: ""), filler.attribute, filler.qualifiedTypeStr())
+            is EntityFiller<*> -> {
+                val frameName = filler.qualifiedEventType() + (extractSlotType(filler)?.let { "$${it}" } ?: "")
+                val typeStr = filler.qualifiedTypeStr()
+                val dialogActs = getDialogActs(session, filler)
+                return ExpectedFrame(frameName, filler.attribute, typeStr, dialogActs)
+            }
             is FrameFiller<*> -> {
                 val index = session.schedule.indexOf(filler)
                 val focusFiller = if (index != -1 && session.schedule.size > index+1) session.schedule[index+1] as? AnnotatedWrapperFiller else null
-                return ExpectedFrame(filler.qualifiedEventType()!!, focusFiller?.attribute, (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr())
+                val frameName = filler.qualifiedEventType()!!
+                val typeStr = (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr()
+                return ExpectedFrame(frameName, focusFiller?.attribute, typeStr)
             }
             is InterfaceFiller<*> -> {
                 val parent = filler.parent?.parent
@@ -323,12 +336,16 @@ class DialogManager {
             }
             is MultiValueFiller<*> -> {
                 when (filler.svType) {
-                    MultiValueFiller.SvType.ENTITY -> return ExpectedFrame(filler.qualifiedEventType()!!, filler.attribute, filler.qualifiedTypeStrForSv())
+                    MultiValueFiller.SvType.ENTITY -> {
+                        val typeStr = filler.qualifiedTypeStrForSv()
+                        return ExpectedFrame(filler.qualifiedEventType()!!, filler.attribute, typeStr)
+                    }
                     MultiValueFiller.SvType.FRAME -> return ExpectedFrame(filler.qualifiedEventType()!!)
                     MultiValueFiller.SvType.INTERFACE -> {
                         val frameFiller = filler.parent?.parent as? FrameFiller<*>
                         if (frameFiller != null) {
-                            return ExpectedFrame(frameFiller.qualifiedEventType()!!, filler.attribute, filler.qualifiedTypeStrForSv())
+                            val typeStr = filler.qualifiedTypeStrForSv()
+                            return ExpectedFrame(frameFiller.qualifiedEventType()!!, filler.attribute, typeStr)
                         }
                     }
                 }

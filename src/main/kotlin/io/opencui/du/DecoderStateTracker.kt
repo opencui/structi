@@ -268,7 +268,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         // binary question. We assume the first on the top.
         if (expectations.isBooleanSlot()) {
             // The expectation top need to be binary and have prompt.
-            val question = expectations.expected!!.prompt!!
+            val question = expectations.expected!!.prompt!!.map{it.toString()}
 
             val boolValue = duContext.getEntityValue(IStateTracker.KotlinBoolean)
             if (boolValue != null) {
@@ -282,7 +282,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
                 if (events != null) return events
             }
 
-            val status = nluService.yesNoInference(utterance, listOf(question))[0]
+            val status = nluService.yesNoInference(utterance, question)[0]
             if (status != YesNoResult.Irrelevant) {
                 // First handle the frame wrappers we had for boolean type.
                 // what happens we have good match, and these matches are related to expectations.
