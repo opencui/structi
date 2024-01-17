@@ -359,7 +359,7 @@ class StateTrackerTest : DuTestHelper() {
         val frameEvents = stateTracker.convert(
                 "s",
                 "as you like",
-                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot1", allowDontCare = true))
+                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot1"))
         )
         println("frame events 1: $frameEvents")
         assertEquals(1, frameEvents.size)
@@ -376,7 +376,7 @@ class StateTrackerTest : DuTestHelper() {
         val frameEvents2 = stateTracker.convert(
                 "s",
                 "as you like",
-                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2", allowDontCare = true))
+                DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"))
         )
         println("frame events 2: $frameEvents2")
         assertEquals(1, frameEvents2.size)

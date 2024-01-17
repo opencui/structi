@@ -2,6 +2,7 @@ package io.opencui.du
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
+import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -38,14 +39,8 @@ data class ExpectedFrame(
     val frame: String,
     val slot: String? = null,
     @JsonIgnore val slotType: String? = null,
-    @JsonIgnore val allowDontCare: Boolean? = null,
-    @JsonIgnore val prompt: String? = null) {
-    fun allowDontCare() : Boolean {
-        // TODO(sean) remove the hard code later.
-        if (frame == "io.opencui.core.PagedSelectable" && slot == "index") return true
-        return allowDontCare == true
-    }
-}
+    @JsonIgnore val prompt: List<DialogAct> = emptyList())
+
 
 
 /**
@@ -233,13 +228,6 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     fun isFrameCompatible(frameName: String) : Boolean {
         for (aframe in activeFrames) {
             if (aframe.frame.equals(frameName)) return true
-        }
-        return false
-    }
-
-    fun allowDontCare() : Boolean {
-        for (frame in activeFrames) {
-            if (frame.allowDontCare()) return true
         }
         return false
     }
