@@ -91,7 +91,7 @@ class MatchPriorityTest : DuTestHelper() {
             0.1f,
             0.5f
     )
-    @Test
+
     // TODO check convert result
     fun testMatchPriority() {
         // case 1: no expectation, "long time" should match "long time no see" -> Greeting

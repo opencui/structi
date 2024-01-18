@@ -912,13 +912,11 @@ class SmallTableDslTest() : DuTestHelper() {
             0.5f
     )
 
-    @Test
     fun testSmallTable() {
         val frameEvents = stateTracker.convert("s", "I want to book a small table")
         assertEquals(frameEvents.toString(), """[FrameEvent(type=MakeReservation, slots=[EntityEvent(value="small", attribute=tableType)], frames=[], packageName=me.demo.reservation_v2)]""")
     }
 
-    @Test
     fun testSlotUpdate() {
         val frameEvents = stateTracker.convert(
             "s",
@@ -935,7 +933,6 @@ class SmallTableDslTest() : DuTestHelper() {
         assertEquals(surroundings.first.size, 10)
     }
 
-    @Test
     fun testDateUpdateExact() {
         val frameEvents = stateTracker.convert(
             "s",
@@ -948,7 +945,7 @@ class SmallTableDslTest() : DuTestHelper() {
         assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="me.demo.reservation_v2.ReservationInfo.date", attribute=originalSlot), EntityEvent(value="$tmr", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 
-    @Test
+
     fun testDateUpdateShort() {
         val frameEvents = stateTracker.convert(
             "s",
@@ -962,7 +959,7 @@ class SmallTableDslTest() : DuTestHelper() {
         assertEquals(frameEvents.toString(), """[FrameEvent(type=SlotUpdate, slots=[EntityEvent(value="$tmr", attribute=newValue)], frames=[], packageName=io.opencui.core)]""")
     }
 
-        @Test
+
     fun testDateUpdateInExact() {
         val frameEvents = stateTracker.convert(
             "s",

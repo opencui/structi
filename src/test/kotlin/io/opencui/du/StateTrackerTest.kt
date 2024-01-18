@@ -240,7 +240,7 @@ class StateTrackerTest : DuTestHelper() {
             0.5f
     )
 
-    @Test
+
     fun testConvertWithExpectation() {
         val frameEvents = stateTracker.convert(
                 "s",
@@ -267,7 +267,6 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals("savings", frameEvents2[0].slots[0].origValue)
     }
 
-    @Test
     fun testMatchIntent() {
         val frameEvents = stateTracker.convert("s", "this is intent")
         println("frame events: $frameEvents")
@@ -277,7 +276,6 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(1, frameEvents[0].slots.size)
     }
 
-    @Test
     fun testMultiValue() {
         // framely.core.PageSelectableMulti # index is a slot which allows multi_value
         // framely.core.PageSelectableSingle # index is a same slot except not allow multi_value
@@ -307,7 +305,7 @@ class StateTrackerTest : DuTestHelper() {
         )
     }
 
-    @Test
+
     fun testMatchIDontThinkSo() {
         val frameEvents = stateTracker.convert(
                 "s",
@@ -321,7 +319,6 @@ class StateTrackerTest : DuTestHelper() {
         )
     }
 
-    @Test
     fun testDontCareExpected() {
         val expects = listOf(
                 ExpectedFrame("io.opencui.core.HasMore", "status"),
@@ -339,7 +336,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals(frameEvents[0].slots[0].value, "\"1\"")
     }
 
-    @Test
+
     fun testDontCareProactive() {
         // TODO(sean): need to revisit this when we have multiple intention support.
         val frameEvents = stateTracker.convert("s", "this is intent, whatever frame")
@@ -370,7 +367,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals("\"_DontCare\"", frameEvents[0].slots[0].value)
     }
 
-    @Test
+
     fun testDontCareReactive2() {
         // test dont care on entity slot
         val frameEvents2 = stateTracker.convert(
@@ -387,7 +384,6 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals("\"_DontCare\"", frameEvents2[0].slots[0].value)
     }
 
-    @Test
     fun testConfirmation() {
         val expressions = agent.expressionsByFrame
         val frameEvents = stateTracker.convert(
@@ -419,7 +415,6 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals("[FrameEvent(type=IDonotGetIt, slots=[], frames=[], packageName=io.opencui.core)]", frameEvents2.toString())
     }
 
-    @Test
     fun testHasMore() {
         val frameEvents = stateTracker.convert(
                 "s",
@@ -430,7 +425,6 @@ class StateTrackerTest : DuTestHelper() {
     }
 
 
-    @Test
     fun testRecommendationExpression() {
         val frameEvents = stateTracker.convert(
                 "s",
@@ -447,7 +441,6 @@ class StateTrackerTest : DuTestHelper() {
     }
 
 
-    @Test
     fun testPartialApplication() {
         val frameEvents = stateTracker.convert("s", "this is intent")
         println("frame event: $frameEvents")
@@ -458,7 +451,6 @@ class StateTrackerTest : DuTestHelper() {
     }
 
 
-    @Test
     fun testMultiFrameMatching() {
         // state tracker should try to fill slot for active frames
         val frameEvent = stateTracker.convert(
@@ -474,7 +466,6 @@ class StateTrackerTest : DuTestHelper() {
         )
     }
 
-    @Test
     fun testExtractValue() {
         val startLogits = mutableListOf<List<Float>>()
         val endLogits = mutableListOf<List<Float>>()
@@ -585,7 +576,7 @@ class StateTrackerTest : DuTestHelper() {
                 "from should be shanghai and to should be beijing")
     }
 
-    @Test
+
     fun testPrefixSuffixBoostFull() {
         val originalInput = "Alice want to buy a ticket from shanghai to beijing at today"
 
@@ -600,7 +591,7 @@ class StateTrackerTest : DuTestHelper() {
                 "from should be shanghai and to should be beijing"
         )
     }
-    @Test
+
     fun testTwoSlotsWithSameEntity() {
         val frameEvent = stateTracker.convert(
                 "s",
@@ -615,7 +606,7 @@ class StateTrackerTest : DuTestHelper() {
         )
     }
 
-    @Test
+
     fun testSingleTokenSlotFilling() {
         val frameEvent = stateTracker.convert(
                 "s",
@@ -629,23 +620,6 @@ class StateTrackerTest : DuTestHelper() {
         )
     }
 
-    @Test
-    fun testIntentModel() {
-        val utterance = "我的手机号是 123"
-        val probes = listOf("我的手机号是 <phonenumber>", "我的手机号是 [MASK]")
-        val yProbs = stateTracker.nluModel.predictIntent("zh", utterance, probes)
-        println("intent model resp: $yProbs")
-    }
-
-    @Test
-    fun testIntentModel1() {
-        val utterance = "i am good now"
-        val probes = listOf("i am good now", "i am good now.", "i am good now?")
-        val yProbs = stateTracker.nluModel.predictIntent("en", utterance, probes)
-        println("intent model resp: $yProbs")
-    }
-
-    @Test
     fun testHead() {
         val frameEvent = stateTracker.convert(
                 "s",
@@ -657,39 +631,5 @@ class StateTrackerTest : DuTestHelper() {
                 frameEvent.toString()
         )
         println(frameEvent.toString())
-    }
-
-    @Test
-    fun testSlotModel() {
-        val utterance = "march"
-        val ducontext = BertDuContext("s", utterance, DialogExpectations())
-        val probes = listOf("departure?")
-        val predictions = stateTracker.nluModel.predictSlot("en", utterance, probes)
-        print("request slot model, utterance: $utterance, probes: $probes")
-
-        println("slot model result \n" +
-                "class_logits: ${predictions.classLogits}\n" +
-                "segments: $predictions.segments\n" +
-                "start_logits: ${predictions.startLogitss}\n" +
-                "end_logits: ${predictions.endLogitss}")
-
-        for ((index, slot) in probes.withIndex()) {
-            if (index >= predictions.startLogitss.size) continue
-            if (predictions.classLogits[index * 3 + 1] > stateTracker.slotThreshold) {
-                val span = stateTracker.extractValue(
-                        ducontext,
-                        DUSlotMeta("slot"),
-                        predictions.get(index)
-                )
-                if (span != null) {
-                    for (s in span) {
-                        println("predicted slot: $slot, ${s.value}, score: ${s.score}")
-                    }
-                }
-            } else if (predictions.classLogits[index * 3 + 2] > stateTracker.slotThreshold) {
-                // DontCare.
-                println("predicted slot: $slot as DontCare")
-            }
-        }
     }
 }

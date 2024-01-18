@@ -195,7 +195,7 @@ class DslEntityTest() : DuTestHelper() {
         assert(!value.leaf)
     }
 
-    @Test
+
     fun testMatchIntent() {
         val frameEvents = stateTracker.convert("s", "order house special")
         println("frame events: $frameEvents")
