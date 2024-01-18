@@ -11,6 +11,7 @@ import java.util.regex.Pattern
 object ChatbotLoader {
     val logger: Logger = LoggerFactory.getLogger(ChatbotLoader::class.java)
     val chatbotCache = PerpetualCache<String, RecyclableAgentResource>()
+    val chatbotPrefixMap = mutableMapOf<String, List<IChatbot>>()
     val pattern = Pattern.compile("[^a-z]", Pattern.CASE_INSENSITIVE)
     var botPrefix: String = ""
 
@@ -42,9 +43,14 @@ object ChatbotLoader {
         return File("./jardir/agent-${botInfo.lang}.jar")
     }
 
+    fun findChatbotsByPrefix(botPrefix: String): List<IChatbot> {
+        return chatbotPrefixMap[botPrefix]!!
+    }
+
     // This is useful for creating the index.
     fun init(file: File, botPrefix: String) {
         this.botPrefix = botPrefix
+        val chatbots = mutableListOf<IChatbot>()
         file.walk()
 			.filter { it.toString().endsWith("jar") }
 			.forEach {
@@ -58,12 +64,15 @@ object ChatbotLoader {
                     logger.info("load agent :$qualifiedAgentName with $lang from $file")
                     val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
                     val chatbot = kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot
+                    chatbots.add(chatbot)
                     chatbotCache[lang] = RecyclableAgentResource(chatbot, classLoader, file.lastModified())
                 } else {
                     logger.info("$fileName is not in agent-{lang}.jar format.")
                 }
 			}
+        chatbotPrefixMap[botPrefix] = chatbots
     }
+
 
     data class RecyclableAgentResource(val chatbot: IChatbot, val classLoader: ClassLoader, val lastModified: Long): Recyclable {
         override fun recycle() {
