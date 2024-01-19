@@ -55,7 +55,6 @@ data class TriggerDecision(
 class RestNluService {
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String = RuntimeConfig.get(RestNluService::class) ?: "http://127.0.0.1:3001"
-    val timeout: Long = 10000
 
     fun shutdown() { }
 
@@ -67,50 +66,45 @@ class RestNluService {
         val mode: DugMode,
         val utterance: String,
         val expectations: List<ExpectedFrame> = emptyList(),
-        val slotMetas: List<DUSlotMeta> = emptyList(),
-        val entityValues: Map<String, List<String>> = emptyMap(),
-        val questions: List<String> = emptyList())
+        val slots: List<Map<String, String>> = emptyList(),
+        val candidates: Map<String, List<String>> = emptyMap(),
+        val questions: List<String> = emptyList(),
+        val dialogActs: List<String> = emptyList())
 
-
-    data class Response(
-        val mode: DugMode,
-        val triggerables: List<TriggerDecision>,
-        val values: Map<String, SlotValue>,
-        val yesNoResult: List<YesNoResult>
-    )
+    fun buildRequest(text: String): HttpRequest {
+          return HttpRequest.newBuilder()
+            .uri(URI.create("$url/v1/predict"))
+            .header("Content-type", "application/json")
+            .header("Accept", "application/json")
+            .version(HttpClient.Version.HTTP_1_1)
+            .POST(HttpRequest.BodyPublishers.ofString(text))
+            .build()
+    }
 
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
+    fun detectTriggerables(utterance: String, expectations: DialogExpectations = DialogExpectations()): List<TriggerDecision> {
         val input = Request(DugMode.SKILL, utterance, expectations.activeFrames)
         logger.debug("connecting to $url/v1/predict")
         logger.debug("utterance = $utterance and expectations = $expectations")
-        val request: HttpRequest = HttpRequest.newBuilder()
-            .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
-            .uri(URI.create("$url/v1/predict"))
-            .timeout(Duration.ofMillis(timeout))
-            .build()
+        val jsonRequest = Json.encodeToString(input).trimIndent()
+        val request: HttpRequest = buildRequest(jsonRequest)
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
+        val body = response.body()
         if (response.statusCode() != 200) {
             logger.error("NLU request error: ${response.toString()}")
             return emptyList()
         }
-
-        val res = Json.decodeFromString<Response>(response.body())
-        return res.triggerables
+        return Json.decodeFromString<List<TriggerDecision>>(body)
     }
 
     // handle all slots.
-    fun fillSlots(utterance: String, slots: Map<String, DUSlotMeta>, entities: Map<String, List<String>>): Map<String, SlotValue> {
-        val input = Request(DugMode.SLOT, utterance, slotMetas = slots.values.toList(), entityValues =  entities)
+    fun fillSlots(utterance: String, slots: List<Map<String, String>>, entities: Map<String, List<String>>): Map<String, SlotValue> {
+        val input = Request(DugMode.SLOT, utterance, slots = slots, candidates =  entities)
         logger.debug("connecting to $url/v1/predict")
         logger.debug("utterance = $utterance and expectations = $slots, entities = $entities")
-        val request: HttpRequest = HttpRequest.newBuilder()
-            .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
-            .uri(URI.create("$url/v1/predict"))
-            .timeout(Duration.ofMillis(timeout))
-            .build()
+        val request: HttpRequest = buildRequest(Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
         if (response.statusCode() != 200) {
@@ -118,19 +112,14 @@ class RestNluService {
             return emptyMap()
         }
 
-        val res = Json.decodeFromString<Response>(response.body())
-        return res.values
+        return Json.decodeFromString<Map<String, SlotValue>>(response.body())
     }
 
     fun yesNoInference(utterance: String, questions: List<String>): List<YesNoResult> {
         val input = Request(DugMode.BINARY, utterance, questions = questions)
         logger.debug("connecting to $url/v1/predict")
         logger.debug("utterance = $utterance and questions = $questions")
-        val request: HttpRequest = HttpRequest.newBuilder()
-            .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
-            .uri(URI.create("$url/v1/predict"))
-            .timeout(Duration.ofMillis(timeout))
-            .build()
+        val request: HttpRequest = buildRequest(Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
         if (response.statusCode() != 200) {
@@ -138,8 +127,7 @@ class RestNluService {
             return emptyList()
         }
 
-        val res = Json.decodeFromString<Response>(response.body())
-        return res.yesNoResult
+        return Json.decodeFromString<List<YesNoResult>>(response.body())
     }
 }
 
@@ -154,6 +142,8 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
 
     val lang = agentMeta.getLang().lowercase(Locale.getDefault())
     val dontCareForPagedSelectable = DontCareForPagedSelectable()
+
+    val useSlotLabel = true
 
     // Eventually we should use this new paradigm.
     // First, we detect triggereables this should imply skill understanding.
@@ -232,7 +222,6 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
             StatusTransformer(expectations)
         ).invoke(pcandidates)
 
-
         // Do we really need this?
         // First, try to exact match expressions
         // now find the intent best explain the utterance
@@ -256,8 +245,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    fun handleExpectations(duContext: DuContext, triggerables: List<Triggerable>): List<FrameEvent>? {
-
+    private fun handleExpectations(duContext: DuContext, triggerables: List<Triggerable>): List<FrameEvent>? {
         val utterance = duContext.utterance
         val expectations = duContext.expectations
 
@@ -286,7 +274,6 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
                 // There are at least couple different use cases.
                 // TODO(sean): should we start to pay attention to the order of the dialog expectation.
                 // Also the stack structure of dialog expectation is not used.
-
                 val events = handleBooleanStatus(duContext, status)
                 if (events != null) return events
             }
@@ -388,7 +375,8 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
     ): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val valuesFound = mapOf<String, List<String>>()
-        val results = nluService.fillSlots(ducontext.utterance, slotMap, valuesFound)
+        val slots = slotMap.values.map { it.asMap() }.toList()
+        val results = nluService.fillSlots(ducontext.utterance, slots, valuesFound)
         val entityEvents = mutableListOf<EntityEvent>()
         for (result in results) {
             val slotName = result.key

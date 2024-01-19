@@ -46,6 +46,15 @@ data class DUSlotMeta(
     fun isGenericTyped(): Boolean {
         return type == "T"
     }
+
+    fun asMap(useSlotLabel: Boolean=true) : Map<String, String> {
+        // TODO(sean): use slot label.
+        return mapOf(
+            "name" to label,
+            "description" to triggers[0]
+        )
+    }
+
 }
 
 // Compute the surrounding words so that we can help extraction.
