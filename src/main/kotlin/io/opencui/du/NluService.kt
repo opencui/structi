@@ -18,8 +18,7 @@ enum class YesNoResult {
     Irrelevant
 }
 
-
-data class SlotValue(val operator: String, val values: List<String>)
+data class SlotValue(val values: List<String>, val operator: String  = "==")
 
 interface NluService {
 

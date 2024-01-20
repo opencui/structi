@@ -315,7 +315,7 @@ interface IStateTracker : IExtension {
         fun buildTracker(dumeta: DUMeta) : IStateTracker {
             // Instead of expose the implementation to code gen, let's first hide it. So that
             // we can later change this to 
-            return BertStateTracker(dumeta)
+            return DecoderStateTracker(dumeta)
         }
 
     }
