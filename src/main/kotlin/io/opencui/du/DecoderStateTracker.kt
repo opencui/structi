@@ -10,6 +10,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
+import java.net.HttpURLConnection
+import java.net.URL
 import java.time.Duration
 
 
@@ -55,7 +57,7 @@ data class TriggerDecision(
 class RestNluService {
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String = RuntimeConfig.get(RestNluService::class) ?: "http://127.0.0.1:3001"
-
+    val timeoutInMills: Long = 1000
     fun shutdown() { }
 
     companion object {
@@ -71,7 +73,7 @@ class RestNluService {
         val questions: List<String> = emptyList(),
         val dialogActs: List<String> = emptyList())
 
-    fun buildRequest(text: String): HttpRequest {
+    fun buildRequest(text: String, timeoutMillis: Long = 1000L): HttpRequest {
           return HttpRequest.newBuilder()
             .uri(URI.create("$url/v1/predict"))
             .header("Content-type", "application/json")
@@ -79,6 +81,39 @@ class RestNluService {
             .version(HttpClient.Version.HTTP_1_1)
             .POST(HttpRequest.BodyPublishers.ofString(text))
             .build()
+    }
+    fun isHttpServiceReady(url: String, timeoutMillis: Int): Boolean {
+        try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = timeoutMillis
+            connection.readTimeout = timeoutMillis
+            connection.requestMethod = "HEAD" // Use "HEAD" to check if the service is available
+
+            val responseCode = connection.responseCode
+            return responseCode == HttpURLConnection.HTTP_OK
+        } catch (e: Exception) {
+            return false
+        }
+    }
+    fun blockUntilHttpServiceIsReady(url: String, timeoutMillis: Long) {
+        val startTime = System.currentTimeMillis()
+        var serviceReady = false
+
+        while (!serviceReady && System.currentTimeMillis() - startTime < timeoutMillis) {
+            serviceReady = isHttpServiceReady(url, 1000) // Check every second
+            if (!serviceReady) {
+                Thread.sleep(1000) // Wait for a second before checking again
+            }
+            println("service $url is not ready.")
+        }
+
+        if (!serviceReady) {
+            throw RuntimeException("HTTP service did not become ready within the specified timeout.")
+        }
+    }
+
+    init {
+        blockUntilHttpServiceIsReady("$url/hello", 60000)
     }
 
 

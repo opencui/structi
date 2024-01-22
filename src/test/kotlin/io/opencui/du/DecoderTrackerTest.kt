@@ -1256,6 +1256,7 @@ class DecoderTrackerTest : DuTestHelper() {
     val stateTracker = DecoderStateTracker(agent.duMeta)
     val service = stateTracker.nluService
 
+    
     fun testNluService() {
         val frameEvents = service.detectTriggerables("I like to order some food")
         println("frame events: $frameEvents")
