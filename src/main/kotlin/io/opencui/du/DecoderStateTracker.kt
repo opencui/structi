@@ -199,6 +199,11 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
     }
 
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        // if it is empty, we can return immediately.
+        if (putterance.trim().isEmpty()) {
+            return emptyList()
+        }
+
         // this layer is important so that we have a centralized place for the post process.
         val res = convertImpl(session, putterance, expectations)
 
@@ -439,4 +444,3 @@ data class DecoderStateTracker(val agentMeta: DUMeta) : IStateTracker {
         }
     }
 }
-
