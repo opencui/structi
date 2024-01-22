@@ -58,6 +58,9 @@ class RestNluService {
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String = RuntimeConfig.get(RestNluService::class) ?: "http://127.0.0.1:3001"
     val timeoutInMills: Long = 1000
+    val isReady : Boolean by lazy {  blockUntilHttpServiceIsReady("$url/hello", 60000) }
+
+
     fun shutdown() { }
 
     companion object {
@@ -74,14 +77,19 @@ class RestNluService {
         val dialogActs: List<String> = emptyList())
 
     fun buildRequest(text: String, timeoutMillis: Long = 1000L): HttpRequest {
-          return HttpRequest.newBuilder()
-            .uri(URI.create("$url/v1/predict"))
-            .header("Content-type", "application/json")
-            .header("Accept", "application/json")
-            .version(HttpClient.Version.HTTP_1_1)
-            .POST(HttpRequest.BodyPublishers.ofString(text))
-            .build()
+        if (!isReady) {
+            throw RuntimeException("HTTP service did not become ready within the specified timeout.")
+        }
+
+        return HttpRequest.newBuilder()
+        .uri(URI.create("$url/v1/predict"))
+        .header("Content-type", "application/json")
+        .header("Accept", "application/json")
+        .version(HttpClient.Version.HTTP_1_1)
+        .POST(HttpRequest.BodyPublishers.ofString(text))
+        .build()
     }
+
     fun isHttpServiceReady(url: String, timeoutMillis: Int): Boolean {
         try {
             val connection = URL(url).openConnection() as HttpURLConnection
@@ -95,7 +103,8 @@ class RestNluService {
             return false
         }
     }
-    fun blockUntilHttpServiceIsReady(url: String, timeoutMillis: Long) {
+
+    fun blockUntilHttpServiceIsReady(url: String, timeoutMillis: Long): Boolean {
         val startTime = System.currentTimeMillis()
         var serviceReady = false
 
@@ -107,15 +116,8 @@ class RestNluService {
             println("service $url is not ready.")
         }
 
-        if (!serviceReady) {
-            throw RuntimeException("HTTP service did not become ready within the specified timeout.")
-        }
+        return serviceReady
     }
-
-    init {
-        blockUntilHttpServiceIsReady("$url/hello", 60000)
-    }
-
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
     fun detectTriggerables(utterance: String, expectations: DialogExpectations = DialogExpectations()): List<TriggerDecision> {
