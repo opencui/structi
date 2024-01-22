@@ -82,12 +82,12 @@ class RestNluService {
         }
 
         return HttpRequest.newBuilder()
-        .uri(URI.create("$url/v1/predict"))
-        .header("Content-type", "application/json")
-        .header("Accept", "application/json")
-        .version(HttpClient.Version.HTTP_1_1)
-        .POST(HttpRequest.BodyPublishers.ofString(text))
-        .build()
+            .uri(URI.create("$url/v1/predict"))
+            .header("Content-type", "application/json")
+            .header("Accept", "application/json")
+            .version(HttpClient.Version.HTTP_1_1)
+            .POST(HttpRequest.BodyPublishers.ofString(text))
+            .build()
     }
 
     fun isHttpServiceReady(url: String, timeoutMillis: Int): Boolean {
