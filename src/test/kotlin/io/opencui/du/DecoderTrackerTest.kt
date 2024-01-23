@@ -1253,12 +1253,11 @@ public data class Agent(
 
 class DecoderTrackerTest : DuTestHelper() {
     val agent = Agent()
-    val stateTracker = DecoderStateTracker(agent.duMeta)
+    val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
     val service = stateTracker.nluService
-
     
     fun testNluService() {
-        val frameEvents = service.detectTriggerables("I like to order some food")
+        val frameEvents = service.detectTriggerables(stateTracker.context,"I like to order some food")
         println("frame events: $frameEvents")
 
         val slots = listOf(
@@ -1268,15 +1267,15 @@ class DecoderTrackerTest : DuTestHelper() {
             "dishes" to listOf("pizza", "apple")
         )
 
-        val results0 = service.fillSlots("I like to order some food", slots, values)
+        val results0 = service.fillSlots(stateTracker.context, "I like to order some food", slots, values)
         println("frame events: $results0")
 
-        val results1 = service.fillSlots("I like to order some pizza", slots, values)
+        val results1 = service.fillSlots(stateTracker.context, "I like to order some pizza", slots, values)
         println("frame events: $results1")
 
         val questions = listOf("Do you need more dish?")
         val utterance = "I like to"
-        val results2 = service.yesNoInference(utterance, questions)
+        val results2 = service.yesNoInference(stateTracker.context, utterance, questions)
         println(results2)
     }
 
