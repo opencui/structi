@@ -1,7 +1,5 @@
 package io.opencui.du
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
@@ -9,8 +7,6 @@ import io.opencui.serialization.*
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.io.IOException
 import java.io.Serializable
 import java.util.*
 import java.util.regex.Pattern
@@ -259,68 +255,6 @@ fun DUMeta.getNestedSlotMetas(
     return slotsMetaMap
 }
 
-data class FrameSchema(
-    val name: String,
-    val description: String,
-    val slots: List<String>
-)
-
-data class SlotSchema(
-    val name: String,
-    val description: String,
-    val type: String?
-)
-
-fun DUSlotMeta.toSlotSchema() : SlotSchema {
-    val description = if (triggers.isNotEmpty()) triggers[0].ifEmpty { label } else label
-    val name = label
-    return SlotSchema(name, description, type)
-}
-
-
-data class Schema(
-    val skills: Map<String, FrameSchema>,
-    val slots: Map<String, SlotSchema>,
-    val backward: Map<String, String>? = null
-)
-
-fun DUMeta.dump(path: String) {
-    val dir = File(path)
-    if (!dir.exists()) {
-        dir.mkdirs()
-    }
-    // We need to dump the meta out for python code to index. for now just schema
-    val frames = expressionsByFrame.keys
-    val skills = mutableMapOf<String, FrameSchema>()
-    val slots = mutableMapOf<String, SlotSchema>()
-
-    for (frame in frames) {
-        val description = getTriggers(frame)[0]
-        val lslots = getSlotMetas(frame)
-        skills[frame] = FrameSchema(frame, description, lslots.map {"$frame.${it.label}"})
-        for(slot in lslots) {
-            slots["$frame.${slot.label}"] = slot.toSlotSchema()
-        }
-    }
-
-    val mapper = ObjectMapper()
-    mapper.enable(SerializationFeature.INDENT_OUTPUT)
-    try {
-        mapper.writeValue(File("$path/schemas.json"), Schema(skills, slots))
-    } catch (e: IOException) {
-        e.printStackTrace()
-    }
-
-    val exemplarByFrame = expressionsByFrame.mapValues{
-        it.value.map { it -> it.toAnnotatedExemplar() }
-    }
-
-    try {
-        mapper.writeValue(File("$path/exemplars.json"), exemplarByFrame)
-    } catch (e: IOException) {
-        e.printStackTrace()
-    }
-}
 
 // If the frame is system frame or not.
 fun DUMeta.isSystemFrame(frame: String): Boolean {
