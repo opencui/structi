@@ -814,6 +814,7 @@ data class Ordinal(
     }
 }
 
+
 data class NextPage(override var session: UserSession? = null) : IBotMode, IFrame {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: NextPage? = this@NextPage
@@ -1486,6 +1487,39 @@ data class PhoneNumber(
         val valueGood: ((String) -> Boolean)? = { true }
     }
 }
+
+
+data class Email(
+    @get:JsonIgnore
+    override var value: String
+) : IEntity {
+    override var origValue: String? = null
+
+    @JsonValue
+    override fun toString(): String = value
+
+    companion object {
+        @JsonIgnore
+        val valueGood: ((String) -> Boolean)? = { true }
+    }
+}
+
+
+data class Person(
+    @get:JsonIgnore
+    override var value: String
+) : IEntity {
+    override var origValue: String? = null
+
+    @JsonValue
+    override fun toString(): String = value
+
+    companion object {
+        @JsonIgnore
+        val valueGood: ((String) -> Boolean)? = { true }
+    }
+}
+
 
 class IntentClarification(
     @JsonInclude(JsonInclude.Include.NON_NULL)
