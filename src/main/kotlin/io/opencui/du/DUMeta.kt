@@ -1,7 +1,5 @@
 package io.opencui.du
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
@@ -9,8 +7,6 @@ import io.opencui.serialization.*
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.io.IOException
 import java.io.Serializable
 import java.util.*
 import java.util.regex.Pattern
