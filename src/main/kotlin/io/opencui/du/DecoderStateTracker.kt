@@ -73,7 +73,7 @@ data class TriggerDecision(
 
 class RestNluService {
     val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = RuntimeConfig.get(RestNluService::class) ?: "http://127.0.0.1:3001"
+    val url: String = RuntimeConfig.get(RestNluService::class)!!
 
     fun shutdown() { }
 
