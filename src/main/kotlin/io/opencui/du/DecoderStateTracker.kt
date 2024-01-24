@@ -9,8 +9,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
-import java.net.HttpURLConnection
-import java.net.URL
 
 enum class DugMode {
     SKILL,
@@ -164,7 +162,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
 
     val context : RestNluService.Context by lazy {
         val tag = if (forced_tag.isNullOrEmpty()) {
-            "${agentMeta.getOrg()}_${agentMeta.getLabel()}_${agentMeta.getLabel()}_${agentMeta.getBranch()}"
+            "${agentMeta.getOrg()}_${agentMeta.getLabel()}_${agentMeta.getLang()}_${agentMeta.getBranch()}"
         } else {
             forced_tag
         }
