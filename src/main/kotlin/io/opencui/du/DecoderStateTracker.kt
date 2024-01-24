@@ -227,8 +227,8 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             // We always handle expectations first.
             val duContext = buildDuContext(session, utterance, expectations)
             val events = handleExpectations(duContext, triggerables)
-            if (events.isNullOrEmpty()) {
-                return events!!
+            if (!events.isNullOrEmpty()) {
+                return events
             }
         }
 
