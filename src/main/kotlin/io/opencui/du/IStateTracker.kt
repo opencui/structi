@@ -304,6 +304,7 @@ interface IStateTracker : IExtension {
         const val HasMoreStatus = "io.opencui.core.hasMore.IStatus"
         val FullHasMoreList = listOf("io.opencui.core.hasMore.Yes", "io.opencui.core.hasMore.No")
         const val KotlinBoolean = "kotlin.Boolean"
+        const val KotlinString = "kotlin.String"
         const val SlotUpdateOriginalSlot = "originalSlot"
 
         const val SlotUpdateGenericType = "<T>"

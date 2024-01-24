@@ -315,12 +315,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
         // now we need to handle non-boolean types
         // Now we need to figure out what happens for slotupdate.
         // if there is no good match, we need to just find it using slot model.
-        val extractedEvents0 = fillSlots(duContext, expectations.expected!!.frame, expectations.expected.slot)
-        if (extractedEvents0.isNotEmpty()) {
-            return extractedEvents0
-        }
-
-        // try to fill slot for active frames
+        // try to fill slot for active frames, assuming the expected!! is the at the beginning.
         for (activeFrame in expectations.activeFrames) {
             val extractedEvents = fillSlots(duContext, activeFrame.frame, activeFrame.slot)
             logger.info("for ${activeFrame} getting event: ${extractedEvents}")
@@ -330,11 +325,11 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
         }
 
         // TODO: when we have better intent model, we can move this the end of the convert.
-        if (expectations.expected.slot != null) {
+        if (expectations.expected!!.slot != null) {
             // First step, handle the basic string case.
             val frame = expectations.expected.frame
             val slot = expectations.expected.slot
-            if (agentMeta.getSlotType(frame, slot).equals("kotlin.String")) {
+            if (slot != null && agentMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 return listOf(
                     buildFrameEvent(
                         expectations.expected.frame,
@@ -397,6 +392,12 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
         val slotMap = agentMeta
             .getNestedSlotMetas(topLevelFrameType, emptyList())
             .filter { it.value.triggers.isNotEmpty() }
+
+        if (slotMap.isEmpty()) {
+            logger.debug("Found no slots for $topLevelFrameType")
+            return emptyList()
+        }
+
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
