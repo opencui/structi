@@ -394,9 +394,10 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             .filter { it.value.triggers.isNotEmpty() }
 
         if (slotMap.isEmpty()) {
+            logger.debug("Found no slots for $topLevelFrameType")
             return emptyList()
         }
-        
+
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
