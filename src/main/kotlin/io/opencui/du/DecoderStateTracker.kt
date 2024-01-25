@@ -222,12 +222,14 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
     // This layer is handling the
     fun convertImpl(session: UserSession, utterance: String, expectations: DialogExpectations): List<FrameEvent> {
         val triggerables = detectTriggerables(utterance, expectations)
+        logger.debug("getting $triggerables for utterance: $utterance expectations $expectations")
 
         if (expectations.hasExpectation()) {
             // We always handle expectations first.
             val duContext = buildDuContext(session, utterance, expectations)
             val events = handleExpectations(duContext, triggerables)
             if (!events.isNullOrEmpty()) {
+                logger.debug("getting $events for $utterance in handleExpectations")
                 return events
             }
         }
@@ -241,7 +243,9 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             val slotMap = agentMeta
                 .getNestedSlotMetas(triggerable.ownerFrame, emptyList())
                 .filter { it.value.triggers.isNotEmpty() }
-            results.addAll(fillSlots(slotMap, duContext, triggerable.ownerFrame, focusedSlot))
+            val events = fillSlots(slotMap, duContext, triggerable.ownerFrame, focusedSlot)
+            logger.debug("getting $events for $triggerable")
+            results.addAll(events)
         }
         return results
     }
