@@ -247,7 +247,9 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
         return slotType == IStateTracker.KotlinBoolean
     }
 
-
+    override fun toString(): String {
+        return activeFrames.toString()
+    }
 }
 
 /**
