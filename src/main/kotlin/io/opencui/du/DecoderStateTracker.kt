@@ -239,6 +239,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
         // If there are multiple triggerables, we need to handle them one by one.
         for (triggerable in triggerables) {
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
+            logger.debug("handling $triggerables for utterance: $utterance")
             val focusedSlot: String? = null
             val slotMap = agentMeta
                 .getNestedSlotMetas(triggerable.ownerFrame, emptyList())
