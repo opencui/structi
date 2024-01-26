@@ -63,6 +63,12 @@ open class DuContext(
 
     val emapByCharStart by lazy { convert() }
 
+    fun getValuesByType(typeName: String): List<String> {
+        if (!entityTypeToValueInfoMap.containsKey(typeName)) return emptyList()
+        return entityTypeToValueInfoMap[typeName]?.map { utterance.substring(it.start, it.end) } ?: emptyList()
+    }
+
+
     fun convert(): Map<Int, List<Pair<String, Int>>> {
         // create the char end to token end.
         val endMap = mutableMapOf<Int, Int>()
