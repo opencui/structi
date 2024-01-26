@@ -71,7 +71,7 @@ data class TriggerDecision(
 
 class RestNluService {
     val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = RuntimeConfig.get(RestNluService::class)!!
+    val url: String = RuntimeConfig.get(RestNluService::class)?: "http://127.0.0.1:3001"
 
     fun shutdown() { }
 
@@ -121,10 +121,14 @@ class RestNluService {
     }
 
     // handle all slots.
-    fun fillSlots(ctxt: Context, utterance: String, slots: List<Map<String, String>>, entities: Map<String, List<String>>): Map<String, SlotValue> {
-        val input = Request(DugMode.SLOT, utterance, slots = slots, candidates =  entities)
+    fun fillSlots(
+        ctxt: Context,
+        utterance: String,
+        slots: List<Map<String, String>>,
+        valueCandidates: Map<String, List<String>>): Map<String, SlotValue> {
+        val input = Request(DugMode.SLOT, utterance, slots = slots, candidates =  valueCandidates)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
-        logger.debug("utterance = $utterance and expectations = $slots, entities = $entities")
+        logger.debug("utterance = $utterance and expectations = $slots, entities = $valueCandidates")
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
@@ -241,10 +245,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
             logger.debug("handling $triggerables for utterance: $utterance")
             val focusedSlot: String? = null
-            val slotMap = agentMeta
-                .getNestedSlotMetas(triggerable.ownerFrame, emptyList())
-                .filter { it.value.triggers.isNotEmpty() }
-            val events = fillSlots(slotMap, duContext, triggerable.ownerFrame, focusedSlot)
+            val events = fillSlots(duContext, triggerable.ownerFrame, focusedSlot)
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
         }
@@ -403,28 +404,27 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             return emptyList()
         }
 
-        return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
-    }
-
-    private fun fillSlots(
-        slotMap: Map<String, DUSlotMeta>,
-        ducontext: DuContext,
-        topLevelFrameType: String,
-        focusedSlot: String?
-    ): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val valuesFound = mapOf<String, List<String>>()
+        val valuesFound = mutableMapOf<String, List<String>>()
         val slots = slotMap.values.map { it.asMap() }.toList()
+        for (slot in slotMap.values) {
+            val slotType = slot.type
+            if (slotType != null) {
+                val slotLabel = slot.label
+                valuesFound[slotLabel] = ducontext.getValuesByType(slotType)
+            }
+        }
+
         val results = nluService.fillSlots(context, ducontext.utterance, slots, valuesFound)
+        logger.debug("got $results from fillSlots for ${ducontext.utterance} on $slots with $valuesFound")
         val entityEvents = mutableListOf<EntityEvent>()
         for (result in results) {
             val slotName = result.key
             val slotValues = result.value
             // For now, assume the operator are always equal
-            entityEvents.add(EntityEvent(slotValues.values[0],slotName))
+            entityEvents.add(EntityEvent(slotValues.values[0], slotName))
         }
-
-        return  listOf(buildFrameEvent(topLevelFrameType, entityEvents))
+        return listOf(buildFrameEvent(topLevelFrameType, entityEvents))
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
