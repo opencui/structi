@@ -141,14 +141,6 @@ fun Expression.toDoc() : Document {
 
 
     // TODO: verify and remove the unused code, when we handle pronouns.
-
-    if (partialApplications != null) {
-        Expression.logger.info("entailed slots: ${partialApplications.joinToString(",")}")
-        for (entailedSlot in partialApplications) {
-            doc.add(StringField(ScoredDocument.PARTIALEXPRESSION, entailedSlot, Field.Store.YES))
-        }
-    }
-
     if (!expr.label.isNullOrEmpty())
         doc.add(StringField(ScoredDocument.LABEL, expr.label, Field.Store.YES))
     return doc

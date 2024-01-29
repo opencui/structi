@@ -177,10 +177,8 @@ interface DUMeta : ExtractiveMeta {
                     val contextObject = exprObject["context"] as JsonObject?
                     val context = parseContext(contextObject)
                     val utterance = getContent(exprObject["utterance"])!!
-                    val partialApplicationsObject = exprObject["partial_application"] as JsonArray?
-                    val partialApplications = parsePartialApplications(partialApplicationsObject)
                     val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
-                    res.add(Expression(ownerId, context, label, toLowerProperly(utterance), partialApplications, bot))
+                    res.add(Expression(ownerId, context, label, toLowerProperly(utterance), bot))
                 }
                 res.apply { trimToSize() }
             }
@@ -192,15 +190,6 @@ interface DUMeta : ExtractiveMeta {
             val frame = getContent(context["frame_id"])!!
             val slot = getContent(context["slot_id"])
             return ExpressionContext(frame, slot)
-        }
-
-        private fun parsePartialApplications(context: JsonArray?) : List<String>? {
-            if (context == null) return null
-            val list = mutableListOf<String>()
-            for (index in 0 until context.size()) {
-                list.add(getContent(context.get(index))!!)
-            }
-            return list
         }
 
         // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
@@ -411,12 +400,11 @@ data class Expression(
         val utterance: String,
         val label: String? = null,
         val contextFrame: String? = null,
-        val contextSlot: String? = null,
-        val partialApplications: List<String>? = null
+        val contextSlot: String? = null
 ) {
     // use constructor to change internal structure.
-    constructor(owner:String, context: ExpressionContext?, label: String?, utterance: String, partialApplications: List<String>?, bot: DUMeta) :
-            this(bot, owner, utterance, label, context?.frame, context?.slot, partialApplications)
+    constructor(owner:String, context: ExpressionContext?, label: String?, utterance: String, bot: DUMeta) :
+            this(bot, owner, utterance, label, context?.frame, context?.slot)
 
     fun toMetaExpression(): String {
         return buildTypedExpression(utterance, owner, bot)

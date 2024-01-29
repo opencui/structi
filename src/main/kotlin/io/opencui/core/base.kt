@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.core.user.UserInfo
 import io.opencui.du.*
 import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
