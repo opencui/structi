@@ -39,11 +39,12 @@ fun YesNoResult.toJsonAsBoolean() : String? {
 
 
 data class Exemplar(
+    override val template: String,
     override val ownerFrame: String,
-    override val contextFrame: String?,
-    val contextSlot: String?,
-    override val label: String?,
-    override val template: String? = null
+    override val contextFrame: String? = null,
+    val contextSlot: String? = null,
+    override val label: String? = null
+
 ) : IExemplar {
 
     override lateinit var typedExpression: String
@@ -68,7 +69,7 @@ data class Exemplar(
 data class TriggerDecision(
     override val utterance: String,
     override val owner: String?,  // this could be empty.
-    val evidences: List<Exemplar>?) : Triggerable
+    val evidences: List<Exemplar>) : Triggerable
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -244,6 +245,14 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val triggerables = detectTriggerables(utterance, expectations)
         logger.debug("getting $triggerables for utterance: $utterance expectations $expectations")
 
+        // We need to update the typedExpression.
+        if (triggerables.size == 1 && triggerables[0].owner == null) {
+            triggerables[0].evidences.map {
+                it.typedExpression = IExemplar.buildTypedExpression(it.template!!, it.ownerFrame, duMeta)
+            }
+        }
+
+        // TODO: we might need to use exact match to make the hotfix work later.
         if (expectations.hasExpectation()) {
             // We always handle expectations first.
             val duContext = buildDuContext(session, utterance, expectations)

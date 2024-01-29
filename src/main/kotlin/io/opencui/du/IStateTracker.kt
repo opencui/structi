@@ -13,7 +13,7 @@ interface IExemplar {
     val ownerFrame: String
     val contextFrame: String?
     val label: String?
-    val template: String?
+    val template: String
     var exactMatch: Boolean
     var possibleExactMatch: Boolean
 
@@ -39,6 +39,15 @@ interface IExemplar {
     companion object {
         private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
         private val AngleSlotRegex = AngleSlotPattern.toRegex()
+
+        @JvmStatic
+        fun buildTypedExpression(utterance: String, owner: String, duMeta: DUMeta): String {
+            return AngleSlotRegex.replace(utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                "< ${duMeta.getSlotType(owner, slotName)} >"
+            }
+        }
     }
 }
 

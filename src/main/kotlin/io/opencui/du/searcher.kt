@@ -1,7 +1,6 @@
 package io.opencui.du
 
 import io.opencui.core.Dispatcher
-import javaslang.Tuple
 import org.apache.lucene.document.*
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
@@ -61,9 +60,9 @@ data class ScoredDocument(
     val slotTypes: List<String>,
     val entailedSlots: List<String>,
     override val label: String?,
-    override val template: String? = null
-) : Triggerable, IExemplar {
 
+) : Triggerable, IExemplar {
+    override val template: String = utterance
     override val owner : String? = ownerFrame
 
     // whether it is exact match.
