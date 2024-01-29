@@ -1279,18 +1279,22 @@ class DecoderTrackerTest : DuTestHelper() {
         println(results2)
     }
 
+    //@Test
     fun testConvert() {
-        val frameEvents = stateTracker.convert("s", "I like to order some food", DialogExpectations())
+        val expected = ExpectedFrame("io.opencui.core.PagedSelectable", slot="index")
+        val frameEvents = stateTracker.convert("s", "I like to order some food", DialogExpectations(expected))
         println("frame events: $frameEvents")
 
         val frameEvents1 = stateTracker.convert("s", "I like to order some pizza", DialogExpectations())
         println("frame events: $frameEvents1")
     }
 
+
+    //@Test
     fun testFillSlots() {
         val expected = ExpectedFrame("io.opencui.core.PagedSelectable", slot="index")
-        val frameEvents = stateTracker.convert("s", "the first one", DialogExpectations(expected))
-        println("frame events: $frameEvents")
+        // val frameEvents = stateTracker.convert("s", "the first one", DialogExpectations(expected))
+        // println("frame events: $frameEvents")
 
         val frameEvents1 = stateTracker.convert("s", "1", DialogExpectations(expected))
         println("frame events: $frameEvents1")

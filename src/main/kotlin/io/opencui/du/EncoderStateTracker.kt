@@ -47,40 +47,6 @@ data class BertDuContext(
 
 
 
-interface ContextedExemplarsTransformer {
-    operator fun invoke(origin: List<Triggerable>): List<Triggerable>
-}
-
-
-data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
-    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
-        val frames = expectations.activeFrames.map { it.frame }.toSet()
-        // filter out the dontcare candidate if no dontcare is expected.
-        val results = mutableListOf<Triggerable>()
-        for (doc in pcandidates) {
-            if (doc.owner!! in IStateTracker.IStatusSet) {
-                if (doc.owner!! in frames) results.add(doc)
-            } else {
-                results.add(doc)
-            }
-        }
-        return results
-    }
-}
-
-data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
-    constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
-
-    override fun invoke(origin: List<Triggerable>): List<Triggerable> {
-        var current = origin
-        for( transform in transformers) {
-            current = transform(current)
-        }
-        return current
-    }
-}
-
-
 /**
  * This data structure is used for capturing the response from slot model.
  */

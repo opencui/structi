@@ -116,8 +116,12 @@ class RestNluService {
 
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(ctxt: Context, utterance: String, expectations: DialogExpectations = DialogExpectations()): List<TriggerDecision> {
-        val input = Request(DugMode.SKILL, utterance, expectations.activeFrames)
+    fun detectTriggerables(
+        ctxt: Context,
+        utterance: String,
+        expectations: List<ExpectedFrame> = emptyList()): List<TriggerDecision> {
+
+        val input = Request(DugMode.SKILL, utterance, expectations)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
         logger.debug("utterance = $utterance and expectations = $expectations")
         val jsonRequest = Json.encodeToString(input).trimIndent()
@@ -241,10 +245,11 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         logger.debug("getting $triggerables for utterance: $utterance expectations $expectations")
 
         if (expectations.hasExpectation()) {
-
             // We always handle expectations first.
             val duContext = buildDuContext(session, utterance, expectations)
-            val needToHandle = triggerables.filter { it.owner == null || duMeta.isSystemFrame(it.owner!!)  }
+            val needToHandle = triggerables.filter {
+                it.owner == null || duMeta.isSystemFrame(it.owner) }
+            println(needToHandle)
             if (needToHandle != null) {
                 check(needToHandle.size == 1)
                 val events = handleExpectations(duContext, needToHandle[0])
@@ -272,7 +277,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
         // We assume true/false or null here.
-        val pcandidates = nluService.detectTriggerables(context, utterance, expectations)
+        val pcandidates = nluService.detectTriggerables(context, utterance, expectations.activeFrames)
 
         val candidates = ChainedExampledLabelsTransformer(
             StatusTransformer(expectations)
@@ -337,6 +342,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // now we need to handle non-boolean types
         // Now we need to figure out what happens for slotupdate.
+
+
         // if there is no good match, we need to just find it using slot model.
         // try to fill slot for active frames, assuming the expected!! is the at the beginning.
         for (activeFrame in expectations.activeFrames) {
