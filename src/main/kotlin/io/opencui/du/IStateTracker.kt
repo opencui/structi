@@ -61,7 +61,7 @@ interface IExemplar {
 // Triggerable captures the utterance side understanding, mainly utterance segmentation, its owner.
 interface Triggerable {
     val utterance: String
-    val ownerFrame: String
+    val owner: String?
 }
 
 /**

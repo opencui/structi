@@ -58,8 +58,8 @@ data class StatusTransformer(val expectations: DialogExpectations): ContextedExe
         // filter out the dontcare candidate if no dontcare is expected.
         val results = mutableListOf<Triggerable>()
         for (doc in pcandidates) {
-            if (doc.ownerFrame in IStateTracker.IStatusSet) {
-                if (doc.ownerFrame in frames) results.add(doc)
+            if (doc.owner!! in IStateTracker.IStatusSet) {
+                if (doc.owner!! in frames) results.add(doc)
             } else {
                 results.add(doc)
             }

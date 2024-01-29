@@ -67,10 +67,8 @@ data class Exemplar(
 //
 data class TriggerDecision(
     override val utterance: String,
-    override val ownerFrame: String,  // this could be empty.
-    val evidences: List<Exemplar>) : Triggerable {
-
-}
+    override val owner: String?,  // this could be empty.
+    val evidences: List<Exemplar>?) : Triggerable
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -259,7 +257,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
             logger.debug("handling $triggerables for utterance: $utterance")
             val focusedSlot: String? = null
-            val events = fillSlots(duContext, triggerable.ownerFrame, focusedSlot)
+            val events = fillSlots(duContext, triggerable.owner!!, focusedSlot)
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
         }

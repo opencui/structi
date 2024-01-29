@@ -63,6 +63,9 @@ data class ScoredDocument(
     override val label: String?,
     override val template: String? = null
 ) : Triggerable, IExemplar {
+
+    override val owner : String? = ownerFrame
+
     // whether it is exact match.
     override var exactMatch: Boolean = false
 
