@@ -28,9 +28,6 @@ enum class YesNoResult {
 
 data class SlotValue(val values: List<String>, val operator: String  = "==")
 
-
-
-
 fun YesNoResult.toJsonAsBoolean() : String? {
     return when (this) {
         YesNoResult.Affirmative -> Json.encodeToString(true)
@@ -41,22 +38,37 @@ fun YesNoResult.toJsonAsBoolean() : String? {
 }
 
 
+data class Exemplar(
+    override val ownerFrame: String,
+    override val contextFrame: String?,
+    val contextSlot: String?,
+    override val label: String?,
+    override val template: String? = null
+) : IExemplar {
 
+    override lateinit var typedExpression: String
+
+    // whether it is exact match.
+    override var exactMatch: Boolean = false
+
+    // The next two are used for potential exect match.
+    override var possibleExactMatch: Boolean = false
+
+    override fun clone(): IExemplar {
+        return this.copy()
+    }
+}
+
+
+
+
+//
 // This is used to bridge encoder and decoder solution
+//
 data class TriggerDecision(
     override val utterance: String,
-    override val ownerFrame: String,
-    override val contextFrame: String? = null,
-    override val label: String? = null) : Triggerable {
-    override var typedExpression: String = ""
-    // for now, we keep it as the last resort.
-
-    fun isCompatible(type: String, packageName: String?) : Boolean {
-        return ownerFrame == "${packageName}.${type}"
-    }
-
-    override fun clone(): Triggerable { return this.copy() }
-}
+    override val owner: String?,  // this could be empty.
+    val evidences: List<Exemplar>?) : Triggerable
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -245,7 +257,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
             logger.debug("handling $triggerables for utterance: $utterance")
             val focusedSlot: String? = null
-            val events = fillSlots(duContext, triggerable.ownerFrame, focusedSlot)
+            val events = fillSlots(duContext, triggerable.owner!!, focusedSlot)
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
         }

@@ -18,7 +18,7 @@ package io.opencui.du
  *
  */
 interface Matcher {
-    fun markMatch(document: ScoredDocument)
+    fun markMatch(document: IExemplar)
 }
 
 //
@@ -114,7 +114,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
         return false
     }
 
-    override fun markMatch(document: ScoredDocument) {
+    override fun markMatch(document: IExemplar) {
         // We need to figure out whether there are special match.
         val segments = Expression.segment(document.typedExpression, document.ownerFrame)
         val slotTypes = segments.segments.filter { it is MetaSegment && it.meta == SLOTTYPE}
@@ -134,7 +134,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
                         if (matched) {
                             document.possibleExactMatch = true
                             // assert(document.ownerFrame == "io.opencui.core.SlotUpdate")
-                            document.guessedSlot = slot
+                            // document.guessedSlot = slot
                             // find the first one and escape.
                             break
                         }

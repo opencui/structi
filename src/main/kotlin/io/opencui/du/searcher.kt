@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.Dispatcher
+import javaslang.Tuple
 import org.apache.lucene.document.*
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
@@ -37,55 +38,46 @@ import kotlin.collections.ArrayList
  * if context is not null, and target is not same, we can deal with case for confirmation.
  */
 
-data class ScoredDocument(var score: Float, val document: Document) : Triggerable {
-    override val utterance: String = document.getField(UTTERANCE).stringValue()
-    override var typedExpression: String = document.getField(EXPRESSION).stringValue()
-    override val ownerFrame: String = document.getField(OWNER).stringValue()
-    override val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
-    val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
-    val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
-    override val label: String? = if (document.get(LABEL) == null) "" else document.get(LABEL)
+fun Document.toScoredDocument(score: Float) : ScoredDocument {
+    val utterance: String = getField(ScoredDocument.UTTERANCE).stringValue()
+    var typedExpression: String = getField(ScoredDocument.EXPRESSION).stringValue()
+    val ownerFrame: String = getField(ScoredDocument.OWNER).stringValue()
+    val contextFrame: String? = getField(ScoredDocument.CONTEXTFRAME)?.stringValue()
+    val slotTypes: List<String> = getFields(ScoredDocument.SLOTTYPE).map {it.stringValue()}
+    val entailedSlots: List<String> = getFields(ScoredDocument.PARTIALEXPRESSION).map {it.stringValue() }
+    val label: String? = if (get(ScoredDocument.LABEL) == null) "" else get(ScoredDocument.LABEL)
+    return ScoredDocument(score, utterance, typedExpression, ownerFrame, contextFrame, slotTypes, entailedSlots, label)
+}
+
+
+
+
+data class ScoredDocument(
+    var score: Float,
+    override val utterance: String,
+    override var typedExpression: String,
+    override val ownerFrame: String,
+    override val contextFrame: String?,
+    val slotTypes: List<String>,
+    val entailedSlots: List<String>,
+    override val label: String?,
+    override val template: String? = null
+) : Triggerable, IExemplar {
+
+    override val owner : String? = ownerFrame
 
     // whether it is exact match.
-    var exactMatch: Boolean = false
+    override var exactMatch: Boolean = false
 
     // The next two are used for potential exect match.
-    var possibleExactMatch: Boolean = false
+    override var possibleExactMatch: Boolean = false
     var guessedSlot: DUSlotMeta? = null
 
-    override fun clone(): Triggerable { return this.copy() }
-
-    fun isCompatible(type: String, packageName: String?) : Boolean {
-        return ownerFrame == "${packageName}.${type}"
-    }
-
-    fun probes(bot: DUMeta) : String {
-
-        return AngleSlotRegex.replace(typedExpression) {
-            val slotTypeName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-            val triggers = bot.getTriggers(slotTypeName)
-            if (triggers.isNullOrEmpty()) {
-                // there are templated expressions that does not have trigger before application.
-                "< $slotTypeName >"
-            } else {
-                "< ${triggers[0]} >"
-            }
-        }
-    }
-
-    fun slotNames(): List<String> {
-        return AngleSlotRegex
-            .findAll(utterance)
-            .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
-            .toList()
-    }
+    override fun clone(): IExemplar { return this.copy() }
 
     companion object {
-        const val PROBE = "probe"
         const val UTTERANCE = "utterance"
         const val OWNER = "owner"
-        const val OWNERSLOT = "owner_slot"
-        const val SLOTS = "slots"
         const val LABEL = "label"
         const val SLOTTYPE = "slotType"
         const val CONTEXT = "context"
@@ -93,8 +85,6 @@ data class ScoredDocument(var score: Float, val document: Document) : Triggerabl
         const val CONTEXTSLOT = "context_slot"
         const val EXPRESSION = "expression"
         const val PARTIALEXPRESSION = "partial_application"
-        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
-        private val AngleSlotRegex = AngleSlotPattern.toRegex()
         val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
     }
 }
@@ -138,11 +128,15 @@ fun Expression.toDoc() : Document {
     Expression.logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.utterance.lowercase(Locale.getDefault())}")
     doc.add(StringField(ScoredDocument.CONTEXT, buildFrameContext(), Field.Store.YES))
 
-    if (context?.slot != null) {
-        Expression.logger.info("context slot ${context.slot}")
-        doc.add(StoredField(ScoredDocument.CONTEXTFRAME, context.frame))
-        doc.add(StoredField(ScoredDocument.CONTEXTSLOT, context.slot))
+    if (contextFrame != null) {
+        Expression.logger.info("context slot ${contextSlot}")
+
+        doc.add(StoredField(ScoredDocument.CONTEXTFRAME, contextFrame))
+        if (contextSlot != null) {
+            doc.add(StoredField(ScoredDocument.CONTEXTSLOT, contextSlot))
+        }
     }
+
     doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
 
 
@@ -221,7 +215,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
         val topScore = results[0].score
         var lastScore = topScore
         for (result in results) {
-            val doc = ScoredDocument(result.score / topScore, reader.document(result.doc))
+            val doc = reader.document(result.doc).toScoredDocument(result.score / topScore)
             val count = keyCounts.getOrDefault(doc.ownerFrame, 0)
             keyCounts[doc.ownerFrame] = count + 1
             if (keyCounts[doc.ownerFrame]!! <= maxFromSame || doc.score == lastScore) {

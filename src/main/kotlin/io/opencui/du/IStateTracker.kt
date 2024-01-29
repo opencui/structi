@@ -5,6 +5,44 @@ import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.regex.Pattern
+
+
+interface IExemplar {
+    var typedExpression: String
+    val ownerFrame: String
+    val contextFrame: String?
+    val label: String?
+    val template: String?
+    var exactMatch: Boolean
+    var possibleExactMatch: Boolean
+
+    fun clone(): IExemplar
+
+    fun isCompatible(type: String, packageName: String?) : Boolean {
+        return ownerFrame == "${packageName}.${type}"
+    }
+
+    fun probes(bot: DUMeta) : String {
+        return AngleSlotRegex.replace(typedExpression) {
+            val slotTypeName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+            val triggers = bot.getTriggers(slotTypeName)
+            if (triggers.isNullOrEmpty()) {
+                // there are templated expressions that does not have trigger before application.
+                "< $slotTypeName >"
+            } else {
+                "< ${triggers[0]} >"
+            }
+        }
+    }
+
+    companion object {
+        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
+        private val AngleSlotRegex = AngleSlotPattern.toRegex()
+    }
+}
+
+
 
 
 /**
@@ -20,15 +58,10 @@ import java.util.*
  * their apis is defined as the corresponding document.
  */
 
-// Exemplars are used to make decisions for now.
+// Triggerable captures the utterance side understanding, mainly utterance segmentation, its owner.
 interface Triggerable {
     val utterance: String
-    var typedExpression: String
-    val ownerFrame: String
-    val contextFrame: String?
-    val label: String?
-
-    fun clone(): Triggerable
+    val owner: String?
 }
 
 /**
@@ -436,7 +469,7 @@ fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
 
 
 interface Resolver {
-    fun resolve(ducontext: BertDuContext, before: List<ScoredDocument>): List<ScoredDocument>
+    fun resolve(ducontext: DuContext, before: List<IExemplar>): List<IExemplar>
 }
 
 

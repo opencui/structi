@@ -406,26 +406,20 @@ data class MetaExprSegments(val frame: String, val typedExpr: String, val segmen
     }
 }
 data class Expression(
+        val bot: DUMeta,
         val owner: String,
-        val context: ExpressionContext?,
-        val label: String?,
         val utterance: String,
-        val partialApplications: List<String>?,
-        val bot: DUMeta) {
+        val label: String? = null,
+        val contextFrame: String? = null,
+        val contextSlot: String? = null,
+        val partialApplications: List<String>? = null
+) {
+    // use constructor to change internal structure.
+    constructor(owner:String, context: ExpressionContext?, label: String?, utterance: String, partialApplications: List<String>?, bot: DUMeta) :
+            this(bot, owner, utterance, label, context?.frame, context?.slot, partialApplications)
 
     fun toMetaExpression(): String {
         return buildTypedExpression(utterance, owner, bot)
-    }
-
-    fun toAnnotatedExemplar(): Map<String, String?> {
-        return mapOf(
-            "owner" to owner,
-            "utterance" to null,
-            "template" to utterance,
-            "owner_mode" to label,
-            "context_frame" to context?.frame,
-            "context_slot" to context?.slot
-            )
     }
 
     /**
@@ -433,8 +427,8 @@ data class Expression(
      * This allows for tight control.
      */
     fun buildFrameContext(): String {
-        if (context != null) {
-            return """{"frame_id":"${context.frame}"}"""
+        if (contextFrame != null) {
+            return """{"frame_id":"${contextFrame}"}"""
         }
         return "default"
     }
