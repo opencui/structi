@@ -11,8 +11,8 @@ import kotlin.test.assertEquals
 import org.junit.Test
 
 object En : LangPack {
-    override val frames = listOf(
-        frame("Banks_1.TransferMoney") {
+    override val frames = mapOf(
+        "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
             utterance("<date_time_slot>")
             utterance("Yes, please make a transfer.")
             utterance("Okay, please make a transfer for me.")
@@ -31,7 +31,7 @@ object En : LangPack {
             }
             utterance("I'm interested in making a money transfer.")
         },
-        frame("io.opencui.core.DontCare") {
+        "io.opencui.core.DontCare" to frame("io.opencui.core.DontCare") {
             utterance("any recipient") {
                 context("account")
             }
@@ -56,8 +56,8 @@ object En : LangPack {
 }
 
 object Zh : LangPack {
-    override val frames = listOf(
-        frame("Banks_1.TransferMoney") {
+    override val frames = mapOf(
+        "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
             utterance("<date_time_slot>")
             utterance("Yes, please make a transfer.")
             utterance("Okay, please make a transfer for me.")
@@ -76,7 +76,7 @@ object Zh : LangPack {
             }
             utterance("I'm interested in making a money transfer.")
         },
-        frame("io.opencui.core.DontCare") {
+        "io.opencui.core.DontCare" to frame("io.opencui.core.DontCare") {
             utterance("any recipient") {
                 context("account")
             }
@@ -110,8 +110,8 @@ class DslTest() : DuTestHelper() {
             return mapOf<String, EntityMeta>()[name]
         }
 
-        override val expressionsByFrame: Map<String, List<Expression>>
-            get() = parseExpressions(Json.makeArray(En.frames), this)
+        override val expressionsByFrame: Map<String, List<Exemplar>>
+            get() = En.frames
 
         override fun getEntities(): Set<String> {
             return setOf("account_type", "account", "recipient", "date_time")
@@ -267,7 +267,7 @@ class DslTest() : DuTestHelper() {
 
     @Test
     fun testBuildExpression() {
-        val expression = Expression.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
+        val expression = Exemplar.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
         assertEquals("The account has < AmountOfMoney > money", expression)
     }
 

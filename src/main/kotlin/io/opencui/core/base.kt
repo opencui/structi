@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.core.user.UserInfo
 import io.opencui.du.*
 import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
@@ -324,7 +323,7 @@ abstract class IChatbot : Component {
                     return entityContentMap[name] ?: mapOf()
                 }
 
-                override val expressionsByFrame: Map<String, List<Expression>>
+                override val expressionsByFrame: Map<String, List<Exemplar>>
                     get() = parseExpressions(
                         parseByFrame(classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() }), this)
             }
@@ -359,8 +358,8 @@ abstract class IChatbot : Component {
                     return langPack.entityTypes[name]!!.entities
                 }
 
-                override val expressionsByFrame: Map<String, List<Expression>>
-                    get() = parseExpressions(Json.makeArray(langPack.frames), this)
+                override val expressionsByFrame: Map<String, List<Exemplar>>
+                    get() = langPack.frames
             }
         }
     }

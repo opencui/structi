@@ -9,8 +9,8 @@ import org.junit.Test
 class DslEntityTest() : DuTestHelper() {
 
     object En : LangPack {
-        override val frames = listOf(
-            frame("Banks_1.TransferMoney") {
+        override val frames = mapOf(
+            "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
                 utterance("<date_time_slot>")
                 utterance("Yes, please make a transfer.")
                 utterance("Okay, please make a transfer for me.")
@@ -30,13 +30,13 @@ class DslEntityTest() : DuTestHelper() {
                 }
                 utterance("I'm interested in making a money transfer.")
             },
-            frame("io.opencui.core.DontCare") {
+            "io.opencui.core.DontCare" to frame("io.opencui.core.DontCare") {
                 utterance("any recipient") {
                     context("account")
                 }
                 utterance("whatever frame")
             },
-            frame("io.opencui.core.SlotUpdate") {
+            "io.opencui.core.SlotUpdate" to frame("io.opencui.core.SlotUpdate") {
                 utterance("""change <originalSlot>""") {
                 }
                 utterance("""change from <oldValue>""") {
@@ -68,7 +68,7 @@ class DslEntityTest() : DuTestHelper() {
                 utterance("""change <index> value of <oldValue>""") {
                 }
               },
-            frame("me.test.abstractEntity_1007.FoodOrdering") {
+            "me.test.abstractEntity_1007.FoodOrdering" to frame("me.test.abstractEntity_1007.FoodOrdering") {
                 utterance("""test""") {
                 }
                 utterance("""order <dish>""") {
@@ -209,12 +209,12 @@ class DslEntityTest() : DuTestHelper() {
     @Test
     fun testTypeExprSegment() {
         val expressions = duMeta.expressionsByFrame["io.opencui.core.SlotUpdate"]!!
-        val expr = Expression.segment(expressions[4].toMetaExpression(), "io.opencui.core.SlotUpdate")
+        val expr = Exemplar.segment(expressions[4].toMetaExpression(duMeta), "io.opencui.core.SlotUpdate")
         println(expr)
         assertEquals(expr.frame, "io.opencui.core.SlotUpdate")
         assertEquals(expr.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), MetaSegment(meta=io.opencui.core.SlotType, start=7, end=35), ExprSegment(expr=to, start=35, end=39), MetaSegment(meta=T, start=39, end=44)]")
 
-        val expr1 = Expression.segment(expressions[4].utterance, "io.opencui.core.SlotUpdate")
+        val expr1 = Exemplar.segment(expressions[4].template, "io.opencui.core.SlotUpdate")
         println(expr1)
         assertEquals(expr1.segments.toString(), "[ExprSegment(expr=change, start=0, end=7), MetaSegment(meta=originalSlot, start=7, end=21), ExprSegment(expr=to, start=21, end=25), MetaSegment(meta=newValue, start=25, end=35)]")
     }

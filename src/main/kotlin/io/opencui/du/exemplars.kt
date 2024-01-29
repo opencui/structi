@@ -3,7 +3,7 @@ package io.opencui.du
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import io.opencui.serialization.JsonObject
-
+import kotlin.math.exp
 
 
 /**
@@ -21,47 +21,40 @@ import io.opencui.serialization.JsonObject
  *
  * The package expression should be integrated into bot scope DuMeta.
  */
-data class ExemplarBuilder(val u: String) {
-    val content = Json.makeObject()
-    init{
-        content.put(UTTERANCE, u)
-    }
+data class ExemplarBuilder(val template: String) {
+    var label: String? = null
+    var contextFrame: String? = null
+    var contextSlot: String? = null
 
     fun label(l: String) {
-        content.put(LABEL, l)
+        label = l
     }
 
     fun context(f: String, a: String? = null) {
-        val context = Json.makeObject()
-        context.put(FRAMEID, f)
+        contextFrame = f
         if (!a.isNullOrEmpty()) {
-            context.put(ATTRIBUTEID, a)
+            contextSlot = a
         }
-        content.set<JsonObject>(CONTEXT, context)
     }
 
     fun DontCare() {
         label("DontCare")
     }
 
-    companion object{
-        const val LABEL = "label"
-        const val UTTERANCE = "utterance"
-        const val CONTEXT = "context"
-        const val FRAMEID = "frame_id"
-        const val ATTRIBUTEID = "attribute_id"
+    fun getExemplar(owner: String): Exemplar {
+        return Exemplar(owner, template, label, contextFrame, contextSlot)
     }
 }
 
 class FrameExemplarBuilder (val owner_id: String){
-    val expressions = mutableListOf<JsonObject>()
+    val expressions = mutableListOf<Exemplar>()
     val subTypes = mutableListOf<String>()
 
-    var recognizer : String? = null
+
     fun utterance(u: String, init: ExemplarBuilder.() -> Unit = {}) {
         val s = ExemplarBuilder(u)
         s.init()
-        expressions.add(s.content)
+        expressions.add(s.getExemplar(owner_id))
     }
 
     // We need to add this so that we make figure out where is the subtype.
@@ -69,11 +62,8 @@ class FrameExemplarBuilder (val owner_id: String){
         subTypes.addAll(types)
     }
 
-    fun toJsonObject() : JsonObject {
-        val content = Json.makeObject()
-        content.put(OWNERID, owner_id)
-        content.set<JsonArray>(EXPRESSIONS, Json.makeArray(expressions))
-        return content
+    fun toJsonObject() : List<Exemplar> {
+        return expressions
     }
 
     companion object{
@@ -127,12 +117,12 @@ class EntityTypeBuilder(val t: String) {
  *
  */
 interface LangPack {
-    val frames : List<JsonObject>
+    val frames : Map<String, List<Exemplar>>
     val entityTypes: Map<String, EntityType>
     val frameSlotMetas: Map<String, List<DUSlotMeta>>
     val typeAlias: Map<String, List<String>>
 
-    fun frame(ownerId: String, init: FrameExemplarBuilder.() -> Unit) : JsonObject {
+    fun frame(ownerId: String, init: FrameExemplarBuilder.() -> Unit) : List<Exemplar> {
         val p = FrameExemplarBuilder(ownerId)
         p.init()
         return p.toJsonObject()

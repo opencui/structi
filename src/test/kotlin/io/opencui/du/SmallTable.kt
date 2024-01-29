@@ -45,7 +45,8 @@ public data class SmallTableAgent(
 }
 
 public object en : LangPack {
-  public override val frames: List<ObjectNode> = listOf(frame("io.opencui.core.CleanSession") {
+  public override val frames = mapOf(
+      "io.opencui.core.CleanSession" to frame("io.opencui.core.CleanSession") {
         utterance("""Clean session, please.""") {
         }
         utterance("""Clean session""") {
@@ -53,7 +54,7 @@ public object en : LangPack {
         utterance("""restart the session.""") {
         }
       }
-      , frame("io.opencui.core.DontCare") {
+      , "io.opencui.core.DontCare" to frame("io.opencui.core.DontCare") {
         utterance("""I don't mind""") {
         }
         utterance("""I do not really care""") {
@@ -63,12 +64,12 @@ public object en : LangPack {
         utterance("""anything will do""") {
         }
       }
-      , frame("io.opencui.core.EntityType") {
+      , "io.opencui.core.EntityType" to frame("io.opencui.core.EntityType") {
         utterance("""any <slot>""") {
           context("io.opencui.core.DontCare", "slot")
         }
       }
-      , frame("io.opencui.core.confirmation.Yes") {
+      , "io.opencui.core.confirmation.Yes" to  frame("io.opencui.core.confirmation.Yes") {
         utterance("""yes""") {
         }
         utterance("""confirmed""") {
@@ -92,7 +93,7 @@ public object en : LangPack {
           label("confirmation")
         }
       }
-      , frame("io.opencui.core.confirmation.No") {
+      , "io.opencui.core.confirmation.No" to frame("io.opencui.core.confirmation.No") {
         utterance("""no""") {
         }
         utterance("""No""") {
@@ -114,7 +115,7 @@ public object en : LangPack {
           label("confirmation")
         }
       }
-      , frame("io.opencui.core.hasMore.No") {
+      , "io.opencui.core.hasMore.No" to frame("io.opencui.core.hasMore.No") {
         utterance("""nope""") {
         }
         utterance("""that is all""") {
@@ -130,7 +131,7 @@ public object en : LangPack {
         utterance("""Nope""") {
         }
       }
-      , frame("io.opencui.core.hasMore.Yes") {
+      , "io.opencui.core.hasMore.Yes" to frame("io.opencui.core.hasMore.Yes") {
         utterance("""yes""") {
         }
         utterance("""right""") {
@@ -142,7 +143,7 @@ public object en : LangPack {
         utterance("""Yeap""") {
         }
       }
-      , frame("io.opencui.core.booleanGate.Yes") {
+      , "io.opencui.core.booleanGate.Yes" to frame("io.opencui.core.booleanGate.Yes") {
         utterance("""yes""") {
         }
         utterance("""of course""") {
@@ -162,7 +163,7 @@ public object en : LangPack {
         utterance("""Yeap""") {
         }
       }
-      , frame("io.opencui.core.booleanGate.No") {
+      , "io.opencui.core.booleanGate.No" to frame("io.opencui.core.booleanGate.No") {
         utterance("""no""") {
         }
         utterance("""nope""") {
@@ -180,7 +181,7 @@ public object en : LangPack {
         utterance("""Nope""") {
         }
       }
-      , frame("io.opencui.core.NextPage") {
+      , "io.opencui.core.NextPage" to frame("io.opencui.core.NextPage") {
         utterance("""next page""") {
         }
         utterance("""next please""") {
@@ -188,7 +189,7 @@ public object en : LangPack {
         utterance("""skip to next""") {
         }
       }
-      , frame("io.opencui.core.PreviousPage") {
+      , "io.opencui.core.PreviousPage" to frame("io.opencui.core.PreviousPage") {
         utterance("""previous page""") {
         }
         utterance("""go back to previous""") {
@@ -198,7 +199,7 @@ public object en : LangPack {
         utterance("""go back""") {
         }
       }
-      , frame("io.opencui.core.Ordinal") {
+      , "io.opencui.core.Ordinal" to frame("io.opencui.core.Ordinal") {
         utterance("""The <index> one""") {
           context("io.opencui.core.PagedSelectable", "index")
         }
@@ -212,19 +213,19 @@ public object en : LangPack {
           context("io.opencui.core.PagedSelectable", "index")
         }
       }
-      , frame("io.opencui.core.AbortIntent") {
+      , "io.opencui.core.AbortIntent" to frame("io.opencui.core.AbortIntent") {
         utterance("""I'd like to cancel <intentType> now""") {
         }
         utterance("""I do not want to <intentType> now""") {
         }
       }
-      , frame("io.opencui.core.GetLiveAgent") {
+      ,"io.opencui.core.GetLiveAgent" to  frame("io.opencui.core.GetLiveAgent") {
         utterance("""live agent, please.""") {
         }
         utterance("""can I talk to a real person?""") {
         }
       }
-      , frame("io.opencui.core.SlotUpdate") {
+      , "io.opencui.core.SlotUpdate" to frame("io.opencui.core.SlotUpdate") {
         utterance("""change <originalSlot>""") {
         }
         utterance("""change from <oldValue>""") {
@@ -256,7 +257,7 @@ public object en : LangPack {
         utterance("""change <index> value of <oldValue>""") {
         }
       }
-      , frame("me.demo.reservation_v2.MakeReservation") {
+      , "me.demo.reservation_v2.MakeReservation" to frame("me.demo.reservation_v2.MakeReservation") {
         utterance("""I want to book a table""") {
         }
         utterance("""make a reservation""") {
@@ -270,17 +271,17 @@ public object en : LangPack {
         utterance("""I want to book a <tableType>""") {
         }
       }
-      , frame("me.demo.reservation_v2.ViewReservation") {
+      , "me.demo.reservation_v2.ViewReservation" to frame("me.demo.reservation_v2.ViewReservation") {
         utterance("""view reservation""") {
         }
       }
-      , frame("me.demo.reservation_v2.CancelReservation") {
+      , "me.demo.reservation_v2.CancelReservation" to frame("me.demo.reservation_v2.CancelReservation") {
         utterance("""cancel reservation""") {
         }
         utterance("""I want to cancel my reservation""") {
         }
       }
-      , frame("me.sean.reservationApp_v4_copy.Greeting") {
+      , "me.sean.reservationApp_v4_copy.Greeting" to frame("me.sean.reservationApp_v4_copy.Greeting") {
         utterance("""just going to say hi""") {
         }
         utterance("""heya""") {

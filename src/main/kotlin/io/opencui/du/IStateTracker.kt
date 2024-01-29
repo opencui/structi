@@ -13,7 +13,7 @@ interface IExemplar {
     val ownerFrame: String
     val contextFrame: String?
     val label: String?
-    val template: String?
+    val template: String
     var exactMatch: Boolean
     var possibleExactMatch: Boolean
 
@@ -39,6 +39,15 @@ interface IExemplar {
     companion object {
         private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
         private val AngleSlotRegex = AngleSlotPattern.toRegex()
+
+        @JvmStatic
+        fun buildTypedExpression(utterance: String, owner: String, duMeta: DUMeta): String {
+            return AngleSlotRegex.replace(utterance)
+            {
+                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+                "< ${duMeta.getSlotType(owner, slotName)} >"
+            }
+        }
     }
 }
 
@@ -470,6 +479,40 @@ fun <K, V> MutableMap<K, MutableList<V>>.put(key: K, value: V) {
 
 interface Resolver {
     fun resolve(ducontext: DuContext, before: List<IExemplar>): List<IExemplar>
+}
+
+
+interface ContextedExemplarsTransformer {
+    operator fun invoke(origin: List<Triggerable>): List<Triggerable>
+}
+
+
+data class StatusTransformer(val expectations: DialogExpectations): ContextedExemplarsTransformer {
+    override fun invoke(pcandidates: List<Triggerable>): List<Triggerable> {
+        val frames = expectations.activeFrames.map { it.frame }.toSet()
+        // filter out the dontcare candidate if no dontcare is expected.
+        val results = mutableListOf<Triggerable>()
+        for (doc in pcandidates) {
+            if (doc.owner in IStateTracker.IStatusSet) {
+                if (doc.owner in frames) results.add(doc)
+            } else {
+                results.add(doc)
+            }
+        }
+        return results
+    }
+}
+
+data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExemplarsTransformer>) : ContextedExemplarsTransformer {
+    constructor(vararg transformers: ContextedExemplarsTransformer): this(transformers.toList())
+
+    override fun invoke(origin: List<Triggerable>): List<Triggerable> {
+        var current = origin
+        for( transform in transformers) {
+            current = transform(current)
+        }
+        return current
+    }
 }
 
 

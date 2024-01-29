@@ -55,7 +55,7 @@ data class DUSlotMeta(
 
 // Compute the surrounding words so that we can help extraction.
 fun extractSlotSurroundingWords(
-    exprByOwners: Map<String, List<Expression>>, analyzer:Analyzer):
+    exprByOwners: Map<String, List<Exemplar>>, analyzer:Analyzer):
         Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
     // frame#slot: prefixes
     val slotPrefixes = mutableMapOf<String, MutableSet<String>>().withDefault { mutableSetOf() }
@@ -65,9 +65,9 @@ fun extractSlotSurroundingWords(
     for ((ownerId, expressions) in exprByOwners) {
         // entity dontcare annotations has been processed in above loop
         for (expression in expressions) {
-            val typedSegments = Expression.segment(expression.utterance, ownerId)
+            val typedSegments = Exemplar.segment(expression.template, ownerId)
             if (typedSegments.segments.size <= 1) continue
-            println("handling ${expression.utterance}")
+            println("handling ${expression.template}")
             // first get parts tokenized.
             val tknMap = mutableMapOf<Int, List<BoundToken>>()
             for ((i, part) in typedSegments.segments.withIndex()) {
@@ -111,7 +111,7 @@ interface ExtractiveMeta : LangBase {
 
     fun getSlotTriggers(): Map<String, List<String>> = emptyMap()
 
-    val expressionsByFrame: Map<String, List<Expression>>
+    val expressionsByFrame: Map<String, List<Exemplar>>
 }
 
 
@@ -161,15 +161,15 @@ interface DUMeta : ExtractiveMeta {
          * can index them one by one.
          */
         @JvmStatic
-        fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Expression>> {
-            val resmap = mutableMapOf<String, List<Expression>>()
+        fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Exemplar>> {
+            val resmap = mutableMapOf<String, List<Exemplar>>()
             for (owner in exprOwners) {
                 owner as JsonObject
                 val ownerId = getContent(owner["owner_id"])!!
                 if (!resmap.containsKey(ownerId)) {
-                    resmap[ownerId] = ArrayList<Expression>()
+                    resmap[ownerId] = ArrayList<Exemplar>()
                 }
-                val res = resmap[ownerId] as ArrayList<Expression>
+                val res = resmap[ownerId] as ArrayList<Exemplar>
                 val expressions = owner["expressions"] ?: continue
                 expressions as JsonArray
                 for (expression in expressions) {
@@ -177,10 +177,8 @@ interface DUMeta : ExtractiveMeta {
                     val contextObject = exprObject["context"] as JsonObject?
                     val context = parseContext(contextObject)
                     val utterance = getContent(exprObject["utterance"])!!
-                    val partialApplicationsObject = exprObject["partial_application"] as JsonArray?
-                    val partialApplications = parsePartialApplications(partialApplicationsObject)
                     val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
-                    res.add(Expression(ownerId, context, label, toLowerProperly(utterance), partialApplications, bot))
+                    res.add(Exemplar(ownerId, context, label, toLowerProperly(utterance), bot))
                 }
                 res.apply { trimToSize() }
             }
@@ -192,15 +190,6 @@ interface DUMeta : ExtractiveMeta {
             val frame = getContent(context["frame_id"])!!
             val slot = getContent(context["slot_id"])
             return ExpressionContext(frame, slot)
-        }
-
-        private fun parsePartialApplications(context: JsonArray?) : List<String>? {
-            if (context == null) return null
-            val list = mutableListOf<String>()
-            for (index in 0 until context.size()) {
-                list.add(getContent(context.get(index))!!)
-            }
-            return list
         }
 
         // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
@@ -405,21 +394,34 @@ data class MetaExprSegments(val frame: String, val typedExpr: String, val segmen
         return segments.find {it is MetaSegment && it.meta == "T"} != null
     }
 }
-data class Expression(
-        val bot: DUMeta,
-        val owner: String,
-        val utterance: String,
-        val label: String? = null,
-        val contextFrame: String? = null,
-        val contextSlot: String? = null,
-        val partialApplications: List<String>? = null
-) {
-    // use constructor to change internal structure.
-    constructor(owner:String, context: ExpressionContext?, label: String?, utterance: String, partialApplications: List<String>?, bot: DUMeta) :
-            this(bot, owner, utterance, label, context?.frame, context?.slot, partialApplications)
 
-    fun toMetaExpression(): String {
-        return buildTypedExpression(utterance, owner, bot)
+
+data class Exemplar(
+    override val ownerFrame: String,
+    override val template: String,
+    override val label: String? = null,
+    override val contextFrame: String? = null,
+    val contextSlot: String? = null
+) : IExemplar {
+
+    override lateinit var typedExpression: String
+
+    // whether it is exact match.
+    override var exactMatch: Boolean = false
+
+    // The next two are used for potential exect match.
+    override var possibleExactMatch: Boolean = false
+
+    override fun clone(): IExemplar {
+        return this.copy()
+    }
+
+    // use constructor to change internal structure.
+    constructor(owner:String, context: ExpressionContext?, label: String?, utterance: String, bot: DUMeta) :
+            this(owner, utterance, label, context?.frame, context?.slot)
+
+    fun toMetaExpression(duMeta: DUMeta): String {
+        return buildTypedExpression(template, ownerFrame, duMeta)
     }
 
     /**
@@ -433,18 +435,18 @@ data class Expression(
         return "default"
     }
 
-    fun buildSlotTypes(): List<String> {
+    fun buildSlotTypes(duMeta: DUMeta): List<String> {
         return AngleSlotRegex
-                .findAll(utterance)
+                .findAll(template)
                 .map { it.value.substring(1, it.value.length - 1) }
-                .map { bot.getSlotType(owner, it) }
+                .map { duMeta.getSlotType(ownerFrame, it) }
                 .toList()
     }
 
     companion object {
         private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
         private val AngleSlotRegex = AngleSlotPattern.toRegex()
-        val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
+        val logger: Logger = LoggerFactory.getLogger(Exemplar::class.java)
 
         /**
          * Currently, we append entity type to user utterance, so that we can retrieve back

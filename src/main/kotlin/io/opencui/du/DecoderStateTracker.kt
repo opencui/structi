@@ -37,38 +37,13 @@ fun YesNoResult.toJsonAsBoolean() : String? {
     }
 }
 
-
-data class Exemplar(
-    override val ownerFrame: String,
-    override val contextFrame: String?,
-    val contextSlot: String?,
-    override val label: String?,
-    override val template: String? = null
-) : IExemplar {
-
-    override lateinit var typedExpression: String
-
-    // whether it is exact match.
-    override var exactMatch: Boolean = false
-
-    // The next two are used for potential exect match.
-    override var possibleExactMatch: Boolean = false
-
-    override fun clone(): IExemplar {
-        return this.copy()
-    }
-}
-
-
-
-
 //
 // This is used to bridge encoder and decoder solution
 //
 data class TriggerDecision(
     override val utterance: String,
     override val owner: String?,  // this could be empty.
-    val evidences: List<Exemplar>?) : Triggerable
+    val evidences: List<Exemplar>) : Triggerable
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -116,8 +91,12 @@ class RestNluService {
 
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(ctxt: Context, utterance: String, expectations: DialogExpectations = DialogExpectations()): List<TriggerDecision> {
-        val input = Request(DugMode.SKILL, utterance, expectations.activeFrames)
+    fun detectTriggerables(
+        ctxt: Context,
+        utterance: String,
+        expectations: List<ExpectedFrame> = emptyList()): List<TriggerDecision> {
+
+        val input = Request(DugMode.SKILL, utterance, expectations)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
         logger.debug("utterance = $utterance and expectations = $expectations")
         val jsonRequest = Json.encodeToString(input).trimIndent()
@@ -171,14 +150,14 @@ class RestNluService {
 /**
  * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
-data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = null) : IStateTracker {
+data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = null) : IStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
-    val normalizers = defaultRecognizers(agentMeta)
+    val normalizers = defaultRecognizers(duMeta)
     val nluService = RestNluService()
 
     val context : RestNluService.Context by lazy {
         val tag = if (forced_tag.isNullOrEmpty()) {
-            "${agentMeta.getOrg()}_${agentMeta.getLabel()}_${agentMeta.getLang()}_${agentMeta.getBranch()}"
+            "${duMeta.getOrg()}_${duMeta.getLabel()}_${duMeta.getLang()}_${duMeta.getBranch()}"
         } else {
             forced_tag
         }
@@ -201,7 +180,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
         // this build the post processors
         return ChainedFrameEventProcesser(
             dontCareForPagedSelectable,        // The first is to resolve the don't care for pagedselectable.
-            ComponentSkillConverter(agentMeta, expectations)
+            ComponentSkillConverter(duMeta, expectations)
         )
     }
 
@@ -220,7 +199,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
-        val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, agentMeta)
+        val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, duMeta)
         var allNormalizers = normalizers.toMutableList()
         // Session and turn based recognizers
         if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
@@ -228,10 +207,10 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
 
         allNormalizers.recognizeAll(
             utterance,
-            ducontext.expectedEntityType(agentMeta),
+            ducontext.expectedEntityType(duMeta),
             ducontext.entityTypeToValueInfoMap
         )
-        ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
+        ducontext.updateTokens(LanguageAnalyzer.get(duMeta.getLang(), stop = false)!!.tokenize(utterance))
         return ducontext
     }
 
@@ -240,13 +219,27 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
         val triggerables = detectTriggerables(utterance, expectations)
         logger.debug("getting $triggerables for utterance: $utterance expectations $expectations")
 
+        // We need to update the typedExpression.
+        if (triggerables.size == 1 && triggerables[0].owner == null) {
+            triggerables[0].evidences.map {
+                it.typedExpression = IExemplar.buildTypedExpression(it.template!!, it.ownerFrame, duMeta)
+            }
+        }
+
+        // TODO: we might need to use exact match to make the hotfix work later.
         if (expectations.hasExpectation()) {
             // We always handle expectations first.
             val duContext = buildDuContext(session, utterance, expectations)
-            val events = handleExpectations(duContext, triggerables)
-            if (!events.isNullOrEmpty()) {
-                logger.debug("getting $events for $utterance in handleExpectations")
-                return events
+            val needToHandle = triggerables.filter {
+                it.owner == null || duMeta.isSystemFrame(it.owner) }
+            println(needToHandle)
+            if (needToHandle != null) {
+                check(needToHandle.size == 1)
+                val events = handleExpectations(duContext, needToHandle[0])
+                if (!events.isNullOrEmpty()) {
+                    logger.debug("getting $events for $utterance in handleExpectations")
+                    return events
+                }
             }
         }
 
@@ -267,7 +260,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
     fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
         // We assume true/false or null here.
-        val pcandidates = nluService.detectTriggerables(context, utterance, expectations)
+        val pcandidates = nluService.detectTriggerables(context, utterance, expectations.activeFrames)
 
         val candidates = ChainedExampledLabelsTransformer(
             StatusTransformer(expectations)
@@ -296,7 +289,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    private fun handleExpectations(duContext: DuContext, triggerables: List<Triggerable>): List<FrameEvent>? {
+    private fun handleExpectations(duContext: DuContext, triggerables: Triggerable): List<FrameEvent>? {
         val utterance = duContext.utterance
         val expectations = duContext.expectations
 
@@ -332,6 +325,8 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
 
         // now we need to handle non-boolean types
         // Now we need to figure out what happens for slotupdate.
+
+
         // if there is no good match, we need to just find it using slot model.
         // try to fill slot for active frames, assuming the expected!! is the at the beginning.
         for (activeFrame in expectations.activeFrames) {
@@ -347,7 +342,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
             // First step, handle the basic string case.
             val frame = expectations.expected.frame
             val slot = expectations.expected.slot
-            if (slot != null && agentMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
+            if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 return listOf(
                     buildFrameEvent(
                         expectations.expected.frame,
@@ -407,7 +402,7 @@ data class DecoderStateTracker(val agentMeta: DUMeta, val forced_tag: String? = 
      */
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = agentMeta
+        val slotMap = duMeta
             .getNestedSlotMetas(topLevelFrameType, emptyList())
             .filter { it.value.triggers.isNotEmpty() }
 
