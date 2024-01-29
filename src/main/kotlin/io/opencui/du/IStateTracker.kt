@@ -7,6 +7,17 @@ import org.slf4j.LoggerFactory
 import java.util.*
 
 
+// Exemplars are evidence about how we make some decisions.
+interface Exemplar{
+    val ownerFrame: String
+    val template: String  // template with slot name instead of slot type
+    val label: String?
+    val contextFrame: String?
+    val contextSlot: String?
+    var typedExpression: String
+}
+
+
 /**
  * Dialog state tracker takes natural language user utterance, and convert that into frame event
  * based on dialog expectations that summarizes conversation history.
@@ -20,13 +31,10 @@ import java.util.*
  * their apis is defined as the corresponding document.
  */
 
-// Exemplars are used to make decisions for now.
+// Triggerable captures the utterance side understanding, mainly utterance segmentation, its owner.
 interface Triggerable {
     val utterance: String
-    var typedExpression: String
     val ownerFrame: String
-    val contextFrame: String?
-    val label: String?
 
     fun clone(): Triggerable
 }

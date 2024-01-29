@@ -198,7 +198,7 @@ class DslTest() : DuTestHelper() {
         val searcher = ExpressionSearcher(agent)
         val results = searcher.search("make a transfer.", DialogExpectations(ExpectedFrame("Banks_1.TransferMoney")))
         assert(results.isNotEmpty())
-        assertEquals("""{"frame_id":"Banks_1.TransferMoney"}""", results[0].document.getField("context").stringValue())
+        assertEquals("""Banks_1.TransferMoney""", results[0].contextFrame)
     }
 
     @Test

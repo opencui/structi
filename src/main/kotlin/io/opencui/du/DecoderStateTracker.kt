@@ -28,9 +28,6 @@ enum class YesNoResult {
 
 data class SlotValue(val values: List<String>, val operator: String  = "==")
 
-
-
-
 fun YesNoResult.toJsonAsBoolean() : String? {
     return when (this) {
         YesNoResult.Affirmative -> Json.encodeToString(true)
@@ -40,16 +37,13 @@ fun YesNoResult.toJsonAsBoolean() : String? {
     }
 }
 
-
-
+//
 // This is used to bridge encoder and decoder solution
+//
 data class TriggerDecision(
     override val utterance: String,
-    override val ownerFrame: String,
-    override val contextFrame: String? = null,
-    override val label: String? = null) : Triggerable {
-    override var typedExpression: String = ""
-    // for now, we keep it as the last resort.
+    override val ownerFrame: String,  // this could be empty.
+    val evidences: List<Exemplar>) : Triggerable {
 
     fun isCompatible(type: String, packageName: String?) : Boolean {
         return ownerFrame == "${packageName}.${type}"

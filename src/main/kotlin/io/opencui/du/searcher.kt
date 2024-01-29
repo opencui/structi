@@ -37,15 +37,40 @@ import kotlin.collections.ArrayList
  * if context is not null, and target is not same, we can deal with case for confirmation.
  */
 
-data class ScoredDocument(var score: Float, val document: Document) : Triggerable {
-    override val utterance: String = document.getField(UTTERANCE).stringValue()
-    override var typedExpression: String = document.getField(EXPRESSION).stringValue()
-    override val ownerFrame: String = document.getField(OWNER).stringValue()
-    override val contextFrame: String? = document.getField(CONTEXTFRAME)?.stringValue()
-    val slotTypes: List<String> = document.getFields(SLOTTYPE).map {it.stringValue()}
-    val entailedSlots: List<String> = document.getFields(PARTIALEXPRESSION).map {it.stringValue() }
-    override val label: String? = if (document.get(LABEL) == null) "" else document.get(LABEL)
+fun Document.toScoredDocument(score: Float) : ScoredDocument {
+    val utterance: String = getField(ScoredDocument.UTTERANCE).stringValue()
+    var typedExpression: String = getField(ScoredDocument.EXPRESSION).stringValue()
+    val ownerFrame: String = getField(ScoredDocument.OWNER).stringValue()
+    val contextFrame: String? = getField(ScoredDocument.CONTEXTFRAME)?.stringValue()
+    val slotTypes: List<String> = getFields(ScoredDocument.SLOTTYPE).map {it.stringValue()}
+    val entailedSlots: List<String> = getFields(ScoredDocument.PARTIALEXPRESSION).map {it.stringValue() }
+    val label: String? = if (get(ScoredDocument.LABEL) == null) "" else get(ScoredDocument.LABEL)
+    return ScoredDocument(score, utterance, typedExpression, ownerFrame, contextFrame, slotTypes, entailedSlots, label)
+}
 
+
+interface ContextedExemplar {
+    var score: Float
+    val template: String
+    var typedExpression: String
+    val ownerFrame: String
+    val contextFrame: String?
+    val slotTypes: List<String>
+    val entailedSlots: List<String>
+    val label: String?
+}
+
+
+data class ScoredDocument(
+    var score: Float,
+    override val utterance: String,
+    var typedExpression: String,
+    override val ownerFrame: String,
+    val contextFrame: String?,
+    val slotTypes: List<String>,
+    val entailedSlots: List<String>,
+    val label: String?,
+) : Triggerable {
     // whether it is exact match.
     var exactMatch: Boolean = false
 
@@ -138,11 +163,15 @@ fun Expression.toDoc() : Document {
     Expression.logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.utterance.lowercase(Locale.getDefault())}")
     doc.add(StringField(ScoredDocument.CONTEXT, buildFrameContext(), Field.Store.YES))
 
-    if (context?.slot != null) {
-        Expression.logger.info("context slot ${context.slot}")
-        doc.add(StoredField(ScoredDocument.CONTEXTFRAME, context.frame))
-        doc.add(StoredField(ScoredDocument.CONTEXTSLOT, context.slot))
+    if (contextFrame != null) {
+        Expression.logger.info("context slot ${contextSlot}")
+
+        doc.add(StoredField(ScoredDocument.CONTEXTFRAME, contextFrame))
+        if (contextSlot != null) {
+            doc.add(StoredField(ScoredDocument.CONTEXTSLOT, contextSlot))
+        }
     }
+
     doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
 
 
@@ -221,7 +250,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
         val topScore = results[0].score
         var lastScore = topScore
         for (result in results) {
-            val doc = ScoredDocument(result.score / topScore, reader.document(result.doc))
+            val doc = reader.document(result.doc).toScoredDocument(result.score / topScore)
             val count = keyCounts.getOrDefault(doc.ownerFrame, 0)
             keyCounts[doc.ownerFrame] = count + 1
             if (keyCounts[doc.ownerFrame]!! <= maxFromSame || doc.score == lastScore) {

@@ -6,9 +6,6 @@ import io.opencui.serialization.JsonObject
 
 
 
-data class ExemplarContext(val frame_id: String, val attribute_id: String)
-data class Exemplar(val utterance: String, val label: String, val context: ExemplarContext)
-
 /**
  * One of the key functionality for framely is providing dialog understanding that is
  * hot fixable by regular dev team, instead of by specialized nlu team.
