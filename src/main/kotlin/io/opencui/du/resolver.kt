@@ -5,13 +5,13 @@ package io.opencui.du
  * before it can be fed into model.
  */
 object SlotTypeResolver : Resolver {
-    class InternalResolver(val context:BertDuContext) {
+    class InternalResolver(val context:DuContext) {
         private val analyzer = LanguageAnalyzer.get(context.duMeta!!.getLang(), stop = false)
         private val duMeta = context.duMeta!!
 
-        fun resolve(document: ScoredDocument, output: MutableList<ScoredDocument>) {
+        fun resolve(document: IExemplar, output: MutableList<IExemplar>) {
             // The goal is to create typed expression.
-            val segments = Expression.segment(document.utterance, document.ownerFrame).segments
+            val segments = Expression.segment(document.template!!, document.ownerFrame).segments
             // For now, we only deal with the use case where the expression contains
             // the slot of the SlotType
             val potentialSlotTypeMetas = context.duMeta!!.getSlotMetas(document.ownerFrame).filter {it.type == SLOTTYPE}
@@ -72,8 +72,8 @@ object SlotTypeResolver : Resolver {
     }
 
     // We might produce more than one documents for some input.
-    override fun resolve(ducontext: BertDuContext, before: List<ScoredDocument>): List<ScoredDocument> {
-        val result = mutableListOf<ScoredDocument>()
+    override fun resolve(ducontext: DuContext, before: List<IExemplar>): List<IExemplar> {
+        val result = mutableListOf<IExemplar>()
         val internalResolver =  InternalResolver(ducontext)
         before.map {
             internalResolver.resolve(it, result)

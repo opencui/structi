@@ -37,6 +37,31 @@ fun YesNoResult.toJsonAsBoolean() : String? {
     }
 }
 
+
+data class Exemplar(
+    override val ownerFrame: String,
+    override val contextFrame: String?,
+    val contextSlot: String?,
+    override val label: String?,
+    override val template: String? = null
+) : IExemplar {
+
+    override lateinit var typedExpression: String
+
+    // whether it is exact match.
+    override var exactMatch: Boolean = false
+
+    // The next two are used for potential exect match.
+    override var possibleExactMatch: Boolean = false
+
+    override fun clone(): IExemplar {
+        return this.copy()
+    }
+}
+
+
+
+
 //
 // This is used to bridge encoder and decoder solution
 //
@@ -45,11 +70,6 @@ data class TriggerDecision(
     override val ownerFrame: String,  // this could be empty.
     val evidences: List<Exemplar>) : Triggerable {
 
-    fun isCompatible(type: String, packageName: String?) : Boolean {
-        return ownerFrame == "${packageName}.${type}"
-    }
-
-    override fun clone(): Triggerable { return this.copy() }
 }
 
 /**

@@ -1,6 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.Dispatcher
+import javaslang.Tuple
 import org.apache.lucene.document.*
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexWriter
@@ -49,68 +50,31 @@ fun Document.toScoredDocument(score: Float) : ScoredDocument {
 }
 
 
-interface ContextedExemplar {
-    var score: Float
-    val template: String
-    var typedExpression: String
-    val ownerFrame: String
-    val contextFrame: String?
-    val slotTypes: List<String>
-    val entailedSlots: List<String>
-    val label: String?
-}
 
 
 data class ScoredDocument(
     var score: Float,
     override val utterance: String,
-    var typedExpression: String,
+    override var typedExpression: String,
     override val ownerFrame: String,
-    val contextFrame: String?,
+    override val contextFrame: String?,
     val slotTypes: List<String>,
     val entailedSlots: List<String>,
-    val label: String?,
-) : Triggerable {
+    override val label: String?,
+    override val template: String? = null
+) : Triggerable, IExemplar {
     // whether it is exact match.
-    var exactMatch: Boolean = false
+    override var exactMatch: Boolean = false
 
     // The next two are used for potential exect match.
-    var possibleExactMatch: Boolean = false
+    override var possibleExactMatch: Boolean = false
     var guessedSlot: DUSlotMeta? = null
 
-    override fun clone(): Triggerable { return this.copy() }
-
-    fun isCompatible(type: String, packageName: String?) : Boolean {
-        return ownerFrame == "${packageName}.${type}"
-    }
-
-    fun probes(bot: DUMeta) : String {
-
-        return AngleSlotRegex.replace(typedExpression) {
-            val slotTypeName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-            val triggers = bot.getTriggers(slotTypeName)
-            if (triggers.isNullOrEmpty()) {
-                // there are templated expressions that does not have trigger before application.
-                "< $slotTypeName >"
-            } else {
-                "< ${triggers[0]} >"
-            }
-        }
-    }
-
-    fun slotNames(): List<String> {
-        return AngleSlotRegex
-            .findAll(utterance)
-            .map { it.value.substring(1, it.value.length - 1) }   // remove leading and trailing $
-            .toList()
-    }
+    override fun clone(): IExemplar { return this.copy() }
 
     companion object {
-        const val PROBE = "probe"
         const val UTTERANCE = "utterance"
         const val OWNER = "owner"
-        const val OWNERSLOT = "owner_slot"
-        const val SLOTS = "slots"
         const val LABEL = "label"
         const val SLOTTYPE = "slotType"
         const val CONTEXT = "context"
@@ -118,8 +82,6 @@ data class ScoredDocument(
         const val CONTEXTSLOT = "context_slot"
         const val EXPRESSION = "expression"
         const val PARTIALEXPRESSION = "partial_application"
-        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
-        private val AngleSlotRegex = AngleSlotPattern.toRegex()
         val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
     }
 }
