@@ -359,7 +359,7 @@ abstract class IChatbot : Component {
                 }
 
                 override val expressionsByFrame: Map<String, List<Exemplar>>
-                    get() = parseExpressions(Json.makeArray(langPack.frames), this)
+                    get() = langPack.frames
             }
         }
     }

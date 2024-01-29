@@ -16,15 +16,17 @@ import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 
 public object ens : LangPack {
-  public override val frames: List<ObjectNode> = listOf(frame("io.opencui.core.CleanSession") {
-        utterance("""Clean session, please.""") {
-        }
-        utterance("""Clean session""") {
-        }
-        utterance("""restart the session.""") {
-        }
-      }
-      , frame("io.opencui.core.DontCare") {
+  public override val frames: Map<String, List<Exemplar>> = mapOf(
+      "io.opencui.core.CleanSession" to
+              frame("io.opencui.core.CleanSession") {
+                utterance("""Clean session, please.""") {
+                }
+                utterance("""Clean session""") {
+                }
+                utterance("""restart the session.""") {
+                }
+                },
+      "io.opencui.core.DontCare" to frame("io.opencui.core.DontCare") {
         utterance("""I don't mind""") {
         }
         utterance("""I do not really care""") {
@@ -33,8 +35,8 @@ public object ens : LangPack {
         }
         utterance("""anything will do""") {
         }
-      }
-      , frame("io.opencui.core.confirmation.IStatus") {
+      },
+      "io.opencui.core.confirmation.IStatus" to frame("io.opencui.core.confirmation.IStatus") {
         utterance("""yes""") {
           label("core.confirmation.Yes")
         }
@@ -61,7 +63,7 @@ public object ens : LangPack {
           label("core.confirmation.No")
         }
       }
-      , frame("io.opencui.core.confirmation.Yes") {
+      , "io.opencui.core.confirmation.Yes" to frame("io.opencui.core.confirmation.Yes") {
         utterance("""Yes""") {
         }
         utterance("""True""") {
@@ -69,7 +71,7 @@ public object ens : LangPack {
         utterance("""Yeap""") {
         }
       }
-      , frame("io.opencui.core.confirmation.No") {
+      , "io.opencui.core.confirmation.No" to frame("io.opencui.core.confirmation.No") {
         utterance("""No""") {
         }
         utterance("""False""") {
@@ -77,7 +79,7 @@ public object ens : LangPack {
         utterance("""Nope""") {
         }
       }
-      , frame("io.opencui.core.hasMore.No") {
+      , "io.opencui.core.hasMore.No" to frame("io.opencui.core.hasMore.No") {
         utterance("""nope""") {
         }
         utterance("""that is all""") {
@@ -93,7 +95,7 @@ public object ens : LangPack {
         utterance("""Nope""") {
         }
       }
-      , frame("io.opencui.core.hasMore.Yes") {
+      , "io.opencui.core.hasMore.Yes" to frame("io.opencui.core.hasMore.Yes") {
         utterance("""yes""") {
         }
         utterance("""right""") {
@@ -105,7 +107,7 @@ public object ens : LangPack {
         utterance("""Yeap""") {
         }
       }
-      , frame("io.opencui.core.booleanGate.Yes") {
+      , "io.opencui.core.booleanGate.Yes" to frame("io.opencui.core.booleanGate.Yes") {
         utterance("""yes""") {
         }
         utterance("""of course""") {
@@ -125,7 +127,7 @@ public object ens : LangPack {
         utterance("""Yeap""") {
         }
       }
-      , frame("io.opencui.core.booleanGate.No") {
+      , "io.opencui.core.booleanGate.No" to frame("io.opencui.core.booleanGate.No") {
         utterance("""no""") {
         }
         utterance("""nope""") {
@@ -143,7 +145,7 @@ public object ens : LangPack {
         utterance("""Nope""") {
         }
       }
-      , frame("io.opencui.core.NextPage") {
+      , "io.opencui.core.NextPage" to frame("io.opencui.core.NextPage") {
         utterance("""next page""") {
         }
         utterance("""next please""") {
@@ -151,7 +153,7 @@ public object ens : LangPack {
         utterance("""skip to next""") {
         }
       }
-      , frame("io.opencui.core.PreviousPage") {
+      , "io.opencui.core.PreviousPage" to frame("io.opencui.core.PreviousPage") {
         utterance("""previous page""") {
         }
         utterance("""go back to previous""") {
@@ -161,27 +163,27 @@ public object ens : LangPack {
         utterance("""go back""") {
         }
       }
-      , frame("io.opencui.core.companion.GreaterThan") {
+      , "io.opencui.core.companion.GreaterThan" to frame("io.opencui.core.companion.GreaterThan") {
         utterance("""Greater Than""") {
         }
       }
-      , frame("io.opencui.core.companion.LessThan") {
+      , "io.opencui.core.companion.LessThan" to frame("io.opencui.core.companion.LessThan") {
         utterance("""Less Than""") {
         }
       }
-      , frame("io.opencui.core.companion.GreaterThanOrEqualTo") {
+      , "io.opencui.core.companion.GreaterThanOrEqualTo" to frame("io.opencui.core.companion.GreaterThanOrEqualTo") {
         utterance("""Greater Than Or Equal To""") {
         }
       }
-      , frame("io.opencui.core.companion.LessThanOrEqualTo") {
+      , "io.opencui.core.companion.LessThanOrEqualTo" to frame("io.opencui.core.companion.LessThanOrEqualTo") {
         utterance("""Less Than Or Equal To""") {
         }
       }
-      , frame("me.test.foodOrderingModule.ViewCart") {
+      , "me.test.foodOrderingModule.ViewCart" to frame("me.test.foodOrderingModule.ViewCart") {
         utterance("""What did I order before?""") {
         }
       }
-      , frame("io.opencui.core.Ordinal") {
+      , "io.opencui.core.Ordinal" to frame("io.opencui.core.Ordinal") {
         utterance("""The <index> one""") {
           context("io.opencui.core.PagedSelectable", "index")
         }
@@ -195,19 +197,19 @@ public object ens : LangPack {
           context("io.opencui.core.PagedSelectable", "index")
         }
       }
-      , frame("io.opencui.core.AbortIntent") {
+      , "io.opencui.core.AbortIntent" to frame("io.opencui.core.AbortIntent") {
         utterance("""I'd like to cancel <intentType> now""") {
         }
         utterance("""I do not want to <intentType> now""") {
         }
       }
-      , frame("io.opencui.core.GetLiveAgent") {
+      , "io.opencui.core.GetLiveAgent" to frame("io.opencui.core.GetLiveAgent") {
         utterance("""live agent, please.""") {
         }
         utterance("""can I talk to a real person?""") {
         }
       }
-      , frame("io.opencui.core.SlotUpdate") {
+      , "io.opencui.core.SlotUpdate" to frame("io.opencui.core.SlotUpdate") {
         utterance("""change <originalSlot>""") {
         }
         utterance("""change from <oldValue>""") {
@@ -239,7 +241,7 @@ public object ens : LangPack {
         utterance("""change <index> value of <oldValue>""") {
         }
       }
-      , frame("me.test.foodOrderingApp.Greeting") {
+      , "me.test.foodOrderingApp.Greeting" to frame("me.test.foodOrderingApp.Greeting") {
         utterance("""just going to say hi""") {
         }
         utterance("""heya""") {
@@ -257,7 +259,7 @@ public object ens : LangPack {
         utterance("""hello""") {
         }
       }
-      , frame("me.test.foodOrderingModule.FoodOrdering") {
+      , "me.test.foodOrderingModule.FoodOrdering" to frame("me.test.foodOrderingModule.FoodOrdering") {
         utterance("""order food""") {
         }
         utterance("""Hi, I'd like to place an order for pickup.""") {

@@ -9,8 +9,8 @@ import org.junit.Test
 class DslEntityTest() : DuTestHelper() {
 
     object En : LangPack {
-        override val frames = listOf(
-            frame("Banks_1.TransferMoney") {
+        override val frames = mapOf(
+            "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
                 utterance("<date_time_slot>")
                 utterance("Yes, please make a transfer.")
                 utterance("Okay, please make a transfer for me.")
@@ -30,13 +30,13 @@ class DslEntityTest() : DuTestHelper() {
                 }
                 utterance("I'm interested in making a money transfer.")
             },
-            frame("io.opencui.core.DontCare") {
+            "io.opencui.core.DontCare" to frame("io.opencui.core.DontCare") {
                 utterance("any recipient") {
                     context("account")
                 }
                 utterance("whatever frame")
             },
-            frame("io.opencui.core.SlotUpdate") {
+            "io.opencui.core.SlotUpdate" to frame("io.opencui.core.SlotUpdate") {
                 utterance("""change <originalSlot>""") {
                 }
                 utterance("""change from <oldValue>""") {
@@ -68,7 +68,7 @@ class DslEntityTest() : DuTestHelper() {
                 utterance("""change <index> value of <oldValue>""") {
                 }
               },
-            frame("me.test.abstractEntity_1007.FoodOrdering") {
+            "me.test.abstractEntity_1007.FoodOrdering" to frame("me.test.abstractEntity_1007.FoodOrdering") {
                 utterance("""test""") {
                 }
                 utterance("""order <dish>""") {
