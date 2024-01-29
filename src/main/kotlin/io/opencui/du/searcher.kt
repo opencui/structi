@@ -84,7 +84,7 @@ data class ScoredDocument(
         const val CONTEXTSLOT = "context_slot"
         const val EXPRESSION = "expression"
         const val PARTIALEXPRESSION = "partial_application"
-        val logger: Logger = LoggerFactory.getLogger(Expression::class.java)
+        val logger: Logger = LoggerFactory.getLogger(Exemplar::class.java)
     }
 }
 
@@ -104,31 +104,31 @@ data class IndexBuilder(val dir: Directory, val lang: String) {
     }
 }
 
-fun Expression.toDoc() : Document {
+fun Exemplar.toDoc(duMeta: DUMeta) : Document {
     val expr = this
     val doc = Document()
     // Use the trigger based probes so that it works for multilingual.
 
-    val expression = Expression.buildTypedExpression(expr.utterance, expr.owner, expr.bot)
+    val expression = Exemplar.buildTypedExpression(expr.template, expr.ownerFrame, duMeta)
 
     // Instead of embedding into expression, use StringField.
-    val slotTypes = buildSlotTypes()
+    val slotTypes = buildSlotTypes(duMeta)
     for (slotType in slotTypes) {
         doc.add(StoredField(ScoredDocument.SLOTTYPE, slotType))
     }
     // "expression" is just for searching
     doc.add(TextField(ScoredDocument.EXPRESSION, expression, Field.Store.YES))
-    doc.add(StoredField(ScoredDocument.UTTERANCE, expr.utterance))
+    doc.add(StoredField(ScoredDocument.UTTERANCE, expr.template))
 
 
     // We assume that expression will be retrieved based on the context.
     // this assume that there are different values for context:
     // default, active frame, active frame + requested slot.
-    Expression.logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.utterance.lowercase(Locale.getDefault())}")
+    Exemplar.logger.info("context: ${buildFrameContext()}, expression: $expression, ${expr.template.lowercase(Locale.getDefault())}")
     doc.add(StringField(ScoredDocument.CONTEXT, buildFrameContext(), Field.Store.YES))
 
     if (contextFrame != null) {
-        Expression.logger.info("context slot ${contextSlot}")
+        Exemplar.logger.info("context slot ${contextSlot}")
 
         doc.add(StoredField(ScoredDocument.CONTEXTFRAME, contextFrame))
         if (contextSlot != null) {
@@ -136,7 +136,7 @@ fun Expression.toDoc() : Document {
         }
     }
 
-    doc.add(StoredField(ScoredDocument.OWNER, expr.owner))
+    doc.add(StoredField(ScoredDocument.OWNER, expr.ownerFrame))
 
 
     // TODO: verify and remove the unused code, when we handle pronouns.
@@ -252,7 +252,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
             val expressions = agent.expressionsByFrame.values.flatten()
             logger.info("[ExpressionSearch] build index for ${agent.getLabel()}")
             val indexBuilder = IndexBuilder(dir, agent.getLang())
-            expressions.map { indexBuilder.index(it.toDoc()) }
+            expressions.map { indexBuilder.index(it.toDoc(agent)) }
             indexBuilder.close()
         }
     }

@@ -37,32 +37,6 @@ fun YesNoResult.toJsonAsBoolean() : String? {
     }
 }
 
-
-data class Exemplar(
-    override val template: String,
-    override val ownerFrame: String,
-    override val contextFrame: String? = null,
-    val contextSlot: String? = null,
-    override val label: String? = null
-
-) : IExemplar {
-
-    override lateinit var typedExpression: String
-
-    // whether it is exact match.
-    override var exactMatch: Boolean = false
-
-    // The next two are used for potential exect match.
-    override var possibleExactMatch: Boolean = false
-
-    override fun clone(): IExemplar {
-        return this.copy()
-    }
-}
-
-
-
-
 //
 // This is used to bridge encoder and decoder solution
 //

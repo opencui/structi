@@ -11,7 +11,7 @@ object SlotTypeResolver : Resolver {
 
         fun resolve(document: IExemplar, output: MutableList<IExemplar>) {
             // The goal is to create typed expression.
-            val segments = Expression.segment(document.template!!, document.ownerFrame).segments
+            val segments = Exemplar.segment(document.template!!, document.ownerFrame).segments
             // For now, we only deal with the use case where the expression contains
             // the slot of the SlotType
             val potentialSlotTypeMetas = context.duMeta!!.getSlotMetas(document.ownerFrame).filter {it.type == SLOTTYPE}

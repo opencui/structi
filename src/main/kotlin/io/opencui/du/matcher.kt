@@ -98,7 +98,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
         val expressions = duMeta.expressionsByFrame[frameType] ?: return -1
         var last = -1
         for (expression in expressions) {
-            val typeExpr = Expression.segment(expression.toMetaExpression(), frameType)
+            val typeExpr = Exemplar.segment(expression.toMetaExpression(context.duMeta!!), frameType)
             val res = coverFind(uStart, typeExpr)
             if (res > last) last = res
         }
@@ -116,7 +116,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
 
     override fun markMatch(document: IExemplar) {
         // We need to figure out whether there are special match.
-        val segments = Expression.segment(document.typedExpression, document.ownerFrame)
+        val segments = Exemplar.segment(document.typedExpression, document.ownerFrame)
         val slotTypes = segments.segments.filter { it is MetaSegment && it.meta == SLOTTYPE}
         if (slotTypes.size > 1) throw IllegalStateException("Don't support multiple slots with SlotType yet.")
         if (slotTypes.isEmpty() || context.entityTypeToValueInfoMap[SLOTTYPE].isNullOrEmpty()) {

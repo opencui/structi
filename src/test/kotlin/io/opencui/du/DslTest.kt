@@ -110,7 +110,7 @@ class DslTest() : DuTestHelper() {
             return mapOf<String, EntityMeta>()[name]
         }
 
-        override val expressionsByFrame: Map<String, List<Expression>>
+        override val expressionsByFrame: Map<String, List<Exemplar>>
             get() = parseExpressions(Json.makeArray(En.frames), this)
 
         override fun getEntities(): Set<String> {
@@ -267,7 +267,7 @@ class DslTest() : DuTestHelper() {
 
     @Test
     fun testBuildExpression() {
-        val expression = Expression.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
+        val expression = Exemplar.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
         assertEquals("The account has < AmountOfMoney > money", expression)
     }
 

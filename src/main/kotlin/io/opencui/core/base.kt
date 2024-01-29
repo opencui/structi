@@ -323,7 +323,7 @@ abstract class IChatbot : Component {
                     return entityContentMap[name] ?: mapOf()
                 }
 
-                override val expressionsByFrame: Map<String, List<Expression>>
+                override val expressionsByFrame: Map<String, List<Exemplar>>
                     get() = parseExpressions(
                         parseByFrame(classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() }), this)
             }
@@ -358,7 +358,7 @@ abstract class IChatbot : Component {
                     return langPack.entityTypes[name]!!.entities
                 }
 
-                override val expressionsByFrame: Map<String, List<Expression>>
+                override val expressionsByFrame: Map<String, List<Exemplar>>
                     get() = parseExpressions(Json.makeArray(langPack.frames), this)
             }
         }

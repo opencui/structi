@@ -139,7 +139,7 @@ class StateTrackerTest : DuTestHelper() {
                   }""".trimMargin())[name]
         }
 
-        override val expressionsByFrame: Map<String, List<Expression>>
+        override val expressionsByFrame: Map<String, List<Exemplar>>
             get() = parseExpressions(IChatbot.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
