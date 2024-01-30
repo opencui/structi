@@ -100,7 +100,7 @@ class ZhSearchTest() : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame(expressionJson), this)
+            get() = JsonDUMeta.parseExpressions(JsonDUMeta.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
             return setOf("account_type", "account", "recipient","date_time")

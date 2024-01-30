@@ -140,7 +140,7 @@ class StateTrackerTest : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame(expressionJson), this)
+            get() = JsonDUMeta.parseExpressions(JsonDUMeta.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
             return setOf("org.Banks_1.account_type", "org.Banks_1.city", "io.opencui.core.Ordinal")

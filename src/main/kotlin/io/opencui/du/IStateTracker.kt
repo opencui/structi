@@ -299,6 +299,21 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     }
 }
 
+// These are the semantic operator that we might support down the road
+enum class ValueOperator {
+    And,
+    Not,
+    Or,
+    EqualTo,
+    LessThan,
+    GreaterThan,
+    LessThanOrEqualTo,
+    GreaterThanOrEqualTo
+}
+
+data class SlotValue(val values: List<String>, val operator: String  = "==")
+
+
 // LlmStateTracker always try to recognize frame first, and then slot.
 // We assume the output from recognizer should be taken seriously, or dependable, the quality fix should
 // be inside the recognizer, not patching outside of recognizer.
@@ -398,7 +413,6 @@ interface IStateTracker : IExtension {
             // we can later change this to 
             return DecoderStateTracker(dumeta)
         }
-
     }
 }
 

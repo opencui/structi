@@ -88,9 +88,10 @@ abstract class JsonDUMeta() : DUMeta {
             }
             return resmap
         }
-
-
-
+        fun parseByFrame(agentJsonExpressions: String): JsonArray {
+            val root = Json.parseToJsonElement(agentJsonExpressions) as JsonObject
+            return root["expressions"]!! as JsonArray
+        }
     }
 
 }
@@ -157,11 +158,10 @@ data class Agent(val user: String) : IChatbot() {
     }
 
 
-
-
     companion object {
         val duMeta = loadDUMeta(javaClass.classLoader, "io.opencui", "test", "en", "master", "test")
         val stateTracker = BertStateTracker(duMeta)
+
 
         fun loadDUMeta(classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
             return object : JsonDUMeta() {

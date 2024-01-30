@@ -27,7 +27,7 @@ enum class YesNoResult {
     Irrelevant
 }
 
-data class SlotValue(val values: List<String>, val operator: String  = "==")
+
 
 fun YesNoResult.toJsonAsBoolean() : String? {
     return when (this) {
@@ -57,9 +57,8 @@ data class TriggerDecision(
 // Most likely, the agent dependent nlu and fine-tuned decoder are co-located, so it is better to
 // hide that from user.
 
-class RestNluService {
+data class RestNluService(val url: String) {
     val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = RuntimeConfig.get(RestNluService::class)?: "http://127.0.0.1:3001"
 
     fun shutdown() { }
 
@@ -151,10 +150,10 @@ class RestNluService {
 /**
  * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
-data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = null) : IStateTracker {
+data class DecoderStateTracker(val duMeta: DUMeta, val url: String, val forced_tag: String? = null) : IStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
     val normalizers = defaultRecognizers(duMeta)
-    val nluService = RestNluService()
+    val nluService = RestNluService(url)
 
     val context : RestNluService.Context by lazy {
         val tag = if (forced_tag.isNullOrEmpty()) {
