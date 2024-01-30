@@ -221,9 +221,7 @@ data class ExpressionSearcher(val agent: DUMeta) {
     }
 
     companion object {
-        private val AngleSlotRegex = Pattern.compile("""<(.+?)>""").toRegex()
         val logger: Logger = LoggerFactory.getLogger(ExpressionSearcher::class.java)
-        private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
 
         @JvmStatic
         fun buildIndex(agent: DUMeta): Directory {

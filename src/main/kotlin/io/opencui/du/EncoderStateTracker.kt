@@ -273,7 +273,6 @@ data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
 }
 
 
-
 /**
  * BertStateTracker assumes the underlying nlu module is bert based.
  */

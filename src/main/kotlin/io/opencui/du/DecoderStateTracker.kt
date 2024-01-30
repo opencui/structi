@@ -150,10 +150,11 @@ data class RestNluService(val url: String) {
 /**
  * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
-data class DecoderStateTracker(val duMeta: DUMeta, val url: String, val forced_tag: String? = null) : IStateTracker {
+data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = null) : IStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
     val normalizers = defaultRecognizers(duMeta)
-    val nluService = RestNluService(url)
+
+    val nluService = RestNluService(RuntimeConfig.get(RestNluService::class)?: "http://127.0.0.1:3001")
 
     val context : RestNluService.Context by lazy {
         val tag = if (forced_tag.isNullOrEmpty()) {
