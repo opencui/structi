@@ -2,9 +2,98 @@ package io.opencui.test
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogActRewriter
-import io.opencui.du.BertStateTracker
-import io.opencui.du.DUMeta
+import io.opencui.du.*
+import io.opencui.du.DUMeta.Companion.toLowerProperly
+import io.opencui.serialization.*
 import kotlin.reflect.KClass
+
+
+abstract class JsonDUMeta() : DUMeta {
+    abstract val entityMetas: Map<String, EntityMeta>
+    abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
+    abstract val aliasMap: Map<String, List<String>>
+    val subtypes: MutableMap<String, List<String>> = mutableMapOf()
+
+    override fun getSubFrames(fullyQualifiedType: String): List<String> {
+        return subtypes[fullyQualifiedType] ?: emptyList()
+    }
+
+    override fun getEntities(): Set<String> {
+        return entityMetas.keys
+    }
+
+    override fun getTriggers(name: String): List<String> {
+        return aliasMap[name] ?: listOf()
+    }
+
+    override fun getEntityMeta(name: String): IEntityMeta? {
+        return entityMetas[name]
+    }
+
+    override fun getSlotMetas(frame: String): List<DUSlotMeta> {
+        return slotMetaMap[frame] ?: listOf()
+    }
+
+    override fun isEntity(name: String): Boolean {
+        return entityMetas.containsKey(name)
+    }
+
+    override fun getSlotTriggers(): Map<String, List<String>> {
+        val results = mutableMapOf<String, List<String>>()
+        for ((frame, metas) in slotMetaMap) {
+            for (slotMeta in metas) {
+                results["${frame}.${slotMeta.label}"] = slotMeta.triggers
+            }
+        }
+        return results
+    }
+
+    companion object {
+        private fun parseContext(context: JsonObject?) : ExpressionContext? {
+            if (context == null) return null
+            val frame = getContent(context["frame_id"])!!
+            val slot = getContent(context["slot_id"])
+            return ExpressionContext(frame, slot)
+        }
+
+        private fun getContent(primitive: JsonElement?): String? {
+            return (primitive as JsonPrimitive?)?.content()
+        }
+
+        /**
+         * This parses expression json file content into list of expressions, so that we
+         * can index them one by one.
+         */
+        @JvmStatic
+        fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Exemplar>> {
+            val resmap = mutableMapOf<String, List<Exemplar>>()
+            for (owner in exprOwners) {
+                owner as JsonObject
+                val ownerId = getContent(owner["owner_id"])!!
+                if (!resmap.containsKey(ownerId)) {
+                    resmap[ownerId] = ArrayList<Exemplar>()
+                }
+                val res = resmap[ownerId] as ArrayList<Exemplar>
+                val expressions = owner["expressions"] ?: continue
+                expressions as JsonArray
+                for (expression in expressions) {
+                    val exprObject = expression as JsonObject
+                    val contextObject = exprObject["context"] as JsonObject?
+                    val context = parseContext(contextObject)
+                    val utterance = getContent(exprObject["utterance"])!!
+                    val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
+                    res.add(Exemplar(ownerId, context, label, toLowerProperly(utterance), bot))
+                }
+                res.apply { trimToSize() }
+            }
+            return resmap
+        }
+
+
+
+    }
+
+}
 
 data class Agent(val user: String) : IChatbot() {
     constructor() : this("")
@@ -67,12 +156,51 @@ data class Agent(val user: String) : IChatbot() {
         }
     }
 
+
+
+
     companion object {
         val duMeta = loadDUMeta(javaClass.classLoader, "io.opencui", "test", "en", "master", "test")
         val stateTracker = BertStateTracker(duMeta)
+
+        fun loadDUMeta(classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
+            return object : JsonDUMeta() {
+                override val entityMetas = Json.decodeFromString<Map<String, EntityMeta>>(
+                    classLoader.getResourceAsStream(EntityMetaPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
+                val agentEntities = Json.decodeFromString<Map<String, String>>(
+                    classLoader.getResourceAsStream(EntityPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
+                override val slotMetaMap = Json.decodeFromString<Map<String, List<DUSlotMeta>>>(
+                    classLoader.getResourceAsStream(SlotMetaPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
+                override val aliasMap = Json.decodeFromString<Map<String, List<String>>>(
+                    classLoader.getResourceAsStream(AliasPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
+                val entityContentMap: MutableMap<String, Map<String, List<String>>> = mutableMapOf()
+
+                init {
+                    for (entity in agentEntities.entries) {
+                        entityContentMap[entity.key] = parseEntityToMapByNT(entity.key, entity.value)
+                    }
+                }
+
+                override fun getSubFrames(fullyQualifiedType: String): List<String> { return subtypes[fullyQualifiedType] ?: emptyList() }
+
+                override fun getOrg(): String = org
+                override fun getLang(): String = lang
+                override fun getLabel(): String = agent
+                override fun getVersion(): String = version
+                override fun getBranch(): String = branch
+                override fun getTimezone(): String = timezone
+
+                override fun getEntityInstances(name: String): Map<String, List<String>> {
+                    return entityContentMap[name] ?: mapOf()
+                }
+
+                override val expressionsByFrame: Map<String, List<Exemplar>>
+                    get() = parseExpressions(
+                        parseByFrame(classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() }), this)
+            }
+        }
     }
 }
-
 
 data class HelloWorldProvider(
   val config: Configuration,

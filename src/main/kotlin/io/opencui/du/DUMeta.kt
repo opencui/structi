@@ -3,14 +3,13 @@ package io.opencui.du
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
-import io.opencui.serialization.*
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.collections.ArrayList
+
 
 
 /**
@@ -156,42 +155,6 @@ interface DUMeta : ExtractiveMeta {
         const val UTTERANCE = "utterance"
         private val LessGreaterThanRegex = Regex("(?<=[<>])|(?=[<>])")
 
-        /**
-         * This parses expression json file content into list of expressions, so that we
-         * can index them one by one.
-         */
-        @JvmStatic
-        fun parseExpressions(exprOwners: JsonArray, bot: DUMeta): Map<String, List<Exemplar>> {
-            val resmap = mutableMapOf<String, List<Exemplar>>()
-            for (owner in exprOwners) {
-                owner as JsonObject
-                val ownerId = getContent(owner["owner_id"])!!
-                if (!resmap.containsKey(ownerId)) {
-                    resmap[ownerId] = ArrayList<Exemplar>()
-                }
-                val res = resmap[ownerId] as ArrayList<Exemplar>
-                val expressions = owner["expressions"] ?: continue
-                expressions as JsonArray
-                for (expression in expressions) {
-                    val exprObject = expression as JsonObject
-                    val contextObject = exprObject["context"] as JsonObject?
-                    val context = parseContext(contextObject)
-                    val utterance = getContent(exprObject["utterance"])!!
-                    val label = if (exprObject.containsKey("label")) getContent(exprObject["label"])!! else ""
-                    res.add(Exemplar(ownerId, context, label, toLowerProperly(utterance), bot))
-                }
-                res.apply { trimToSize() }
-            }
-            return resmap
-        }
-
-        private fun parseContext(context: JsonObject?) : ExpressionContext? {
-            if (context == null) return null
-            val frame = getContent(context["frame_id"])!!
-            val slot = getContent(context["slot_id"])
-            return ExpressionContext(frame, slot)
-        }
-
         // "My Phone is $PhoneNumber$" -> "my phone is $PhoneNumber$"
         fun toLowerProperly(utterance: String): String {
             val parts = utterance.split(LessGreaterThanRegex)
@@ -207,10 +170,6 @@ interface DUMeta : ExtractiveMeta {
                 if (part == "<") lowerCase = false
             }
             return lowerCasedUtterance.toString()
-        }
-
-        private fun getContent(primitive: JsonElement?): String? {
-            return (primitive as JsonPrimitive?)?.content()
         }
     }
 }
@@ -312,46 +271,7 @@ abstract class DslDUMeta() : DUMeta {
 }
 
 
-abstract class JsonDUMeta() : DUMeta {
-    abstract val entityMetas: Map<String, EntityMeta>
-    abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
-    abstract val aliasMap: Map<String, List<String>>
-    val subtypes: MutableMap<String, List<String>> = mutableMapOf()
 
-    override fun getSubFrames(fullyQualifiedType: String): List<String> {
-        return subtypes[fullyQualifiedType] ?: emptyList()
-    }
-
-    override fun getEntities(): Set<String> {
-        return entityMetas.keys
-    }
-
-    override fun getTriggers(name: String): List<String> {
-        return aliasMap[name] ?: listOf()
-    }
-
-    override fun getEntityMeta(name: String): IEntityMeta? {
-        return entityMetas[name]
-    }
-
-    override fun getSlotMetas(frame: String): List<DUSlotMeta> {
-        return slotMetaMap[frame] ?: listOf()
-    }
-
-    override fun isEntity(name: String): Boolean {
-        return entityMetas.containsKey(name)
-    }
-
-    override fun getSlotTriggers(): Map<String, List<String>> {
-        val results = mutableMapOf<String, List<String>>()
-        for ((frame, metas) in slotMetaMap) {
-            for (slotMeta in metas) {
-                results["${frame}.${slotMeta.label}"] = slotMeta.triggers
-            }
-        }
-        return results
-    }
-}
 
 interface IEntityMeta {
     val recognizer: List<String>

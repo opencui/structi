@@ -5,7 +5,6 @@ import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.du.*
-import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
@@ -290,43 +289,6 @@ abstract class IChatbot : Component {
                 map[norm] = l.value.subList(1, l.value.size)
             }
             return map
-        }
-
-        fun loadDUMeta(classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
-            return object : JsonDUMeta() {
-                override val entityMetas = Json.decodeFromString<Map<String, EntityMeta>>(
-                    classLoader.getResourceAsStream(EntityMetaPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
-                val agentEntities = Json.decodeFromString<Map<String, String>>(
-                    classLoader.getResourceAsStream(EntityPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
-                override val slotMetaMap = Json.decodeFromString<Map<String, List<DUSlotMeta>>>(
-                    classLoader.getResourceAsStream(SlotMetaPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
-                override val aliasMap = Json.decodeFromString<Map<String, List<String>>>(
-                    classLoader.getResourceAsStream(AliasPath).bufferedReader(Charsets.UTF_8).use { it.readText() })
-                val entityContentMap: MutableMap<String, Map<String, List<String>>> = mutableMapOf()
-
-                init {
-                    for (entity in agentEntities.entries) {
-                        entityContentMap[entity.key] = parseEntityToMapByNT(entity.key, entity.value)
-                    }
-                }
-
-                override fun getSubFrames(fullyQualifiedType: String): List<String> { return subtypes[fullyQualifiedType] ?: emptyList() }
-
-                override fun getOrg(): String = org
-                override fun getLang(): String = lang
-                override fun getLabel(): String = agent
-                override fun getVersion(): String = version
-                override fun getBranch(): String = branch
-                override fun getTimezone(): String = timezone
-
-                override fun getEntityInstances(name: String): Map<String, List<String>> {
-                    return entityContentMap[name] ?: mapOf()
-                }
-
-                override val expressionsByFrame: Map<String, List<Exemplar>>
-                    get() = parseExpressions(
-                        parseByFrame(classLoader.getResourceAsStream(ExpressionPath).bufferedReader(Charsets.UTF_8).use { it.readText() }), this)
-            }
         }
 
         fun loadDUMetaDsl(langPack: LangPack, classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
