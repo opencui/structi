@@ -337,6 +337,34 @@ interface IStateTracker : IExtension {
      */
     fun recycle()
 
+
+    /**
+     * This is used to get new slot meta for slot update.
+     */
+    fun slotTransformBySlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): Map<String, DUSlotMeta> {
+        // we need to make sure we include slots mentioned in the intent expression
+        val utterance = ducontext.utterance
+        val slotMapBef = ducontext.duMeta!!.getNestedSlotMetas(IStateTracker.SlotUpdate)
+
+        val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
+
+        // we need to rewrite the slot map to replace all the T into actual slot type.
+        for ((key, slotMeta) in slotMapBef) {
+            // We can not fill slot without triggers.
+            if (slotMeta.isGenericTyped()) {
+                // NOTE: assume the pattern for generated type is <T>
+                val targetTrigger = targetSlot.triggers[0]
+                val newTriggers =
+                    slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger) }
+                slotMapTransformed[key] = slotMeta.typeReplaced(targetSlot.type!!, newTriggers)
+            } else {
+                slotMapTransformed[key] = slotMeta
+            }
+        }
+        return slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
+    }
+
+
     companion object {
         const val FullIDonotKnow = "io.opencui.core.IDonotGetIt"
         const val FullDontCare = "io.opencui.core.DontCare"

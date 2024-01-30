@@ -43,7 +43,7 @@ fun YesNoResult.toJsonAsBoolean() : String? {
 data class TriggerDecision(
     override val utterance: String,
     override val owner: String?,  // this could be empty.
-    val evidences: List<Exemplar>) : Triggerable
+    val evidence: List<Exemplar>) : Triggerable
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -221,7 +221,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // We need to update the typedExpression.
         if (triggerables.size == 1 && triggerables[0].owner == null) {
-            triggerables[0].evidences.map {
+            triggerables[0].evidence.map {
                 it.typedExpression = IExemplar.buildTypedExpression(it.template!!, it.ownerFrame, duMeta)
             }
         }
@@ -233,7 +233,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val needToHandle = triggerables.filter {
                 it.owner == null || duMeta.isSystemFrame(it.owner) }
             println(needToHandle)
-            if (needToHandle != null) {
+            if (!needToHandle.isNullOrEmpty()) {
                 check(needToHandle.size == 1)
                 val events = handleExpectations(duContext, needToHandle[0])
                 if (!events.isNullOrEmpty()) {
@@ -402,9 +402,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
      */
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = duMeta
-            .getNestedSlotMetas(topLevelFrameType, emptyList())
-            .filter { it.value.triggers.isNotEmpty() }
+        val slotMap = when(topLevelFrameType) {
+            // IStateTracker.SlotUpdate -> slotTransformBySlotUpdate(ducontext, )
+            else ->
+                duMeta
+                .getNestedSlotMetas(topLevelFrameType, emptyList())
+                .filter { it.value.triggers.isNotEmpty() }
+        }
 
         if (slotMap.isEmpty()) {
             logger.debug("Found no slots for $topLevelFrameType")
@@ -422,16 +426,45 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             }
         }
 
+        // For now, we only focus on the equal operator
+        val equalSlotValues = mutableMapOf<String, MutableList<String>>()
         val results = nluService.fillSlots(context, ducontext.utterance, slots, valuesFound)
         logger.debug("got $results from fillSlots for ${ducontext.utterance} on $slots with $valuesFound")
-        val entityEvents = mutableListOf<EntityEvent>()
-        for (result in results) {
-            val slotName = result.key
-            val slotValues = result.value
-            // For now, assume the operator are always equal
-            entityEvents.add(EntityEvent(slotValues.values[0], slotName))
+
+
+        for (entry in results.entries) {
+            if(entry.value.operator == "==") {
+                equalSlotValues[entry.key] = entry.value.values.toMutableList()
+            }
         }
-        return listOf(buildFrameEvent(topLevelFrameType, entityEvents))
+
+        // Now incorporate recognizer evidence.
+        for (entry in valuesFound.entries) {
+            if (entry.key !in equalSlotValues.keys) {
+                equalSlotValues[entry.key] = mutableListOf()
+            }
+            equalSlotValues[entry.key]!!.addAll(entry.value)
+        }
+
+
+        val entityEvents = mutableListOf<EntityEvent>()
+        // Let us try to merge the evidence from recognizer.
+        if (equalSlotValues.isNotEmpty()) {
+            for (result in equalSlotValues) {
+                val slotName = result.key
+                val slotValues = result.value.distinct()
+                // For now, assume the operator are always equal
+                for (value in slotValues) {
+                    entityEvents.add(EntityEvent(value, slotName))
+                }
+            }
+        }
+
+        return if (!duMeta.isSystemFrame(topLevelFrameType) || entityEvents.size != 0) {
+            listOf(buildFrameEvent(topLevelFrameType, entityEvents))
+        } else {
+            emptyList()
+        }
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.

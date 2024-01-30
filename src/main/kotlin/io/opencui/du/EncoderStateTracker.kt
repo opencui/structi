@@ -45,8 +45,6 @@ data class BertDuContext(
 }
 
 
-
-
 /**
  * This data structure is used for capturing the response from slot model.
  */
@@ -714,29 +712,11 @@ data class BertStateTracker(
     }
 
 
-    fun fillSlotUpdate(pducontext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
-        val ducontext = pducontext as BertDuContext
-        // we need to make sure we include slots mentioned in the intent expression
-        val utterance = ducontext.utterance
-        val slotMapBef =         // Including all the top level slots.
-            agentMeta.getNestedSlotMetas(IStateTracker.SlotUpdate)
-        val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
+    fun fillSlotUpdate(duContext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
 
-        // we need to rewrite the slot map to replace all the T into actual slot type.
-        for ((key, slotMeta) in slotMapBef) {
-            // We can not fill slot without triggers.
-            if (slotMeta.isGenericTyped()) {
-                // NOTE: assume the pattern for generated type is <T>
-                val targetTrigger = targetSlot.triggers[0]
-                val newTriggers =
-                    slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger) }
-                slotMapTransformed[key] = slotMeta.typeReplaced(targetSlot.type!!, newTriggers)
-            } else {
-                slotMapTransformed[key] = slotMeta
-            }
-        }
+        val utterance = duContext.utterance
 
-        val slotMapAft = slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
+        val slotMapAft = slotTransformBySlotUpdate(duContext, targetSlot)
 
         // Switch to just first slot name, triggers is not a good name, unfortunately, but.
         val slotProbes = slotMapAft.values.map { it.triggers[0] }.toList()
@@ -750,7 +730,7 @@ data class BertStateTracker(
             spredict = GlobalScope.async { nluModel.predictSlot(lang, utterance, slotProbes) }
         }
 
-        return extractEntityEvents(ducontext, IStateTracker.SlotUpdate, slotMapAft, null, spredict).toMutableList()
+        return extractEntityEvents(duContext as BertDuContext, IStateTracker.SlotUpdate, slotMapAft, null, spredict).toMutableList()
     }
 
 
