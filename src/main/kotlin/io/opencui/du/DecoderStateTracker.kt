@@ -347,7 +347,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val slot = expectations.expected.slot
             if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 return listOf(
-                    buildFrameEvent(
+                    FrameEvent.build(
                         expectations.expected.frame,
                         listOf(EntityEvent(duContext.utterance, slot))
                     )
@@ -366,7 +366,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             YesNoResult.Indifferent -> IStateTracker.FullDontCare
             else -> null
         }
-        return if (frameName != null) listOf(buildFrameEvent(frameName)) else null
+        return if (frameName != null) listOf(FrameEvent.build(frameName)) else null
     }
 
     private fun handleBooleanStatus(duContext: DuContext, flag: YesNoResult): List<FrameEvent>? {
@@ -394,7 +394,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val flagStr = flag.toJsonAsBoolean()
         // TODO(sean): make sure that expected.slot is not empty here.
         return if (expected != null && flagStr != null && expected.slot != null) {
-            listOf(buildFrameEvent(expected.frame, listOf(EntityEvent(flagStr, expected.slot))))
+            listOf(FrameEvent.build(expected.frame, listOf(EntityEvent(flagStr, expected.slot))))
         } else {
             return null
         }
@@ -464,7 +464,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
 
         return if (!duMeta.isSystemFrame(topLevelFrameType) || entityEvents.size != 0) {
-            listOf(buildFrameEvent(topLevelFrameType, entityEvents))
+            listOf(FrameEvent.build(topLevelFrameType, entityEvents))
         } else {
             emptyList()
         }

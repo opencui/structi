@@ -42,6 +42,12 @@ data class EntityEvent(
     // TODO(sean) what is this used for?
     @JsonIgnore
     val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
+
+    companion object {
+        fun build(key: String, value: String): EntityEvent {
+            return EntityEvent(value=""""$value"""", attribute=key)
+        }
+    }
 }
 
 enum class EventSource {
@@ -135,6 +141,15 @@ data class FrameEvent(
             }
             return FrameEvent(frameName, slotEvents)
         }
+
+        fun build(topLevelFrame: String,
+            slots: List<EntityEvent> = listOf(),
+            frames: List<FrameEvent> = listOf()
+        ): FrameEvent {
+            val parts = topLevelFrame.splitToSequence(".")
+            val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
+            return FrameEvent(parts.last(), slots, frames, packageName)
+        }
     }
 }
 
@@ -148,4 +163,3 @@ data class ParsedQuery(
         }
     }
 }
-
