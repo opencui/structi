@@ -8,6 +8,7 @@ import java.util.*
 import java.util.regex.Pattern
 
 
+// We introduce this interface to bridge the encoder based DU and decoder based DU.
 interface IExemplar {
     var typedExpression: String
     val ownerFrame: String
@@ -50,8 +51,6 @@ interface IExemplar {
         }
     }
 }
-
-
 
 
 /**

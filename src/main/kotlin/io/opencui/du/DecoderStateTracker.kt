@@ -9,6 +9,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
+import java.util.*
 
 enum class DugMode {
     SKILL,
@@ -190,8 +191,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             return emptyList()
         }
 
+        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
+
         // this layer is important so that we have a centralized place for the post process.
-        val res = convertImpl(session, putterance, expectations)
+        val res = convertImpl(session, utterance, expectations)
 
         // get the post process done
         val postProcess = buildPostProcessor(expectations)

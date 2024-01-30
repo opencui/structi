@@ -1,12 +1,11 @@
 package io.opencui.du
 
-import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.IChatbot
 import io.opencui.core.RoutingInfo
 import io.opencui.core.da.DialogActRewriter
 import java.util.*
 import kotlin.reflect.KClass
-import kotlin.test.assertEquals
+import kotlin.test.Test
 
 public object ens : LangPack {
   public override val frames: Map<String, List<Exemplar>> = mapOf(
@@ -1274,10 +1273,13 @@ class DecoderTrackerTest : DuTestHelper() {
         println(results2)
     }
 
-    fun testConvert() {
-        val expected = ExpectedFrame("io.opencui.core.PagedSelectable", slot = "index")
 
-        val frameEvents1 = stateTracker.convert("s", "I like to order some pizza", DialogExpectations(expected))
+    fun testConvert() {
+        val expected = listOf(
+            ExpectedFrame("me.test.foodOrderingModule.Dish", slot = "category"),
+            ExpectedFrame("io.opencui.core.PagedSelectable", slot = "index")
+        )
+        val frameEvents1 = stateTracker.convert("s", "Pizza", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
 
