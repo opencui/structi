@@ -235,7 +235,6 @@ object Dispatcher {
         }
     }
 
-
     private fun getReplyForChannel(
         session: UserSession,
         query: String,
