@@ -1,7 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
-import io.opencui.du.DUMeta.Companion.parseExpressions
+import io.opencui.test.JsonDUMeta
 import kotlin.test.assertEquals
 
 class MatchPriorityTest : DuTestHelper() {
@@ -31,7 +31,7 @@ class MatchPriorityTest : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = parseExpressions(IChatbot.parseByFrame("""
+            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame("""
                     {
                       "agent_id": "a",
                       "expressions": [

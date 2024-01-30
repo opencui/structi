@@ -1,7 +1,7 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
-import io.opencui.du.DUMeta.Companion.parseExpressions
+import io.opencui.test.JsonDUMeta
 import kotlin.test.assertEquals
 
 
@@ -100,7 +100,7 @@ class ZhSearchTest() : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = parseExpressions(IChatbot.parseByFrame(expressionJson), this)
+            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
             return setOf("account_type", "account", "recipient","date_time")

@@ -1,8 +1,8 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
-import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.Json
+import io.opencui.test.JsonDUMeta
 import org.junit.Test
 import kotlin.test.assertEquals
 
@@ -140,7 +140,7 @@ class StateTrackerTest : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = parseExpressions(IChatbot.parseByFrame(expressionJson), this)
+            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame(expressionJson), this)
 
         override fun getEntities(): Set<String> {
             return setOf("org.Banks_1.account_type", "org.Banks_1.city", "io.opencui.core.Ordinal")

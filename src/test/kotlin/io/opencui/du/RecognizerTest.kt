@@ -1,8 +1,8 @@
 package io.opencui.du
 
 import io.opencui.core.IChatbot
-import io.opencui.du.DUMeta.Companion.parseExpressions
 import io.opencui.serialization.*
+import io.opencui.test.JsonDUMeta
 import org.junit.Test
 import java.io.File
 import java.time.ZoneId
@@ -53,7 +53,7 @@ class RecognizerTest : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = parseExpressions(IChatbot.parseByFrame(File("../agents/Banks/expression.json").readText()), this)
+            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame(File("../agents/Banks/expression.json").readText()), this)
 
         override fun getEntities(): Set<String> {
             return entityMetas.keys
@@ -104,7 +104,7 @@ class RecognizerTest : DuTestHelper() {
             }
 
             override val expressionsByFrame: Map<String, List<Exemplar>>
-                get() = parseExpressions(IChatbot.parseByFrame("""{"expressions":[]}"""), this)
+                get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame("""{"expressions":[]}"""), this)
 
             override fun getEntities(): Set<String> {
                 return setOf("city", "java.time.LocalDateTime")
