@@ -5,7 +5,6 @@ import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.du.*
-import io.opencui.serialization.*
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
 import kotlin.reflect.KClass
@@ -13,24 +12,6 @@ import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
 
-
-enum class ValueOperator {
-    And,
-    Not,
-    Or,
-    EqualTo,
-    LessThan,
-    GreaterThan,
-    LessThanOrEqualTo,
-    GreaterThanOrEqualTo
-}
-
-data class SlotValue(
-  @JsonProperty
-  val slot: String? = null,
-  @JsonProperty
-  val value: Any? = null
-)
 
 
 /**
@@ -267,11 +248,6 @@ abstract class IChatbot : Component {
         val EntityMetaPath = "entity_meta.json"
         val SlotMetaPath = "slot_meta.json"
         val AliasPath = "alias.json"
-
-        fun parseByFrame(agentJsonExpressions: String): JsonArray {
-            val root = Json.parseToJsonElement(agentJsonExpressions) as JsonObject
-            return root["expressions"]!! as JsonArray
-        }
 
         fun parseEntityToMapByNT(entity: String, entries: String): Map<String, List<String>> {
             println("processing $entity with $entries")

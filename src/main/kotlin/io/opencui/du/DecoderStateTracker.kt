@@ -27,7 +27,7 @@ enum class YesNoResult {
     Irrelevant
 }
 
-data class SlotValue(val values: List<String>, val operator: String  = "==")
+
 
 fun YesNoResult.toJsonAsBoolean() : String? {
     return when (this) {
@@ -57,9 +57,8 @@ data class TriggerDecision(
 // Most likely, the agent dependent nlu and fine-tuned decoder are co-located, so it is better to
 // hide that from user.
 
-class RestNluService {
+data class RestNluService(val url: String) {
     val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = RuntimeConfig.get(RestNluService::class)?: "http://127.0.0.1:3001"
 
     fun shutdown() { }
 
@@ -154,7 +153,8 @@ class RestNluService {
 data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = null) : IStateTracker {
     // If there are multi normalizer propose annotation on the same span, last one wins.
     val normalizers = defaultRecognizers(duMeta)
-    val nluService = RestNluService()
+
+    val nluService = RestNluService(RuntimeConfig.get(RestNluService::class)?: "http://127.0.0.1:3001")
 
     val context : RestNluService.Context by lazy {
         val tag = if (forced_tag.isNullOrEmpty()) {
@@ -347,7 +347,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val slot = expectations.expected.slot
             if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 return listOf(
-                    buildFrameEvent(
+                    FrameEvent.build(
                         expectations.expected.frame,
                         listOf(EntityEvent(duContext.utterance, slot))
                     )
@@ -366,7 +366,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             YesNoResult.Indifferent -> IStateTracker.FullDontCare
             else -> null
         }
-        return if (frameName != null) listOf(buildFrameEvent(frameName)) else null
+        return if (frameName != null) listOf(FrameEvent.build(frameName)) else null
     }
 
     private fun handleBooleanStatus(duContext: DuContext, flag: YesNoResult): List<FrameEvent>? {
@@ -394,7 +394,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val flagStr = flag.toJsonAsBoolean()
         // TODO(sean): make sure that expected.slot is not empty here.
         return if (expected != null && flagStr != null && expected.slot != null) {
-            listOf(buildFrameEvent(expected.frame, listOf(EntityEvent(flagStr, expected.slot))))
+            listOf(FrameEvent.build(expected.frame, listOf(EntityEvent(flagStr, expected.slot))))
         } else {
             return null
         }
@@ -464,7 +464,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
 
         return if (!duMeta.isSystemFrame(topLevelFrameType) || entityEvents.size != 0) {
-            listOf(buildFrameEvent(topLevelFrameType, entityEvents))
+            listOf(FrameEvent.build(topLevelFrameType, entityEvents))
         } else {
             emptyList()
         }

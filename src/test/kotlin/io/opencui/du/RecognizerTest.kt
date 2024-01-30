@@ -53,7 +53,7 @@ class RecognizerTest : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame(File("../agents/Banks/expression.json").readText()), this)
+            get() = JsonDUMeta.parseExpressions(JsonDUMeta.parseByFrame(File("../agents/Banks/expression.json").readText()), this)
 
         override fun getEntities(): Set<String> {
             return entityMetas.keys
@@ -104,7 +104,7 @@ class RecognizerTest : DuTestHelper() {
             }
 
             override val expressionsByFrame: Map<String, List<Exemplar>>
-                get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame("""{"expressions":[]}"""), this)
+                get() = JsonDUMeta.parseExpressions(JsonDUMeta.parseByFrame("""{"expressions":[]}"""), this)
 
             override fun getEntities(): Set<String> {
                 return setOf("city", "java.time.LocalDateTime")

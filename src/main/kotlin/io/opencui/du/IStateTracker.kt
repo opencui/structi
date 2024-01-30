@@ -299,6 +299,24 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     }
 }
 
+// These are the semantic operator that we might support down the road
+enum class ValueOperator {
+    And,
+    Not,
+    Or,
+    EqualTo,
+    LessThan,
+    GreaterThan,
+    LessThanOrEqualTo,
+    GreaterThanOrEqualTo
+}
+
+data class SlotValue(val values: List<String>, val operator: String  = "==")
+
+
+// LlmStateTracker always try to recognize frame first, and then slot.
+// We assume the output from recognizer should be taken seriously, or dependable, the quality fix should
+// be inside the recognizer, not patching outside of recognizer.
 /**
  * The main interface for dialog understanding: converts the user utterance into structured semantic
  * representation.
@@ -395,7 +413,6 @@ interface IStateTracker : IExtension {
             // we can later change this to 
             return DecoderStateTracker(dumeta)
         }
-
     }
 }
 
@@ -410,7 +427,7 @@ class DontCareForPagedSelectable: FrameEventProcessor {
             event.slots[0].attribute == "index" &&
             event.slots[0].value == "\"_DontCare\""
         ) {
-            return buildFrameEvent(
+            return FrameEvent.build(
                 "io.opencui.core.PagedSelectable",
                 listOf(EntityEvent(value = """"1"""", attribute = "index"))
             )
@@ -437,12 +454,12 @@ data class ComponentSkillConverter(
         return if (matched == null) {
             return p1
         } else {
-            val componentSlot = duMeta.getSlotMetas(matched.frame).firstOrNull { it.type == p1.fullType}!!
+            val componentSlot = duMeta.getSlotMetas(matched.frame).firstOrNull { it.type == p1.fullType }!!
             val entityEvents = listOf(
-                buildEntityEvent("compositeSkillName", matched.frame),
-                buildEntityEvent("componentSkillName", componentSlot.type!!)
+                EntityEvent.build("compositeSkillName", matched.frame),
+                EntityEvent.build("componentSkillName", componentSlot.type!!)
             )
-            return buildFrameEvent(IStateTracker.TriggerComponentSkill, entityEvents)
+            return FrameEvent.build(IStateTracker.TriggerComponentSkill, entityEvents)
         }
     }
 }
@@ -457,29 +474,6 @@ data class ChainedFrameEventProcesser(val processers: List<FrameEventProcessor>)
         return current
     }
 }
-
-
-fun buildFrameEvent(
-    topLevelFrame: String,
-    slots: List<EntityEvent> = listOf(),
-    frames: List<FrameEvent> = listOf()
-): FrameEvent {
-    val parts = topLevelFrame.splitToSequence(".")
-    val packageName = parts.toList().subList(0, parts.count() - 1).joinToString(".", truncated = "")
-    return FrameEvent(parts.last(), slots, frames, packageName)
-}
-
-
-fun buildEntityEvent(key: String, value: String): EntityEvent {
-    return EntityEvent(value=""""$value"""", attribute=key)
-}
-
-
-// LlmStateTracker always try to recognize frame first, and then slot.
-// We assume the output from recognizer should be taken seriously, or dependable, the quality fix should
-// be inside the recognizer, not patching outside of recognizer.
-
-
 
 // return the top k items from the collection.
 fun <T : Comparable<T>> top(k: Int, collection: Iterable<T>): List<IndexedValue<T>> {

@@ -31,7 +31,7 @@ class MatchPriorityTest : DuTestHelper() {
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
-            get() = JsonDUMeta.parseExpressions(IChatbot.parseByFrame("""
+            get() = JsonDUMeta.parseExpressions(JsonDUMeta.parseByFrame("""
                     {
                       "agent_id": "a",
                       "expressions": [

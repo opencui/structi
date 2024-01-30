@@ -273,7 +273,6 @@ data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
 }
 
 
-
 /**
  * BertStateTracker assumes the underlying nlu module is bert based.
  */
@@ -357,18 +356,18 @@ data class BertStateTracker(
         // 1. found no candidates. If best candidate is null, return empty list.
         logger.debug("ducontext: $ducontext : ${ducontext.exemplars}")
         if (ducontext.exemplars.isNullOrEmpty()) {
-            return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
+            return listOf(FrameEvent.build(IStateTracker.FullIDonotKnow))
         }
 
         // 2. found more than one candidate. (currently we do not handle.)
         if (ducontext.exemplars != null && ducontext.exemplars!!.size > 1) {
             val components = ducontext.exemplars!!.map {
-                buildFrameEvent(it.ownerFrame).apply { query = utterance }
+                FrameEvent.build(it.ownerFrame).apply { query = utterance }
             }
 
             // This return the raw frame event, we need to figure out a way to parse it one more time.
             // We may need a new api for this, otherwise, we will waste some parsing of utterance.
-            return listOf(buildFrameEvent("io.opencui.core.IntentClarification", listOf(), components))
+            return listOf(FrameEvent.build("io.opencui.core.IntentClarification", listOf(), components))
         }
 
         // 3. found just one candidate. Now we have one best candidate.
@@ -382,12 +381,12 @@ data class BertStateTracker(
             // 6. matched a new intent
             var extractedEvents = fillSlots(ducontext, recognizedFrameType, null)
             if (extractedEvents.isEmpty()) {
-                extractedEvents += buildFrameEvent(recognizedFrameType)
+                extractedEvents += FrameEvent.build(recognizedFrameType)
             }
             extractedEvents = addEntailedSlot(bestCandidate, extractedEvents)
             return extractedEvents
         }
-        return listOf(buildFrameEvent(IStateTracker.FullIDonotKnow))
+        return listOf(FrameEvent.build(IStateTracker.FullIDonotKnow))
     }
 
 
@@ -545,7 +544,7 @@ data class BertStateTracker(
                     // TODO: handle the frame slot case.
                     if (agentMeta.isEntity(slotType)) {
                         return listOf(
-                            buildFrameEvent(
+                            FrameEvent.build(
                                 expected.frame,
                                 listOf(EntityEvent("\"_DontCare\"", expected.slot))
                             )
@@ -623,7 +622,7 @@ data class BertStateTracker(
             val slot = expectations.expected.slot
             if (agentMeta.getSlotType(frame, slot).equals("kotlin.String")) {
                 return listOf(
-                    buildFrameEvent(
+                    FrameEvent.build(
                         expectations.expected.frame,
                         listOf(EntityEvent(ducontext.utterance, slot))
                     )
@@ -651,7 +650,7 @@ data class BertStateTracker(
     // This need to called if status is expected.
     private fun handleExpectedBoolean(ducontext: BertDuContext, valueChoices: List<String>): List<FrameEvent>? {
         if (ducontext.matchedIn(valueChoices)) {
-            return listOf(buildFrameEvent(ducontext.bestCandidate?.label!!))
+            return listOf(FrameEvent.build(ducontext.bestCandidate?.label!!))
         }
 
         // if we have extractive match.
@@ -662,7 +661,7 @@ data class BertStateTracker(
                 "false" -> valueChoices[1]
                 else -> null
             }
-            if (frameName != null) return listOf(buildFrameEvent(frameName))
+            if (frameName != null) return listOf(FrameEvent.build(frameName))
         }
         return null
     }
@@ -707,7 +706,7 @@ data class BertStateTracker(
             result
         } else {
             // Make sure that we have at least one topLevelFrameType
-            listOf(buildFrameEvent(topLevelFrameType)) + result
+            listOf(FrameEvent.build(topLevelFrameType)) + result
         }
     }
 
@@ -767,7 +766,7 @@ data class BertStateTracker(
             var type: String
             if (key == "") {
                 type = frameType
-                res.add(buildFrameEvent(type, eventMap[key]!!.toList()))
+                res.add(FrameEvent.build(type, eventMap[key]!!.toList()))
             } else {
                 // We do not know how to deal with the nested structure yet.
                 // For now, just create the frame for the innermost frame
@@ -780,7 +779,7 @@ data class BertStateTracker(
                     }
                     type1
                 }
-                res.add(buildFrameEvent(type, eventMap[key]!!.toList()))
+                res.add(FrameEvent.build(type, eventMap[key]!!.toList()))
             }
         }
         logger.info("res: $res")
