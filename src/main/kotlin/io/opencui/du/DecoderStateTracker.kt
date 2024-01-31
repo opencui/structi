@@ -458,7 +458,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 val slotValues = result.value.distinct()
                 // For now, assume the operator are always equal
                 for (value in slotValues) {
-                    entityEvents.add(EntityEvent(value, slotName))
+                    entityEvents.add(EntityEvent.build(slotName, value))
                 }
             }
         }
