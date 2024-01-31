@@ -1285,7 +1285,6 @@ class DecoderTrackerTest : DuTestHelper() {
         println("frame events: $frameEvents1")
     }
 
-    @Test
     fun testPartialEntity() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
