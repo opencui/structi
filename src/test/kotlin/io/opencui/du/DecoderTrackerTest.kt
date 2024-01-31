@@ -2,6 +2,7 @@ package io.opencui.du
 
 import io.opencui.core.IChatbot
 import io.opencui.core.RoutingInfo
+import io.opencui.core.RuntimeConfig
 import io.opencui.core.da.DialogActRewriter
 import java.util.*
 import kotlin.reflect.KClass
@@ -1241,16 +1242,19 @@ public data class Agent(
     public val duMeta: DUMeta = loadDUMetaDsl(ens, Agent::class.java.classLoader, "me.test",
         "foodOrderingApp", "en", "master", "271", "America/Los_Angeles")
 
-    public val stateTracker: IStateTracker = BertStateTracker(duMeta)
+    public val stateTracker: IStateTracker = IStateTracker.buildTracker(duMeta)
   }
 }
 
 class DecoderTrackerTest : DuTestHelper() {
     val agent = Agent()
-    val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
-    val service = stateTracker.nluService
+
+    // val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
+
+    val stateTracker = BertStateTracker(agent.duMeta)
     
-    fun testNluService() {
+    fun testNluService(stateTracker: DecoderStateTracker) {
+        val service = stateTracker.nluService
         val frameEvents = service.detectTriggerables(stateTracker.context,"I like to order some food")
         println("frame events: $frameEvents")
 
@@ -1279,7 +1283,7 @@ class DecoderTrackerTest : DuTestHelper() {
             ExpectedFrame("me.test.foodOrderingModule.Dish", slot = "category"),
             ExpectedFrame("io.opencui.core.PagedSelectable", slot = "index")
         )
-        val frameEvents1 = stateTracker.convert("s", "Pizza", DialogExpectations(*expected.toTypedArray()))
+        val frameEvents1 = stateTracker.convert("s", "pizza", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
 

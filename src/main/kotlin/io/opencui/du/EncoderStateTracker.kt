@@ -169,7 +169,7 @@ object PtBertNLUModel {
 data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
     data class TfRestPayload(val utterance: String, val probes: List<String>)
     data class TfRestRequest(val signature_name: String, val inputs: TfRestPayload)
-    val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class)!!
+    val config: Triple<String, Int, String> = RuntimeConfig.get(TfRestBertNLUModel::class) ?: Triple("ni-dialogflow-du.ni-framely.svc.cluster.local", 80, "http")
     val client: HttpClient = HttpClient.newHttpClient()
     val url: String = "${config.third}://${config.first}:${config.second}"
     val timeout: Long = 10000
@@ -219,56 +219,6 @@ data class TfRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
 
     companion object {
         val logger = LoggerFactory.getLogger(TfRestBertNLUModel::class.java)
-    }
-}
-
-
-data class PtRestBertNLUModel(val modelVersion: Long = 1) : NLUModel {
-    data class PtRestPayload(val utterance: String, val probes: List<String>)
-    data class PtRestRequest(val signature_name: String, val inputs: PtRestPayload)
-    data class PtInput(val utterance: String, val probes: String)
-    val config: Pair<String, Int> = RuntimeConfig.get(PtRestBertNLUModel::class)!!
-    val client: HttpClient = HttpClient.newHttpClient()
-    val url: String  = "http://${config.first}:${config.second}"
-    val timeout: Long = 2000
-
-    fun parse(modelName: String, signatureName: String, utterance: String, probes: List<String>) : JsonObject? {
-        val payload = PtRestPayload(utterance, probes)
-        val input = PtRestRequest(signatureName, payload)
-
-        val request: HttpRequest = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(input)))
-                .uri(URI.create("$url/predictions/${modelName}"))
-                .timeout(Duration.ofMillis(timeout))
-                .build()
-
-        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-
-        return if (response.statusCode() == 200) {
-            Json.parseToJsonElement(response.body()).get(PtBertNLUModel.outputs) as JsonObject
-        } else {
-            null
-        }
-    }
-
-    override fun shutdown() { }
-
-
-    override fun predictIntent(lang: String, utterance: String, exemplars: List<String>): IntentModelResult? {
-        val outputs = parse("${lang}_intent", "intent", utterance, exemplars)!!
-        val fprobs = Json.decodeFromJsonElement<List<Float>>(outputs.get(PtBertNLUModel.intentProbs))
-        return IntentModelResult(fprobs)
-    }
-
-    override fun predictSlot(lang: String, utterance: String, probes: List<String>): UnifiedModelResult {
-        val outputs = parse("${lang}_slot", "slot", utterance, probes)!!
-        val segments = Json.decodeFromJsonElement<List<String>>(outputs.get(PtBertNLUModel.segmentsStr))
-        val startLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(PtBertNLUModel.startLogitsStr))
-        val endLogitss = Json.decodeFromJsonElement<List<List<Float>>>(outputs.get(PtBertNLUModel.endLogitsStr))
-        val classLogits = Json.decodeFromJsonElement<List<Float>>(outputs.get(PtBertNLUModel.classLogitsStr))
-        val segStarts = Json.decodeFromJsonElement<List<Long>>(outputs.get(PtBertNLUModel.segStartStr))
-        val segEnds = Json.decodeFromJsonElement<List<Long>>(outputs.get(PtBertNLUModel.segEndStr))
-        return UnifiedModelResult(segments, classLogits, startLogitss, endLogitss, segStarts, segEnds)
     }
 }
 

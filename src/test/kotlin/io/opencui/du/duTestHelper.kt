@@ -11,13 +11,10 @@ import io.opencui.core.RuntimeConfig
  */
 
 open class DuTestHelper() {
-    //var nluHost = "172.11.51.61"
     var nluHost = "127.0.0.1"
     var nluPort = 8501
     val protocol = "http"
-    //var ducklingAddr = "http://172.11.51.61:8000/parse"
     var ducklingAddr = "http://127.0.0.1:8000/parse"
-
 
     init {
         val ciFlag = System.getenv("ci")

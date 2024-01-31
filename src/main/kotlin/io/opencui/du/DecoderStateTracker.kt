@@ -420,6 +420,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // we need to make sure we include slots mentioned in the intent expression
         val valuesFound = mutableMapOf<String, List<String>>()
+
         val slots = slotMap.values.map { it.asMap() }.toList()
         for (slot in slotMap.values) {
             val slotType = slot.type
@@ -452,13 +453,15 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         val entityEvents = mutableListOf<EntityEvent>()
         // Let us try to merge the evidence from recognizer.
-        if (equalSlotValues.isNotEmpty()) {
-            for (result in equalSlotValues) {
-                val slotName = result.key
-                val slotValues = result.value.distinct()
+
+        for (slot in slotMap.values) {
+            val slotType = slot.type!!
+            val slotName = slot.label
+            if (slotName in equalSlotValues) {
+                val slotValues = equalSlotValues[slotName]!!.distinct()
                 // For now, assume the operator are always equal
                 for (value in slotValues) {
-                    entityEvents.add(EntityEvent.build(slotName, value))
+                    entityEvents.add(EntityEvent.build(slotName, value, slotType))
                 }
             }
         }
