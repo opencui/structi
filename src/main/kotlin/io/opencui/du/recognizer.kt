@@ -27,7 +27,9 @@ class ValueInfo(
     val value: Any? = null,
     val recognizer: EntityRecognizer? = null,
     val leaf: Boolean = true,
-    val score: Float = 2.0f
+    val score: Float = 2.0f,
+    val partialMatch: Boolean = false,
+    val origValue: String? = null
 ) {
     override fun toString() : String {
         return "$value @($start, $end)"
@@ -375,6 +377,17 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
         }
     }
 
+    fun getLabel(mentionId: Int, typeId: Int): String? {
+        val occurrences = mentionIndex[mentionId]
+        val filtered = occurrences.filter { it.typeId == typeId }
+        // For now, we return if we can uniquely determine a label.
+        return if (filtered.size == 1) {
+            labelTable.getString(filtered[0].labelId)
+        } else {
+            null
+        }
+    }
+
     // After we collect all the phrases related we add this for recognizer.
     fun memorizeExtractiveFrame(label: String, type:String, processed: HashMap<String, ArrayList<String>>) {
         val phrases = processed[type] ?: return
@@ -428,16 +441,18 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
                         val occurrences = tokenIndex[tokenId]
                         for (occurrence in occurrences) {
                             val typeId = occurrence.typeId
+                            val mentionId = occurrence.mentionId
                             val type = typeTable.getString(typeId)
-                            val label = PARTIALMATCH
                             partialMatch.add(
                                 ValueInfo(
                                     type,
                                     spanlist[i].start,
                                     spanlist[i + k].end,
-                                    label,
+                                    getLabel(mentionId, typeId),
                                     this,
-                                    true
+                                    true,
+                                    partialMatch = true,
+                                    origValue = input.substring(spanlist[i].start, spanlist[i + k].end)
                                 )
                             )
                         }
@@ -450,7 +465,7 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
             val target = Pair(span.start, span.end)
             val typeId = typeTable.getId(span.type)
             val listOfFullMatchedSpan = typedSpans[typeId]
-            if (listOfFullMatchedSpan != null && !covered(target, listOfFullMatchedSpan)) {
+            if (!covered(target, listOfFullMatchedSpan)) {
                 logger.debug("Covered $target is not covered by $listOfFullMatchedSpan with $span" )
                 if (!emap.containsKey(span.type)) {
                     emap[span.type] = mutableListOf()
@@ -461,7 +476,10 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
         logger.debug(emap.toString())
     }
 
-    private fun covered(target: Pair<Int, Int>, ranges: List<Pair<Int, Int>>): Boolean {
+    private fun covered(target: Pair<Int, Int>, ranges: List<Pair<Int, Int>>?): Boolean {
+        if (ranges.isNullOrEmpty())
+            return false
+
         for (range in ranges) {
             if ((target.first >= range.first && target.second <= range.second)) {
                 return true
@@ -489,9 +507,6 @@ class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
 
     companion object {
         const val PARTIALMATCH = "_partial_match"
-        const val QUERY = "QUERY"
-        val QUOTES = Regex("^\"|\"$")
-        fun isInternal(label: String): Boolean = label.startsWith("*")
 
         fun isPartialMatch(norm: String?) : Boolean {
             return norm == "\"_partial_match\""
@@ -506,6 +521,7 @@ object ListRecognizerBuilder {
     val processedDontcare = HashMap<String, ArrayList<String>>()
     val processedThat = HashMap<String, ArrayList<String>>()
     val fullMatches = HashMap<Pair<String, String>, MutableSet<String>>()
+    val partialIndex = HashMap<String, MutableList<String>>()
 
     fun add(listRecognizer: ListRecognizer,
             typeId:Int,
@@ -526,12 +542,12 @@ object ListRecognizerBuilder {
             for (token in tokens) {
                 val tokenId = listRecognizer.tokenTable.put(token)
                 listRecognizer.updateTokenIndex(tokenId, mentionId, typeId)
-                // if (!partialIndex.containsKey(token)) partialIndex[token] = mutableListOf()
+                if (!partialIndex.containsKey(token)) partialIndex[token] = mutableListOf()
                 if (!fullMatches.containsKey(Pair(token, type))) {
                     fullMatches[Pair(token, type)] = mutableSetOf()
                 }
                 fullMatches[Pair(token,type)]!!.add(entryLabel)
-                // partialIndex[token]!!.add(key)
+                partialIndex[token]!!.add(entryLabel)
             }
         }
     }

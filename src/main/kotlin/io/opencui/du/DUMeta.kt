@@ -271,11 +271,10 @@ abstract class DslDUMeta() : DUMeta {
 }
 
 
-
-
 interface IEntityMeta {
     val recognizer: List<String>
     val children: List<String>
+    val normalizable: Boolean
     fun getSuper(): String?
 }
 
@@ -283,7 +282,10 @@ data class EntityMeta(
     override val recognizer: List<String>,
     val parents: List<String> = emptyList(),
     override val children: List<String> = emptyList()
-) : java.io.Serializable, IEntityMeta {
+) : Serializable, IEntityMeta {
+    override val normalizable: Boolean
+        get() = true
+
     override fun getSuper(): String? {
         return if (parents.isNullOrEmpty()) null else parents[0]
     }
@@ -295,10 +297,13 @@ data class EntityType(
     val entities: Map<String, List<String>>,
     val parent: String? = null,
     override val children: List<String> = emptyList(),
-    val pattern: String? = null): IEntityMeta {
+    val pattern: String? = null,
+    override val normalizable: Boolean = true): Serializable, IEntityMeta {
     override fun getSuper(): String? {
         return parent
     }
+
+
 }
 
 data class ExpressionContext(val frame: String, val slot: String?)

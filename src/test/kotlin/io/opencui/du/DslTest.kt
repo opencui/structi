@@ -260,7 +260,7 @@ class DslTest() : DuTestHelper() {
         val utt4 = "I'd like to the second"
         val emap4 = mutableMapOf<String, MutableList<ValueInfo>>()
         recognizer.parse(utt4, listOf(), emap4)
-        assertEquals(0, emap4.size)
+        assertEquals(1, emap4.size)
     }
 
     @Test

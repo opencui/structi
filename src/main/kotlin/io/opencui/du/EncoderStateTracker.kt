@@ -20,8 +20,6 @@ import java.net.http.HttpResponse
 import io.opencui.serialization.*
 import java.time.Duration
 
-
-
 data class BertDuContext(
     override val session: String,
     override val utterance: String,
@@ -277,7 +275,7 @@ data class BertStateTracker(
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
         if (utterance.isEmpty()) return listOf()
 
-        val duContext = buildDuContext(session, putterance, expectations)
+        val duContext = buildDuContext(session, utterance, expectations)
 
         val res = convertImpl(duContext)
 
