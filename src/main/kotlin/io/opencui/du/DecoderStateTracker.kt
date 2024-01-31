@@ -191,10 +191,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             return emptyList()
         }
 
-        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
-
         // this layer is important so that we have a centralized place for the post process.
-        val res = convertImpl(session, utterance, expectations)
+        val res = convertImpl(session, putterance, expectations)
 
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
@@ -457,11 +455,20 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         for (slot in slotMap.values) {
             val slotType = slot.type!!
             val slotName = slot.label
+
+            val spanedValues = ducontext.entityTypeToValueInfoMap[slotType]
+            val origNormValueMap = spanedValues?.map { it.original(ducontext.utterance) to it.norm() }?.toMap()
+
             if (slotName in equalSlotValues) {
                 val slotValues = equalSlotValues[slotName]!!.distinct()
+
                 // For now, assume the operator are always equal
                 for (value in slotValues) {
-                    entityEvents.add(EntityEvent.build(slotName, value, slotType))
+                    if (!origNormValueMap.isNullOrEmpty() && origNormValueMap.containsKey(value)) {
+                        entityEvents.add(EntityEvent.build(slotName, value, origNormValueMap[value]!!, slotType))
+                    } else {
+                        entityEvents.add(EntityEvent.build(slotName, value, value, slotType))
+                    }
                 }
             }
         }

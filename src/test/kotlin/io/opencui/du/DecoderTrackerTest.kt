@@ -1249,9 +1249,8 @@ public data class Agent(
 class DecoderTrackerTest : DuTestHelper() {
     val agent = Agent()
 
-    // val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
-
-    val stateTracker = BertStateTracker(agent.duMeta)
+    val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
+    // val stateTracker = BertStateTracker(agent.duMeta)
     
     fun testNluService(stateTracker: DecoderStateTracker) {
         val service = stateTracker.nluService
@@ -1276,8 +1275,7 @@ class DecoderTrackerTest : DuTestHelper() {
         val results2 = service.yesNoInference(stateTracker.context, utterance, questions)
         println(results2)
     }
-
-
+    
     fun testConvert() {
         val expected = listOf(
             ExpectedFrame("me.test.foodOrderingModule.Dish", slot = "category"),
