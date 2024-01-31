@@ -47,9 +47,10 @@ data class EntityEvent(
         fun build(key: String, value: String): EntityEvent {
             return EntityEvent(value=""""$value"""", attribute=key)
         }
-        fun build(key: String, value: String, ptype: String): EntityEvent {
-            return EntityEvent(value=""""$value"""", attribute=key).apply{
+        fun build(key: String, porigValue: String, value: String, ptype: String): EntityEvent {
+            return EntityEvent(value=value, attribute=key).apply{
                 type = ptype
+                origValue = porigValue
             }
         }
     }

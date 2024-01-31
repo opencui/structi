@@ -36,6 +36,10 @@ class ValueInfo(
     fun norm() : String? {
         return recognizer?.getNormedValue(this)
     }
+
+    fun original(utterance: String): String{
+        return utterance.substring(start, end)
+    }
 }
 
 
