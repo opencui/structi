@@ -190,9 +190,11 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         if (putterance.trim().isEmpty()) {
             return emptyList()
         }
+        // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
+        val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
 
         // this layer is important so that we have a centralized place for the post process.
-        val res = convertImpl(session, putterance, expectations)
+        val res = convertImpl(session, utterance, expectations)
 
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
@@ -433,7 +435,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val results = nluService.fillSlots(context, ducontext.utterance, slots, valuesFound)
         logger.debug("got $results from fillSlots for ${ducontext.utterance} on $slots with $valuesFound")
 
-
         for (entry in results.entries) {
             if(entry.value.operator == "==") {
                 equalSlotValues[entry.key] = entry.value.values.toMutableList()
@@ -451,20 +452,26 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         val entityEvents = mutableListOf<EntityEvent>()
         // Let us try to merge the evidence from recognizer.
-
+        val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(topLevelFrameType, focusedSlot)
         for (slot in slotMap.values) {
             val slotType = slot.type!!
             val slotName = slot.label
 
-            val spanedValues = ducontext.entityTypeToValueInfoMap[slotType]
+            // for the focused slot, we use unique partial match.
+            val spanedValues = ducontext.entityTypeToValueInfoMap[slotType]?.filter {
+                ! it.partialMatch || (it.type == focusedSlotType && results.containsKey(slotName) && (it.origValue in results[slotName]!!.values))
+            }
+
             val origNormValueMap = spanedValues?.map { it.original(ducontext.utterance) to it.norm() }?.toMap()
+
+            // Most of the type are normalizable, except person name for now.
+            val normalizable = duMeta.getEntityMeta(slotType)?.normalizable
 
             if (slotName in equalSlotValues) {
                 val slotValues = equalSlotValues[slotName]!!.distinct()
-
                 // For now, assume the operator are always equal
                 for (value in slotValues) {
-                    if (!origNormValueMap.isNullOrEmpty() && origNormValueMap.containsKey(value)) {
+                    if (normalizable == true && !origNormValueMap.isNullOrEmpty() && origNormValueMap.containsKey(value)) {
                         entityEvents.add(EntityEvent.build(slotName, value, origNormValueMap[value]!!, slotType))
                     } else {
                         entityEvents.add(EntityEvent.build(slotName, value, value, slotType))

@@ -1,10 +1,5 @@
 package io.opencui.du
 
-import io.opencui.serialization.Json
-import io.opencui.serialization.JsonArray
-import io.opencui.serialization.JsonObject
-import kotlin.math.exp
-
 
 /**
  * One of the key functionality for framely is providing dialog understanding that is
@@ -79,9 +74,14 @@ class EntityTypeBuilder(val t: String) {
     var parent : String? = null
     var children: List<String> = mutableListOf()
     var pattern: String? = null
+    var normalizable: Boolean = true
 
     fun parent(p : String) {
         parent = p
+    }
+
+    fun normalizable() {
+        normalizable = true
     }
 
     fun pattern(p: String) {
@@ -105,7 +105,7 @@ class EntityTypeBuilder(val t: String) {
     }
 
     fun toEntityType() : EntityType {
-        return EntityType(t, recognizers, entities, parent, children, pattern)
+        return EntityType(t, recognizers, entities, parent, children, pattern, normalizable = normalizable)
     }
 }
 
