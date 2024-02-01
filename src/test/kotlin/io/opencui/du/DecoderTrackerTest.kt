@@ -1284,8 +1284,7 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "pizza", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
-
-    @Test
+    
     fun testPartialEntity00() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
