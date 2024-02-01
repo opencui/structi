@@ -202,22 +202,19 @@ open class DuContext(
                 }
             }
         }
+        val keysToBeRemoved = mutableListOf<String>()
         for (key in entityTypeToValueInfoMap.keys) {
             val values = entityTypeToValueInfoMap[key]
             if (!values.isNullOrEmpty()) {
-                val indexToBeRemoved = mutableListOf<Int>()
-                for ((index, value) in values.withIndex()) {
-                    if (covered(value, expectedValues)) {
-                        indexToBeRemoved.add(index)
-                    }
-                }
-                for (index in indexToBeRemoved.reversed()) {
-                    values.removeAt(index)
-                }
-                if (values.size == 0) {
-                    entityTypeToValueInfoMap.remove(key)
+                values.removeAll { covered(it, expectedValues) }
+                if (values.isEmpty()) {
+                    keysToBeRemoved.add(key)
                 }
             }
+        }
+
+        for (key in keysToBeRemoved) {
+            entityTypeToValueInfoMap.remove(key)
         }
     }
 
