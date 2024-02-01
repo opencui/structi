@@ -343,7 +343,8 @@ class DialogManager {
                 val focusFiller = if (index != -1 && session.schedule.size > index+1) session.schedule[index+1] as? AnnotatedWrapperFiller else null
                 val frameName = filler.qualifiedEventType()!!
                 val typeStr = (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr()
-                return ExpectedFrame(frameName, focusFiller?.attribute, typeStr)
+                val dialogActs = if (focusFiller == null) emptyList() else getDialogActs(session, focusFiller)
+                return ExpectedFrame(frameName, focusFiller?.attribute, typeStr, dialogActs)
             }
             is InterfaceFiller<*> -> {
                 val parent = filler.parent?.parent
