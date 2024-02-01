@@ -584,7 +584,7 @@ object ListRecognizerBuilder {
             val content = if (type != "io.opencui.core.SlotType") agent.getEntityInstances(type) else agent.getSlotTriggers()
             logger.info("process entity type $type with ${content.size} entries.")
             for ((entryLabel, expressions) in content) {
-                add(listRecognizer, typeId, type, entryLabel,expressions, true)
+                add(listRecognizer, typeId, type, entryLabel, expressions, true)
             }
 
             // process entity dontcare annotations
