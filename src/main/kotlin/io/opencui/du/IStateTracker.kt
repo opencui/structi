@@ -6,6 +6,7 @@ import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.math.exp
 
 
 // We introduce this interface to bridge the encoder based DU and decoder based DU.
@@ -314,7 +315,7 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
 
     fun isFrameCompatible(frameName: String) : Boolean {
         for (aframe in activeFrames) {
-            if (aframe.frame.equals(frameName)) return true
+            if (aframe.frame == frameName) return true
         }
         return false
     }
@@ -324,14 +325,13 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     }
 
     // For all the boolean questions, we run a yes/no inference.
-    fun isBooleanSlot(): Boolean {
-        if (isFrameCompatible(IStateTracker.ConfirmationStatus) ||
-            isFrameCompatible(IStateTracker.BoolGateStatus) ||
-            isFrameCompatible(IStateTracker.HasMoreStatus)) {
-            return true
-        }
-        val slotType = expected?.slotType
-        return slotType == IStateTracker.KotlinBoolean
+    fun isBooleanSlot(duMeta: DUMeta): Boolean {
+        // whether the expected is the boolean.
+        if (expected == null || expected.slot.isNullOrEmpty())
+            return false
+
+        val slotType = duMeta.getSlotType(expected.frame, expected.slot)
+        return (slotType in IStateTracker.IStatusSet) || slotType == IStateTracker.KotlinBoolean
     }
 
     override fun toString(): String {

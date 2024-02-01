@@ -238,7 +238,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val duContext = buildDuContext(session, utterance, expectations)
             val needToHandle = triggerables.filter {
                 it.owner == null || duMeta.isSystemFrame(it.owner) }
-            println(needToHandle)
+
             if (!needToHandle.isNullOrEmpty()) {
                 check(needToHandle.size == 1)
                 val events = handleExpectations(duContext, needToHandle[0])
@@ -301,9 +301,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // We need to check whether we have a binary question. For now, we only handle the top
         // binary question. We assume the first on the top.
-        if (expectations.isBooleanSlot()) {
+        if (expectations.isBooleanSlot(duMeta)) {
             // The expectation top need to be binary and have prompt.
-            val question = expectations.expected!!.prompt!!.map{it.toString()}
+            val question = expectations.expected?.prompt?.firstOrNull()?.templates?.pick() ?: ""
 
             val boolValue = duContext.getEntityValue(IStateTracker.KotlinBoolean)
             if (boolValue != null) {
@@ -317,7 +317,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 if (events != null) return events
             }
 
-            val status = nluService.yesNoInference(context, utterance, question)[0]
+            val status = nluService.yesNoInference(context, utterance, listOf<String>(question))[0]
             if (status != YesNoResult.Irrelevant) {
                 // First handle the frame wrappers we had for boolean type.
                 // what happens we have good match, and these matches are related to expectations.
@@ -373,27 +373,29 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     private fun handleBooleanStatus(duContext: DuContext, flag: YesNoResult): List<FrameEvent>? {
+        val expected = duContext.expectations.expected
+        val slotType = duMeta.getSlotType(expected!!.frame, expected.slot!!)
+
         // First handling
         val expectations = duContext.expectations
-        if (expectations.isFrameCompatible(IStateTracker.ConfirmationStatus)) {
+        if (slotType == IStateTracker.ConfirmationStatus) {
             val events = handleBooleanStatusImpl(flag, IStateTracker.FullConfirmationList)
             if (events != null) return events
         }
 
         // b. boolgate Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.BoolGateStatus)) {
+        if (slotType == IStateTracker.BoolGateStatus) {
             val events = handleBooleanStatusImpl(flag, IStateTracker.FullBoolGateList)
             if (events != null) return events
         }
 
         // c. hasMore Yes/No
-        if (expectations.isFrameCompatible(IStateTracker.HasMoreStatus)) {
+        if (slotType == IStateTracker.HasMoreStatus) {
             val events = handleBooleanStatusImpl(flag, IStateTracker.FullHasMoreList)
             if (events != null) return events
         }
 
         // This is used for boolean slot.
-        val expected = duContext.expectations.expected
         val flagStr = flag.toJsonAsBoolean()
         // TODO(sean): make sure that expected.slot is not empty here.
         return if (expected != null && flagStr != null && expected.slot != null) {
