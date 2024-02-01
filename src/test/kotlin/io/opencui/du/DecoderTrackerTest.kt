@@ -1304,7 +1304,8 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "Pepperoni", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
-    
+
+    @Test
     fun testIStatus() {
         val expected = listOf(
             ExpectedFrame(frame="io.opencui.core.HasMore", slot="status"),
