@@ -1284,8 +1284,18 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "pizza", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
+    
+    fun testPartialEntity00() {
+        val expected = listOf(
+            ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
+            ExpectedFrame(frame="io.opencui.core.PagedSelectable", slot="index")
+        )
 
-    fun testPartialEntity() {
+        val frameEvents1 = stateTracker.convert("s", "Pepperoni Pizza", DialogExpectations(*expected.toTypedArray()))
+        println("frame events: $frameEvents1")
+    }
+
+    fun testPartialEntity01() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
             ExpectedFrame(frame="io.opencui.core.PagedSelectable", slot="index")
@@ -1294,7 +1304,8 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "Pepperoni", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
-    
+
+
     fun testFillSlots() {
         val expected = ExpectedFrame("io.opencui.core.PagedSelectable", slot="index")
         val frameEvents = stateTracker.convert("s", "the first one", DialogExpectations(expected))

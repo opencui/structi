@@ -213,6 +213,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             ducontext.expectedEntityType(duMeta),
             ducontext.entityTypeToValueInfoMap
         )
+
+        ducontext.cleanUp()
+
         ducontext.updateTokens(LanguageAnalyzer.get(duMeta.getLang(), stop = false)!!.tokenize(utterance))
         return ducontext
     }
@@ -471,8 +474,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 val slotValues = equalSlotValues[slotName]!!.distinct()
                 // For now, assume the operator are always equal
                 for (value in slotValues) {
-                    if (normalizable == true && !origNormValueMap.isNullOrEmpty() && origNormValueMap.containsKey(value)) {
-                        entityEvents.add(EntityEvent.build(slotName, value, origNormValueMap[value]!!, slotType))
+                    if (normalizable == true) {
+                        if (!origNormValueMap.isNullOrEmpty() && origNormValueMap.containsKey(value)) {
+                            entityEvents.add(EntityEvent.build(slotName, value, origNormValueMap[value]!!, slotType))
+                        }
                     } else {
                         entityEvents.add(EntityEvent.build(slotName, value, value, slotType))
                     }
