@@ -602,7 +602,9 @@ public object ens : LangPack {
       DUSlotMeta(label = "index", isMultiValue = false, type = "kotlin.Int", isHead = false,
           triggers = listOf()),
       ),
-      "io.opencui.core.ConfirmationNo" to listOf(
+      "io.opencui.core.Confirmation" to listOf(
+      DUSlotMeta(label = "status", isMultiValue = false, type = "io.opencui.core.confirmation.IStatus",
+          isHead = false, triggers = listOf()),
       ),
       "io.opencui.core.ResumeIntent" to listOf(
       DUSlotMeta(label = "intent", isMultiValue = false, type = "io.opencui.core.IIntent", isHead =
@@ -1128,7 +1130,7 @@ public object ens : LangPack {
       "io.opencui.core.GetLiveAgent" to listOf("", "Hand off"),
       "io.opencui.core.BadCandidate" to listOf(""),
       "io.opencui.core.BadIndex" to listOf(""),
-      "io.opencui.core.ConfirmationNo" to listOf(""),
+      "io.opencui.core.Confirmation" to listOf(""),
       "io.opencui.core.ResumeIntent" to listOf("", "ResumeIntent"),
       "io.opencui.core.SlotUpdate" to listOf("", "SlotUpdate"),
       "io.opencui.core.da.SlotRequest" to listOf(""),
@@ -1250,6 +1252,7 @@ class DecoderTrackerTest : DuTestHelper() {
     val agent = Agent()
 
     val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
+
     // val stateTracker = BertStateTracker(agent.duMeta)
     
     fun testNluService(stateTracker: DecoderStateTracker) {
@@ -1315,6 +1318,25 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "not really", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
 
+    }
+
+    fun testIStatus01() {
+        val expected = listOf(
+            ExpectedFrame(frame = "io.opencui.core.Confirmation", slot = "status"),
+            ExpectedFrame(frame = "me.test.foodOrderingModule.FoodOrdering", slot = null)
+        )
+        val frameEvents1 = stateTracker.convert("s", "yes", DialogExpectations(*expected.toTypedArray()))
+        println("frame events: $frameEvents1")
+    }
+    
+    fun testIStatus02() {
+        val expected = listOf(
+            ExpectedFrame(frame="io.opencui.core.HasMore", slot="status"),
+            ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="options"),
+            ExpectedFrame(frame="io.opencui.core.PagedSelectable", slot="index")
+        )
+        val frameEvents1 = stateTracker.convert("s", "mushrooms", DialogExpectations(*expected.toTypedArray()))
+        println("frame events: $frameEvents1")
     }
 
     fun testFillSlots() {

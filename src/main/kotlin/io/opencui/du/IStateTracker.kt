@@ -81,7 +81,18 @@ data class ExpectedFrame(
     val frame: String,
     val slot: String? = null,
     @JsonIgnore val slotType: String? = null,
-    @JsonIgnore val prompt: List<DialogAct> = emptyList())
+    @JsonIgnore val prompt: List<DialogAct> = emptyList()) {
+
+    // For all the boolean questions, we run a yes/no inference.
+    fun isBooleanSlot(duMeta: DUMeta): Boolean {
+        // whether the expected is the boolean.
+        if (slot.isNullOrEmpty())
+            return false
+
+        val slotType = duMeta.getSlotType(frame, slot)
+        return (slotType in IStateTracker.IStatusSet) || slotType == IStateTracker.KotlinBoolean
+    }
+}
 
 
 
@@ -321,16 +332,6 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
         return activeFrames.isNotEmpty()
     }
 
-    // For all the boolean questions, we run a yes/no inference.
-    fun isBooleanSlot(duMeta: DUMeta): Boolean {
-        // whether the expected is the boolean.
-        if (expected == null || expected.slot.isNullOrEmpty())
-            return false
-
-        val slotType = duMeta.getSlotType(expected.frame, expected.slot)
-        return (slotType in IStateTracker.IStatusSet) || slotType == IStateTracker.KotlinBoolean
-    }
-
     override fun toString(): String {
         return activeFrames.toString()
     }
@@ -418,6 +419,20 @@ interface IStateTracker : IExtension {
         return slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
     }
 
+    fun isSlotMatched(agentMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
+        val spanTargetSlot = valueInfo.value.toString()
+        val parts = spanTargetSlot.split(".")
+        val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
+        val slotName = parts.last()
+        val slotMeta = agentMeta.getSlotMeta(spanTargetFrame, slotName)!!
+        if (spanTargetSlot.startsWith(activeFrame) && agentMeta.isEntity(slotMeta.type!!)) return true
+
+        val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
+        // now we need to figure out whether active Frame as a frame slot of this time.
+        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter { it.type == spanTargetFrame }
+        return spanTargetFrameHasHead && matchedFrameSlots.size == 1
+    }
+
 
     companion object {
         const val FullIDonotKnow = "io.opencui.core.IDonotGetIt"
@@ -429,7 +444,7 @@ interface IStateTracker : IExtension {
         const val ThatLabel = "{'@class'='io.opencui.core.That'}"
         const val BoolGateStatus = "io.opencui.core.booleanGate.IStatus"
         val FullBoolGateList = listOf("io.opencui.core.booleanGate.Yes", "io.opencui.core.booleanGate.No")
-
+        const val HasMore = "io.opencui.core.HasMore"
         const val TriggerComponentSkill =  "io.opencui.core.TriggerComponentSkill"
         const val ConfirmationStatus = "io.opencui.core.confirmation.IStatus"
         val FullConfirmationList = listOf("io.opencui.core.confirmation.Yes", "io.opencui.core.confirmation.No")
