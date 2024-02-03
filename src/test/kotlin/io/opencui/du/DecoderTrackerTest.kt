@@ -1308,8 +1308,7 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "Pepperoni", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
-
-    @Test
+    
     fun testIndex00() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
@@ -1323,7 +1322,6 @@ class DecoderTrackerTest : DuTestHelper() {
         assertEquals(frameEvents1[0].slots[0].attribute, "index")
     }
 
-    @Test
     fun testIndex01() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),

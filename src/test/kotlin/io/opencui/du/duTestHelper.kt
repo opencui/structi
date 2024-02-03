@@ -13,13 +13,13 @@ import io.opencui.core.RuntimeConfig
 open class DuTestHelper() {
     var nluHost = "127.0.0.1"
     var nluPort = 8501
-    val protocol = "https"
+    val protocol = "http"
     var ducklingAddr = "http://127.0.0.1:8000/parse"
 
     init {
         val ciFlag = System.getenv("ci")
         if (!ciFlag.isNullOrEmpty()) {
-            nluHost = "dug.api-us.naturali.io"
+            nluHost = "ni-dialogflow-du.ni-framely.svc.cluster.local"
             nluPort = 80
             ducklingAddr = "http://ni-dialogflow-duckling.ni-framely.svc.cluster.local/parse"
         }
