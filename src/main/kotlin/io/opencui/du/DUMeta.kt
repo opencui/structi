@@ -203,13 +203,6 @@ fun DUMeta.getNestedSlotMetas(
     return slotsMetaMap
 }
 
-
-// If the frame is system frame or not.
-fun DUMeta.isSystemFrame(frame: String): Boolean {
-    return frame.startsWith("io.opencui.core")
-}
-
-
 fun DUMeta.getSlotMeta(frame:String, pslots:String) : DUSlotMeta? {
     // We can handle the nested slots if we need to.
     val slots = pslots.split(".")
@@ -328,6 +321,9 @@ data class Exemplar(
     override val contextFrame: String? = null,
     val contextSlot: String? = null
 ) : IExemplar {
+    override val slotNames = IExemplar.AngleSlotRegex
+            .findAll(template)
+            .map { it.value.substring(1, it.value.length - 1) }.toList()
 
     override lateinit var typedExpression: String
 
@@ -349,6 +345,32 @@ data class Exemplar(
         return buildTypedExpression(template, ownerFrame, duMeta)
     }
 
+    // This should be used for per expectation handling.
+    fun buildTypedExpression(duMeta: DUMeta, expectedFrame: ExpectedFrame? = null): String {
+        val nameToTypeMap = mutableMapOf<String, String>()
+        for (slotName in slotNames) {
+            val slotMeta = duMeta.getSlotMeta(ownerFrame, slotName)!!
+            if (!slotMeta.isGenericTyped()) {
+                // not generic type.
+                nameToTypeMap[slotMeta.label] = slotMeta.type!!
+            } else {
+                val target =
+                    if (!contextFrame.isNullOrEmpty()) {
+                        Pair(contextFrame, contextSlot!!)
+                    } else {
+                        Pair(expectedFrame!!.frame, expectedFrame!!.slot!!)
+                    }
+                nameToTypeMap[slotMeta.label] = duMeta.getSlotType(target.first, target.second)
+            }
+        }
+
+        return IExemplar.AngleSlotRegex.replace(template)
+        {
+            val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
+            "< ${nameToTypeMap[slotName]} >"
+        }
+    }
+
     /**
      * TODO: Currently, we only use the frame as context, we could consider to use frame and attribute.
      * This allows for tight control.
@@ -361,7 +383,7 @@ data class Exemplar(
     }
 
     fun buildSlotTypes(duMeta: DUMeta): List<String> {
-        return AngleSlotRegex
+        return IExemplar.AngleSlotRegex
                 .findAll(template)
                 .map { it.value.substring(1, it.value.length - 1) }
                 .map { duMeta.getSlotType(ownerFrame, it) }
@@ -369,8 +391,6 @@ data class Exemplar(
     }
 
     companion object {
-        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
-        private val AngleSlotRegex = AngleSlotPattern.toRegex()
         val logger: Logger = LoggerFactory.getLogger(Exemplar::class.java)
 
         /**
@@ -381,7 +401,7 @@ data class Exemplar(
          */
         @JvmStatic
         fun buildTypedExpression(utterance: String, owner: String, agent: DUMeta): String {
-            return AngleSlotRegex.replace(utterance)
+            return IExemplar.AngleSlotRegex.replace(utterance)
             {
                 val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
                 "< ${agent.getSlotType(owner, slotName)} >"
@@ -389,7 +409,7 @@ data class Exemplar(
         }
 
         fun segment(expression: String, owner: String): MetaExprSegments {
-            val matcher = AngleSlotPattern.matcher(expression)
+            val matcher = IExemplar.AngleSlotPattern.matcher(expression)
             val result = mutableListOf<TypedExprSegment>()
             var lastStart = 0
 

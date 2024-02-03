@@ -9,7 +9,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
-import org.jetbrains.kotlin.codegen.optimization.fixStack.restoreStack
 import java.util.*
 
 enum class DugMode {
@@ -44,8 +43,29 @@ fun YesNoResult.toJsonAsBoolean() : String? {
 //
 data class TriggerDecision(
     override val utterance: String,
-    override val owner: String?,  // this could be empty.
-    val evidence: List<Exemplar>) : Triggerable
+    override var owner: String?,  // this could be empty and can be updated by exact match.
+    val evidence: List<Exemplar>) : Triggerable {
+    fun exactMatch(duContext: DuContext, expectation: ExpectedFrame): DuContext {
+
+        // Now we conduct exact match so that we can
+        if (owner == null) {
+            // Prepare for exact match.
+            evidence.map {
+                it.typedExpression = it.buildTypedExpression(duContext.duMeta!!, expectation)
+            }
+
+            val matcher = NestedMatcher(duContext)
+            val candidates = evidence
+            candidates.map { matcher.markMatch(it) }
+            val exactMatches = candidates.find { it.exactMatch }
+            if (exactMatches != null) {
+                owner = exactMatches.ownerFrame
+            }
+        }
+
+        return duContext
+    }
+}
 
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
@@ -155,6 +175,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     // If there are multi normalizer propose annotation on the same span, last one wins.
     val normalizers = defaultRecognizers(duMeta)
 
+    // We can turn this on if we need to.
+    val alwaysExactMatch = false
     val nluService = RestNluService(RuntimeConfig.get(RestNluService::class)?: "http://127.0.0.1:3001")
 
     val context : RestNluService.Context by lazy {
@@ -211,100 +233,58 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         allNormalizers.recognizeAll(
             utterance,
-            ducontext.expectedEntityType(duMeta),
+            ducontext.expectedEntityType(expectations),
             ducontext.entityTypeToValueInfoMap
         )
 
-        ducontext.cleanUp()
+        ducontext.cleanUp(expectations)
 
         ducontext.updateTokens(LanguageAnalyzer.get(duMeta.getLang(), stop = false)!!.tokenize(utterance))
         return ducontext
     }
 
     // This layer is handling the
-    fun convertImpl(session: UserSession, utterance: String, expectations: DialogExpectations): List<FrameEvent> {
-        val triggerables = detectTriggerables(utterance, expectations)
-        logger.debug("getting $triggerables for utterance: $utterance expectations $expectations")
+    fun convertImpl(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        val triggerables = detectTriggerables(putterance, expectations)
+        logger.debug("getting $triggerables for utterance: $putterance expectations $expectations")
 
-        // We need to update the typedExpression.
-        if (triggerables.size == 1 && triggerables[0].owner == null) {
-            triggerables[0].evidence.map {
-                it.typedExpression = IExemplar.buildTypedExpression(it.template!!, it.ownerFrame, duMeta)
-            }
-        }
-
+        // need to be handled under context.
+        val needToHandle = triggerables.filter { it.owner == null || isSystemFrame(it.owner!!) }
 
         // TODO: we might need to use exact match to make the hotfix work later.
-        if (expectations.hasExpectation()) {
-            // We always handle expectations first.
-            val duContext = buildDuContext(session, utterance, expectations)
-            val needToHandle = triggerables.filter {
-                it.owner == null || duMeta.isSystemFrame(it.owner) }
+        // We only goes into this when we have expectation, but the truth is we always have expectation.
+        val results = mutableListOf<FrameEvent>()
+        for (triggerable in needToHandle) {
+            val utterance = triggerable.utterance
 
-            if (!needToHandle.isNullOrEmpty()) {
-                check(needToHandle.size == 1)
-                val events = handleExpectations(duContext, needToHandle[0])
+            // We always handle expectations first.
+            val duContext = buildDuContext(session, triggerable.utterance, expectations)
+
+            // Test whether it is crud, if so we hand them separately
+            val isCrud = isCrudFrame(triggerable.owner)
+            if (isCrud) {
+                // now we handle slot update not working yet.
+                if (triggerable.owner == IStateTracker.SlotUpdate) {
+                    handleSlotUpdate(duContext, triggerable)
+                }
+            } else {
+                // now we handle the no slot update cases.
+                val events = handleExpectations(duContext, triggerable)
                 if (!events.isNullOrEmpty()) {
                     logger.debug("getting $events for $utterance in handleExpectations")
-                    return events
+                    // This is an opportunity for filtering the events again.
+                    // if event agrees with one of expectation, and
+                    results.addAll(events)
                 }
             }
         }
 
-        val results = mutableListOf<FrameEvent>()
-
+        // The rest should be payload triggerables.
+        val leftToHandle = triggerables.filter { it.owner != null && !isSystemFrame(it.owner!!) }
         // If there are multiple triggerables, we need to handle them one by one.
-        for (triggerable in triggerables) {
+        for (triggerable in leftToHandle) {
+            val utterance = triggerable.utterance
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
-
-            // now we need to handle non-boolean types
-            // Now we need to figure out what happens for slotupdate.
-            if (triggerable.owner == IStateTracker.SlotUpdate && expectations.hasExpectation()) {
-                logger.debug("enter slot update.")
-                // We need to figure out which slot user are interested in first.
-                val slotTypeSpanInfo = duContext.entityTypeToValueInfoMap[IStateTracker.SlotType]
-                // Make sure there are slot type entity matches.
-                if (slotTypeSpanInfo != null) {
-                    // We assume the expectation is stack, with most recent frames in the end
-                    for (activeFrame in duContext.expectations.activeFrames) {
-                        val matchedSlotList = slotTypeSpanInfo.filter { isSlotMatched(duMeta, it, activeFrame.frame) }
-                        if (matchedSlotList.isEmpty()) {
-                            continue
-                        }
-
-                        // Dedup first.
-                        val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
-                        if (matchedSlots.size > 1) {
-                            throw RuntimeException("Can not mapping two different slot yet")
-                        }
-
-                        // check if the current frame has the slot we cared about and go with that.
-                        val spanInfo = matchedSlotList[0]
-                        val partsInQualified = spanInfo.value.toString().split(".")
-                        val slotName = partsInQualified.last()
-                        val slotsInActiveFrame = duMeta.getSlotMetas(activeFrame.frame)
-
-                        val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
-                        if (targetEntitySlot != null) {
-                            return fillSlotUpdate(duContext, targetEntitySlot)
-                        } else {
-                            // This find the headed frame slot.
-                            val targetFrameType =
-                                partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
-                            val targetEntitySlot = duMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
-                            return fillSlotUpdate(duContext, targetEntitySlot)
-                        }
-                    }
-                } else {
-                    // TODO: now we need to handle the case for: change to tomorrow
-                    // For now we assume there is only one generic type.
-                    val bestCandidate = triggerable.owner!!
-                    // val targetSlot: DUSlotMeta
-                    // return fillSlotUpdate(duContext, targetSlot)
-                }
-            }
-
-
 
             logger.debug("handling $triggerables for utterance: $utterance")
             val focusedSlot: String? = null
@@ -312,8 +292,65 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
         }
-        return results
+
+        return if (results.size != 0) {
+            results
+        } else {
+            listOf(FrameEvent.build(IStateTracker.FullIDonotKnow))
+        }
     }
+
+    fun handleSlotUpdate(duContext: DuContext, triggerable: Triggerable) : List<FrameEvent>? {
+         logger.debug("enter slot update.")
+         // We need to figure out which slot user are interested in first.
+         val slotTypeSpanInfo = duContext.entityTypeToValueInfoMap[IStateTracker.SlotType]
+         // Make sure there are slot type entity matches.
+         if (slotTypeSpanInfo != null) {
+             // We assume the expectation is stack, with most recent frames in the end
+             for (activeFrame in duContext.expectations.activeFrames) {
+                 val matchedSlotList = emptyList<ValueInfo>() //.filter { isSlotMatched(it, activeFrame.frame) }
+                 if (matchedSlotList.isEmpty()) {
+                     continue
+                 }
+
+                 // Dedup first.
+                 val matchedSlots = matchedSlotList.groupBy { it.value.toString() }
+                 if (matchedSlots.size > 1) {
+                     throw RuntimeException("Can not mapping two different slot yet")
+                 }
+
+                 // check if the current frame has the slot we cared about and go with that.
+                 val spanInfo = matchedSlotList[0]
+                 val partsInQualified = spanInfo.value.toString().split(".")
+                 val slotName = partsInQualified.last()
+                 val slotsInActiveFrame = duContext.duMeta!!.getSlotMetas(activeFrame.frame)
+
+                 val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
+                 if (targetEntitySlot != null) {
+                     return fillSlotUpdate(duContext, targetEntitySlot)
+                 } else {
+                     // This find the headed frame slot.
+                     val targetFrameType =
+                         partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
+                     val targetEntitySlot = duMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
+                     return fillSlotUpdate(duContext, targetEntitySlot)
+                 }
+             }
+         } else {
+             // TODO: now we need to handle the case for: change to tomorrow
+             // For now we assume there is only one generic type.
+             val bestCandidate = triggerable.owner
+             // val targetSlot = bestCandidate.guessedSlot!!
+             // return fillSlotUpdate(duContext, targetSlot)
+             return emptyList()
+         }
+        return emptyList()
+    }
+
+    fun fillSlotUpdate(duContext: DuContext, targetSlot: String) {
+
+    }
+
 
     fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
@@ -347,7 +384,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    private fun handleExpectations(duContext: DuContext, triggerables: Triggerable): List<FrameEvent>? {
+    private fun handleExpectations(duContext: DuContext, triggerable: Triggerable): List<FrameEvent>? {
         val utterance = duContext.utterance
         val expectations = duContext.expectations
 
@@ -364,6 +401,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 // The expectation top need to be binary and have prompt.
                 val question = expectedFrame.prompt?.firstOrNull()?.templates?.pick() ?: ""
 
+                // Hard binding to boolean value.
                 val boolValue = duContext.getEntityValue(IStateTracker.KotlinBoolean)
                 if (boolValue != null) {
                     val yesNoFlag = when (boolValue) {
@@ -388,7 +426,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 }
             } else if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 // Now w handle the string slot, this is really low priority.
-                lowResults.add(FrameEvent.build(frame, listOf(EntityEvent(duContext.utterance, slot))))
+                // only where owner == null
+                if (triggerable.owner == null) {
+                    lowResults.add(FrameEvent.build(frame, listOf(EntityEvent(duContext.utterance, slot))))
+                }
             } else {
                 // if there is no good match, we need to just find it using slot model.
                 // try to fill slot for active frames, assuming the expected!! is the at the beginning.
@@ -545,8 +586,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             }
         }
 
-        return if (!duMeta.isSystemFrame(topLevelFrameType) || entityEvents.size != 0) {
-            listOf(FrameEvent.build(topLevelFrameType, entityEvents))
+        // not
+        return if (!ducontext.expectations.isFrameCompatible(topLevelFrameType) || entityEvents.size != 0) {
+                listOf(FrameEvent.build(topLevelFrameType, entityEvents))
         } else {
             emptyList()
         }

@@ -255,12 +255,13 @@ data class BertStateTracker(
 
         allNormalizers.recognizeAll(
             utterance,
-            ducontext.expectedEntityType(agentMeta),
+            ducontext.expectedEntityType(expectations),
             ducontext.entityTypeToValueInfoMap
         )
         ducontext.updateTokens(LanguageAnalyzer.get(agentMeta.getLang(), stop = false)!!.tokenize(utterance))
         return ducontext
     }
+
     fun buildPostProcessor(expectations: DialogExpectations): FrameEventProcessor {
         // this build the post processors
         return ChainedFrameEventProcesser(
@@ -446,7 +447,7 @@ data class BertStateTracker(
         val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
         if (candidates?.size == 1
-            && !agentMeta.isSystemFrame(candidates[0].ownerFrame)
+            && !isSystemFrame(candidates[0].ownerFrame)
             && !expectations.isFrameCompatible(candidates[0].ownerFrame)) return null
 
         logger.debug(
