@@ -7,6 +7,7 @@ import io.opencui.core.da.DialogActRewriter
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 public object ens : LangPack {
   public override val frames: Map<String, List<Exemplar>> = mapOf(
@@ -1307,6 +1308,29 @@ class DecoderTrackerTest : DuTestHelper() {
         val frameEvents1 = stateTracker.convert("s", "Pepperoni", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
     }
+    
+    fun testIndex00() {
+        val expected = listOf(
+            ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
+            ExpectedFrame(frame="io.opencui.core.PagedSelectable", slot="index")
+        )
+
+        val frameEvents1 = stateTracker.convert("s", "first", DialogExpectations(*expected.toTypedArray()))
+        println("frame events: $frameEvents1")
+        assertEquals(frameEvents1.size, 1)
+        assertEquals(frameEvents1[0].slots.size, 1)
+        assertEquals(frameEvents1[0].slots[0].attribute, "index")
+    }
+
+    fun testIndex01() {
+        val expected = listOf(
+            ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
+            ExpectedFrame(frame="io.opencui.core.PagedSelectable", slot="index")
+        )
+
+        val frameEvents1 = stateTracker.convert("s", "the first one", DialogExpectations(*expected.toTypedArray()))
+        println("frame events: $frameEvents1")
+    }
 
 
     fun testIStatus() {
@@ -1317,6 +1341,7 @@ class DecoderTrackerTest : DuTestHelper() {
 
         val frameEvents1 = stateTracker.convert("s", "not really", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
+
 
     }
 

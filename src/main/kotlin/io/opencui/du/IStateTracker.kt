@@ -19,6 +19,11 @@ interface IExemplar {
     var exactMatch: Boolean
     var possibleExactMatch: Boolean
 
+    // whether there are free generic slot.
+    val slotNames : List<String>
+
+    // var isBound : Boolean
+
     fun clone(): IExemplar
 
     fun isCompatible(type: String, packageName: String?) : Boolean {
@@ -39,17 +44,8 @@ interface IExemplar {
     }
 
     companion object {
-        private val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
-        private val AngleSlotRegex = AngleSlotPattern.toRegex()
-
-        @JvmStatic
-        fun buildTypedExpression(utterance: String, owner: String, duMeta: DUMeta): String {
-            return AngleSlotRegex.replace(utterance)
-            {
-                val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-                "< ${duMeta.getSlotType(owner, slotName)} >"
-            }
-        }
+        val AngleSlotPattern = Pattern.compile("""<(.+?)>""")
+        val AngleSlotRegex = AngleSlotPattern.toRegex()
     }
 }
 
@@ -70,7 +66,7 @@ interface IExemplar {
 // Triggerable captures the utterance side understanding, mainly utterance segmentation, its owner.
 interface Triggerable {
     val utterance: String
-    val owner: String?
+    var owner: String?
 }
 
 /**
@@ -181,20 +177,21 @@ open class DuContext(
         return emptyList()
     }
 
-    fun expectedEntityType(bot: DUMeta) : List<String> {
+
+    fun expectedEntityType(expectations: DialogExpectations) : List<String> {
         if (expectations.activeFrames.isEmpty()) return listOf()
         if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
 
         // TODO: handle the a.b.c case
         val resList = mutableListOf<String>()
         if (expectations.expected!!.slot != null) {
-            val expectedType = bot.getSlotType(expectations.expected!!.frame, expectations.expected!!.slot!!)
+            val expectedType = duMeta!!.getSlotType(expectations.expected!!.frame, expectations.expected!!.slot!!)
             resList.add(expectedType)
         } else {
             // Found the frame that has the slot
             for (active in expectations.activeFrames.reversed()) {
                 if (active.slot != null) {
-                    val activeType = bot.getSlotType(active.frame, active.slot)
+                    val activeType = duMeta!!.getSlotType(active.frame, active.slot)
                     resList.add(activeType)
                 }
             }
@@ -202,7 +199,7 @@ open class DuContext(
         return resList
     }
 
-    fun cleanUp() {
+    fun cleanUp(expectations: DialogExpectations) {
         val expectedValues = mutableListOf<ValueInfo>()
         for (expectation in expectations.activeFrames) {
             if (!expectation.slot.isNullOrEmpty()) {
@@ -213,6 +210,7 @@ open class DuContext(
                 }
             }
         }
+
         val keysToBeRemoved = mutableListOf<String>()
         for (key in entityTypeToValueInfoMap.keys) {
             val values = entityTypeToValueInfoMap[key]
@@ -375,6 +373,15 @@ interface IStateTracker : IExtension {
         val userSession = UserSession(user)
         return convert(userSession, putterance, expectations)
     }
+
+    fun isSystemFrame(frame: String?): Boolean {
+        return frame?.startsWith("io.opencui.core") ?: false
+    }
+
+    fun isCrudFrame(frame: String?): Boolean {
+        return frame == SlotUpdate
+    }
+
 
     fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**

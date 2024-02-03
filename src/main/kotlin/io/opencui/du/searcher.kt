@@ -63,7 +63,11 @@ data class ScoredDocument(
 
 ) : Triggerable, IExemplar {
     override val template: String = utterance
-    override val owner : String? = ownerFrame
+    override var owner : String? = ownerFrame
+
+    override val slotNames = IExemplar.AngleSlotRegex
+        .findAll(template)
+        .map { it.value.substring(1, it.value.length - 1) }.toList()
 
     // whether it is exact match.
     override var exactMatch: Boolean = false
