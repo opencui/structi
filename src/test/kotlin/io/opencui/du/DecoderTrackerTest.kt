@@ -1349,8 +1349,6 @@ class DecoderTrackerTest : DuTestHelper() {
 
         val frameEvents1 = stateTracker.convert("s", "not really", DialogExpectations(*expected.toTypedArray()))
         println("frame events: $frameEvents1")
-
-
     }
 
     fun testIStatus01() {

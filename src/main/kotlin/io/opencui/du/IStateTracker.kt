@@ -6,7 +6,6 @@ import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.math.exp
 
 
 // We introduce this interface to bridge the encoder based DU and decoder based DU.
@@ -108,6 +107,8 @@ open class DuContext(
     var tokens : List<BoundToken>? = null
     val previousTokenByChar = mutableMapOf<Int, Int>()
     val nextTokenByChar = mutableMapOf<Int, Int>()
+
+    val expectedFrames = expectations.activeFrames
 
 
     val emapByCharStart by lazy { convert() }
@@ -373,10 +374,13 @@ interface IStateTracker : IExtension {
         return frame?.startsWith("io.opencui.core") ?: false
     }
 
-    fun isCrudFrame(frame: String?): Boolean {
+    fun isUpdateSlot(frame: String?): Boolean {
         return frame == SlotUpdate
     }
 
+    fun isPickValue(frame: String?) : Boolean {
+        return frame == PickValue
+    }
 
     fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**
@@ -455,7 +459,8 @@ interface IStateTracker : IExtension {
         const val KotlinBoolean = "kotlin.Boolean"
         const val KotlinString = "kotlin.String"
         const val SlotUpdateOriginalSlot = "originalSlot"
-
+        const val PickValue = "io.opencui.core.PickValue"
+        const val PagedSelectable = "io.opencui.core.PagedSelectable"
         const val SlotUpdateGenericType = "<T>"
         val IStatusSet = setOf(
             "io.opencui.core.confirmation.IStatus",
