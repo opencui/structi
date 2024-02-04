@@ -261,15 +261,21 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             }
 
             // Test whether it is crud, if so we hand them separately
-            val isCrud = isCrudFrame(triggerable.owner)
-            if (isCrud) {
-                // now we handle slot update not working yet.
-                if (triggerable.owner == IStateTracker.SlotUpdate) {
-                    handleSlotUpdate(duContext, triggerable)
+            if (isPickValue(triggerable.owner)) {
+                val expectedFrames = duContext.expectedFrames.filter {it.frame == IStateTracker.PagedSelectable}
+                val events = handleExpectations(duContext, expectedFrames, triggerable)
+                if (!events.isNullOrEmpty()) {
+                    logger.debug("getting $events for $utterance in handleExpectations")
+                    // This is an opportunity for filtering the events again.
+                    // if event agrees with one of expectation, and
+                    results.addAll(events)
                 }
+            } else if (isUpdateSlot(triggerable.owner)) {
+                // now we handle slot update not working yet.
+                handleSlotUpdate(duContext, triggerable)
             } else {
                 // now we handle the no slot update cases.
-                val events = handleExpectations(duContext, triggerable)
+                val events = handleExpectations(duContext, duContext.expectedFrames, triggerable)
                 if (!events.isNullOrEmpty()) {
                     logger.debug("getting $events for $utterance in handleExpectations")
                     // This is an opportunity for filtering the events again.
@@ -384,14 +390,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    private fun handleExpectations(duContext: DuContext, triggerable: Triggerable): List<FrameEvent>? {
+    private fun handleExpectations(duContext: DuContext, expectedFrames: List<ExpectedFrame>, triggerable: Triggerable): List<FrameEvent>? {
         val utterance = duContext.utterance
-        val expectations = duContext.expectations
 
         // Ideally, we should pay attention to
         val results = mutableListOf<FrameEvent>()
         val lowResults = mutableListOf<FrameEvent>()
-        for (expectedFrame in expectations.activeFrames) {
+        for (expectedFrame in expectedFrames) {
             val frame = expectedFrame.frame
             val slot = expectedFrame.slot
 
