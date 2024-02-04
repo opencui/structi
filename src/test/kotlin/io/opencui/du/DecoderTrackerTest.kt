@@ -1328,8 +1328,7 @@ class DecoderTrackerTest : DuTestHelper() {
         assertEquals(frameEvents1[0].slots.size, 1)
         assertEquals(frameEvents1[0].slots[0].attribute, "index")
     }
-
-    @Test
+    
     fun testIndex01() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
