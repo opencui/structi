@@ -8,8 +8,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import java.util.*
-import java.util.regex.Pattern
-
 
 
 /**
@@ -321,9 +319,11 @@ data class Exemplar(
     override val contextFrame: String? = null,
     val contextSlot: String? = null
 ) : IExemplar {
-    override val slotNames = IExemplar.AngleSlotRegex
+    override val slotNames by lazy {
+        IExemplar.AngleSlotRegex
             .findAll(template)
             .map { it.value.substring(1, it.value.length - 1) }.toList()
+    }
 
     override lateinit var typedExpression: String
 
@@ -341,26 +341,17 @@ data class Exemplar(
     constructor(owner:String, context: ExpressionContext?, label: String?, utterance: String, bot: DUMeta) :
             this(owner, utterance, label, context?.frame, context?.slot)
 
-    fun toMetaExpression(duMeta: DUMeta): String {
-        return buildTypedExpression(template, ownerFrame, duMeta)
-    }
-
     // This should be used for per expectation handling.
-    fun buildTypedExpression(duMeta: DUMeta, expectedFrame: ExpectedFrame? = null): String {
+    fun typedExpression(duMeta: DUMeta): String {
         val nameToTypeMap = mutableMapOf<String, String>()
+        val shouldNotBinding = contextFrame == null || contextSlot == null
         for (slotName in slotNames) {
             val slotMeta = duMeta.getSlotMeta(ownerFrame, slotName)!!
-            if (!slotMeta.isGenericTyped()) {
+            if (!slotMeta.isGenericTyped() || shouldNotBinding) {
                 // not generic type.
                 nameToTypeMap[slotMeta.label] = slotMeta.type!!
             } else {
-                val target =
-                    if (!contextFrame.isNullOrEmpty()) {
-                        Pair(contextFrame, contextSlot!!)
-                    } else {
-                        Pair(expectedFrame!!.frame, expectedFrame!!.slot!!)
-                    }
-                nameToTypeMap[slotMeta.label] = duMeta.getSlotType(target.first, target.second)
+                nameToTypeMap[slotMeta.label] = duMeta.getSlotType(contextFrame!!, contextSlot!!)
             }
         }
 

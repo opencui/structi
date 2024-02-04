@@ -6,7 +6,6 @@ import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.math.exp
 
 
 // We introduce this interface to bridge the encoder based DU and decoder based DU.
@@ -109,6 +108,8 @@ open class DuContext(
     val previousTokenByChar = mutableMapOf<Int, Int>()
     val nextTokenByChar = mutableMapOf<Int, Int>()
 
+    val expectedFrames by lazy { expectations.activeFrames }
+
 
     val emapByCharStart by lazy { convert() }
 
@@ -180,22 +181,17 @@ open class DuContext(
 
     fun expectedEntityType(expectations: DialogExpectations) : List<String> {
         if (expectations.activeFrames.isEmpty()) return listOf()
-        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
 
         // TODO: handle the a.b.c case
         val resList = mutableListOf<String>()
-        if (expectations.expected!!.slot != null) {
-            val expectedType = duMeta!!.getSlotType(expectations.expected!!.frame, expectations.expected!!.slot!!)
-            resList.add(expectedType)
-        } else {
-            // Found the frame that has the slot
-            for (active in expectations.activeFrames.reversed()) {
-                if (active.slot != null) {
-                    val activeType = duMeta!!.getSlotType(active.frame, active.slot)
-                    resList.add(activeType)
-                }
+        // Found the frame that has the slot
+        for (active in expectations.activeFrames.reversed()) {
+            if (active.slot != null) {
+                val activeType = duMeta!!.getSlotType(active.frame, active.slot)
+                resList.add(activeType)
             }
         }
+
         return resList
     }
 
@@ -378,10 +374,13 @@ interface IStateTracker : IExtension {
         return frame?.startsWith("io.opencui.core") ?: false
     }
 
-    fun isCrudFrame(frame: String?): Boolean {
+    fun isUpdateSlot(frame: String?): Boolean {
         return frame == SlotUpdate
     }
 
+    fun isPickValue(frame: String?) : Boolean {
+        return frame == PickValue
+    }
 
     fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**
@@ -460,7 +459,8 @@ interface IStateTracker : IExtension {
         const val KotlinBoolean = "kotlin.Boolean"
         const val KotlinString = "kotlin.String"
         const val SlotUpdateOriginalSlot = "originalSlot"
-
+        const val PickValue = "io.opencui.core.PickValue"
+        const val PagedSelectable = "io.opencui.core.PagedSelectable"
         const val SlotUpdateGenericType = "<T>"
         val IStatusSet = setOf(
             "io.opencui.core.confirmation.IStatus",

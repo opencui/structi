@@ -98,7 +98,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
         val expressions = duMeta.expressionsByFrame[frameType] ?: return -1
         var last = -1
         for (expression in expressions) {
-            val typeExpr = Exemplar.segment(expression.toMetaExpression(context.duMeta!!), frameType)
+            val typeExpr = Exemplar.segment(expression.typedExpression(context.duMeta!!), frameType)
             val res = coverFind(uStart, typeExpr)
             if (res > last) last = res
         }
