@@ -196,4 +196,18 @@ class RecognizerTest : DuTestHelper() {
         println(nzone)
         assertEquals(ozone, nzone)
     }
+
+    @Test
+    fun testparse() {
+        val s = "the first one"
+        val emap = mutableMapOf<String, MutableList<ValueInfo>>()
+        recognizer.parse(s, listOf(), emap)
+        println(emap)
+        assertEquals(emap.size, 5)
+
+        emap.clear()
+        recognizer.parse("the first one", listOf("io.opencui.core.Ordinal"), emap)
+        println(emap)
+        assertEquals(emap.size, 6)
+    }
 }

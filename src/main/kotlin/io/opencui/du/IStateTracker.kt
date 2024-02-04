@@ -180,22 +180,17 @@ open class DuContext(
 
     fun expectedEntityType(expectations: DialogExpectations) : List<String> {
         if (expectations.activeFrames.isEmpty()) return listOf()
-        if (expectations.expected?.slot.isNullOrEmpty()) return listOf()
 
         // TODO: handle the a.b.c case
         val resList = mutableListOf<String>()
-        if (expectations.expected!!.slot != null) {
-            val expectedType = duMeta!!.getSlotType(expectations.expected!!.frame, expectations.expected!!.slot!!)
-            resList.add(expectedType)
-        } else {
-            // Found the frame that has the slot
-            for (active in expectations.activeFrames.reversed()) {
-                if (active.slot != null) {
-                    val activeType = duMeta!!.getSlotType(active.frame, active.slot)
-                    resList.add(activeType)
-                }
+        // Found the frame that has the slot
+        for (active in expectations.activeFrames.reversed()) {
+            if (active.slot != null) {
+                val activeType = duMeta!!.getSlotType(active.frame, active.slot)
+                resList.add(activeType)
             }
         }
+
         return resList
     }
 

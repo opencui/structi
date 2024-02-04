@@ -671,6 +671,12 @@ public object ens : LangPack {
       DUSlotMeta(label = "context", isMultiValue = true, type = "io.opencui.core.IFrame", isHead =
           false, triggers = listOf()),
       ),
+      "io.opencui.core.PickValue" to listOf(
+      DUSlotMeta(label = "reference", isMultiValue = false, type = "T", isHead = false, triggers =
+          listOf("""
+      |reference
+      |""".trimMargin(), )),
+      ),
       "io.opencui.core.da.SlotOfferZepInform" to listOf(
       DUSlotMeta(label = "slotName", isMultiValue = false, type = "kotlin.String", isHead = false,
           triggers = listOf()),
@@ -1251,8 +1257,9 @@ public data class Agent(
 
 class DecoderTrackerTest : DuTestHelper() {
     val agent = Agent()
+    // val stateTracker = agent.stateTracker
 
-    val stateTracker = agent.stateTracker
+    val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
 
     // val stateTracker = BertStateTracker(agent.duMeta)
     
@@ -1322,6 +1329,7 @@ class DecoderTrackerTest : DuTestHelper() {
         assertEquals(frameEvents1[0].slots[0].attribute, "index")
     }
 
+    @Test
     fun testIndex01() {
         val expected = listOf(
             ExpectedFrame(frame="me.test.foodOrderingModule.Dish", slot="name"),
@@ -1333,7 +1341,6 @@ class DecoderTrackerTest : DuTestHelper() {
     }
 
 
-    @Test
     fun testIStatus() {
         val expected = listOf(
             ExpectedFrame(frame="io.opencui.core.HasMore", slot="status"),
