@@ -46,23 +46,17 @@ data class TriggerDecision(
     override var owner: String?,  // this could be empty and can be updated by exact match.
     val evidence: List<Exemplar>) : Triggerable {
 
-    fun exactMatch(duContext: DuContext): DuContext {
-        // Now we conduct exact match so that we can
-        if (owner == null) {
-            // Prepare for exact match.
-            evidence.map {
-                it.typedExpression = it.typedExpression(duContext.duMeta!!)
-            }
-
-            val matcher = NestedMatcher(duContext)
-            val candidates = evidence
-            candidates.map { matcher.markMatch(it) }
-            val exactMatches = candidates.find { it.exactMatch }
-            if (exactMatches != null) {
-                owner = exactMatches.ownerFrame
-            }
+    fun exactMatch(duContext: DuContext) : String? {
+        // Prepare for exact match.
+        evidence.map {
+            it.typedExpression = it.typedExpression(duContext.duMeta!!)
         }
-        return duContext
+
+        val matcher = NestedMatcher(duContext)
+        val candidates = evidence
+        candidates.map { matcher.markMatch(it) }
+        val exactMatches = candidates.find { it.exactMatch }
+        return exactMatches?.ownerFrame
     }
 }
 
@@ -258,6 +252,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
             // We always handle expectations first.
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
+
+            val exactOwner = triggerable.exactMatch(duContext)
+
+            if (exactOwner != triggerable.owner && exactOwner != null) {
+                logger.debug("The exactOnwer is different from guessed owner.")
+                triggerable.owner = exactOwner
+            }
 
             // Test whether it is crud, if so we hand them separately
             val isCrud = isCrudFrame(triggerable.owner)
