@@ -108,7 +108,7 @@ open class DuContext(
     val previousTokenByChar = mutableMapOf<Int, Int>()
     val nextTokenByChar = mutableMapOf<Int, Int>()
 
-    val expectedFrames = expectations.activeFrames
+    val expectedFrames by lazy { expectations.activeFrames }
 
 
     val emapByCharStart by lazy { convert() }
