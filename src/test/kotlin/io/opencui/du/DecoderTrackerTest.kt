@@ -1252,7 +1252,7 @@ public data class Agent(
 class DecoderTrackerTest : DuTestHelper() {
     val agent = Agent()
 
-    val stateTracker = DecoderStateTracker(agent.duMeta, "agent")
+    val stateTracker = agent.stateTracker
 
     // val stateTracker = BertStateTracker(agent.duMeta)
     
@@ -1333,6 +1333,7 @@ class DecoderTrackerTest : DuTestHelper() {
     }
 
 
+    @Test
     fun testIStatus() {
         val expected = listOf(
             ExpectedFrame(frame="io.opencui.core.HasMore", slot="status"),
