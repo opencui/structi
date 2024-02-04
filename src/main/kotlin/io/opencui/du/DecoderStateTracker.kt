@@ -45,13 +45,13 @@ data class TriggerDecision(
     override val utterance: String,
     override var owner: String?,  // this could be empty and can be updated by exact match.
     val evidence: List<Exemplar>) : Triggerable {
-    fun exactMatch(duContext: DuContext, expectation: ExpectedFrame): DuContext {
 
+    fun exactMatch(duContext: DuContext): DuContext {
         // Now we conduct exact match so that we can
         if (owner == null) {
             // Prepare for exact match.
             evidence.map {
-                it.typedExpression = it.buildTypedExpression(duContext.duMeta!!, expectation)
+                it.typedExpression = it.typedExpression(duContext.duMeta!!)
             }
 
             val matcher = NestedMatcher(duContext)
@@ -62,7 +62,6 @@ data class TriggerDecision(
                 owner = exactMatches.ownerFrame
             }
         }
-
         return duContext
     }
 }
