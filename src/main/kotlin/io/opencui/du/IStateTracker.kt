@@ -21,6 +21,9 @@ interface IExemplar {
     // whether there are free generic slot.
     val slotNames : List<String>
 
+    // this is for generic slot (slot with generic type)
+    var guessedSlot: DUSlotMeta?
+
     // var isBound : Boolean
 
     fun clone(): IExemplar
@@ -88,8 +91,6 @@ data class ExpectedFrame(
         return (slotType in IStateTracker.IStatusSet) || slotType == IStateTracker.KotlinBoolean
     }
 }
-
-
 
 /**
  * This can be used to capture the intermediate result from understanding.
@@ -398,7 +399,6 @@ interface IStateTracker : IExtension {
      */
     fun recycle()
 
-
     /**
      * This is used to get new slot meta for slot update.
      */
@@ -425,17 +425,17 @@ interface IStateTracker : IExtension {
         return slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
     }
 
-    fun isSlotMatched(agentMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
+    fun isSlotMatched(duMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
         val spanTargetSlot = valueInfo.value.toString()
         val parts = spanTargetSlot.split(".")
         val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
         val slotName = parts.last()
-        val slotMeta = agentMeta.getSlotMeta(spanTargetFrame, slotName)!!
-        if (spanTargetSlot.startsWith(activeFrame) && agentMeta.isEntity(slotMeta.type!!)) return true
+        val slotMeta = duMeta.getSlotMeta(spanTargetFrame, slotName)!!
+        if (spanTargetSlot.startsWith(activeFrame) && duMeta.isEntity(slotMeta.type!!)) return true
 
-        val spanTargetFrameHasHead = agentMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
+        val spanTargetFrameHasHead = duMeta.getSlotMetas(spanTargetFrame).any { it.isHead }
         // now we need to figure out whether active Frame as a frame slot of this time.
-        val matchedFrameSlots = agentMeta.getSlotMetas(activeFrame).filter { it.type == spanTargetFrame }
+        val matchedFrameSlots = duMeta.getSlotMetas(activeFrame).filter { it.type == spanTargetFrame }
         return spanTargetFrameHasHead && matchedFrameSlots.size == 1
     }
 
