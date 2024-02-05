@@ -332,6 +332,7 @@ data class Exemplar(
 
     // The next two are used for potential exect match.
     override var possibleExactMatch: Boolean = false
+    override var guessedSlot: DUSlotMeta? = null
 
     override fun clone(): IExemplar {
         return this.copy()

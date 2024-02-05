@@ -74,7 +74,7 @@ data class ScoredDocument(
 
     // The next two are used for potential exect match.
     override var possibleExactMatch: Boolean = false
-    var guessedSlot: DUSlotMeta? = null
+    override var guessedSlot: DUSlotMeta? = null
 
     override fun clone(): IExemplar { return this.copy() }
 

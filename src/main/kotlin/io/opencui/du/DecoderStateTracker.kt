@@ -262,7 +262,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
             // Test whether it is crud, if so we hand them separately
             if (isPickValue(triggerable.owner)) {
-                val expectedFrames = duContext.expectedFrames.filter {it.frame == IStateTracker.PagedSelectable}
+                val expectedFrames = duContext.expectedFrames.filter {it.slot != null }
                 val events = handleExpectations(duContext, expectedFrames, triggerable)
                 if (!events.isNullOrEmpty()) {
                     logger.debug("getting $events for $utterance in handleExpectations")
@@ -306,7 +306,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
     }
 
-    fun handleSlotUpdate(duContext: DuContext, triggerable: Triggerable) : List<FrameEvent>? {
+    fun handleSlotUpdate(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
          logger.debug("enter slot update.")
          // We need to figure out which slot user are interested in first.
          val slotTypeSpanInfo = duContext.entityTypeToValueInfoMap[IStateTracker.SlotType]
@@ -314,8 +314,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
          if (slotTypeSpanInfo != null) {
              // We assume the expectation is stack, with most recent frames in the end
              for (activeFrame in duContext.expectations.activeFrames) {
-                 val matchedSlotList = emptyList<ValueInfo>() //.filter { isSlotMatched(it, activeFrame.frame) }
-                 if (matchedSlotList.isEmpty()) {
+                 val matchedSlotList = slotTypeSpanInfo.filter { isSlotMatched(duMeta, it, activeFrame.frame) }
+                 if (matchedSlotList.isNullOrEmpty()) {
                      continue
                  }
 
@@ -345,18 +345,19 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
          } else {
              // TODO: now we need to handle the case for: change to tomorrow
              // For now we assume there is only one generic type.
-             val bestCandidate = triggerable.owner
-             // val targetSlot = bestCandidate.guessedSlot!!
-             // return fillSlotUpdate(duContext, targetSlot)
-             return emptyList()
+             val bestCandidate = triggerable.evidence.find { it.guessedSlot != null}
+             if (bestCandidate != null) {
+                 return fillSlotUpdate(duContext, bestCandidate.guessedSlot!!)
+             }
          }
         return emptyList()
     }
 
-    fun fillSlotUpdate(duContext: DuContext, targetSlot: String) {
-
+    private fun fillSlotUpdate(duContext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+        val topLevelFrameType = IStateTracker.SlotUpdate
+        val slotMapAft = slotTransformBySlotUpdate(duContext, targetSlot)
+        return fillSlots(duContext, slotMapAft, topLevelFrameType, null)
     }
-
 
     fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
@@ -460,10 +461,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
     }
 
-    fun fillSlotUpdate(duContext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
-        return listOf()
-    }
-
     // This need to called if status is expected.
     private fun handleBooleanStatusImpl(boolValue: YesNoResult, valueChoices: List<String>): List<FrameEvent>? {
         // if we have extractive match.
@@ -509,29 +506,33 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
     }
 
+
     /**
      * fillSlots is used to create entity event.
      */
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = when(topLevelFrameType) {
-            // IStateTracker.SlotUpdate -> slotTransformBySlotUpdate(ducontext, )
-            else ->
-                duMeta
-                .getNestedSlotMetas(topLevelFrameType, emptyList())
-                .filter { it.value.triggers.isNotEmpty() }
-        }
+        val slotMap = duMeta
+            .getNestedSlotMetas(topLevelFrameType, emptyList())
+            .filter { it.value.triggers.isNotEmpty() }
 
         if (slotMap.isEmpty()) {
             logger.debug("Found no slots for $topLevelFrameType")
             return emptyList()
         }
+        return fillSlots(ducontext, slotMap, topLevelFrameType, focusedSlot)
+    }
 
+    fun fillSlots(
+        ducontext: DuContext,
+        slotMetaMap: Map<String, DUSlotMeta>,
+        topLevelFrameType: String,
+        focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         val valuesFound = mutableMapOf<String, List<String>>()
 
-        val slots = slotMap.values.map { it.asMap() }.toList()
-        for (slot in slotMap.values) {
+        val slots = slotMetaMap.values.map { it.asMap() }.toList()
+        for (slot in slotMetaMap.values) {
             val slotType = slot.type
             if (slotType != null) {
                 val slotLabel = slot.label
@@ -562,7 +563,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val entityEvents = mutableListOf<EntityEvent>()
         // Let us try to merge the evidence from recognizer.
         val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(topLevelFrameType, focusedSlot)
-        for (slot in slotMap.values) {
+        for (slot in slotMetaMap.values) {
             val slotType = slot.type!!
             val slotName = slot.label
 

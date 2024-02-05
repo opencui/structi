@@ -134,8 +134,8 @@ class NestedMatcher(val context: DuContext) : Matcher {
                         if (matched) {
                             // TODO: how do we handle the
                             document.possibleExactMatch = true
-                            // assert(document.ownerFrame == "io.opencui.core.SlotUpdate")
-                            // document.guessedSlot = slot
+                            assert(document.ownerFrame == "io.opencui.core.SlotUpdate")
+                            document.guessedSlot = slot
                             // find the first one and escape.
                             break
                         }
