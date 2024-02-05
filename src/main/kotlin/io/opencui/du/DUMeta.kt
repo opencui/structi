@@ -23,6 +23,10 @@ data class DUSlotMeta(
         val isMultiValue: Boolean? = false,
         val parent: String? = null,
         val isHead: Boolean = false) {
+
+    // Only direct filled slot does not need description, otherwise.
+    var isDirectFilled: Boolean = false
+
     // Used to capture whether this slot is mentioned in the expression.
     var isMentioned: Boolean = false
     var prefixes: Set<String>?=null

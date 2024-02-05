@@ -1,6 +1,5 @@
 package io.opencui.core
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
@@ -12,6 +11,9 @@ import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
 
+
+
+data class BadConfiguration(val error: String) : Exception() {}
 
 
 /**

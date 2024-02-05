@@ -293,8 +293,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val duContext = buildDuContext(session, triggerable.utterance, expectations)
 
             logger.debug("handling $triggerables for utterance: $utterance")
-            val focusedSlot: String? = null
-            val events = fillSlots(duContext, triggerable.owner!!, focusedSlot)
+            val events = fillSlots(duContext, triggerable.owner!!, null)
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
         }
@@ -512,15 +511,25 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
      */
     fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = duMeta
+        // We only need description for slots with no direct fill.
+        val slotMapBef = duMeta
             .getNestedSlotMetas(topLevelFrameType, emptyList())
-            .filter { it.value.triggers.isNotEmpty() }
+            .filter { !it.value.isDirectFilled }
 
-        if (slotMap.isEmpty()) {
+        // if not direct filled,
+        val slotMapAft = slotMapBef.filter { it.value.triggers.isNotEmpty()  }
+
+        if (slotMapBef.isEmpty()) {
             logger.debug("Found no slots for $topLevelFrameType")
-            return emptyList()
+            return listOf(FrameEvent.build(topLevelFrameType))
         }
-        return fillSlots(ducontext, slotMap, topLevelFrameType, focusedSlot)
+
+        if (slotMapBef.size != slotMapAft.size) {
+            val slotsMissing = slotMapBef.filter { it.value.triggers.isEmpty() }.map {it.key }.toList()
+            throw BadConfiguration("Missing triggers for slots $slotsMissing on $topLevelFrameType")
+        }
+
+        return fillSlots(ducontext, slotMapAft, topLevelFrameType, focusedSlot)
     }
 
     fun fillSlots(
