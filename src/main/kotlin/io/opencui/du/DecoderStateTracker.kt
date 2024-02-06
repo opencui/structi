@@ -46,6 +46,8 @@ data class TriggerDecision(
     override var owner: String?,  // this could be empty and can be updated by exact match.
     val evidence: List<Exemplar>) : Triggerable {
 
+    lateinit  var duContext: DuContext
+
     fun exactMatch(duContext: DuContext) : String? {
         // Prepare for exact match.
         evidence.map {
@@ -241,24 +243,28 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val triggerables = detectTriggerables(putterance, expectations)
         logger.debug("getting $triggerables for utterance: $putterance expectations $expectations")
 
-        // need to be handled under context.
-        val needToHandle = triggerables.filter { it.owner == null || isSystemFrame(it.owner!!) }
+        // Now we apply recognizers on every triggerable.
+        for (triggerable in triggerables) {
+            triggerable.duContext = buildDuContext(session, triggerable.utterance, expectations)
+            if (triggerable.owner == null) {
+                val exactOwner = triggerable.exactMatch(triggerable.duContext)
+
+                if (exactOwner != triggerable.owner && exactOwner != null) {
+                    logger.debug("The exactOnwer ${exactOwner} different from guessed owner ${triggerable.owner}.")
+                    triggerable.owner = exactOwner
+                }
+            }
+        }
+
+        // Partition the triggeralbe to payload and need to be handled under context.
+        val (needToHandle, leftToHandle) = triggerables.partition { it.owner == null || isSystemFrame(it.owner!!) }
 
         // TODO: we might need to use exact match to make the hotfix work later.
         // We only goes into this when we have expectation, but the truth is we always have expectation.
         val results = mutableListOf<FrameEvent>()
         for (triggerable in needToHandle) {
             val utterance = triggerable.utterance
-
-            // We always handle expectations first.
-            val duContext = buildDuContext(session, triggerable.utterance, expectations)
-
-            val exactOwner = triggerable.exactMatch(duContext)
-
-            if (exactOwner != triggerable.owner && exactOwner != null) {
-                logger.debug("The exactOnwer is different from guessed owner.")
-                triggerable.owner = exactOwner
-            }
+            val duContext = triggerable.duContext
 
             // Test whether it is crud, if so we hand them separately
             if (isPickValue(triggerable.owner)) {
@@ -286,11 +292,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
 
         // The rest should be payload triggerables.
-        val leftToHandle = triggerables.filter { it.owner != null && !isSystemFrame(it.owner!!) }
         // If there are multiple triggerables, we need to handle them one by one.
         for (triggerable in leftToHandle) {
             val utterance = triggerable.utterance
-            val duContext = buildDuContext(session, triggerable.utterance, expectations)
+            val duContext = triggerable.duContext
 
             logger.debug("handling $triggerables for utterance: $utterance")
             val events = fillSlots(duContext, triggerable.owner!!, null)
