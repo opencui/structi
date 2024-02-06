@@ -405,7 +405,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             if (expectedFrame.isBooleanSlot(duMeta)) {
                 // The expectation top need to be binary and have prompt.
                 val question = expectedFrame.prompt?.firstOrNull()?.templates?.pick() ?: ""
-
+                val booleanEvents = mutableListOf<FrameEvent>()
                 // Hard binding to boolean value.
                 val boolValue = duContext.getEntityValue(IStateTracker.KotlinBoolean)
                 if (boolValue != null) {
@@ -416,7 +416,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                         else -> YesNoResult.Irrelevant
                     }
                     val events = handleBooleanStatus(duContext, yesNoFlag)
-                    if (events != null) results.addAll(events)
+                    if (events != null) booleanEvents.addAll(events)
                 }
 
                 val status = nluService.yesNoInference(context, utterance, listOf<String>(question))[0]
@@ -427,8 +427,11 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     // TODO(sean): should we start to pay attention to the order of the dialog expectation.
                     // Also the stack structure of dialog expectation is not used.
                     val events = handleBooleanStatus(duContext, status)
-                    if (events != null) results.addAll(events)
+                    if (events != null) booleanEvents.addAll(events)
                 }
+
+                // There is no reason to have multiple yes/no from the same utterance.
+                results.addAll(booleanEvents.distinct())
             } else if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 // Now w handle the string slot, this is really low priority.
                 // only where owner == null
