@@ -249,8 +249,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             if (triggerable.owner == null) {
                 val exactOwner = triggerable.exactMatch(triggerable.duContext)
 
-                if (exactOwner != triggerable.owner && exactOwner != null) {
-                    logger.debug("The exactOnwer ${exactOwner} different from guessed owner ${triggerable.owner}.")
+                if (exactOwner != null) {
+                    logger.debug("The exactOwner $exactOwner different from guessed owner null.")
                     triggerable.owner = exactOwner
                 }
             }
@@ -269,7 +269,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             // Test whether it is crud, if so we hand them separately
             if (isPickValue(triggerable.owner)) {
                 val expectedFrames = duContext.expectedFrames.filter {it.slot != null }
-                val events = handleExpectations(duContext, expectedFrames, triggerable)
+                val events = handleExpectations(triggerable, expectedFrames)
                 if (!events.isNullOrEmpty()) {
                     logger.debug("getting $events for $utterance in handleExpectations")
                     // This is an opportunity for filtering the events again.
@@ -281,7 +281,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 handleSlotUpdate(duContext, triggerable)
             } else {
                 // now we handle the no slot update cases.
-                val events = handleExpectations(duContext, duContext.expectedFrames, triggerable)
+                val events = handleExpectations(triggerable, duContext.expectedFrames)
                 if (!events.isNullOrEmpty()) {
                     logger.debug("getting $events for $utterance in handleExpectations")
                     // This is an opportunity for filtering the events again.
@@ -395,7 +395,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    private fun handleExpectations(duContext: DuContext, expectedFrames: List<ExpectedFrame>, triggerable: Triggerable): List<FrameEvent>? {
+    private fun handleExpectations(triggerable: TriggerDecision, expectedFrames: List<ExpectedFrame>): List<FrameEvent>? {
+        val duContext = triggerable.duContext
         val utterance = duContext.utterance
 
         // Ideally, we should pay attention to
