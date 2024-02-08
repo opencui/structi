@@ -76,9 +76,17 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val createdSession = ChatbotLoader
             .findChatbot(botInfo)
             .createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
-            .apply {
-                sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, this)
-            }
+
+        // If the channel create User
+        if (channel.isVerfied) {
+            createdSession.name = channel.name
+            createdSession.phone = channel.phone
+            createdSession.email = channel.email
+            createdSession.isVerfied = true
+        }
+
+        sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, createdSession)
+
         logger.info("create session with bot version: ${createdSession.chatbot?.agentBranch}")
         return createdSession
     }
