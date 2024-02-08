@@ -71,16 +71,16 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
 
     fun createUserSession(channel: IUserIdentifier, botInfo: BotInfo): UserSession {
         sessionStore.deleteSession(channel.channelId(), channel.userId!!, botInfo)
-        val createdSession = ChatbotLoader
-            .findChatbot(botInfo)
-            .createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
+        val bot = ChatbotLoader.findChatbot(botInfo)
+        val createdSession = bot.createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
 
         // If the channel create User
         if (channel.isVerfied) {
-            createdSession.name = channel.name
-            createdSession.phone = channel.phone
-            createdSession.email = channel.email
-            createdSession.isVerfied = true
+            // We fetch these info when we first create user session.
+            val identifier = bot.getChannel(channel.channelLabel!!)!!.getIdentifier(botInfo, channel.userId!!)
+            createdSession.name = identifier.name
+            createdSession.phone = identifier.phone
+            createdSession.email = identifier.email
         }
 
         sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, createdSession)
