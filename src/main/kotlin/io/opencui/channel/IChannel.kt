@@ -2,6 +2,7 @@ package io.opencui.channel
 
 import io.opencui.core.*
 import io.opencui.core.user.IUserIdentifier
+import io.opencui.core.user.IUserProfile
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 
@@ -10,8 +11,9 @@ interface IChannel : IExtension {
 
     // This should be call when session is new, so that we can fill the session with some
     // initial value about user.
-    // This is not used right now.
-    fun getProfile(botInfo: BotInfo, id: String): IUserIdentifier?
+    // return null if the channel is not verified by default. App level login can be built on
+    // top of this.
+    fun getProfile(botInfo: BotInfo, id: String): IUserProfile?
 
     data class Status(val message: String)
 
