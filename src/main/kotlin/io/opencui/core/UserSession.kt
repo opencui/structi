@@ -188,9 +188,9 @@ data class UserSession(
 ): LinkedHashMap<String, Any>(), Serializable, StateChart, IUserIdentifier {
 
     override var isVerfied: Boolean = false
-    override var name: String? = null
+    override var name: PersonName? = null
     override var phone: PhoneNumber? = null
-    override var email: String? = null
+    override var email: Email? = null
 
     constructor(u: IUserIdentifier, c: IChatbot?): this(u.userId, u.channelType, u.channelLabel, c)
 
