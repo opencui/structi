@@ -2,11 +2,9 @@ package io.opencui.sessionmanager
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
-import io.opencui.core.da.ForwardDialogAct
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
-import io.opencui.serialization.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -76,9 +74,17 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val createdSession = ChatbotLoader
             .findChatbot(botInfo)
             .createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
-            .apply {
-                sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, this)
-            }
+
+        // If the channel create User
+        if (channel.isVerfied) {
+            createdSession.name = channel.name
+            createdSession.phone = channel.phone
+            createdSession.email = channel.email
+            createdSession.isVerfied = true
+        }
+
+        sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, createdSession)
+
         logger.info("create session with bot version: ${createdSession.chatbot?.agentBranch}")
         return createdSession
     }

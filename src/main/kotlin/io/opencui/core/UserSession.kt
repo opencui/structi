@@ -13,7 +13,6 @@ import io.opencui.core.user.UserIdentifier
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
-import io.opencui.core.user.IUserProfile
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
@@ -186,10 +185,9 @@ data class UserSession(
     override var channelLabel: String? = null,
     @Transient @JsonIgnore var chatbot: IChatbot? = null,
 
-): LinkedHashMap<String, Any>(), Serializable, StateChart, IUserIdentifier, IUserProfile{
+): LinkedHashMap<String, Any>(), Serializable, StateChart, IUserIdentifier {
 
     override var isVerfied: Boolean = false
-    override var canBeVerifiedBy: String? = null
     override var name: String? = null
     override var phone: PhoneNumber? = null
     override var email: String? = null
@@ -202,9 +200,6 @@ data class UserSession(
     override val events = mutableListOf<FrameEvent>()
 
     val userIdentifier: IUserIdentifier
-        get() = this
-
-    val userProfile: IUserProfile
         get() = this
 
     fun getLocale(): Locale {

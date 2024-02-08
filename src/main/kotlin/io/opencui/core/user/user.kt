@@ -13,10 +13,11 @@ interface IUserIdentifier {
     var sessionId: String?
     var messageId: String?
 
-    // return whether the user is verified.
+    // return whether the user is verified, this should be initialized by channel.
     var isVerfied: Boolean
-    // return whether user/channel can be login, can be configured on the channel
-    var canBeVerifiedBy: String?
+    var name: String?
+    var phone: PhoneNumber?
+    var email: String?
 
     fun channelId() : String {
         return if (channelLabel == null) channelType!! else "$channelType+$channelLabel"
@@ -41,23 +42,15 @@ interface IUserIdentifier {
 // Support need profile, omnichannel need profile, and bot need profile for payment.
 // For omnichannel, the key is uuid which can be verified phone or email.
 // For bot/support, phone or email can be useful.
-interface IUserProfile: IUserIdentifier {
-    var name: String?
-    var phone: PhoneNumber?
-    var email: String?
-}
-
 data class UserInfo(
     override var channelType: String?,
     override var userId: String?,
     override var channelLabel: String?
-) : IUserProfile, HashMap<String, Any>() {
+) : IUserIdentifier, HashMap<String, Any>() {
     override var sessionId: String? = null
     override var messageId: String? = null
 
     override var isVerfied: Boolean = false
-    override var canBeVerifiedBy: String? = null
-
     override var name: String? = null
     override var phone: PhoneNumber? = null
     override var email: String? = null
