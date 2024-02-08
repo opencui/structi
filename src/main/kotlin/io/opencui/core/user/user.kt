@@ -34,7 +34,7 @@ data class UserInfo(
     override var channelType: String?,
     override var userId: String?,
     override var channelLabel: String?,
-    override var isVerfied: Boolean = false
+    override var isVerfied: Boolean = true
 ) : IUserIdentifier, HashMap<String, Any>() {
     override var sessionId: String? = null
     override var messageId: String? = null
