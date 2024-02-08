@@ -7,7 +7,7 @@ import io.opencui.serialization.JsonObject
 
 interface IChannel : IExtension {
     val info: Configuration?
-Id
+
     fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier
 
     data class Status(val message: String)
