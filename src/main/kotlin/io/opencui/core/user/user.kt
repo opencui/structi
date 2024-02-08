@@ -2,7 +2,6 @@ package io.opencui.core.user
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
-import io.opencui.serialization.Json
 import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
@@ -16,9 +15,9 @@ interface IUserIdentifier {
     var messageId: String?
 
     // return whether the user is verified, this should be initialized by channel.
-    var name: String?
+    var name: PersonName?
     var phone: PhoneNumber?
-    var email: String?
+    var email: Email?
 
     fun channelId() : String {
         return if (channelLabel == null) channelType!! else "$channelType+$channelLabel"
@@ -40,10 +39,9 @@ data class UserInfo(
     override var sessionId: String? = null
     override var messageId: String? = null
 
-
-    override var name: String? = null
+    override var name: PersonName? = null
     override var phone: PhoneNumber? = null
-    override var email: String? = null
+    override var email: Email? = null
 
     init {
         // safeguard for over fashioned channelType, eventually should go away.
