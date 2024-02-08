@@ -2,40 +2,28 @@ package io.opencui.core.user
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
-import io.opencui.serialization.Json
 import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
+    // TODO: should we make this val instead?
     var userId: String?
     var channelType: String?
     var channelLabel: String?
+    var isVerfied: Boolean
 
     var sessionId: String?
     var messageId: String?
 
     // return whether the user is verified, this should be initialized by channel.
-    var isVerfied: Boolean
-    var name: String?
+    var name: PersonName?
     var phone: PhoneNumber?
-    var email: String?
+    var email: Email?
 
     fun channelId() : String {
         return if (channelLabel == null) channelType!! else "$channelType+$channelLabel"
     }
     fun uuid(): String {
         return "c|$channelType|$channelLabel|$userId"
-    }
-
-    fun toJson() : String {
-        return Json.encodeToString(
-            mapOf(
-                "userId" to userId,
-                "channelType" to channelType,
-                "channelLabel" to channelLabel,
-                "seessionId" to sessionId,
-                "messageId" to messageId
-            )
-        )
     }
 }
 
@@ -45,15 +33,15 @@ interface IUserIdentifier {
 data class UserInfo(
     override var channelType: String?,
     override var userId: String?,
-    override var channelLabel: String?
+    override var channelLabel: String?,
+    override var isVerfied: Boolean = false
 ) : IUserIdentifier, HashMap<String, Any>() {
     override var sessionId: String? = null
     override var messageId: String? = null
 
-    override var isVerfied: Boolean = false
-    override var name: String? = null
+    override var name: PersonName? = null
     override var phone: PhoneNumber? = null
-    override var email: String? = null
+    override var email: Email? = null
 
     init {
         // safeguard for over fashioned channelType, eventually should go away.

@@ -1505,7 +1505,7 @@ data class Email(
 }
 
 
-data class Person(
+data class PersonName(
     @get:JsonIgnore
     override var value: String
 ) : IEntity {

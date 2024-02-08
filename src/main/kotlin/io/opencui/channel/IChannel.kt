@@ -8,6 +8,8 @@ import io.opencui.serialization.JsonObject
 interface IChannel : IExtension {
     val info: Configuration?
 
+    fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier
+
     data class Status(val message: String)
 
     // Channel implementation need to decode the message into the actual format that was
