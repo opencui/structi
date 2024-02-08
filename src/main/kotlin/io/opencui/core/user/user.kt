@@ -13,6 +13,11 @@ interface IUserIdentifier {
     var sessionId: String?
     var messageId: String?
 
+    // return whether the user is verified.
+    var isVerfied: Boolean
+    // return whether user/channel can be login, can be configured on the channel
+    var canBeVerifiedBy: String?
+
     fun channelId() : String {
         return if (channelLabel == null) channelType!! else "$channelType+$channelLabel"
     }
@@ -40,8 +45,6 @@ interface IUserProfile: IUserIdentifier {
     var name: String?
     var phone: PhoneNumber?
     var email: String?
-    var code: Int?
-    var userInputCode: Int?
 }
 
 data class UserInfo(
@@ -51,11 +54,13 @@ data class UserInfo(
 ) : IUserProfile, HashMap<String, Any>() {
     override var sessionId: String? = null
     override var messageId: String? = null
+
+    override var isVerfied: Boolean = false
+    override var canBeVerifiedBy: String? = null
+
     override var name: String? = null
     override var phone: PhoneNumber? = null
     override var email: String? = null
-    override var code: Int? = null
-    override var userInputCode: Int? = null
 
     init {
         // safeguard for over fashioned channelType, eventually should go away.
