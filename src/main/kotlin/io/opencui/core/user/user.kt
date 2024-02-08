@@ -6,15 +6,16 @@ import io.opencui.serialization.Json
 import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
+    // TODO: should we make this val instead?
     var userId: String?
     var channelType: String?
     var channelLabel: String?
+    var isVerfied: Boolean
 
     var sessionId: String?
     var messageId: String?
 
     // return whether the user is verified, this should be initialized by channel.
-    var isVerfied: Boolean
     var name: String?
     var phone: PhoneNumber?
     var email: String?
@@ -25,18 +26,6 @@ interface IUserIdentifier {
     fun uuid(): String {
         return "c|$channelType|$channelLabel|$userId"
     }
-
-    fun toJson() : String {
-        return Json.encodeToString(
-            mapOf(
-                "userId" to userId,
-                "channelType" to channelType,
-                "channelLabel" to channelLabel,
-                "seessionId" to sessionId,
-                "messageId" to messageId
-            )
-        )
-    }
 }
 
 // Support need profile, omnichannel need profile, and bot need profile for payment.
@@ -45,12 +34,13 @@ interface IUserIdentifier {
 data class UserInfo(
     override var channelType: String?,
     override var userId: String?,
-    override var channelLabel: String?
+    override var channelLabel: String?,
+    override var isVerfied: Boolean = false
 ) : IUserIdentifier, HashMap<String, Any>() {
     override var sessionId: String? = null
     override var messageId: String? = null
 
-    override var isVerfied: Boolean = false
+
     override var name: String? = null
     override var phone: PhoneNumber? = null
     override var email: String? = null
