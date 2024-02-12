@@ -8,7 +8,8 @@ import io.opencui.serialization.JsonObject
 interface IChannel : IExtension {
     val info: Configuration?
 
-    fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier
+    // In case we can not get user info from the message itself.
+    fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier?
 
     data class Status(val message: String)
 
