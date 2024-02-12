@@ -75,19 +75,18 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val createdSession = bot.createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
 
         // Try to use the info from message.
-        createdSession.name  = channel.name
-        createdSession.phone = channel.phone
-        createdSession.email = channel.email
+        createdSession.isVerfied = channel.isVerfied
 
-        // If the channel create User
-        if (channel.isVerfied) {
-            // We fetch these info when we first create user session.
-            val identifier = bot.getChannel(channel.channelLabel!!)!!.getIdentifier(botInfo, channel.userId!!)
-            if (identifier != null) {
-                createdSession.name = identifier.name
-                createdSession.phone = identifier.phone
-                createdSession.email = identifier.email
-            }
+        // If the channel had extra way to get user identifier, use that.
+        val identifier = bot.getChannel(channel.channelLabel!!)!!.getIdentifier(botInfo, channel.userId!!)
+        if (identifier != null) {
+            createdSession.name = identifier.name
+            createdSession.phone = identifier.phone
+            createdSession.email = identifier.email
+        } else {
+            createdSession.name  = channel.name
+            createdSession.phone = channel.phone
+            createdSession.email = channel.email
         }
 
         sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, createdSession)
