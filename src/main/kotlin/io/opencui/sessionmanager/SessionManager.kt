@@ -74,6 +74,11 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val bot = ChatbotLoader.findChatbot(botInfo)
         val createdSession = bot.createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
 
+        // Try to use the info from message.
+        createdSession.name  = channel.name
+        createdSession.phone = channel.phone
+        createdSession.email = channel.email
+
         // If the channel create User
         if (channel.isVerfied) {
             // We fetch these info when we first create user session.
