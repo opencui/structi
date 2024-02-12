@@ -69,27 +69,28 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         }
     }
 
-    fun createUserSession(channel: IUserIdentifier, botInfo: BotInfo): UserSession {
-        sessionStore.deleteSession(channel.channelId(), channel.userId!!, botInfo)
+    fun createUserSession(rawUser: IUserIdentifier, botInfo: BotInfo): UserSession {
+        sessionStore.deleteSession(rawUser.channelId(), rawUser.userId!!, botInfo)
         val bot = ChatbotLoader.findChatbot(botInfo)
-        val createdSession = bot.createUserSession(channel.channelType!!, channel.userId!!, channelLabel = channel.channelLabel)
+        val createdSession = bot.createUserSession(rawUser.channelType!!, rawUser.userId!!, channelLabel = rawUser.channelLabel)
 
         // Try to use the info from message.
-        createdSession.isVerfied = channel.isVerfied
+        createdSession.isVerfied = rawUser.isVerfied
 
         // If the channel had extra way to get user identifier, use that.
-        val identifier = bot.getChannel(channel.channelLabel!!)!!.getIdentifier(botInfo, channel.userId!!)
-        if (identifier != null) {
+        val lchannel = if (rawUser.channelLabel != null)  bot.getChannel(rawUser.channelLabel!!) else null
+        val identifier = if (lchannel != null && rawUser.userId != null) lchannel!!.getIdentifier(botInfo, rawUser.userId!!) else null
+         if (identifier != null) {
             createdSession.name = identifier.name
             createdSession.phone = identifier.phone
             createdSession.email = identifier.email
         } else {
-            createdSession.name  = channel.name
-            createdSession.phone = channel.phone
-            createdSession.email = channel.email
+            createdSession.name  = rawUser.name
+            createdSession.phone = rawUser.phone
+            createdSession.email = rawUser.email
         }
 
-        sessionStore.saveSession(channel.channelId(), channel.userId!!, botInfo, createdSession)
+        sessionStore.saveSession(rawUser.channelId(), rawUser.userId!!, botInfo, createdSession)
 
         logger.info("create session with bot version: ${createdSession.chatbot?.agentBranch}")
         return createdSession
