@@ -5,6 +5,7 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
+import io.opencui.logging.ILogger
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -119,13 +120,30 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
      *
      * channel: the format that is expected.
      */
-    fun getReply(session: UserSession,
-                 query: String,
-                 targetChannels: List<String>,
-                 events: List<FrameEvent> = emptyList()): Map<String, List<String>> {
+    fun getReply(
+        session: UserSession,
+        query: String,
+        targetChannels: List<String>,
+        events: List<FrameEvent> = emptyList()
+    ): Map<String, List<String>> {
         assert(targetChannels.isNotEmpty())
         session.targetChannel = targetChannels
-        val responses = dm.response(query, events, session)
+        val turnAndActs = dm.response(query, events, session)
+        val responses = turnAndActs.second
+
+        val logger =  session.chatbot!!.getExtension<ILogger>()
+
+        if (logger != null) {
+            // first update the turn so that we know who this user is talking too
+            val turn = turnAndActs.first
+            turn.channelType = session.channelType!!
+            turn.channelLabel = session.channelLabel!!
+            turn.userId = session.userId!!
+
+            // we then log the turn
+            logger.log(turn)
+        }
+
         updateUserSession(session.userIdentifier, session.botInfo, session)
         return convertDialogActsToText(session, responses, session.targetChannel)
     }

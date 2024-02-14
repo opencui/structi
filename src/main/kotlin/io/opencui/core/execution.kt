@@ -6,11 +6,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.DialogAct
 import io.opencui.du.*
+import io.opencui.logging.ILogger
+import io.opencui.logging.Turn
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
+import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.memberProperties
 
@@ -63,9 +67,15 @@ class DialogManager {
      * high level response, called before dialog understanding (DU, DU is handled by this method first, before it
      * calls the low level response method).
      */
-    fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): List<DialogAct> {
+    fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, List<DialogAct>> {
+        val timeStamp = LocalDateTime.now()
         val expectations = findDialogExpectation(session)
-        val duReturnedFrameEvent = session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+
+        val convertToFrameEvent = measureTimeMillisWithResult {
+            session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+        }
+        val duReturnedFrameEvent = convertToFrameEvent.second
+
         duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
@@ -73,7 +83,21 @@ class DialogManager {
         val convertedFrameEventList = convertSpecialFrameEvent(session, duReturnedFrameEvent + frameEvents)
         logger.debug("Converted frame events : $convertedFrameEventList")
         val results = response(ParsedQuery(query, convertedFrameEventList), session)
-        return results.filter { it.botUtterance != null && it.botOwn }.map { it.botUtterance!!}.flatten().distinct()
+
+        val dialogActs = results
+            .filter { it.botUtterance != null && it.botOwn }
+            .map { it.botUtterance!!}.flatten().distinct()
+
+        val turn = Turn(
+            utterance = query,
+            expectations = Json.encodeToJsonElement(expectations),
+            predictedFrameEvents = Json.encodeToJsonElement(duReturnedFrameEvent),
+            duTime = convertToFrameEvent.first,
+            timeStamp = timeStamp,
+            generatedDialogActs = Json.encodeToJsonElement(dialogActs)
+        )
+
+        return Pair(turn, dialogActs)
     }
 
 
