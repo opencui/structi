@@ -411,7 +411,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             if (expectedFrame.isBooleanSlot(duMeta)) {
                 // The expectation top need to be binary and have prompt.
                 val question = expectedFrame.prompt?.firstOrNull()?.templates?.pick() ?: ""
-                val booleanEvents = mutableListOf<FrameEvent>()
+                val hardBooleanEvents = mutableListOf<FrameEvent>()
+                val softBooleanEvents = mutableListOf<FrameEvent>()
                 // Hard binding to boolean value.
                 val boolValue = duContext.getEntityValue(IStateTracker.KotlinBoolean)
                 if (boolValue != null) {
@@ -422,7 +423,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                         else -> YesNoResult.Irrelevant
                     }
                     val events = handleBooleanStatus(duContext, yesNoFlag)
-                    if (events != null) booleanEvents.addAll(events)
+                    if (events != null) hardBooleanEvents.addAll(events)
                 }
 
                 val status = nluService.yesNoInference(context, utterance, listOf<String>(question))[0]
@@ -433,11 +434,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     // TODO(sean): should we start to pay attention to the order of the dialog expectation.
                     // Also the stack structure of dialog expectation is not used.
                     val events = handleBooleanStatus(duContext, status)
-                    if (events != null) booleanEvents.addAll(events)
+                    if (events != null) softBooleanEvents.addAll(events)
                 }
 
                 // There is no reason to have multiple yes/no from the same utterance.
-                results.addAll(booleanEvents.distinct())
+
+                results.addAll(hardBooleanEvents.distinct())
             } else if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 // Now w handle the string slot, this is really low priority.
                 // only where owner == null
@@ -447,7 +449,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             } else {
                 // if there is no good match, we need to just find it using slot model.
                 // try to fill slot for active frames, assuming the expected!! is the at the beginning.
-                val extractedEvents = fillSlots(duContext, expectedFrame.frame, expectedFrame.slot)
+                val extractedEvents = fillSlots(duContext, expectedFrame.frame, expectedFrame.slot, true)
                 logger.info("for ${expectedFrame} getting event: ${extractedEvents}")
                 if (extractedEvents.isNotEmpty()) {
                     results.addAll(extractedEvents)
@@ -455,14 +457,21 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             }
         }
 
+        // If we have no for hasMore, but something for pagedselectable then we remove the no for hasMore
+        val eventsFilter = listOf(
+            HasNoMoreCleaner()
+        )
+
         // We now return the events.
         return if (!results.isNullOrEmpty()) {
             val hasPayload = results.filter { !it.packageName!!.startsWith("io.opencui.core")}.isNullOrEmpty()
             if (hasPayload) {
                results.removeIf{ it.packageName == IStateTracker.HasMore}
             }
+            filter(eventsFilter, results)
             results
         } else if (lowResults.isNotEmpty()){
+            filter(eventsFilter, results)
             lowResults
         } else {
             null
@@ -518,7 +527,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     /**
      * fillSlots is used to create entity event.
      */
-    fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
+    fun fillSlots(ducontext: DuContext, topLevelFrameType: String, focusedSlot: String?, expected: Boolean=false): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         // We only need description for slots with no direct fill.
         val slotMapBef = duMeta
@@ -530,7 +539,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         if (slotMapAft.isEmpty()) {
             logger.debug("Found no slots for $topLevelFrameType")
-            return listOf(FrameEvent.build(topLevelFrameType))
+            if (!expected) {
+                return listOf(FrameEvent.build(topLevelFrameType))
+            } else {
+                // if this is from expected
+                return listOf()
+            }
         }
 
         // TODO: figure out how to test skill slot efficiently.
@@ -556,7 +570,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val slotType = slot.type
             if (slotType != null) {
                 val slotLabel = slot.label
-                valuesFound[slotLabel] = ducontext.getValuesByType(slotType)
+                val values = ducontext.getValuesByType(slotType)
+                if (!values.isNullOrEmpty()) {
+                    valuesFound[slotLabel] = values
+                }
             }
         }
 
@@ -567,7 +584,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         for (entry in results.entries) {
             if(entry.value.operator == "==") {
-                equalSlotValues[entry.key] = entry.value.values.toMutableList()
+                val values = entry.value.values.toMutableList()
+                if (!values.isNullOrEmpty()) {
+                    equalSlotValues[entry.key] = entry.value.values.toMutableList()
+                }
             }
         }
 
@@ -582,17 +602,15 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         val entityEvents = mutableListOf<EntityEvent>()
         // Let us try to merge the evidence from recognizer.
-        val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(topLevelFrameType, focusedSlot)
         for (slot in slotMetaMap.values) {
             val slotType = slot.type!!
             val slotName = slot.label
 
-            // for the focused slot, we use unique partial match.
-            val spanedValues = ducontext.entityTypeToValueInfoMap[slotType]?.filter {
-                ! it.partialMatch || (it.type == focusedSlotType && results.containsKey(slotName) && (it.origValue in results[slotName]!!.values))
+            val spannedValues = ducontext.entityTypeToValueInfoMap[slotType]?.filter {
+                ! it.partialMatch
             }
 
-            val origNormValueMap = spanedValues?.map { it.original(ducontext.utterance) to it.norm() }?.toMap()
+            val origNormValueMap = spannedValues?.map { it.original(ducontext.utterance) to it.norm() }?.toMap()
 
             // Most of the type are normalizable, except person name for now.
             val normalizable = duMeta.getEntityMeta(slotType)?.normalizable
@@ -612,10 +630,22 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             }
         }
 
+        val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(topLevelFrameType, focusedSlot)
+        if (entityEvents.size == 0 && focusedSlotType != null) {
+            // Now handle partial match, we might need to have better check.
+            val spannedValues = ducontext.entityTypeToValueInfoMap[focusedSlotType]
+            val normalizable = duMeta.getEntityMeta(focusedSlotType)?.normalizable
+            // under condition where we have a unique partial match
+            if (spannedValues?.size == 1 && normalizable == true) {
+                val value = spannedValues[0]!!
+                entityEvents.add(EntityEvent.build(focusedSlot!!, value.origValue!!, value.norm()!!, focusedSlotType))
+            }
+        }
+
         // not
         return if (!ducontext.expectations.isFrameCompatible(topLevelFrameType) || entityEvents.size != 0) {
-                listOf(FrameEvent.build(topLevelFrameType, entityEvents))
-        } else {
+            listOf(FrameEvent.build(topLevelFrameType, entityEvents))
+        } else  {
             emptyList()
         }
     }
