@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
+import java.awt.Frame
 import java.util.*
 import java.util.regex.Pattern
 
@@ -495,6 +496,29 @@ class DontCareForPagedSelectable: FrameEventProcessor {
     }
 }
 
+
+
+interface FrameEventsProcessor {
+    operator fun invoke(input: MutableList<FrameEvent>)
+}
+
+
+class HasNoMoreCleaner: FrameEventsProcessor {
+    override fun invoke(input: MutableList<FrameEvent>) {
+        val hasNoMore = input.find { it.type == "No" && it.packageName == "io.opencui.core.hasMore"}
+        val pagedSelectable = input.find { it.type == "PagedSelectable"}
+        if (hasNoMore != null && pagedSelectable != null) {
+            input.removeIf { it.type == "No" && it.packageName == "io.opencui.core.hasMore" }
+        }
+    }
+
+}
+
+fun filter(filters: List<FrameEventsProcessor>, input: MutableList<FrameEvent>) {
+    for (proc in filters) {
+        proc(input)
+    }
+}
 
 /**
  * When the current active frames contains a skill for the new skill.
