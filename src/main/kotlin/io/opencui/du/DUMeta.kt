@@ -150,6 +150,22 @@ interface DUMeta : ExtractiveMeta {
         return expectation.activeFrames.map{getSlotMetas(it.frame)}.flatten()
     }
 
+    fun getExpressions(frame: String): List<Exemplar>? {
+        val expressions = expressionsByFrame[frame]
+        // TODO: Make sure the frontend always add the head only exemplar.
+        if (expressions != null) {
+            return expressions
+        }
+
+        // now test the isHead and the head only expression if it is.
+        val metas = getSlotMetas(frame)
+        val head = metas.find {it.isHead}
+        if (head == null) return null
+
+        return listOf(Exemplar(frame,"<${head.label}>"))
+    }
+
+
     companion object {
         const val OWNERID = "owner_id"
         const val EXPRESSIONS = "expressions"
@@ -214,7 +230,8 @@ fun DUMeta.getSlotMeta(frame:String, pslots:String) : DUSlotMeta? {
         owner = getSlotMetas(owner).firstOrNull{it.label == slot}!!.type!!
     }
     val lastSlot = slots.last()
-    return getSlotMetas(owner).firstOrNull {it.label == lastSlot}
+    val slotMetas = getSlotMetas(owner)
+    return slotMetas.firstOrNull {it.label == lastSlot}
 }
 
 fun DUMeta.getSlotType(frame: String, slot:String) : String {
@@ -327,7 +344,7 @@ data class Exemplar(
     override val slotNames by lazy {
         IExemplar.AngleSlotRegex
             .findAll(template)
-            .map { it.value.substring(1, it.value.length - 1) }.toList()
+            .map { it.value.substring(1, it.value.length - 1).trim() }.toList()
     }
 
     override lateinit var typedExpression: String
@@ -401,7 +418,7 @@ data class Exemplar(
             return IExemplar.AngleSlotRegex.replace(utterance)
             {
                 val slotName = it.value.removePrefix("<").removeSuffix(">").removeSurrounding(" ")
-                "< ${agent.getSlotType(owner, slotName)} >"
+                "<${agent.getSlotType(owner, slotName)}>"
             }
         }
 
