@@ -24,6 +24,7 @@ interface IExemplar {
 
     // this is for generic slot (slot with generic type)
     var guessedSlot: DUSlotMeta?
+    val usedFramesInType: MutableList<String>
 
     // var isBound : Boolean
 

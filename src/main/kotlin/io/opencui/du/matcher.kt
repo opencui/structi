@@ -1,5 +1,7 @@
 package io.opencui.du
 
+import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match
+
 
 // For only the candidates that are returned from retrieval phase, we do nested matcher.
 // There are two different places that we need nested matching:
@@ -21,6 +23,16 @@ interface Matcher {
     fun markMatch(document: IExemplar)
 }
 
+
+data class MatchState(
+    val pos: Int,
+    val usedFrames: List<String> = emptyList(),
+) {
+    fun addFrame(frame: String) : MatchState {
+        return MatchState(pos, usedFrames + listOf(frame))
+    }
+}
+
 //
 class NestedMatcher(val context: DuContext) : Matcher {
     private val analyzer = LanguageAnalyzer.get(context.duMeta!!.getLang(), stop = false)
@@ -32,32 +44,32 @@ class NestedMatcher(val context: DuContext) : Matcher {
     // We pay attention to typed expression, whenever we see a type, we try to figure out whether
     // one of the production can explain the rest utterance from the current start.
     // utterance start is token based, and doc start is character based.
-    private fun coverFind(uStart: Int, doc: MetaExprSegments): Int {
+    private fun coverFind(uStart: MatchState, doc: MetaExprSegments): MatchState {
         var start = uStart
         for(segment in doc.segments) {
             val end = when(segment) {
                 is MetaSegment -> typeMatch(start, segment)
                 is ExprSegment -> exprMatch(start, segment)
             }
-            if (end == -1) return -1
+            if (end.pos == -1) return MatchState(-1)
             start = end
         }
         return start
     }
 
     //
-    private fun exprMatch(uStart: Int, doc: ExprSegment): Int {
+    private fun exprMatch(uStart: MatchState, doc: ExprSegment): MatchState {
         val tokens = analyzer!!.tokenize(doc.expr)
         for ((index, token) in tokens.withIndex()) {
-            if (uStart + index >= context.tokens!!.size) return -1 
-            val userToken = context.tokens!![uStart + index].token
+            if (uStart.pos + index >= context.tokens!!.size) return MatchState(-1)
+            val userToken = context.tokens!![uStart.pos + index].token
             val docToken = token.token
-            if (userToken != docToken) return -1
+            if (userToken != docToken) return MatchState(-1)
         }
-        return uStart + tokens.size
+        return MatchState(uStart.pos + tokens.size, uStart.usedFrames)
     }
 
-    private fun typeMatch(uStart: Int, doc: MetaSegment): Int {
+    private fun typeMatch(uStart: MatchState, doc: MetaSegment): MatchState {
         // Go through every exemplar, and find one that matches.
         return when(duMeta.typeKind(doc.meta)) {
             TypeKind.Entity -> entityCover(uStart, doc.meta)
@@ -67,11 +79,11 @@ class NestedMatcher(val context: DuContext) : Matcher {
     }
 
     // Try to find some entities to cover this, using the longest match.
-    private fun entityCover(uStart: Int, entityType: String): Int {
+    private fun entityCover(uStart: MatchState, entityType: String): MatchState {
         // TODO: why we got this point need to be checked.
-        if (uStart >= context.tokens!!.size) return -1 
-        val charStart = context.tokens!![uStart].start
-        val entities = context.emapByCharStart[charStart] ?: return -1
+        if (uStart.pos >= context.tokens!!.size) return MatchState(-1)
+        val charStart = context.tokens!![uStart.pos].start
+        val entities = context.emapByCharStart[charStart] ?: return MatchState(-1)
         var end = -1
         // for now, we try the longest match.
         for (entity in entities) {
@@ -79,30 +91,32 @@ class NestedMatcher(val context: DuContext) : Matcher {
                 if (end < entity.second) end = entity.second
             }
         }
-        return end
+        return MatchState(end, uStart.usedFrames)
     }
 
-    private fun genericMatch(uStart: Int): Int {
+    private fun genericMatch(uStart: MatchState): MatchState {
         // TODO: we need to consider this under expectation.
-        val charStart = context.tokens!![uStart].start
-        val entities = context.emapByCharStart[charStart] ?: return -1
+        val charStart = context.tokens!![uStart.pos].start
+        val entities = context.emapByCharStart[charStart] ?: return MatchState(-1)
         var end = -1
         // for now, we try the longest match.
         for (entity in entities) {
             if (end < entity.second && entity.first == trueType) end = entity.second
         }
-        return end
+        return MatchState(end, uStart.usedFrames)
     }
 
-    private fun frameMatch(uStart: Int, frameType: String): Int {
-        val expressions = duMeta.getExpressions(frameType) ?: return -1
-        var last = -1
+    private fun frameMatch(uStart: MatchState, frameType: String): MatchState {
+        val expressions = duMeta.getExpressions(frameType) ?: return MatchState(-1)
+
+        // Easy to trace.
+        var last = MatchState(-1)
         for (expression in expressions) {
             val typeExpr = Exemplar.segment(expression.typedExpression(context.duMeta!!), frameType)
             val res = coverFind(uStart, typeExpr)
-            if (res > last) last = res
+            if (res.pos > last.pos) last = res
         }
-        return last
+        return last.addFrame(frameType)
     }
 
     private fun isSubEntityOf(first: String, second:String): Boolean {
@@ -122,7 +136,9 @@ class NestedMatcher(val context: DuContext) : Matcher {
         if (slotTypes.isEmpty() || context.entityTypeToValueInfoMap[SLOTTYPE].isNullOrEmpty()) {
             if (!segments.useGenericType()) {
                 trueType = null
-                document.exactMatch = coverFind(0, segments) == context.tokens!!.size
+                val matchState = coverFind(MatchState(0), segments)
+                document.exactMatch = matchState.pos == context.tokens!!.size
+                document.usedFramesInType.addAll(matchState.usedFrames)
             } else {
                 // Here we find a potential exact match, based on guess a slot.
                 // Another choice when there are multiple choices we clarify.
@@ -130,7 +146,8 @@ class NestedMatcher(val context: DuContext) : Matcher {
                 for (slot in slots) {
                     if (context.entityTypeToValueInfoMap.containsKey(slot.type)) {
                         trueType = slot.type
-                        val matched = coverFind(0, segments) == context.tokens!!.size
+                        val matchState = coverFind(MatchState(0), segments)
+                        val matched = matchState.pos == context.tokens!!.size
                         if (matched) {
                             // TODO: how do we handle the
                             document.possibleExactMatch = true
@@ -143,6 +160,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
                 }
             }
         } else {
+            // For updateSlot
             val matchedSlots = context.entityTypeToValueInfoMap[SLOTTYPE]!!
             for (matchedSlot in matchedSlots) {
                 val trueSlot = matchedSlot.value as String
@@ -151,7 +169,8 @@ class NestedMatcher(val context: DuContext) : Matcher {
                 if (!context.expectations.isFrameCompatible(frame)) continue
                 val slotName = tkns.last()
                 trueType = context.duMeta!!.getSlotType(frame, slotName)
-                document.exactMatch = coverFind(0, segments) == context.tokens!!.size
+                val matchState =  coverFind(MatchState(0), segments)
+                document.exactMatch = matchState.pos == context.tokens!!.size
             }
         }
     }

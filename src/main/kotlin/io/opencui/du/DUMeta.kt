@@ -347,6 +347,8 @@ data class Exemplar(
             .map { it.value.substring(1, it.value.length - 1).trim() }.toList()
     }
 
+    override val usedFramesInType = mutableListOf<String>()
+
     override lateinit var typedExpression: String
 
     // whether it is exact match.

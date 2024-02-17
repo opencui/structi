@@ -49,8 +49,6 @@ fun Document.toScoredDocument(score: Float) : ScoredDocument {
 }
 
 
-
-
 data class ScoredDocument(
     var score: Float,
     override val utterance: String,
@@ -64,6 +62,8 @@ data class ScoredDocument(
 ) : Triggerable, IExemplar {
     override val template: String = utterance
     override var owner : String? = ownerFrame
+
+    override val usedFramesInType = mutableListOf<String>()
 
     override val slotNames = IExemplar.AngleSlotRegex
         .findAll(template)
