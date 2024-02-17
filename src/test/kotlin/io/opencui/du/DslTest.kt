@@ -266,7 +266,7 @@ class DslTest() : DuTestHelper() {
     @Test
     fun testBuildExpression() {
         val expression = Exemplar.buildTypedExpression("The account has <balance> money", "Banks_1.CheckBalance", agent)
-        assertEquals("The account has < AmountOfMoney > money", expression)
+        assertEquals("The account has <AmountOfMoney> money", expression)
     }
 
     @Test
