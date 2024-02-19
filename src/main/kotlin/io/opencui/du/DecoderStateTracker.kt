@@ -49,7 +49,7 @@ data class TriggerDecision(
     lateinit  var duContext: DuContext
 
     // We use this to keep track of the nested frames
-    val usedFramesInType = mutableListOf<String>()
+    val matchedSlots = mutableListOf<DUSlotMeta>()
 
     fun exactMatch(duContext: DuContext) : String? {
         // Prepare for exact match.
@@ -217,6 +217,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // this layer is important so that we have a centralized place for the post process.
         val res = convertImpl(session, utterance, expectations)
 
+        logger.info("Converted to frame events: $res")
+
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
         return res.map { postProcess(it) }
@@ -331,7 +333,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     fun handleSlotUpdate(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
          logger.debug("enter slot update.")
-         // We need to figure out which slot user are interested in first.
+         // Potentially, we need to figure out two things, value and slot identifier. And of course
+         // slot identifier need to agree with value on the types.
+         //
          val slotTypeSpanInfo = duContext.entityTypeToValueInfoMap[IStateTracker.SlotType]
          // Make sure there are slot type entity matches.
          if (slotTypeSpanInfo != null) {
