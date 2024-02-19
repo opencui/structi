@@ -150,7 +150,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
                         val matched = matchState.pos == context.tokens!!.size
                         if (matched) {
                             // TODO: how do we handle the
-                            document.possibleExactMatch = true
+                            document.exactMatch = true
                             assert(document.ownerFrame == "io.opencui.core.SlotUpdate")
                             document.guessedSlot = slot
                             // find the first one and escape.

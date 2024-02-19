@@ -1,7 +1,6 @@
 package io.opencui.logging
 
 import io.opencui.serialization.JsonElement
-import java.time.Duration
 import java.time.LocalDateTime
 
 
@@ -14,7 +13,7 @@ data class Turn(
     val duTime: Long,
 )  {
     var trueFrameEvents: JsonElement? = null  // this is provided manually when there are mistakes
-    var dmTime: Duration? = null // We might need this.
+    var dmTime: Long? = null // We might need this.
     var nluVersion: String? = null
     var duVersion: String? = null
     lateinit var channelType: String
