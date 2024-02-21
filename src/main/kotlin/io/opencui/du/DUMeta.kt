@@ -21,6 +21,7 @@ data class DUSlotMeta(
         val type: String?=null,
         // TODO (@flora default false, compiler need to pass annotation from platform)
         val isMultiValue: Boolean? = false,
+        // We need to populate this soon.
         val parent: String? = null,
         val isHead: Boolean = false) {
 

@@ -80,8 +80,8 @@ class EntityTypeBuilder(val t: String) {
         parent = p
     }
 
-    fun normalizable() {
-        normalizable = true
+    fun normalizable(flag: Boolean=true) {
+        normalizable = flag
     }
 
     fun pattern(p: String) {
