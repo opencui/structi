@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
-import java.awt.Frame
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.collections.ArrayList
 
 
 // We introduce this interface to bridge the encoder based DU and decoder based DU.
@@ -116,9 +116,9 @@ open class DuContext(
 
     val emapByCharStart by lazy { convert() }
 
-    fun getValuesByType(typeName: String): List<String> {
+    fun getValuesByType(typeName: String): List<ValueInfo> {
         if (!entityTypeToValueInfoMap.containsKey(typeName)) return emptyList()
-        return entityTypeToValueInfoMap[typeName]?.map { utterance.substring(it.start, it.end) } ?: emptyList()
+        return entityTypeToValueInfoMap[typeName]?.filter{ !it.partialMatch }?: emptyList()
     }
 
 
@@ -263,6 +263,23 @@ open class DuContext(
         return bonus/denominator
     }
 
+
+    // We assign the entity to one of the slot in the slotMetas.
+    fun resolveSlot(entity: ValueInfo, slotMetas: List<DUSlotMeta>) {
+        val scores = ArrayList<Float>(slotMetas.size)
+        for (slotMeta in slotMetas) {
+            scores.add(getSurroundingWordsBonus(slotMeta, entity))
+        }
+        // If we have clear winner, we assign that, otherwise, we assign all slot to it.
+        val maxScore = scores.maxByOrNull {it}!!
+        val indexes = scores.indexesOf {it == maxScore}
+        val slots = indexes.map { slotMetas[it].label }
+
+        // Clear it first then assign new slot labels
+        entity.possibleSlots.clear()
+        if (slots.size == 1) entity.possibleSlots.addAll(slots)
+    }
+
     fun getEntityValue(typeName: String): String? {
         //TODO("Only entity for now, Not yet implemented for frame")
         val spans = entityTypeToValueInfoMap[typeName]
@@ -401,32 +418,6 @@ interface IStateTracker : IExtension {
      */
     fun recycle()
 
-    /**
-     * This is used to get new slot meta for slot update.
-     */
-    fun slotTransformBySlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): Map<String, DUSlotMeta> {
-        // we need to make sure we include slots mentioned in the intent expression
-        val utterance = ducontext.utterance
-        val slotMapBef = ducontext.duMeta!!.getNestedSlotMetas(IStateTracker.SlotUpdate)
-
-        val slotMapTransformed = mutableMapOf<String, DUSlotMeta>()
-
-        // we need to rewrite the slot map to replace all the T into actual slot type.
-        for ((key, slotMeta) in slotMapBef) {
-            // We can not fill slot without triggers.
-            if (slotMeta.isGenericTyped()) {
-                // NOTE: assume the pattern for generated type is <T>
-                val targetTrigger = targetSlot.triggers[0]
-                val newTriggers =
-                    slotMeta.triggers.map { it.replace(IStateTracker.SlotUpdateOriginalSlot, targetTrigger) }
-                slotMapTransformed[key] = slotMeta.typeReplaced(targetSlot.type!!, newTriggers)
-            } else {
-                slotMapTransformed[key] = slotMeta
-            }
-        }
-        return slotMapTransformed.filter { it.value.triggers.isNotEmpty() }
-    }
-
     fun isSlotMatched(duMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
         val spanTargetSlot = valueInfo.value.toString()
         val parts = spanTargetSlot.split(".")
@@ -460,7 +451,7 @@ interface IStateTracker : IExtension {
         val FullHasMoreList = listOf("io.opencui.core.hasMore.Yes", "io.opencui.core.hasMore.No")
         const val KotlinBoolean = "kotlin.Boolean"
         const val KotlinString = "kotlin.String"
-        const val SlotUpdateOriginalSlot = "originalSlot"
+        const val ValueSymbol = "<>"
         const val PickValue = "io.opencui.core.PickValue"
         const val PagedSelectable = "io.opencui.core.PagedSelectable"
         const val SlotUpdateGenericType = "<T>"
@@ -474,6 +465,12 @@ interface IStateTracker : IExtension {
             // we can later change this to 
             return DecoderStateTracker(dumeta)
         }
+
+        fun onlyHandleOneSlot(): List<FrameEvent> {
+            // TODO: add something more concrete so that user would know.
+            return listOf(FrameEvent.build(IStateTracker.FullIDonotKnow))
+        }
+
     }
 }
 
@@ -620,4 +617,5 @@ data class ChainedExampledLabelsTransformer(val transformers: List<ContextedExem
     }
 }
 
-
+inline fun <E> Iterable<E>.indexesOf(predicate: (E) -> Boolean)
+    = mapIndexedNotNull{ index, elem -> index.takeIf{ predicate(elem) } }

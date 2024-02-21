@@ -31,6 +31,9 @@ class ValueInfo(
     val partialMatch: Boolean = false,
     val origValue: String? = null
 ) {
+    // This is useful for slot resolutions, when we have multiple slots with the same type.
+    val possibleSlots = mutableSetOf<String>()
+
     override fun toString() : String {
         return "$value @($start, $end)"
     }
