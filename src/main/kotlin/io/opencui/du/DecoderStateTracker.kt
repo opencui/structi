@@ -711,7 +711,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
             // For now, we ignore the partial match.
             val valuesForType = duContext.entityTypeToValueInfoMap[slotType]?.filter { ! it.partialMatch }
-            val valuesForSlot = valuesForType?.filter {slotName in it.possibleSlots && it.possibleSlots.size == 1}
+            val valuesForSlot = valuesForType?.filter {slotName in it.possibleSlots || it.possibleSlots.size == 0}
             val normValueMap = valuesForSlot?.map { it.original(duContext.utterance) to it.norm() }?.toMap()
 
             // Regardless, we always use verified values.
@@ -719,7 +719,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             if (!valuesForSlot.isNullOrEmpty()) {
                 for (valueInfo in valuesForSlot) {
                     val value = valueInfo.original(duContext.utterance)
-                    if (!normValueMap.isNullOrEmpty() && normValueMap.containsKey(value)) {
+                    if (!normValueMap.isNullOrEmpty() && normValueMap.containsKey(value) && value !in surfaceValues) {
                         surfaceValues.add(value)
                         entityEvents.add(EntityEvent.build(slotName, value, normValueMap[value]!!, slotType))
                     }
