@@ -257,7 +257,8 @@ abstract class DslDUMeta() : DUMeta {
         val results = mutableMapOf<String, List<String>>()
         for ((frame, metas) in slotMetaMap) {
             for (slotMeta in metas) {
-                results["${frame}.${slotMeta.label}"] = slotMeta.triggers
+                // First trigger is description, we will skip.
+                results["${frame}.${slotMeta.label}"] = slotMeta.triggers.drop(1)
             }
         }
         return results
