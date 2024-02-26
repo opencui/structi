@@ -1,4 +1,4 @@
-package io.opencui.logging
+package io.opencui.logger
 
 import io.opencui.serialization.JsonElement
 import java.time.LocalDateTime
@@ -22,5 +22,5 @@ data class Turn(
 }
 
 interface ILogger {
-    fun log(turn: Turn)
+    fun log(turn: Turn): Boolean
 }

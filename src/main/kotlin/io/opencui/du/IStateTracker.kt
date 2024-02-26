@@ -4,9 +4,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
-import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
+
+
+fun getName(bot: DUMeta, slot: String, owner: String): String? {
+    val slotLabel = "$owner.$slot"
+    val triggers = bot.getTriggers(slotLabel)
+
+    return null
+}
 
 
 // We introduce this interface to bridge the encoder based DU and decoder based DU.

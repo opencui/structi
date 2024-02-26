@@ -5,7 +5,7 @@ import io.opencui.core.da.DialogAct
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
-import io.opencui.logging.ILogger
+import io.opencui.logger.ILogger
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
