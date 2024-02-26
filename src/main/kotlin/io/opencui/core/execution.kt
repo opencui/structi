@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.da.DialogAct
 import io.opencui.du.*
-import io.opencui.logging.ILogger
-import io.opencui.logging.Turn
+import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
