@@ -131,9 +131,10 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val turnAndActs = dm.response(query, events, session)
         val responses = turnAndActs.second
 
-        val logger =  session.chatbot!!.getExtension<ILogger>()
+        val turnLogger =  session.chatbot!!.getExtension<ILogger>()
 
-        if (logger != null) {
+        if (turnLogger != null) {
+            logger.info("record turns using turn Logger.")
             // first update the turn so that we know who this user is talking too
             val turn = turnAndActs.first
             turn.channelType = session.channelType!!
@@ -141,7 +142,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             turn.userId = session.userId!!
 
             // we then log the turn
-            logger.log(turn)
+            turnLogger.log(turn)
         }
 
         updateUserSession(session.userIdentifier, session.botInfo, session)
