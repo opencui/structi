@@ -132,6 +132,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val responses = turnAndActs.second
 
         val turnLogger =  session.chatbot!!.getExtension<ILogger>()
+        logger.info("Could not find the provider for ILogger as ${turnLogger}")
 
         if (turnLogger != null) {
             logger.info("record turns using turn Logger.")
