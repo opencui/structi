@@ -58,11 +58,11 @@ data class Inserter(val stmt: PreparedStatement) {
 data class JdbcLogger(val info: Configuration): ILogger {
 
     init {
-        Class.forName(info[DRIVER]!! as String)
+        Class.forName("org.postgresql.Driver")
     }
 
     val conn : Connection by lazy {
-        DriverManager.getConnection(info[URL] as String, info[USER] as String, info[PASSWORD] as String)
+        DriverManager.getConnection(info[URL] as String)
     }
 
 
@@ -103,11 +103,10 @@ data class JdbcLogger(val info: Configuration): ILogger {
 
         const val TABLE : String = "turn"
         const val URL: String = "pgUrl"
-        const val USER: String = "adminEmail"
-        const val PASSWORD: String = "adminPassword"
         const val DRIVER: String = "driver"
 
         override fun invoke(p1: Configuration): ILogger {
+            logger.info("Creating JdbcLogger for ${p1[URL]}")
             return JdbcLogger(p1)
         }
 
