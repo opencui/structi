@@ -51,6 +51,7 @@ dependencies {
     implementation "org.apache.lucene:lucene-analyzers-smartcn:8.4.1"
     implementation "org.apache.lucene:lucene-queryparser:8.4.1"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2'
+    implementation 'org.postgresql:postgresql:42.7.2'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.13.4'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.4'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
