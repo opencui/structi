@@ -7,6 +7,8 @@ import io.opencui.serialization.JsonElement
 import java.sql.*
 import java.time.LocalDateTime
 import org.postgresql.util.PGobject
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 data class Turn(
     val utterance: String,
@@ -85,12 +87,20 @@ data class JdbcLogger(val info: Configuration): ILogger {
         builder.add(turn.duVersion)
         builder.add(turn.dmTime)
         builder.add(turn.duTime)
-        builder.stmt.executeUpdate()
+        try {
+            val result = builder.stmt.executeUpdate()
+            if (result != 1) {
+                logger.info("Insert $turn has issues.")
+            }
+        } catch (e: SQLException) {
+            logger.info("Insert $turn got ${e.toString()}")
+        }
         return true
     }
-
-
+    
     companion object : ExtensionBuilder<ILogger> {
+        val logger: Logger = LoggerFactory.getLogger(JdbcLogger::class.java)
+
         const val TABLE : String = "turn"
         const val URL: String = "pgUrl"
         const val USER: String = "adminEmail"
