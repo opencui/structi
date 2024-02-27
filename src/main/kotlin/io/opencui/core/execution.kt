@@ -93,7 +93,7 @@ class DialogManager {
             predictedFrameEvents = Json.encodeToJsonElement(duReturnedFrameEvent),
             duTime = convertToFrameEvent.first,
             timeStamp = timeStamp,
-            generatedDialogActs = Json.encodeToJsonElement(dialogActs)
+            dialogActs = Json.encodeToJsonElement(dialogActs)
         )
 
         return Pair(turn, dialogActs)
