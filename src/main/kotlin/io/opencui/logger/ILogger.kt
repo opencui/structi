@@ -85,8 +85,10 @@ data class JdbcLogger(val info: Configuration): ILogger {
         builder.add(turn.duTime)
         try {
             val result = builder.stmt.executeUpdate()
-            if (result != 1) {
+            if (result <= 0) {
                 logger.info("Insert $turn has issues.")
+            } else {
+                logger.info("inserted one line to ${info[URL]}.")
             }
         } catch (e: SQLException) {
             logger.info("Insert $turn got ${e.toString()}")
