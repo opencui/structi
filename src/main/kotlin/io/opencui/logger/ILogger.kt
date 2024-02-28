@@ -67,11 +67,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
 
 
     override fun log(turn: Turn): Boolean {
-        val sqlStatement =
-            """INSERT INTO logger.turn( \
-               channel_type, channel_label, user_id, utterance, expectations, predicted_frame_events,\
-               dialog_acts, time_stamp, true_frame_events, nlu_version, du_version, dm_time, du_time) \
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        val sqlStatement = """INSERT INTO logger.turn VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
    
         val builder = Inserter(conn.prepareStatement(sqlStatement));
         builder.add(turn.channelType)
