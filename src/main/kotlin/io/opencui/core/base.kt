@@ -211,8 +211,12 @@ abstract class IChatbot : Component {
         return extensions[IChannel::class]?.get(label) as IChannel?
     }
 
-    inline fun <reified T> getExtension(label: String = "default"): T? {
-       return extensions[T::class]?.get(label) as T?
+    inline fun <reified T> getExtension(label: String?=null): T? {
+        return if (label == null) {
+            extensions[T::class]?.get() as T?
+        } else {
+            extensions[T::class]?.get(label) as T?
+        }
     }
 
     inline fun <reified T> getExtensionManager(): ExtensionManager<*> {

@@ -23,6 +23,7 @@ interface ExtensionBuilder<T:IExtension> : (Configuration) -> T
  * on the first time it was requested.
  */
 data class ExtensionManager<T:IExtension>(val contract: String) {
+
     val holder = mutableMapOf<String, T>()
     val types = mutableMapOf<String, String>()
     val builders: MutableMap<String, ExtensionBuilder<T>> = mutableMapOf()
@@ -36,8 +37,6 @@ data class ExtensionManager<T:IExtension>(val contract: String) {
             if (builder != null) {
                 val triple = Pair(contract, label)
                 val config = Configuration.get(triple)
-                println(config)
-                println(config as Map<String, Any>)
                 if (config != null) {
                     holder[label] = builder.invoke(config)
                 }
@@ -46,6 +45,26 @@ data class ExtensionManager<T:IExtension>(val contract: String) {
         return holder[label]
     }
 
+    fun get() : T? {
+        // When this function is called, client does not which provider do we need.
+        // so we create one instance.
+        val defaultLabel = DEFAULT
+        if (!holder.containsKey(defaultLabel)) {
+            val realLabel = builders.keys.toList().firstOrNull()
+            if (realLabel != null) {
+                logger.info("build provider using $realLabel as default.")
+                val builder = builders[realLabel]!!
+                val triple = Pair(contract, realLabel)
+                val config = Configuration.get(triple)
+                if (config != null) {
+                    holder[defaultLabel] = builder.invoke(config)
+                }
+            }
+        }
+        return holder[defaultLabel]
+    }
+
+
     fun builder(label: String, builder: ExtensionBuilder<T>, init: ConfiguredBuilder<T>.()->Unit) {
         val configuredBuilder = ConfiguredBuilder(contract, label, builder)
         configuredBuilder.init()
@@ -53,6 +72,7 @@ data class ExtensionManager<T:IExtension>(val contract: String) {
     }
 
     companion object {
+        const val DEFAULT : String = "_default_"
         val logger = LoggerFactory.getLogger(ExtensionManager::class.java)
     }
 }
@@ -130,9 +150,12 @@ open class Configuration(val contract: String, val label: String): Serializable,
     }
 }
 
-data class ConfiguredBuilder<T:IExtension>(val contract: String, val label: String, val builder: ExtensionBuilder<T>) {
-    val config = Configuration(contract, label)
+data class ConfiguredBuilder<T:IExtension>(
+    val contract: String,
+    val label: String,
+    val builder: ExtensionBuilder<T>) {
 
+    val config = Configuration(contract, label)
     fun put(key: String, value: Any) {
         config[key] = value
     }
