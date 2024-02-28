@@ -88,12 +88,12 @@ class DialogManager {
             .map { it.botUtterance!!}.flatten().distinct()
 
         val turn = Turn(
-            utterance = query,
-            expectations = Json.encodeToJsonElement(expectations),
-            predictedFrameEvents = Json.encodeToJsonElement(duReturnedFrameEvent),
-            duTime = convertToFrameEvent.first,
-            timeStamp = timeStamp,
-            dialogActs = Json.encodeToJsonElement(dialogActs)
+            query,
+            Json.encodeToJsonElement(expectations),
+            Json.encodeToJsonElement(duReturnedFrameEvent),
+            Json.encodeToJsonElement(dialogActs),
+            timeStamp,
+            convertToFrameEvent.first
         )
 
         return Pair(turn, dialogActs)
