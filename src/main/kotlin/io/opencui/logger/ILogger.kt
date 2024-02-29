@@ -95,7 +95,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
     
     companion object : ExtensionBuilder<ILogger> {
         val logger: Logger = LoggerFactory.getLogger(JdbcLogger::class.java)
-        val sqlStatement = """INSERT INTO "logger"."Turn" (channelType, channelLabel, userId, utterance, expectations, predictedFrameEvents, dialogActs, duTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+        val sqlStatement = """INSERT INTO "logger"."Turn" ("channelType", "channelLabel", "userId", "utterance", "expectations", "predictedFrameEvents", "dialogActs", "duTime") VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
         const val TABLE : String = "turn"
         const val URL: String = "pgUrl"
         const val DRIVER: String = "driver"
