@@ -188,7 +188,7 @@ object Dispatcher {
 
         val support = getSupport(botInfo)
 
-        logger.info("$support with hand off is based on:${userSession.botOwn}")
+        logger.info("Support $support with hand off is based on:${userSession.botOwn}")
 
         if (!userSession.botOwn && support == null) {
             logger.info("No one own this message!!!")
