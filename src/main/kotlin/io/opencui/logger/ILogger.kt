@@ -67,7 +67,8 @@ data class JdbcLogger(val info: Configuration): ILogger {
 
 
     override fun log(turn: Turn): Boolean {
-        val sqlStatement = """INSERT INTO "logger"."Turn" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+
+
    
         val builder = Inserter(conn.prepareStatement(sqlStatement));
         builder.add(turn.channelType)
@@ -77,12 +78,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
         builder.add(turn.expectations)
         builder.add(turn.predictedFrameEvents)
         builder.add(turn.dialogActs)
-        builder.add(turn.timeStamp)
-        builder.add(turn.trueFrameEvents)
-        builder.add(turn.nluVersion)
-        builder.add(turn.duVersion)
         builder.add(turn.dmTime)
-        builder.add(turn.duTime)
         try {
             val result = builder.stmt.executeUpdate()
             if (result <= 0) {
@@ -90,6 +86,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
             } else {
                 logger.info("inserted one line to ${info[URL]}.")
             }
+            builder.stmt.close()
         } catch (e: SQLException) {
             logger.info("Insert $turn got ${e.toString()}")
         }
@@ -98,7 +95,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
     
     companion object : ExtensionBuilder<ILogger> {
         val logger: Logger = LoggerFactory.getLogger(JdbcLogger::class.java)
-
+        val sqlStatement = """INSERT INTO "logger"."Turn" (channelType, channelLabel, userId, utterance, expectations, predictedFrameEvents, dialogActs, duTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
         const val TABLE : String = "turn"
         const val URL: String = "pgUrl"
         const val DRIVER: String = "driver"
