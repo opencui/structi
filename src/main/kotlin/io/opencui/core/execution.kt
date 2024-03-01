@@ -92,7 +92,6 @@ class DialogManager {
             Json.encodeToJsonElement(expectations),
             Json.encodeToJsonElement(duReturnedFrameEvent),
             Json.encodeToJsonElement(dialogActs),
-            timeStamp,
             convertToFrameEvent.first
         )
 

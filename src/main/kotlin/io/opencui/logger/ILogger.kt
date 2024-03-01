@@ -15,7 +15,6 @@ data class Turn(
     val expectations: JsonElement,  // this should be an array of expectation, each is an object.
     val predictedFrameEvents: JsonElement,   // again an array of events.
     val dialogActs: JsonElement,    // an array of dialog acts.
-    val timeStamp: LocalDateTime,
     val duTime: Long,
 )  {
     var trueFrameEvents: JsonElement? = null  // this is provided manually when there are mistakes
@@ -41,18 +40,18 @@ data class Inserter(val stmt: PreparedStatement) {
     }
 
     inline fun <reified T> PreparedStatement.add(index: Int, v: T?) {
-    if (v == null) {
-        this.setNull(index, Types.NULL)
-    } else {
-        when (v) {
-            is String -> this.setString(index, v)
-            is Long -> this.setLong(index, v)
-            is LocalDateTime -> this.setTimestamp(index, Timestamp.valueOf(v))
-            is JsonElement -> this.setObject(index, PGobject().apply { type = "json"; value = v.toString() })
-            else -> throw RuntimeException("not ready for this type")
+        if (v == null) {
+            this.setNull(index, Types.NULL)
+        } else {
+            when (v) {
+                is String -> this.setString(index, v)
+                is Long -> this.setLong(index, v)
+                is LocalDateTime -> this.setTimestamp(index, Timestamp.valueOf(v))
+                is JsonElement -> this.setObject(index, PGobject().apply { type = "json"; value = v.toString() })
+                else -> throw RuntimeException("not ready for this type")
+            }
         }
     }
-}
 }
 
 data class JdbcLogger(val info: Configuration): ILogger {
