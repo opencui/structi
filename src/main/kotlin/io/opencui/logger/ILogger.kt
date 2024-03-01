@@ -12,13 +12,13 @@ import org.slf4j.LoggerFactory
 
 data class Turn(
     val utterance: String,
-    val expectations: JsonElement,  // this should be an array of expectation, each is an object.
-    val predictedFrameEvents: JsonElement,   // again an array of events.
-    val dialogActs: JsonElement,    // an array of dialog acts.
     val duTime: Long,
 )  {
     var trueFrameEvents: JsonElement? = null  // this is provided manually when there are mistakes
     var dmTime: Long? = null // We might need this.
+    var expectations: JsonElement? = null  // this should be an array of expectation, each is an object.
+    var predictedFrameEvents: JsonElement? = null   // again an array of events.
+    var dialogActs: JsonElement? = null    // an array of dialog acts.
     var nluVersion: String? = null
     var duVersion: String? = null
     var channelType: String? = null
