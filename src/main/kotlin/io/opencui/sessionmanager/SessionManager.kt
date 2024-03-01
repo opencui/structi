@@ -136,10 +136,11 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             logger.info("record turns using turn Logger.")
             // first update the turn so that we know who this user is talking too
             val turn = turnAndActs.first
-            turn.channelType = session.channelType!!
-            turn.channelLabel = session.channelLabel ?: "default"
-            turn.userId = session.userId!!
-
+            val channelType = session.channelType!!
+            val channelLabel = session.channelLabel ?: ""
+            val userId = session.userId!!
+            turn.user = "$channelType/$channelLabel/$userId"
+            
             // we then log the turn
             turnLogger.log(turn)
         } else {

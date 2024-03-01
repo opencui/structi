@@ -21,9 +21,7 @@ data class Turn(
     var dmTime: Long? = null // We might need this.
     var nluVersion: String? = null
     var duVersion: String? = null
-    var channelType: String? = null
-    var channelLabel: String? = null
-    var userId: String? = null
+    var user: String? = null
 }
 
 interface ILogger: IExtension {
@@ -66,13 +64,8 @@ data class JdbcLogger(val info: Configuration): ILogger {
 
 
     override fun log(turn: Turn): Boolean {
-
-
-   
         val builder = Inserter(conn.prepareStatement(sqlStatement));
-        builder.add(turn.channelType)
-        builder.add(turn.channelLabel)
-        builder.add(turn.userId)
+        builder.add(turn.user)
         builder.add(turn.utterance)
         builder.add(turn.expectations)
         builder.add(turn.predictedFrameEvents)
@@ -94,8 +87,10 @@ data class JdbcLogger(val info: Configuration): ILogger {
     
     companion object : ExtensionBuilder<ILogger> {
         val logger: Logger = LoggerFactory.getLogger(JdbcLogger::class.java)
-        val sqlStatement = """INSERT INTO "logger"."Turn" ("channelType", "channelLabel", "userId", "utterance", "expectations", "predictedFrameEvents", "dialogActs", "duTime") VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-        const val TABLE : String = "turn"
+        const val TABLE : String = """ "logger"."Turn" """
+        const val FIELDS : String = """("user", "utterance", "expectations", "predictedFrameEvents", "dialogActs", "duTime")"""
+        val sqlStatement = """INSERT INTO ${TABLE} ${FIELDS} VALUES (?, ?, ?, ?, ?, ?)"""
+
         const val URL: String = "pgUrl"
         const val DRIVER: String = "driver"
 
