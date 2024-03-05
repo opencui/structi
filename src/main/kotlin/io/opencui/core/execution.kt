@@ -89,7 +89,7 @@ class DialogManager {
 
         val turn = Turn(
             query,
-            Json.encodeToJsonElement(expectations),
+            Json.encodeToJsonElement(expectations?.activeFrames ?: emptyList()),
             Json.encodeToJsonElement(duReturnedFrameEvent),
             Json.encodeToJsonElement(dialogActs),
             convertToFrameEvent.first
