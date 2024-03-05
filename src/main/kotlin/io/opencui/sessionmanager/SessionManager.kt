@@ -140,7 +140,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             val channelLabel = session.channelLabel ?: ""
             val userId = session.userId!!
             turn.user = "$channelType/$channelLabel/$userId"
-            
+
             // we then log the turn
             turnLogger.log(turn)
         } else {
