@@ -539,6 +539,7 @@ data class ComponentSkillConverter(
             duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
         }
 
+        Dispatcher.logger.info("${p1.fullType} is skill ? ${duMeta.isSkill(p1.fullType)}")
         return if (!duMeta.isSkill(p1.fullType) || matched == null) {
             return p1
         } else {
