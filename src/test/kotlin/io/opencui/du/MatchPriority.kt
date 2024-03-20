@@ -10,6 +10,7 @@ class MatchPriorityTest : DuTestHelper() {
     // when expectation is empty, utterance "long time" some match intent Greeting
     // but when expection is {someIntent, slot1}, utterance "long time" should be recognized as slot value
     val agent = object : DUMeta {
+        override fun isSkill(name: String) = true
         override fun getLang(): String {
             return "en"
         }

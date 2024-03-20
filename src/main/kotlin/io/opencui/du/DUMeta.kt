@@ -136,6 +136,8 @@ interface DUMeta : ExtractiveMeta {
 
     fun isEntity(name: String) : Boolean  // given a name, return true if it's entity
 
+    fun isSkill(name: String): Boolean
+
     // TODO(xiaobo): to support head on frame, just make  function work with entity type.
     fun getSubFrames(fullyQualifiedType: String): List<String> { return emptyList() }
 
@@ -248,6 +250,7 @@ abstract class DslDUMeta() : DUMeta {
     abstract val slotMetaMap: Map<String, List<DUSlotMeta>>
     abstract val aliasMap: Map<String, List<String>>
     val subtypes: MutableMap<String, List<String>> = mutableMapOf()
+    abstract val skills: Set<String>
 
     override fun getSubFrames(fullyQualifiedType: String): List<String> {
         return subtypes[fullyQualifiedType] ?: emptyList()
@@ -282,6 +285,10 @@ abstract class DslDUMeta() : DUMeta {
 
     override fun isEntity(name: String): Boolean {
         return entityTypes.containsKey(name)
+    }
+
+    override fun isSkill(name: String): Boolean {
+        return skills.contains(name)
     }
 }
 

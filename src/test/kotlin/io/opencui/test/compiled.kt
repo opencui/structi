@@ -18,6 +18,8 @@ abstract class JsonDUMeta() : DUMeta {
         return subtypes[fullyQualifiedType] ?: emptyList()
     }
 
+    override fun isSkill(name: String) = true
+    
     override fun getEntities(): Set<String> {
         return entityMetas.keys
     }

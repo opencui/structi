@@ -95,6 +95,7 @@ class ZhSearchTest() : DuTestHelper() {
         override fun getLabel(): String { return "CarFinanceSimple" }
         override fun getVersion(): String { return "v_04a227a81a6b025230d9ac2882267507" }
 
+        override fun isSkill(name: String) = true
         override fun getEntityMeta(name:String): EntityMeta? {
             return mapOf<String, EntityMeta>()[name]
         }

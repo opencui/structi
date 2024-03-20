@@ -278,6 +278,7 @@ abstract class IChatbot : Component {
                 override val entityTypes = langPack.entityTypes
                 override val slotMetaMap = langPack.frameSlotMetas
                 override val aliasMap = langPack.typeAlias
+                override val skills = langPack.skills
 
                 init {
                     val surroundings = extractSlotSurroundingWords(expressionsByFrame, LanguageAnalyzer.get(lang, stop=false)!!)

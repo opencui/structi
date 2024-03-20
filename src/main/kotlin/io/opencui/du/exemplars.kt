@@ -121,6 +121,7 @@ interface LangPack {
     val entityTypes: Map<String, EntityType>
     val frameSlotMetas: Map<String, List<DUSlotMeta>>
     val typeAlias: Map<String, List<String>>
+    val skills: Set<String>  // We sometime need to whether a qualified name is skill.
 
     fun frame(ownerId: String, init: FrameExemplarBuilder.() -> Unit) : List<Exemplar> {
         val p = FrameExemplarBuilder(ownerId)

@@ -45,6 +45,7 @@ public data class SmallTableAgent(
 }
 
 public object en : LangPack {
+    override val skills = setOf<String>()
   public override val frames = mapOf(
       "io.opencui.core.CleanSession" to frame("io.opencui.core.CleanSession") {
         utterance("""Clean session, please.""") {

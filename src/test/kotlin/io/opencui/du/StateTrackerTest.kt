@@ -133,6 +133,8 @@ class StateTrackerTest : DuTestHelper() {
             return ""
         }
 
+        override fun isSkill(name: String) = true
+
         override fun getEntityMeta(name:String): EntityMeta? {
             return Json.decodeFromString<Map<String, EntityMeta>> ("""{
                     "io.opencui.core.Ordinal":{"recognizer":["DucklingRecognizer"]}

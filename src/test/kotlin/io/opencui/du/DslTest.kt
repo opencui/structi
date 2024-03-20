@@ -9,6 +9,7 @@ import kotlin.test.assertEquals
 import org.junit.Test
 
 object En : LangPack {
+    override val skills = setOf<String>()
     override val frames = mapOf(
         "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
             utterance("<date_time_slot>")
@@ -54,6 +55,7 @@ object En : LangPack {
 }
 
 object Zh : LangPack {
+    override val skills = setOf<String>()
     override val frames = mapOf(
         "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
             utterance("<date_time_slot>")
@@ -106,6 +108,10 @@ class DslTest() : DuTestHelper() {
 
         override fun getEntityMeta(name: String): EntityMeta? {
             return mapOf<String, EntityMeta>()[name]
+        }
+
+        override fun isSkill(name: String): Boolean {
+            return true
         }
 
         override val expressionsByFrame: Map<String, List<Exemplar>>
