@@ -17,6 +17,7 @@ class RecognizerTest : DuTestHelper() {
         override fun getLabel(): String { return "Banks" }
         override fun getVersion(): String { return "" }
 
+        override fun isSkill(name: String) = true
         override fun getEntityInstances(name: String): Map<String, List<String>> {
             return IChatbot.parseEntityToMapByNT(
                 name, when (name) {
@@ -90,6 +91,7 @@ class RecognizerTest : DuTestHelper() {
                 TODO("Not yet implemented")
             }
 
+            override fun isSkill(name: String) = true
             override fun getEntityInstances(name: String): Map<String, List<String>> {
                 return IChatbot.parseEntityToMapByNT(
                     name, when (name) {

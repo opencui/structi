@@ -9,6 +9,7 @@ import org.junit.Test
 class DslEntityTest() : DuTestHelper() {
 
     object En : LangPack {
+        override val skills = setOf<String>()
         override val frames = mapOf(
             "Banks_1.TransferMoney" to frame("Banks_1.TransferMoney") {
                 utterance("<date_time_slot>")
