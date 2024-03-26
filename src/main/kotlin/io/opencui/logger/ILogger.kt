@@ -16,6 +16,7 @@ data class Turn(
     val predictedFrameEvents: JsonElement,   // again an array of events.
     val dialogActs: JsonElement,    // an array of dialog acts.
     val duTime: Long,
+    val lang: String
 )  {
     var trueFrameEvents: JsonElement? = null  // this is provided manually when there are mistakes
     var dmTime: Long? = null // We might need this.
@@ -66,9 +67,6 @@ data class JdbcLogger(val info: Configuration): ILogger {
 
 
     override fun log(turn: Turn): Boolean {
-
-
-   
         val builder = Inserter(conn.prepareStatement(sqlStatement));
         builder.add(turn.channelType)
         builder.add(turn.channelLabel)
@@ -78,6 +76,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
         builder.add(turn.predictedFrameEvents)
         builder.add(turn.dialogActs)
         builder.add(turn.dmTime)
+        builder.add(turn.lang)
         try {
             val result = builder.stmt.executeUpdate()
             if (result <= 0) {
@@ -94,7 +93,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
     
     companion object : ExtensionBuilder<ILogger> {
         val logger: Logger = LoggerFactory.getLogger(JdbcLogger::class.java)
-        val sqlStatement = """INSERT INTO "logger"."Turn" ("channelType", "channelLabel", "userId", "utterance", "expectations", "predictedFrameEvents", "dialogActs", "duTime") VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+        val sqlStatement = """INSERT INTO "logger"."Turn" ("channelType", "channelLabel", "userId", "utterance", "expectations", "predictedFrameEvents", "dialogActs", "duTime", "lang") VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
         const val TABLE : String = "turn"
         const val URL: String = "pgUrl"
         const val DRIVER: String = "driver"

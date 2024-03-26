@@ -99,6 +99,10 @@ data class ExpectedFrame(
         val slotType = duMeta.getSlotType(frame, slot)
         return (slotType in IStateTracker.IStatusSet) || slotType == IStateTracker.KotlinBoolean
     }
+
+    fun toDict() : Map<String, String?> {
+        return mapOf("frame" to frame,  "slot" to slot, "slotType" to slotType)
+    }
 }
 
 /**

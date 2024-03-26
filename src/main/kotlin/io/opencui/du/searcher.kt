@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Paths
 import java.util.*
-import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
 /**

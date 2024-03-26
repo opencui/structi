@@ -9,8 +9,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
-import org.jetbrains.kotlin.cli.common.environment.setIdeaIoUseFallback
-import org.jetbrains.kotlin.psi.qualifiedExpressionVisitor
 import java.util.*
 
 enum class DugMode {
@@ -94,7 +92,7 @@ data class RestNluService(val url: String) {
     data class Request(
         val mode: DugMode,
         val utterance: String,
-        val expectations: List<ExpectedFrame> = emptyList(),
+        val expectations: List<Map<String, String?>> = emptyList(),
         val slots: List<Map<String, String>> = emptyList(),
         val candidates: Map<String, List<String>> = emptyMap(),
         val questions: List<String> = emptyList(),
@@ -115,7 +113,7 @@ data class RestNluService(val url: String) {
     fun detectTriggerables(
         ctxt: Context,
         utterance: String,
-        expectations: List<ExpectedFrame> = emptyList()): List<TriggerDecision> {
+        expectations: List<Map<String, String?>> = emptyList()): List<TriggerDecision> {
 
         val input = Request(DugMode.SKILL, utterance, expectations)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
@@ -438,7 +436,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
         // We assume true/false or null here.
-        val pcandidates = nluService.detectTriggerables(context, utterance, expectations.activeFrames)
+        val pcandidates = nluService.detectTriggerables(
+            context,
+            utterance,
+            expectations.activeFrames.map { it.toDict() })
 
         val candidates = ChainedExampledLabelsTransformer(
             StatusTransformer(expectations)
