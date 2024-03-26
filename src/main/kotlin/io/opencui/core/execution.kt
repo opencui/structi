@@ -92,7 +92,8 @@ class DialogManager {
             Json.encodeToJsonElement(expectations?.activeFrames ?: emptyList()),
             Json.encodeToJsonElement(duReturnedFrameEvent),
             Json.encodeToJsonElement(dialogActs),
-            convertToFrameEvent.first
+            convertToFrameEvent.first,
+            session.chatbot?.agentLang ?: "en"
         )
 
         return Pair(turn, dialogActs)
