@@ -9,6 +9,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
+import org.jetbrains.kotlin.diagnostics.WhenMissingCase
 import java.util.*
 
 enum class DugMode {
@@ -226,12 +227,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
         val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, duMeta)
-        var allNormalizers = normalizers.toMutableList()
-        // Session and turn based recognizers
-        if (session.sessionRecognizer != null) allNormalizers += session.sessionRecognizer!!
-        if (session.turnRecognizer != null) allNormalizers += session.turnRecognizer!!
 
-        allNormalizers.recognizeAll(
+        ducontext.normalizers += normalizers.toList()
+        // Session and turn based recognizers
+        if (session.sessionRecognizer != null) ducontext.normalizers += session.sessionRecognizer!!
+        if (session.turnRecognizer != null) ducontext.normalizers += session.turnRecognizer!!
+
+        ducontext.normalizers.recognizeAll(
             utterance,
             ducontext.expectedEntityType(expectations),
             ducontext.entityTypeToValueInfoMap
@@ -313,7 +315,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
 
-
             val frameSlots = duMeta
                 .getSlotMetas(triggerable.owner!!)
                 .filter { !it.isDirectFilled }
@@ -323,9 +324,20 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
             for (frameSlot in frameSlots) {
                 val events = fillSlotsByFrame(duContext, frameSlot.type!!, null)
-                results.addAll(events)
-            }
+                logger.debug("getting $events for ${frameSlot.type}")
 
+                if (duMeta.getSlotMetas(frameSlot.type).firstOrNull{it.isHead} != null) {
+                    // if this frame slot has head, we generate frame event if we find payload.
+                    for (event in events) {
+                        // event for frame event should be handled carefully.
+                        if (event.slots.isEmpty() && event.frames.isEmpty()) continue
+                        results.add(event)
+                    }
+                } else {
+                    // This is the old code path.
+                    results.addAll(events)
+                }
+            }
         }
 
         return if (results.size != 0) {
@@ -611,9 +623,21 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // if not direct filled,
         val duMeta = duContext.duMeta!!
+        // Let's include head of the frame slot
+
         val slotMapAft = slotMapBef
-            .filter { it.triggers.isNotEmpty()  }
-            .filter { duMeta.isEntity(it.type!!) }
+            .mapNotNull { it.headEntitySlotMeta(duMeta) }
+            .filter { it.triggers.isNotEmpty() }
+
+        // This means that we have not run recognizer
+        if (duContext.expectedFrames.firstOrNull{it.frame == topLevelFrameType} == null) {
+            val slotTypes = slotMapAft.map{it.type!!}
+            duContext.normalizers.recognizeAll(
+                duContext.utterance,
+                slotTypes,
+                duContext.entityTypeToValueInfoMap
+            )
+        }
 
         // For now, we only care about the single level
         if (slotMapAft.isEmpty()) {
@@ -653,21 +677,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             if (slotType != null) {
                 val slotLabel = slot.label
                 // For now, we only support entity level value extraction.
-                val entityMeta = duMeta.getEntityMeta(slotType) ?: continue
-
                 val valuesByType = duContext.getValuesByType(slotType)
-                // if it is normalizable, and we did not recognize anything, we do not include in slot value.
-                // this will leave things like name.
-                if (entityMeta.normalizable && valuesByType.isNullOrEmpty()) {
-                    continue
-                }
 
                 // Should we resolve the confused type where more than one slot have the same type?
-                val values = valuesByType.map { duContext.utterance.substring(it.start, it.end) }
-                if (!values.isNullOrEmpty()) {
-                    nluSlotMetas.add(slot)
-                    nluSlotValues[slotLabel] = values
-                }
+                val values = valuesByType.map { duContext.utterance.substring(it.start, it.end) } ?: emptyList()
+                nluSlotMetas.add(slot)
+                nluSlotValues[slotLabel] = values
             }
         }
 
@@ -682,6 +697,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 val values = entry.value.values.toMutableList()
                 if (!values.isNullOrEmpty()) {
                     equalSlotValues[entry.key] = entry.value.values.toMutableList()
+                    // Stupid duckling does not get the int and float right for some reason.
+
+
                 }
             }
         }
@@ -698,7 +716,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             if (spannedValues.isNullOrEmpty()) {
                 continue
             }
-            // We should have at least two slotMets here.
+            // We should have at least two slotMetas here.
             for (value in spannedValues) {
                 duContext.resolveSlot(value, entry.value)
             }
@@ -709,6 +727,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         for (slot in nluSlotMetas) {
             val slotType = slot.type!!
             val slotName = slot.label
+
+            // We only create event in the right frame
+            if (slot.parent != topLevelFrameType) continue
 
             // For now, we ignore the partial match.
             val valuesForType = duContext.entityTypeToValueInfoMap[slotType]?.filter { ! it.partialMatch }
@@ -729,7 +750,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
             // Most of the type are normalizable, except person name for now.
             // The normalizable basically means the recognizer is dependable.
-            val normalizable = duMeta!!.getEntityMeta(slotType)?.normalizable!!
+            val normalizable = duMeta!!.getEntityMeta(slotType)?.normalizable ?: false
             if (!normalizable && equalSlotValues.containsKey(slotName)) {
                 val slotValues = equalSlotValues[slotName]!!.distinct()
                 // For now, assume the operator are always equal

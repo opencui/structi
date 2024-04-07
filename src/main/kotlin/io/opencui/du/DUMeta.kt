@@ -41,6 +41,14 @@ data class DUSlotMeta(
         return meta
     }
 
+    fun triggersReplaced(newTriggers: List<String>): DUSlotMeta {
+        val meta = DUSlotMeta(label, newTriggers, type, isMultiValue, parent, isHead)
+        meta.isMentioned = isMentioned
+        meta.prefixes = prefixes
+        meta.suffixes = suffixes
+        return meta
+    }
+
     fun isGenericTyped(): Boolean {
         return type == "T"
     }
@@ -53,7 +61,14 @@ data class DUSlotMeta(
         )
     }
 
-
+    fun headEntitySlotMeta(duMeta: DUMeta) : DUSlotMeta? {
+        // This returns only the first level head for now.
+        if (duMeta.isEntity(type!!)) {
+            return this
+        }
+        return duMeta.getSlotMetas(type)
+            .firstOrNull{ it.isHead && duMeta.isEntity(it.type!!)}?.triggersReplaced(triggers)
+    }
 }
 
 // Compute the surrounding words so that we can help extraction.
