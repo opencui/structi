@@ -255,7 +255,20 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         if (types.contains("io.opencui.core.Ordinal")) {
             parseImpl(input, listOf("ordinal"), emap)
         }
+        if (types.contains("kotlin.Int")) {
+            parseImpl(input, listOf("number"), emap)
+        }
         parseImpl(input, listOf(), emap)
+
+        // post process, if the same span is recognized as LocalDateTime, it should not be
+        // recognized as LocalTime.
+        val localDateTimes = emap["java.time.LocalDateTime"]?.map{ Pair(it.start, it.end) }?.toSet()
+        if (!localDateTimes.isNullOrEmpty()) {
+            emap["java.time.LocalTime"]?.removeIf { Pair(it.start, it.end) in localDateTimes }
+        }
+
+        // Remove the entries with empty values.
+        emap.entries.removeIf{it.value.size == 0}
     }
 
     /**

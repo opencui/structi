@@ -123,7 +123,7 @@ open class DuContext(
     val nextTokenByChar = mutableMapOf<Int, Int>()
 
     val expectedFrames by lazy { expectations.activeFrames }
-
+    val normalizers = mutableListOf<EntityRecognizer>()
 
     val emapByCharStart by lazy { convert() }
 
