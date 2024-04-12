@@ -155,7 +155,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
     fun getType(items:JsonObject): List<String> {
         return when(val s = (items.get("dim") as JsonPrimitive).content()) {
-            "time" -> listOf("java.time.LocalDateTime", "java.time.LocalTime", "java.time.LocalDate", "java.time.YearMonth", "java.time.Year")
+            "time" -> listOf("java.time.LocalTime", "java.time.LocalDate", "java.time.YearMonth", "java.time.Year")
             "email" -> listOf("framely.core.Email", "io.opencui.core.Email")
             "phone-number" -> listOf("framely.core.PhoneNumber", "io.opencui.core.PhoneNumber")
             "number" -> listOf("kotlin.Int", "kotlin.Float")
@@ -194,7 +194,6 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
     // TODO: need to change this for different types.
     override fun getNormedValue(value: ValueInfo): String? {
         return when(value.type) {
-            "java.time.LocalDateTime" -> parseLocalDateTime(value.value)
             "java.time.LocalTime" -> parseLocalTime(value.value)
             "java.time.LocalDate" -> parseLocalDate(value.value)
             "java.time.YearMonth" -> parseYearMonth(value.value)
@@ -203,12 +202,6 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             "kotlin.Float" -> parseIt(value.value!!)
             else -> "\"${parseIt(value.value!!)}\""
         }
-    }
-
-    fun parseLocalDateTime(value: Any?): String? {
-        value as JsonObject
-        val strValue = parseTime(value, 5, 19)
-        return if (strValue != null) Json.encodeToString(LocalDateTime.parse(strValue)) else null
     }
 
     fun parseLocalTime(value: Any?): String? {
@@ -259,13 +252,6 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             parseImpl(input, listOf("number"), emap)
         }
         parseImpl(input, listOf(), emap)
-
-        // post process, if the same span is recognized as LocalDateTime, it should not be
-        // recognized as LocalTime.
-        val localDateTimes = emap["java.time.LocalDateTime"]?.map{ Pair(it.start, it.end) }?.toSet()
-        if (!localDateTimes.isNullOrEmpty()) {
-            emap["java.time.LocalTime"]?.removeIf { Pair(it.start, it.end) in localDateTimes }
-        }
 
         // Remove the entries with empty values.
         emap.entries.removeIf{it.value.size == 0}
