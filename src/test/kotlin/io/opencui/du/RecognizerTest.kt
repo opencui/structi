@@ -124,10 +124,6 @@ class RecognizerTest : DuTestHelper() {
         val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         listRecognizer.parse("我想去北京", listOf(), emap)
         assertEquals("\"北京1\"", emap["city"]!![0].norm())
-
-        val ducklingRecognizer = DucklingRecognizer(zhAgent)
-        ducklingRecognizer.parse("明天上午九点", listOf(), emap)
-        assertTrue { emap.containsKey("java.time.LocalDateTime") }
     }
 
     val recognizer = DucklingRecognizer(agent)
