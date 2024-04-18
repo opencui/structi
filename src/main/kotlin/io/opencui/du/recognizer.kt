@@ -33,6 +33,9 @@ class ValueInfo(
 ) {
     // This is useful for slot resolutions, when we have multiple slots with the same type.
     val possibleSlots = mutableSetOf<String>()
+    // This is useful for resolutions.
+    val surrendings = mutableSetOf<String>()
+    val candidates = mutableListOf<JsonElement>()
 
     override fun toString() : String {
         return "$value @($start, $end)"
@@ -169,7 +172,10 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         val end = items.getPrimitive("end").content().toInt()
         val latent = items.getPrimitive("latent").content().toBoolean()
         val value = items.get("value") as JsonElement
-        return ValueInfo(type, start, end, value, this, true)
+        val pCandidates : List<JsonElement> = value.get("values")?.toList() ?: emptyList()
+        return ValueInfo(type, start, end, value, this, true).apply{
+            candidates.addAll(pCandidates)
+        }
     }
 
     fun fill(input: String, sres: JsonArray, emap: MutableMap<String, MutableList<ValueInfo>>) {
@@ -269,15 +275,22 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             val substr = utterance.substring(v.start).lowercase(Locale.getDefault())
             if (v.type == "java.time.LocalDate") {
                 if (substr.startsWith("on ")) {
-                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
+                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score).apply {
+                        surrendings.add("on")
+                        candidates.addAll(v.candidates)
+                    }
                 }
                 if (substr.startsWith("at ")) return null
             }
             if (v.type == "java.time.LocalTime") {
                 if (substr.startsWith("at ")) {
-                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score)
+                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score).apply {
+                        surrendings.add("at")
+                        candidates.addAll(v.candidates)
+                    }
                 }
                 if (substr.startsWith("on ")) return null
+                if (substr.contains(" on ")) return null
             }
         }
         return v
