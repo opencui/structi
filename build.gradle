@@ -40,6 +40,10 @@ compileTestKotlin {
 repositories {
     mavenLocal()
     mavenCentral()
+    flatDir {
+        dirs './libs'
+    }
+
 }
 
 dependencies {
@@ -47,6 +51,8 @@ dependencies {
     compileOnly "javax.annotation:javax.annotation-api:1.2"
     compileOnly "org.slf4j:slf4j-api:2.0.3"
     implementation "org.slf4j:slf4j-simple:2.0.3"
+    implementation "org.clojure:clojure:1.11.1"
+    implementation "org.clojure:data.json:2.5.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" // Required for Kotlin integration
     implementation "org.apache.lucene:lucene-core:8.4.1"
     implementation "org.apache.lucene:lucene-analyzers-smartcn:8.4.1"
@@ -59,6 +65,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-compiler"
+    implementation files('./libs/duckling-0.4.24-standalone.jar')
 
     // We need to stick to older version of h2 so that test can be done faster enough.
     // New h2 requires tcp connection, much slower. That is why we can NOT enforcePlatform

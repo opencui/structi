@@ -139,7 +139,7 @@ interface DUMeta : ExtractiveMeta {
     fun getVersion(): String { return ""}
     fun getBranch(): String { return "master"}
     fun getOrg(): String { return "" }
-    fun getTimezone(): String { return "america/los_angeles" }
+    fun getTimezone(): String { return "America/Los_Angeles" }
 
     fun getSlotMetas(frame: String) : List<DUSlotMeta>
     fun typeKind(name: String): TypeKind {

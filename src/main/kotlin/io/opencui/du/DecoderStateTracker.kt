@@ -629,16 +629,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             .mapNotNull { it.headEntitySlotMeta(duMeta) }
             .filter { it.triggers.isNotEmpty() }
 
-        // This means that we have not run recognizer
-        if (duContext.expectedFrames.firstOrNull{it.frame == topLevelFrameType} == null) {
-            val slotTypes = slotMapAft.map{it.type!!}.filter { it !in duContext.entityTypeToValueInfoMap }
-            duContext.normalizers.recognizeAll(
-                duContext.utterance,
-                slotTypes,
-                duContext.entityTypeToValueInfoMap
-            )
-        }
-
         // For now, we only care about the single level
         if (slotMapAft.isEmpty()) {
             logger.debug("Found no slots for $topLevelFrameType")
