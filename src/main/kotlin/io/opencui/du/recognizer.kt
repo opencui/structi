@@ -1,20 +1,18 @@
 package io.opencui.du
 
-import io.opencui.core.RuntimeConfig
 import org.apache.lucene.analysis.Analyzer
 import org.slf4j.LoggerFactory
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpRequest.BodyPublisher
-import java.net.http.HttpRequest.BodyPublishers
-import java.net.http.HttpResponse
 import java.time.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import io.opencui.serialization.*
 import java.io.Serializable
 import java.util.*
+import clojure.java.api.Clojure
+import clojure.lang.*
+import io.opencui.serialization.Json
+import io.opencui.serialization.JsonArray
+
 
 /**
  * The normalizer is used to find the all occurrence of entities, and mark it with annotation.
@@ -27,18 +25,18 @@ class ValueInfo(
     val value: Any? = null,
     val recognizer: EntityRecognizer? = null,
     val leaf: Boolean = true,
-    val score: Float = 2.0f,
+    var score: Float = 2.0f,
     val partialMatch: Boolean = false,
-    val origValue: String? = null
-) {
+    val origValue: String? = null,
+    val latent: Boolean = true) {
     // This is useful for slot resolutions, when we have multiple slots with the same type.
     val possibleSlots = mutableSetOf<String>()
-    // This is useful for resolutions.
-    val surrendings = mutableSetOf<String>()
-    val candidates = mutableListOf<JsonElement>()
+
+    var typeSurroundingSupport : Boolean = false
+    var covered: Boolean = false
 
     override fun toString() : String {
-        return "$value @($start, $end)"
+        return "$type: $latent: @($start, $end) $typeSurroundingSupport"
     }
 
     fun norm() : String? {
@@ -48,6 +46,18 @@ class ValueInfo(
     fun original(utterance: String): String{
         return utterance.substring(start, end)
     }
+
+    fun withNewType(type: String) : ValueInfo {
+        val res = ValueInfo(type, start, end, value, recognizer, latent = latent)
+        res.typeSurroundingSupport = typeSurroundingSupport
+        return res
+    }
+
+}
+
+
+fun valueInfo(type: String, start: Int, end: Int, value: JsonObject, recognizer: EntityRecognizer?, latent: Boolean = false): ValueInfo {
+    return ValueInfo(type, start, end, value, recognizer = recognizer, latent=latent)
 }
 
 
@@ -121,31 +131,19 @@ class RegexRecognizer: EntityRecognizer {
     override fun getNormedValue(value: ValueInfo): String? {
         return value.value as String
     }
-
 }
 
 
-// For now assume we have all the information needed
+// This version only detect and normalize.
 class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
-    val client: HttpClient = HttpClient.newHttpClient()
-    val url: String = RuntimeConfig.get(DucklingRecognizer::class)!!
-    private val timeOut = 5000L
-
-    // For now just add bot timezone, if we want to handle user based timezone,
-    // checkout: https://github.com/RasaHQ/rasa/pull/1280/commits/1d140d2d5b6479cfc9778f69a20b74f3fc49ce31
     val timezone = agent.getTimezone()
-
-    val lang: String = when(val s = agent.getLang()){
-        "en" -> "en_GB"
-        "zh" -> "zh_XX"
-        else -> s
-    }
+    val lang = agent.getLang()
 
     val supported = mutableSetOf<String>()
 
-    init{
+    init {
         val entities = agent.getEntities()
-        for( key in entities) {
+        for (key in entities) {
             val entity = agent.getEntityMeta(key)
             if (entity?.recognizer?.find { it == "DucklingRecognizer" } != null) {
                 logger.info("$key does need DucklingRecognizer")
@@ -156,50 +154,20 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         }
     }
 
-    fun getType(items:JsonObject): List<String> {
-        return when(val s = (items.get("dim") as JsonPrimitive).content()) {
+    fun getType(dim: String): List<String> {
+        return when (dim) {
             "time" -> listOf("java.time.LocalTime", "java.time.LocalDate", "java.time.YearMonth", "java.time.Year")
-            "email" -> listOf("framely.core.Email", "io.opencui.core.Email")
-            "phone-number" -> listOf("framely.core.PhoneNumber", "io.opencui.core.PhoneNumber")
+            "email" -> listOf("io.opencui.core.Email")
+            "phone-number" -> listOf("io.opencui.core.PhoneNumber")
             "number" -> listOf("kotlin.Int", "kotlin.Float")
-            "ordinal" -> listOf("framely.core.Ordinal", "io.opencui.core.Ordinal")
-            else -> listOf("io.opencui.core.${s}")
-        }
-    }
-
-    fun convert(type: String, items: JsonObject): ValueInfo {
-        val start = items.getPrimitive("start").content().toInt()
-        val end = items.getPrimitive("end").content().toInt()
-        val latent = items.getPrimitive("latent").content().toBoolean()
-        val value = items.get("value") as JsonElement
-        val pCandidates : List<JsonElement> = value.get("values")?.toList() ?: emptyList()
-        return ValueInfo(type, start, end, value, this, true).apply{
-            candidates.addAll(pCandidates)
-        }
-    }
-
-    fun fill(input: String, sres: JsonArray, emap: MutableMap<String, MutableList<ValueInfo>>) {
-        for (items in sres) {
-            val types = getType(items as JsonObject)
-            logger.info(types.toString())
-            for (typeFullName in types) {
-                val ea = convert(typeFullName, items)
-                if (ea.norm() == null) continue
-                if (!supported.contains(typeFullName)) continue
-                val converted = postprocess(input, ea)
-                if (converted != null) {
-                    if (!emap.containsKey(typeFullName)) {
-                        emap[typeFullName] = mutableListOf()
-                    }
-                    emap[typeFullName]!!.add(converted)
-                }
-            }
+            "ordinal" -> listOf("io.opencui.core.Ordinal")
+            else -> listOf("io.opencui.core.${dim}")
         }
     }
 
     // TODO: need to change this for different types.
     override fun getNormedValue(value: ValueInfo): String? {
-        return when(value.type) {
+        return when (value.type) {
             "java.time.LocalTime" -> parseLocalTime(value.value)
             "java.time.LocalDate" -> parseLocalDate(value.value)
             "java.time.YearMonth" -> parseYearMonth(value.value)
@@ -234,12 +202,12 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         return if (strValue != null) Json.encodeToString(Year.parse(strValue)) else null
     }
 
-    fun parseTime(value: JsonObject, grainIndexTarget: Int, len: Int, start:Int = 0): String? {
+    fun parseTime(value: JsonObject, grainIndexTarget: Int, len: Int, start: Int = 0): String? {
         val primitive = value["value"] as JsonPrimitive? ?: return null
         val grain = (value["grain"] as JsonPrimitive).content()
         val grainIndex = getGrainIndex(grain)
         if (grainIndex < 0) return null
-        if (grainIndex < grainIndexTarget) return null
+        if (grainIndex != grainIndexTarget) return null
         return primitive.content().substring(start, len)
     }
 
@@ -251,98 +219,189 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
     override fun parse(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
         // Because of a bug in duckling, we need to call duckling more than once.
-        if (types.contains("io.opencui.core.Ordinal")) {
-            parseImpl(input, listOf("ordinal"), emap)
-        }
-        if (types.contains("kotlin.Int")) {
-            parseImpl(input, listOf("number"), emap)
-        }
-        parseImpl(input, listOf(), emap)
-
-        // Remove the entries with empty values.
-        emap.entries.removeIf{it.value.size == 0}
-    }
-
-    /**
-     * Duckling try to understanding things without strong support on expectation, so many things they
-     * just do it differently. for example, they will mask "on tuesday" as one word, but this makes other
-     * part of pipeline does not know what to do. So this post process aim to change it back.
-     *
-     * The long term solution for this is replaced duckling with expectation driven understanding.
-     */
-    fun postprocess(utterance: String, v: ValueInfo) : ValueInfo? {
-        if (agent.getLang() == "en") {
-            val substr = utterance.substring(v.start).lowercase(Locale.getDefault())
-            if (v.type == "java.time.LocalDate") {
-                if (substr.startsWith("on ")) {
-                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score).apply {
-                        surrendings.add("on")
-                        candidates.addAll(v.candidates)
-                    }
+        val elements = parse(input, lang, timezone)
+        // Types should be used to activate the latent from true to false, but no need to send to duckegg, as
+        // we have stopped to 
+        // The first thing, we use the smallest span for the same value (include grain),
+        // For now, simply dedup the time related things, based on dim:value:grain:span
+        val cleaned = filterRaw(elements, this)
+        logger.info(elements.toString())
+        // fill the emap
+        for (item in cleaned) {
+            val types = getType(item.type)
+            for (typeFullName in types) {
+                val ea = item.withNewType(typeFullName)
+                if (ea.norm() == null) continue
+                if (!supported.contains(typeFullName)) continue
+                if (!emap.containsKey(typeFullName)) {
+                    emap[typeFullName] = mutableListOf()
                 }
-                if (substr.startsWith("at ")) return null
-            }
-            if (v.type == "java.time.LocalTime") {
-                if (substr.startsWith("at ")) {
-                    return ValueInfo(v.type, v.start + 3, v.end, v.value, v.recognizer, true, v.score).apply {
-                        surrendings.add("at")
-                        candidates.addAll(v.candidates)
-                    }
-                }
-                if (substr.startsWith("on ")) return null
-                if (substr.contains(" on ")) return null
+                emap[typeFullName]!!.add(ea)
             }
         }
-        return v
-    }
-
-
-    fun parseImpl(input: String, types: List<String>, emap: MutableMap<String, MutableList<ValueInfo>>) {
-        val data: MutableMap<String, String> = HashMap()
-        data["locale"] = lang
-        data["text"] = input
-        data["tz"] = timezone
-
-        if (types.isNotEmpty()) {
-            data["dims"] = Json.encodeToString(types)
-        }
-
-        val request: HttpRequest = HttpRequest.newBuilder()
-                .POST(ofFormData(data))
-                .uri(URI.create(url))
-                .timeout(Duration.ofMillis(timeOut))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .build()
-
-        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-
-        if (response.statusCode() == 200) {
-            val body = response.body()
-            val elements = Json.parseToJsonElement(body) as JsonArray
-            logger.info(elements.toString())
-            fill(input, elements, emap)
-        } else {
-            logger.info(response.body())
-        }
-    }
-
-    fun ofFormData(data: Map<String, String>): BodyPublisher {
-        val builder = StringBuilder()
-        for ((key, value) in data) {
-            if (builder.isNotEmpty()) {
-                builder.append("&")
-            }
-            builder.append("$key=$value")
-        }
-        return BodyPublishers.ofString(builder.toString())
     }
 
     companion object {
         val logger = LoggerFactory.getLogger(DucklingRecognizer::class.java)
-        val grains : List<String> = listOf("year", "quarter", "month", "week", "day", "hour", "minute", "second")
-        fun getGrainIndex(grain: String) : Int { return grains.indexOf(grain)}
+        val grains: List<String> = listOf("year", "quarter", "month", "week", "day", "hour", "minute", "second")
+        fun getGrainIndex(grain: String): Int {
+            return grains.indexOf(grain)
+        }
+
+        /**
+         * dialog state tracker is the standard term where one use to convert natural language
+         * user input to frame events that can be used to update dialog state, the main functionality here
+         * is to use natural language understanding to convert the unstructured text into structured
+         * data, in a domain where business logic is defined.
+         *
+         * The main design principle is to reduce the learning curve as much as possible for the developers
+         * so that they can focus on the business logic side, instead of having to also be a nlu expert.
+         *
+         * For this, we assume that we get expectation/system utterance from session manager, and then we call
+         * dst with expectation and user text.
+         * https://dpom.github.io/clj-duckling/DeveloperGuide.html
+         * under duckling side
+         * lein jar
+         * or
+         * lein uberjar
+         *
+         * Build are based on:
+         * https://github.com/utsav91092/java-Duckling/blob/master/DucklingJavaWrapper/build.gradle
+         */
+
+        init {
+            val require = Clojure.`var`("clojure.core", "require")
+            require.invoke(Clojure.read("duckling.core"))
+            require.invoke(Clojure.read("clojure.data.json"));
+            Clojure.`var`("duckling.core", "load!").invoke()
+        }
+
+        // Since we only care about local time.
+        fun parse(input: String, lang: String, timezone: String? = null, dims: List<String> = emptyList()): JsonArray {
+            // Setup the time zone, so that today is normalized in the right way.
+            var context = Clojure.`var`("clojure.core", "hash-map").invoke() as IPersistentMap
+            if (timezone != null) {
+                val zone = ZoneId.of(timezone)
+                val localTime = LocalDateTime.now()
+                val zonedTime = localTime.atZone(zone)
+
+                val refTime = Clojure.`var`("duckling.time.obj", "t").invoke(
+                    zonedTime.offset.totalSeconds / 3600, zonedTime.year, zonedTime.month.value,
+                    zonedTime.dayOfMonth, zonedTime.hour, zonedTime.minute
+                )
+
+                context = Clojure.`var`("clojure.core", "hash-map").invoke(
+                    Keyword.intern("reference-time"), refTime,
+                ) as IPersistentMap
+            }
+
+            // This is used to filter the entities
+            var list: IPersistentList = Clojure.`var`("clojure.core", "list").invoke() as IPersistentList
+            for (dim in dims) {
+                list = list.cons(dim) as IPersistentList
+            }
+
+            val res = Clojure.`var`("duckling.core", "detect").invoke("$lang\$core", input, list, context) as LazySeq
+            return Json.decodeFromString<JsonArray>(
+                Clojure.`var`("clojure.data.json", "write-str").invoke(res) as String
+            )
+        }
+
+        // Test if it is time.
+        fun ValueInfo.isTime(): Boolean {
+            return type == "time"
+        }
+
+        // This simplify this,
+        fun convertRaw(items: JsonObject, recognizer: EntityRecognizer? = null): ValueInfo {
+            val type = (items.get("dim") as JsonPrimitive).content()
+            val start = items.getPrimitive("start").content().toInt()
+            val end = items.getPrimitive("end").content().toInt()
+            val latent = items.getPrimitiveIfExist("latent")?.content().toBoolean() ?: false
+            val value = items.get("value") as JsonObject
+            return valueInfo(type, start, end, value, recognizer, latent)
+        }
+
+
+        fun filterRaw(elements: JsonArray, recognizer: EntityRecognizer? = null): List<ValueInfo> {
+            // arrange item by lens.
+            // The first thing, we use the smallest span for the same value (include grain),
+            // For now, simply dedup the time related things.
+            val lensMap = mutableMapOf<Int, MutableList<ValueInfo>>()
+            for (element in elements) {
+                val value = convertRaw(element as JsonObject, recognizer)
+                val len = value.end - value.start
+                if (!lensMap.containsKey(len)) {
+                    lensMap[len] = mutableListOf()
+                }
+                lensMap[len]!!.add(value)
+            }
+
+            val typevaluesMap = mutableMapOf<String, MutableList<ValueInfo>>()
+            val lens = lensMap.keys.toList().sorted()
+            for (len in lens) {
+                for (item in lensMap[len]!!) {
+                    val valObject = item.value as JsonObject
+                    if (item.type == "interval") continue
+                    // For now, we assume we only handle single value slot, not the interval like things.
+                    if (!valObject.containsKey("value")) {
+                        logger.info("Found ${item.type} with no value field.")
+                        continue
+                    }
+
+                    val value = valObject.getPrimitive("value").content()
+                    val grain = valObject.getPrimitiveIfExist("grain")?.content() ?: ""
+                    val key = if (item.isTime()) "${item.type}:$value:$grain" else item.type
+
+                    if (!typevaluesMap.containsKey(key)) {
+                        typevaluesMap[key] = mutableListOf()
+                        typevaluesMap[key]!!.add(item)
+                    } else {
+                        val matched = typevaluesMap[key]!!
+                        var covered = false
+                        var addLargeSpan = false
+                        for (match in matched) {
+                            if (item.start <= match.start && item.end >= match.end) {
+                                if (item.isTime()) {
+                                    match.typeSurroundingSupport = true
+                                    covered = true
+                                } else {
+                                    addLargeSpan = true
+                                    match.covered = true
+                                }
+                            }
+                        }
+                        // time we use the small span, others user large span
+                        if (!covered || addLargeSpan) {
+                            typevaluesMap[key]!!.add(item)
+                        }
+                    }
+                }
+            }
+
+            // only have
+            return typevaluesMap.values.flatten().filter { it.covered == false }
+        }
+
+
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val input = "first"
+
+            val parsed = parse(input, "en", "America/New_York")
+            for (item in parsed) {
+                println(item)
+            }
+            val cleaned = filterRaw(parsed)
+            for (item in cleaned) {
+                println(item)
+                println(input.substring(item.start, item.end))
+            }
+        }
     }
 }
+
+
 
 
 class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {
