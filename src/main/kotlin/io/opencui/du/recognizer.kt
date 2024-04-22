@@ -244,9 +244,23 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
     companion object {
         val logger = LoggerFactory.getLogger(DucklingRecognizer::class.java)
         val grains: List<String> = listOf("year", "quarter", "month", "week", "day", "hour", "minute", "second")
+
+
         fun getGrainIndex(grain: String): Int {
             return grains.indexOf(grain)
         }
+
+        fun getEffectiveTime(value: String, grain: String): String {
+            val index = getGrainIndex(grain)
+            return if (index <= 4) {
+                value.substring(0, 10)
+            } else {
+                value.substring(11, 19)
+            }
+        }
+
+
+
 
         /**
          * dialog state tracker is the standard term where one use to convert natural language
@@ -312,6 +326,18 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             return type == "time"
         }
 
+        fun ValueInfo.key() : String {
+            return if (isTime()) {
+                val valObject = value as JsonObject
+                val value = valObject.getPrimitive("value").content()
+                val grain = valObject.getPrimitive("grain").content()
+                "$type:${getEffectiveTime(value, grain)}:${grain}"
+            } else {
+                type
+            }
+
+        }
+
         // This simplify this,
         fun convertRaw(items: JsonObject, recognizer: EntityRecognizer? = null): ValueInfo {
             val type = (items.get("dim") as JsonPrimitive).content()
@@ -349,10 +375,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
                         continue
                     }
 
-                    val value = valObject.getPrimitive("value").content()
-                    val grain = valObject.getPrimitiveIfExist("grain")?.content() ?: ""
-                    val key = if (item.isTime()) "${item.type}:$value:$grain" else item.type
-
+                    val key = item.key()
                     if (!typevaluesMap.containsKey(key)) {
                         typevaluesMap[key] = mutableListOf()
                         typevaluesMap[key]!!.add(item)
@@ -386,7 +409,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
         @JvmStatic
         fun main(args: Array<String>) {
-            val input = "first"
+            val input = "I will leave at 3 in the morning"
 
             val parsed = parse(input, "en", "America/New_York")
             for (item in parsed) {
@@ -400,8 +423,6 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
         }
     }
 }
-
-
 
 
 class ListRecognizer(val lang: String) : EntityRecognizer, Serializable {

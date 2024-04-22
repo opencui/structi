@@ -147,7 +147,7 @@ class RecognizerTest : DuTestHelper() {
         println("now working with time")
         recognizer.parse("I will leave at 3 in the morning", listOf(), emap)
         println(emap)
-        val time = emap["java.time.LocalTime"]!![0].norm()
+        val time = emap["java.time.LocalTime"]!!.filter{!it.latent}[0].norm()
         assertEquals(time, "\"03:00:00\"")
 
         emap.clear()
