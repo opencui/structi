@@ -63,6 +63,12 @@ fun ObjectNode.getPrimitive(s: String) : JsonPrimitive {
     return this.get(s) as JsonPrimitive
 }
 
+fun ObjectNode.getPrimitiveIfExist(s: String, default: JsonPrimitive? = null) : JsonPrimitive? {
+    if (!this.containsKey(s)) return default
+    return this.get(s) as JsonPrimitive
+}
+
+
 fun ObjectNode.getString(s: String) : String {
     val obj = this.get(s) as JsonPrimitive
     return obj.asText()

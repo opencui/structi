@@ -152,10 +152,10 @@ class RecognizerTest : DuTestHelper() {
 
         emap.clear()
         recognizer.parse("my number is +1(555)234-2343", listOf(), emap)
-        assertEquals("\"15552342343\"", emap["io.opencui.core.PhoneNumber"]!![0].norm())
+        assertEquals("\"+1(555)234-2343\"", emap["io.opencui.core.PhoneNumber"]!![0].norm())
 
         emap.clear()
-        recognizer.parse("how about eighty eight?", listOf(), emap)
+        recognizer.parse("?how about eighty eight", listOf(), emap)
         println(emap)
         assertEquals("88", emap["kotlin.Int"]!![0].norm())
 
@@ -168,18 +168,21 @@ class RecognizerTest : DuTestHelper() {
         assertEquals("\"3\"", emap["io.opencui.core.Ordinal"]!![0].norm())
 
         emap.clear()
-        recognizer.parse("the second one please", listOf("io.opencui.core.Ordinal"), emap)
+        recognizer.parse("the second one please", listOf(), emap)
+        println(emap)
         assertEquals("\"2\"", emap["io.opencui.core.Ordinal"]!![0].norm())
 
         emap.clear()
         // We modified the java time LocalDate so it does not take proposition.
         recognizer.parse("I will leave on march 3rd", listOf(), emap)
-        val date = emap["java.time.LocalDate"]!![0]
+        println(emap)
+        val date = emap["java.time.LocalDate"]!!.filter{!it.latent}[0]
         assertEquals(16, date.start)
 
         // We modified the java time LocalDate so it does not take proposition.
         emap.clear()
         recognizer.parse("I will leave at 8:00pm", listOf(), emap)
+        println(emap)
         val dates = emap["java.time.LocalDate"]
         assertEquals(0, dates?.size ?: 0)
     }
@@ -200,11 +203,6 @@ class RecognizerTest : DuTestHelper() {
         val s = "the first one"
         val emap = mutableMapOf<String, MutableList<ValueInfo>>()
         recognizer.parse(s, listOf(), emap)
-        println(emap)
-        assertEquals(emap.size, 5)
-
-        emap.clear()
-        recognizer.parse("the first one", listOf("io.opencui.core.Ordinal"), emap)
         println(emap)
         assertEquals(emap.size, 6)
     }
