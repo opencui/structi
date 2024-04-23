@@ -40,10 +40,6 @@ compileTestKotlin {
 repositories {
     mavenLocal()
     mavenCentral()
-    flatDir {
-        dirs './libs'
-    }
-
 }
 
 dependencies {
@@ -65,7 +61,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-compiler"
-    implementation name: 'duckling-0.4.24-standalone', ext: 'jar'
+    implementation files('libs/duckling-0.4.24-standalone.jar')
 
     // We need to stick to older version of h2 so that test can be done faster enough.
     // New h2 requires tcp connection, much slower. That is why we can NOT enforcePlatform
