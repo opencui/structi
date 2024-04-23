@@ -259,6 +259,11 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             }
         }
 
+        fun getEffectiveTime(valObject: JsonObject): String {
+            val value = valObject.getPrimitive("value").content()
+            val grain = valObject.getPrimitive("grain").content()
+            return getEffectiveTime(value, grain)
+        }
 
 
 
@@ -335,7 +340,20 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
             } else {
                 type
             }
+        }
 
+        fun timeValueSet(v: ValueInfo): Set<String> {
+            val valObj = (v.value as JsonObject)
+            if (!valObj.containsKey("values")) return emptySet()
+            return valObj.getJsonArray("values").map { getEffectiveTime(it as JsonObject) }.toSet()
+        }
+
+        fun isTimeAgree(v0: ValueInfo, v1: ValueInfo): Boolean {
+            val v0values = timeValueSet(v0)
+            val v1values = timeValueSet(v1)
+            val v0v1 = v0values.minus(v1values)
+            // for now, we assume it is used inside time branch.
+            return v0v1.isEmpty()
         }
 
         // This simplify this,
@@ -385,7 +403,8 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
                         var addLargeSpan = false
                         for (match in matched) {
                             if (item.start <= match.start && item.end >= match.end) {
-                                if (item.isTime()) {
+                                // if item is time, then match is time, time
+                                if (item.isTime() && isTimeAgree(match, item)) {
                                     match.typeSurroundingSupport = true
                                     covered = true
                                 } else {
