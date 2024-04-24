@@ -288,13 +288,6 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
          * https://github.com/utsav91092/java-Duckling/blob/master/DucklingJavaWrapper/build.gradle
          */
 
-        init {
-            val require = Clojure.`var`("clojure.core", "require")
-            require.invoke(Clojure.read("duckling.core"))
-            require.invoke(Clojure.read("clojure.data.json"));
-            Clojure.`var`("duckling.core", "load!").invoke()
-        }
-
         // Since we only care about local time.
         fun parse(input: String, lang: String, timezone: String? = null, dims: List<String> = emptyList()): JsonArray {
             // Setup the time zone, so that today is normalized in the right way.
@@ -428,6 +421,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
         @JvmStatic
         fun main(args: Array<String>) {
+            ClojureInitializer.init()
             val input = "I will leave at 3 in the morning"
 
             val parsed = parse(input, "en", "America/New_York")
@@ -440,6 +434,15 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
                 println(input.substring(item.start, item.end))
             }
         }
+    }
+}
+
+object ClojureInitializer {
+    fun init() {
+        val require = Clojure.`var`("clojure.core", "require")
+        require.invoke(Clojure.read("duckling.core"))
+        require.invoke(Clojure.read("clojure.data.json"));
+        Clojure.`var`("duckling.core", "load!").invoke()
     }
 }
 

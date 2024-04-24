@@ -11,7 +11,9 @@ import kotlin.test.assertTrue
 
 
 class RecognizerTest : DuTestHelper() {
-
+    init {
+        ClojureInitializer.init()
+    }
     val agent = object: DUMeta {
         override fun getLang(): String { return "en" }
         override fun getLabel(): String { return "Banks" }
