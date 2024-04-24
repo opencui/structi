@@ -47,7 +47,7 @@ dependencies {
     compileOnly "javax.annotation:javax.annotation-api:1.2"
     compileOnly "org.slf4j:slf4j-api:2.0.3"
     implementation "org.slf4j:slf4j-simple:2.0.3"
-    implementation "org.clojure:clojure:1.11.1"
+    implementation "org.clojure:clojure:1.11.2"
     implementation "org.clojure:data.json:2.5.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" // Required for Kotlin integration
     implementation "org.apache.lucene:lucene-core:8.4.1"
