@@ -439,18 +439,10 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
 object ClojureInitializer {
     fun init() {
-        val originalClassLoader = Thread.currentThread().contextClassLoader
-        println("Original class loader: $originalClassLoader")
-        val appClassLoader = ClassLoader.getSystemClassLoader()
-        println("App Class loader: $appClassLoader")
-        Thread.currentThread().contextClassLoader = appClassLoader
-
         val require = Clojure.`var`("clojure.core", "require")
         require.invoke(Clojure.read("duckling.core"))
         require.invoke(Clojure.read("clojure.data.json"));
         Clojure.`var`("duckling.core", "load!").invoke()
-
-        Thread.currentThread().contextClassLoader = originalClassLoader
     }
 }
 
