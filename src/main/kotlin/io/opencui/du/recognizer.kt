@@ -443,9 +443,9 @@ object ClojureInitializer {
         val require = Clojure.`var`("clojure.core", "require")
         // Manually add class path for clojure.
         if (pathes.isNotEmpty()) {
-            RT.`var`("clojure.core", "require").invoke(RT.readString("clojure.java.classpath"))
+            require.invoke(Clojure.read("clojure.java.classpath"))
             for (path in pathes) {
-                RT.`var`("clojure.java.classpath", "add-classpath!").invoke(path);
+                Clojure.`var`("clojure.java.classpath", "add-classpath!").invoke(path);
             }
         }
         
