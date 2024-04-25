@@ -72,6 +72,11 @@ dependencies {
 }
 
 
+task deployLocalJar(type: Copy) {
+    from "libs/duckling-0.4.24-standalone.jar" // Replace with the actual path to your JAR file
+    into "${System.properties['user.home']}/.m2/repository/io/opencui/duckling/0.4.24-standalone"
+}
+
 
 publishing {
     publications {
