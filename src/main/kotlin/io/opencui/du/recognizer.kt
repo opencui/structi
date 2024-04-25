@@ -12,6 +12,9 @@ import clojure.java.api.Clojure
 import clojure.lang.*
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
+import java.io.File
+import java.net.URL
+
 
 
 /**
@@ -421,7 +424,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
         @JvmStatic
         fun main(args: Array<String>) {
-            ClojureInitializer.init()
+            ClojureInitializer.init(listOf("./core/libs/duckling-0.4.24-standalone.jar"))
             val input = "I will leave at 3 in the morning"
 
             val parsed = parse(input, "en", "America/New_York")
@@ -438,20 +441,25 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 }
 
 object ClojureInitializer {
-    fun init(pathes: List<String> = emptyList()) {
+    fun init(jars: List<String> = emptyList()) {
 
         val require = Clojure.`var`("clojure.core", "require")
-        // Manually add class path for clojure.
-        if (pathes.isNotEmpty()) {
-            require.invoke(Clojure.read("clojure.java.classpath"))
-            for (path in pathes) {
-                Clojure.`var`("clojure.java.classpath", "add-classpath!").invoke(path);
+        require.invoke(Clojure.read("clojure.data.json"));
+
+        val originalClassLoader = Thread.currentThread().contextClassLoader
+        if (jars.isNotEmpty()) {
+            // Manually add class path for clojure.
+            val newClassLoader = DynamicClassLoader(originalClassLoader)
+            Thread.currentThread().contextClassLoader = newClassLoader
+            val urls = jars.map { File(it).absoluteFile.toURI().toURL() }
+            for (url in urls) {
+                newClassLoader.addURL(url)
             }
         }
-        
         require.invoke(Clojure.read("duckling.core"))
-        require.invoke(Clojure.read("clojure.data.json"));
         Clojure.`var`("duckling.core", "load!").invoke()
+
+        Thread.currentThread().contextClassLoader = originalClassLoader
     }
 }
 
