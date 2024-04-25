@@ -438,8 +438,17 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 }
 
 object ClojureInitializer {
-    fun init() {
+    fun init(pathes: List<String> = emptyList()) {
+
         val require = Clojure.`var`("clojure.core", "require")
+        // Manually add class path for clojure.
+        if (pathes.isNotEmpty()) {
+            RT.`var`("clojure.core", "require").invoke(RT.readString("clojure.java.classpath"))
+            for (path in pathes) {
+                RT.`var`("clojure.java.classpath", "add-classpath!").invoke(path);
+            }
+        }
+        
         require.invoke(Clojure.read("duckling.core"))
         require.invoke(Clojure.read("clojure.data.json"));
         Clojure.`var`("duckling.core", "load!").invoke()
