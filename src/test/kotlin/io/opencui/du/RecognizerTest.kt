@@ -9,11 +9,18 @@ import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+// Add indirection to speed up the test.
+class ClojureInit {
+    companion object {
+        init {
+            ClojureInitializer.init()
+        }
+    }
+}
 
 class RecognizerTest : DuTestHelper() {
-    init {
-        ClojureInitializer.init()
-    }
+    val clojureInit = ClojureInit()
+
     val agent = object: DUMeta {
         override fun getLang(): String { return "en" }
         override fun getLabel(): String { return "Banks" }
