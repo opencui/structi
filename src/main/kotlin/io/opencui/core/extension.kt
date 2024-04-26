@@ -16,7 +16,7 @@ interface IExtension {
     }
 }
 
-interface ExtensionBuilder<T:IExtension> : (Configuration) -> T
+interface ExtensionBuilder<out T:IExtension> : (Configuration) -> T
 
 /**
  * This class holds a builder for each channel, and create a channel instance for given chatbot
