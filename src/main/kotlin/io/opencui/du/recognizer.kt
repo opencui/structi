@@ -451,6 +451,7 @@ object ClojureInitializer {
             // Manually add class path for clojure.
             val newClassLoader = DynamicClassLoader(originalClassLoader)
             val urls = jars.map { File(it).absoluteFile.toURI().toURL() }
+            println("Original class loader: $originalClassLoader")
             for (url in urls) {
                 println("Loading $url")
                 newClassLoader.addURL(url)
@@ -460,6 +461,7 @@ object ClojureInitializer {
         require.invoke(Clojure.read("duckling.core"))
         Clojure.`var`("duckling.core", "load!").invoke()
 
+        println("Switching back to original class loader: $originalClassLoader")
         Thread.currentThread().contextClassLoader = originalClassLoader
     }
 }
