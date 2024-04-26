@@ -14,7 +14,7 @@ import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import java.io.File
 import java.net.URL
-
+import java.net.URLClassLoader
 
 
 /**
@@ -451,7 +451,7 @@ object ClojureInitializer {
             // Manually add class path for clojure.
             val newClassLoader = DynamicClassLoader(originalClassLoader)
             val urls = jars.map { File(it).absoluteFile.toURI().toURL() }
-            println("Original class loader: $originalClassLoader")
+            println("Original class loader: ${(originalClassLoader as URLClassLoader?)?.urLs}")
             for (url in urls) {
                 println("Loading $url")
                 newClassLoader.addURL(url)
@@ -461,7 +461,7 @@ object ClojureInitializer {
         require.invoke(Clojure.read("duckling.core"))
         Clojure.`var`("duckling.core", "load!").invoke()
 
-        println("Switching back to original class loader: $originalClassLoader")
+        println("Switching back to original class loader: ${(originalClassLoader as URLClassLoader?)?.urLs})")
         Thread.currentThread().contextClassLoader = originalClassLoader
     }
 }
