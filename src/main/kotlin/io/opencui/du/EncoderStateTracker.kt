@@ -1002,7 +1002,7 @@ data class BertStateTracker(
         nluModel.shutdown()
     }
 
-    companion object : ExtensionBuilder<IStateTracker> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(BertStateTracker::class.java)
 
         // TODO(sean): make sure entity side return this as label for DONTCARE

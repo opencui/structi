@@ -113,7 +113,6 @@ class RuntimeTest {
     )
 
     init {
-        RuntimeConfig.put<String>(DucklingRecognizer::class, "http://172.11.51.61:8000/parse")
         RuntimeConfig.put(TfRestBertNLUModel::class, Triple("172.11.51.61", 8501, null))
         RuntimeConfig.put(ChatbotLoader::class, versionStore)
         Dispatcher.sessionManager = sessionManager
@@ -1638,9 +1637,9 @@ class RuntimeTest {
         sessionManager.deleteUserSession(userInfo, botInfo)
         val chatbot = Dispatcher.getChatbot(botInfo)
         val session = sessionManager.createUserSession(userInfo, botInfo)
-        val manager = chatbot.getExtensionManager<IComponent_0915>()
-        val label = manager.keys.first()
-        val extension0 = manager.get(label)
+        val manager = chatbot.extensions
+        val label = manager.getLabels<IComponent_0915>()!!.first()
+        val extension0 = manager.get<IComponent_0915>(label)
         val extension1 = session.getExtension<IComponent_0915>()
         val extension2 = chatbot.getExtension<IComponent_0915>(label)
         assertEquals(extension0, extension1)

@@ -143,8 +143,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             // we then log the turn
             turnLogger.log(turn)
         } else {
-            val config = session.chatbot!!.extensions[ILogger::class]
-            logger.info("Could not find the provider for ILogger as ${config}")
+            logger.info("Could not find the provider for ILogger")
         }
 
         updateUserSession(session.userIdentifier, session.botInfo, session)

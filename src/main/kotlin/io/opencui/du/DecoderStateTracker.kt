@@ -775,7 +775,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         nluService.shutdown()
     }
 
-    companion object : ExtensionBuilder<IStateTracker> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(DecoderStateTracker::class.java)
 
         // TODO(sean): make sure entity side return this as label for DONTCARE

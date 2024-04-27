@@ -5,6 +5,7 @@ import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserInfo
 import org.slf4j.LoggerFactory
 import java.io.Serializable
+import kotlin.reflect.KClass
 
 // This is used for creating the instance for T, useful for channels and supports.
 /***
@@ -16,75 +17,14 @@ interface IExtension {
     }
 }
 
-interface ExtensionBuilder<out T:IExtension> : (Configuration) -> T
-
-/**
- * This class holds a builder for each channel, and create a channel instance for given chatbot
- * on the first time it was requested.
- */
-data class ExtensionManager<T:IExtension>(val contract: String) {
-
-    val holder = mutableMapOf<String, T>()
-    val types = mutableMapOf<String, String>()
-    val builders: MutableMap<String, ExtensionBuilder<T>> = mutableMapOf()
-
-    val keys: Set<String>
-        get() = builders.keys
-
-    fun get(label: String) : T? {
-        if (!holder.containsKey(label)) {
-            val builder = builders[label]
-            if (builder != null) {
-                val triple = Pair(contract, label)
-                val config = Configuration.get(triple)
-                if (config != null) {
-                    holder[label] = builder.invoke(config)
-                }
-            }
-        }
-        return holder[label]
-    }
-
-    fun get() : T? {
-        // When this function is called, client does not which provider do we need.
-        // so we create one instance.
-        val defaultLabel = DEFAULT
-        if (!holder.containsKey(defaultLabel)) {
-            val realLabel = builders.keys.toList().firstOrNull()
-            if (realLabel != null) {
-                logger.info("build provider using $realLabel as default.")
-                val builder = builders[realLabel]!!
-                val triple = Pair(contract, realLabel)
-                val config = Configuration.get(triple)
-                if (config != null) {
-                    holder[defaultLabel] = builder.invoke(config)
-                }
-            }
-        }
-        return holder[defaultLabel]
-    }
-
-
-    fun builder(label: String, builder: ExtensionBuilder<T>, init: ConfiguredBuilder<T>.()->Unit) {
-        val configuredBuilder = ConfiguredBuilder(contract, label, builder)
-        configuredBuilder.init()
-        builders[label] = configuredBuilder.builder
-    }
-
-    companion object {
-        const val DEFAULT : String = "_default_"
-        val logger = LoggerFactory.getLogger(ExtensionManager::class.java)
-    }
-}
-
 // The configurable should be able to used in old way, and property way.
-open class Configuration(val contract: String, val label: String): Serializable, HashMap<String, Any>() {
+open class Configuration(val label: String): Serializable, HashMap<String, Any>() {
     init {
-        val oldCfg = configurables.get(toPair())
+        val oldCfg = configurables.get(label)
         if (oldCfg == null) {
-            configurables[toPair()] = this
+            configurables[label] = this
         } else {
-            this.map{ oldCfg[it.key] = it.value }
+            println("Hmmm..., there are already a configure labeled as $label.")
         }
     }
 
@@ -98,28 +38,22 @@ open class Configuration(val contract: String, val label: String): Serializable,
     // For templated provider.
     val conn: String
         get() = this["conn"]!! as String
-    
+
     val url: String
         get() = this["url"]!! as String
 
-    fun toPair() = Pair(contract, label)
-
     override fun toString(): String {
-        return """$contract:$label:${super.toString()}"""
+        return """$label:${super.toString()}"""
     }
 
-    fun id() : String = "$contract.$label"
+    fun id() : String = "$label"
 
     companion object {
         const val DEFAULT = "default"
-        val configurables = mutableMapOf<Pair<String, String>, Configuration>()
+        val configurables = mutableMapOf<String, Configuration>()
 
-        fun get(triple: Pair<String, String>): Configuration? {
+        fun get(triple: String): Configuration? {
             return configurables[triple]
-        }
-
-        fun get(contract: String, label: String = DEFAULT): Configuration? {
-            return configurables[Pair(contract, label)]
         }
 
         fun startsWith(key: String, prefixes: Set<String>) : String? {
@@ -150,12 +84,59 @@ open class Configuration(val contract: String, val label: String): Serializable,
     }
 }
 
-data class ConfiguredBuilder<T:IExtension>(
-    val contract: String,
-    val label: String,
-    val builder: ExtensionBuilder<T>) {
+interface ExtensionBuilder : (Configuration) -> IExtension
 
-    val config = Configuration(contract, label)
+/**
+ * This class holds a builder for each channel, and create a channel instance for given chatbot
+ * on the first time it was requested.
+ */
+class ExtensionManager {
+    val holder = mutableMapOf<String, IExtension>()
+    val builderByLabel: MutableMap<String, ExtensionBuilder> = mutableMapOf()
+
+    // This is used to narrow
+    val labelsByInterface = mutableMapOf<KClass<*>, MutableList<String>>()
+
+    inline fun <reified T:IExtension> getLabels(): List<String> {
+       return labelsByInterface[T::class] ?: emptyList()
+    }
+
+    fun <T: IExtension> get(label: String) : T? {
+        if (!holder.containsKey(label)) {
+            val builder = builderByLabel[label]
+            if (builder != null) {
+                val config = Configuration.get(label)
+                if (config != null) {
+                    holder[label] = builder.invoke(config)
+                }
+            }
+        }
+        return holder[label] as T?
+    }
+
+    // This is used to create the builder
+    fun addBuilder(label: String, builder: ExtensionBuilder, init: ConfiguredBuilder.()->Unit) {
+        val configuredBuilder = ConfiguredBuilder(label)
+        configuredBuilder.init()
+        builderByLabel[label] = builder
+    }
+
+    // This is used to create the mapping from interface type to label.
+    inline fun <reified T:IExtension> attach(label: String) {
+        if (!labelsByInterface.containsKey(T::class)) {
+            labelsByInterface[T::class] = mutableListOf<String>()
+        }
+        labelsByInterface[T::class]!!.add(label)
+    }
+
+    companion object {
+        val logger = LoggerFactory.getLogger(ExtensionManager::class.java)
+    }
+}
+
+
+data class ConfiguredBuilder(val label: String) {
+    val config = Configuration(label)
     fun put(key: String, value: Any) {
         config[key] = value
     }

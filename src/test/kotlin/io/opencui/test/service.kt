@@ -52,7 +52,7 @@ data class VacationServiceTemplateImpl(override var session: UserSession?, overr
         return (provider as IConnection).svInvoke(mapOf(), mapOf("hotel" to hotel), sql, Json.getFrameConverter(session, HotelAddress::class.java))
     }
 
-    companion object : ExtensionBuilder<IVacationService> {
+    companion object : ExtensionBuilder {
         override fun invoke(config: Configuration): IVacationService {
             val conn = SqlConnection(config)
             return VacationServiceTemplateImpl(null, conn)
@@ -80,7 +80,7 @@ data class MobileServiceTemplateImpl(override var session: UserSession?, overrid
             Json.getFrameConverter(session, MobileWithAdvancesForMapping::class.java))
     }
 
-    companion object : ExtensionBuilder<IMobileService> {
+    companion object : ExtensionBuilder {
         override fun invoke(config: Configuration): IMobileService {
             val conn = SqlConnection(config)
             return MobileServiceTemplateImpl(null, conn)
@@ -98,7 +98,7 @@ data class IntentSuggestionServiceTemplateImpl(override var session: UserSession
         return (provider as IConnection).mvInvoke(mapOf(), mapOf("current" to current), sql, Json.getInterfaceConverter(session!!, IIntent::class.java))
     }
 
-    companion object: ExtensionBuilder<IIntentSuggestionService> {
+    companion object: ExtensionBuilder {
         override fun invoke(config: Configuration): IIntentSuggestionService {
             println("building service...")
             val conn = SqlConnection(config)
@@ -114,7 +114,7 @@ data class DishServiceTemplateImpl(override var session: UserSession?, override 
         return (provider as IConnection).mvInvoke(mapOf(), mapOf(), sql, Json.getEntityConverter(Dish::class.java))
     }
 
-    companion object: ExtensionBuilder<IDishService> {
+    companion object: ExtensionBuilder {
         override fun invoke(config: Configuration): IDishService {
             println("building service...")
             val conn = SqlConnection(config)
