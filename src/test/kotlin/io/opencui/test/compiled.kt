@@ -115,47 +115,47 @@ data class Agent(val user: String) : IChatbot() {
     init {
         rewriteRules += Class.forName("io.opencui.test.SlotOfferSepInformConfirmRule").kotlin as KClass<out DialogActRewriter>
 
-        extensions[IMobileService::class] = buildManager<IMobileService> {
-            builder("default", MobileServiceTemplateImpl.Companion) {
-                put("user", "")
-                put("password", "")
-                put("conn", "io.opencui.provider.SqlConnection")
-                put("url", "jdbc:h2:./h2db/mobile;DATABASE_TO_UPPER=FALSE")
-            }
+        val mobileServiceLabel = "${IMobileService::class}:default"
+        extensions.attach<IMobileService>(mobileServiceLabel)
+        extensions.addBuilder(mobileServiceLabel, MobileServiceTemplateImpl.Companion) {
+            put("user", "")
+            put("password", "")
+            put("conn", "io.opencui.provider.SqlConnection")
+            put("url", "jdbc:h2:./h2db/mobile;DATABASE_TO_UPPER=FALSE")
         }
 
-        extensions[IVacationService::class] = buildManager<IVacationService>{
-            builder("default", VacationServiceTemplateImpl.Companion) {
-                put("user", "")
-                put("password", "")
-                put("conn", "io.opencui.provider.SqlConnection")
-                put("url", "jdbc:h2:./h2db/vacation;DATABASE_TO_UPPER=FALSE")
-            }
+        val vocationServiceLabel = "${IVacationService::class}:default"
+        extensions.attach<IVacationService>(vocationServiceLabel)
+        extensions.addBuilder(vocationServiceLabel, VacationServiceTemplateImpl.Companion) {
+            put("user", "")
+            put("password", "")
+            put("conn", "io.opencui.provider.SqlConnection")
+            put("url", "jdbc:h2:./h2db/vacation;DATABASE_TO_UPPER=FALSE")
         }
 
-        extensions[IIntentSuggestionService::class] = buildManager<IIntentSuggestionService> {
-            builder("default", IntentSuggestionServiceTemplateImpl.Companion) {
-                put("user", "")
-                put("password", "")
-                put("conn", "io.opencui.provider.SqlConnection")
-                put("url", "jdbc:h2:./h2db/intents;DATABASE_TO_UPPER=FALSE")
-            }
+        val intentSuggestionServiceLabel = "${IIntentSuggestionService::class}:default"
+        extensions.attach<IIntentSuggestionService>(intentSuggestionServiceLabel)
+        extensions.addBuilder(intentSuggestionServiceLabel, IntentSuggestionServiceTemplateImpl.Companion) {
+            put("user", "")
+            put("password", "")
+            put("conn", "io.opencui.provider.SqlConnection")
+            put("url", "jdbc:h2:./h2db/intents;DATABASE_TO_UPPER=FALSE")
         }
 
-        extensions[IDishService::class] = buildManager<IDishService> {
-            builder("default", DishServiceTemplateImpl.Companion) {
-                put("user", "")
-                put("password", "")
-                put("conn", "io.opencui.provider.SqlConnection")
-                put("url", "jdbc:h2:./h2db/dish;DATABASE_TO_UPPER=FALSE")
-            }
+        val disclaimerServiceLabel = "${IDishService::class}:default"
+        extensions.attach<IDishService>(disclaimerServiceLabel)
+        extensions.addBuilder(disclaimerServiceLabel, DishServiceTemplateImpl.Companion) {
+            put("user", "")
+            put("password", "")
+            put("conn", "io.opencui.provider.SqlConnection")
+            put("url", "jdbc:h2:./h2db/dish;DATABASE_TO_UPPER=FALSE")
         }
 
-        extensions[IComponent_0915::class] = buildManager<IComponent_0915> {
-          builder("default", HelloWorldProvider.Companion) {
+        val component0915Label = "${IComponent_0915::class}:default"
+        extensions.attach<IComponent_0915>(component0915Label)
+        extensions.addBuilder(component0915Label, HelloWorldProvider.Companion) {
             put("name", "world")
             put("label", "T1012")
-          }
         }
     }
 
@@ -212,7 +212,7 @@ data class HelloWorldProvider(
     return "hello ${config["name"]}, $str"
   }
 
-  companion object: ExtensionBuilder<IComponent_0915> {
+  companion object: ExtensionBuilder {
     override fun invoke(config: Configuration): IComponent_0915 {
       return HelloWorldProvider(config)
     }

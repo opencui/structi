@@ -199,7 +199,7 @@ abstract class IChatbot : Component {
     abstract val stateTracker: IStateTracker
 
     // This is used to host extension managers.
-    val extensions = mutableMapOf<KClass<*>, ExtensionManager<*>>()
+    val extensions: ExtensionManager = ExtensionManager()
 
     // This is used for hosting dialog act rewrite rule.
     abstract val rewriteRules: List<KClass<out DialogActRewriter>>
@@ -208,33 +208,25 @@ abstract class IChatbot : Component {
     abstract val routing: Map<String, RoutingInfo>
 
     fun getChannel(label: String) : IChannel? {
-        return extensions[IChannel::class]?.get(label) as IChannel?
+        return extensions.get<IChannel>(label)
     }
 
-    inline fun <reified T> getExtension(label: String?=null): T? {
-        return if (label == null) {
-            extensions[T::class]?.get() as T?
-        } else {
-            extensions[T::class]?.get(label) as T?
-        }
+    inline fun <reified T:IExtension> getExtension(label: String): T? {
+        return extensions.get(label)
     }
 
-    inline fun <reified T> getExtensionManager(): ExtensionManager<*> {
-       return extensions[T::class]!!
+    inline fun <reified T:IExtension> getExtension(): T? {
+        val labels = extensions.getLabels<T>()
+        if (labels.isEmpty()) return null
+        return extensions.get(labels[0])
     }
 
-    inline fun <reified T> getConfiguration(label: String): Configuration? {
-        return Configuration.get(T::class.qualifiedName!!, label)
+    fun getConfiguration(label: String): Configuration? {
+        return Configuration.get(label)
     }
 
     fun createUserSession(channelType: String, user: String, channelLabel: String?): UserSession{
         return UserSession(user, channelType, channelLabel, chatbot = this)
-    }
-
-    inline fun <reified T:IExtension> buildManager(init: ExtensionManager<T>.() -> Unit) : ExtensionManager<T> {
-        val manager = ExtensionManager<T>(T::class.qualifiedName!!)
-        manager.init()
-        return manager
     }
 
     open fun recycle() {
