@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 class ClojureInit {
     companion object {
         init {
-            ClojureInitializer.init()
+            ClojureInitializer.init(listOf("en"))
         }
     }
 }

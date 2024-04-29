@@ -13,7 +13,6 @@ import clojure.lang.*
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonArray
 import java.io.File
-import java.net.URL
 
 
 
@@ -424,7 +423,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 
         @JvmStatic
         fun main(args: Array<String>) {
-            ClojureInitializer.init(listOf("./core/libs/duckling-0.4.24-standalone.jar"))
+            ClojureInitializer.init(listOf("en", "zh"), listOf("./core/libs/duckling-0.4.24-standalone.jar"))
             val input = "I will leave at 3 in the morning"
 
             val parsed = parse(input, "en", "America/New_York")
@@ -441,7 +440,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
 }
 
 object ClojureInitializer {
-    fun init(jars: List<String> = emptyList()) {
+    fun init( langs : List<String>, jars: List<String> = emptyList()) {
 
         val require = Clojure.`var`("clojure.core", "require")
         require.invoke(Clojure.read("clojure.data.json"));
@@ -459,7 +458,15 @@ object ClojureInitializer {
             Thread.currentThread().contextClassLoader = newClassLoader
         }
         require.invoke(Clojure.read("duckling.core"))
-        Clojure.`var`("duckling.core", "load!").invoke()
+
+        var langList: ISeq? = null
+        for (lang in langs) {
+            println(lang)
+            println(langList)
+            langList = if (langList == null) RT.list(lang) else langList.cons(lang)
+        }
+
+        Clojure.`var`("duckling.core", "load!").invoke(langList)
 
         println("Switching back to original class loader: $originalClassLoader")
         Thread.currentThread().contextClassLoader = originalClassLoader
