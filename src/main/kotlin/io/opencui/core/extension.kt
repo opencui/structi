@@ -114,6 +114,12 @@ class ExtensionManager {
         return holder[label] as T?
     }
 
+    inline fun <reified T:IExtension> get(): T? {
+        val labels = labelsByInterface[T::class] ?: return null
+        if (labels.size < 1) return null
+        return get(labels.first())
+    }
+
     // This is used to create the builder
     fun addBuilder(label: String, builder: ExtensionBuilder, init: ConfiguredBuilder.()->Unit) {
         val configuredBuilder = ConfiguredBuilder(label)
