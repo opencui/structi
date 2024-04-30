@@ -455,12 +455,8 @@ data class UserSession(
             return Dispatcher.sessionManager.botStore as T
         }
 
-        val manager = chatbot!!.extensions
-        check(manager.getLabels<T>().size == 1)
-        val label = manager.getLabels<T>()[0]
-
         // We always try to clone for session, but default implementation does nothing.
-        val res = (manager.get<T>(label)!! as IExtension).cloneForSession(this)
+        val res = chatbot!!.extensions.get<T>()?.cloneForSession(this) ?: return null
         if (res is IProvider) {
             res.session = this
         }

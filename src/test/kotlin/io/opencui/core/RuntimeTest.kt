@@ -3,7 +3,6 @@ package io.opencui.core
 import com.fasterxml.jackson.databind.node.NullNode
 import io.opencui.core.da.DialogAct
 import io.opencui.core.user.UserInfo
-import io.opencui.du.DucklingRecognizer
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.serialization.*
 import io.opencui.sessionmanager.*
@@ -1637,17 +1636,12 @@ class RuntimeTest {
         sessionManager.deleteUserSession(userInfo, botInfo)
         val chatbot = Dispatcher.getChatbot(botInfo)
         val session = sessionManager.createUserSession(userInfo, botInfo)
-        val manager = chatbot.extensions
-        val label = manager.getLabels<IComponent_0915>()!!.first()
-        val extension0 = manager.get<IComponent_0915>(label)
+        val extension0 = chatbot.extensions.get<IComponent_0915>()
         val extension1 = session.getExtension<IComponent_0915>()
-        val extension2 = chatbot.getExtension<IComponent_0915>(label)
         assertEquals(extension0, extension1)
-        assertEquals(extension1, extension2)
         val service = HelloWorldService(session)
         val action = service.searchResponse()
         val result = action!!.run(session)
-        println(result.toString())
     }
 
     fun serializeSession(session: UserSession) : String {

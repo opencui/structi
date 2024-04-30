@@ -97,10 +97,6 @@ class ExtensionManager {
     // This is used to narrow
     val labelsByInterface = mutableMapOf<KClass<*>, MutableList<String>>()
 
-    inline fun <reified T:IExtension> getLabels(): List<String> {
-       return labelsByInterface[T::class] ?: emptyList()
-    }
-
     fun <T: IExtension> get(label: String) : T? {
         if (!holder.containsKey(label)) {
             val builder = builderByLabel[label]
@@ -112,6 +108,12 @@ class ExtensionManager {
             }
         }
         return holder[label] as T?
+    }
+
+    inline fun <reified T:IExtension> get(): T? {
+        val labels = labelsByInterface[T::class] ?: return null
+        if (labels.size < 1) return null
+        return get(labels.first())
     }
 
     // This is used to create the builder

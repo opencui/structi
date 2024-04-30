@@ -215,8 +215,8 @@ abstract class IChatbot : Component {
         return extensions.get(label)
     }
 
-    inline fun <reified T:IExtension> getExtension(): T? {
-        val labels = extensions.getLabels<T>()
+    inline fun <reified T : IExtension> getExtension(): T? {
+        val labels = extensions.labelsByInterface[T::class] ?: emptyList()
         if (labels.isEmpty()) return null
         return extensions.get(labels[0])
     }
