@@ -34,7 +34,8 @@ class ValueInfo(
     // This is useful for slot resolutions, when we have multiple slots with the same type.
     val possibleSlots = mutableSetOf<String>()
 
-    var typeSurroundingSupport : Boolean = false
+    var typeSurroundingSupport : Float = 0f
+    var slotName: String? = null
     var covered: Boolean = false
 
     override fun toString() : String {
@@ -400,7 +401,7 @@ class DucklingRecognizer(val agent: DUMeta):  EntityRecognizer {
                             if (item.start <= match.start && item.end >= match.end) {
                                 // if item is time, then match is time, time
                                 if (item.isTime() && isTimeAgree(match, item)) {
-                                    match.typeSurroundingSupport = true
+                                    match.typeSurroundingSupport = 1.0f
                                     covered = true
                                 } else {
                                     addLargeSpan = true

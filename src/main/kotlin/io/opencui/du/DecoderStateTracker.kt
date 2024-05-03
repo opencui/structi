@@ -66,6 +66,7 @@ data class TriggerDecision(
     }
 }
 
+
 /**
  * For RAG based solution, there are two different stage, build prompt, and then use model to score using
  * the generated prompt. It is possible that we have two different service, one for prompt (which is agent
@@ -165,6 +166,8 @@ data class RestNluService(val url: String) {
         return Json.decodeFromString<List<YesNoResult>>(response.body())
     }
 }
+
+
 
 
 /**
@@ -655,8 +658,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         slotMetas: List<DUSlotMeta>,
         topLevelFrameType: String,
         focusedSlot: String?): List<FrameEvent> {
+
         // we need to make sure we include slots mentioned in the intent expression
         val nluSlotValues = mutableMapOf<String, List<String>>()
+        val slotValueDecider = SlotValueDecider(duContext)
 
         // The question here is, do we resolve the type overlapped slot before we send to NLU?
         val duMeta = duContext.duMeta!!
@@ -669,6 +674,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 // For now, we only support entity level value extraction.
                 val valuesByType = duContext.getValuesByType(slotType)
 
+                // Add this to decider for later decision-making.
+                valuesByType.map { slotValueDecider.put(it) }
                 // Should we resolve the confused type where more than one slot have the same type?
                 val values = valuesByType.map { duContext.utterance.substring(it.start, it.end) } ?: emptyList()
                 nluSlotMetas.add(slot)
@@ -677,97 +684,16 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
 
         // For now, we only focus on the equal operator, we will handle other semantics later.
-        val equalSlotValues = mutableMapOf<String, MutableList<String>>()
         val nluSlots = nluSlotMetas.map { it.asMap() }.toList()
         val results = nluService.fillSlots(context, duContext.utterance, nluSlots, nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
-        for (entry in results.entries) {
-            if(entry.value.operator == "==") {
-                val values = entry.value.values.toMutableList()
-                if (!values.isNullOrEmpty()) {
-                    equalSlotValues[entry.key] = entry.value.values.toMutableList()
-                    // Stupid duckling does not get the int and float right for some reason.
-                }
-            }
-        }
+        // Now we add the extract evidence.
+        slotValueDecider.addExtractedEvidence(results)
 
         // Now, we need to do slot resolutions for the slots with the same type.
-        val typesWithMultipleSlots = slotMetas.groupBy { it.type }.filterValues {it.size > 1}
-        for (entry in typesWithMultipleSlots.entries) {
-            val slotType = entry.key
-            // for these type, we compute surrounding bonus
-             val spannedValues = duContext.entityTypeToValueInfoMap[slotType]?.filter {
-                ! it.partialMatch
-            }
-
-            if (spannedValues.isNullOrEmpty()) {
-                continue
-            }
-            // We should have at least two slotMetas here.
-            for (value in spannedValues) {
-                duContext.resolveSlot(value, entry.value)
-            }
-        }
-
-        // Let us try to merge the evidence from recognizer.
-        val entityEvents = mutableListOf<EntityEvent>()
-        for (slot in nluSlotMetas) {
-            val slotType = slot.type!!
-            val slotName = slot.label
-
-            // We only create event in the right frame
-            if (slot.parent != topLevelFrameType) continue
-
-            // For now, we ignore the partial match.
-            val valuesForType = duContext.entityTypeToValueInfoMap[slotType]?.filter { ! it.partialMatch }
-            val valuesForSlot = valuesForType?.filter {slotName in it.possibleSlots || it.possibleSlots.size == 0}
-            val normValueMap = valuesForSlot?.map { it.original(duContext.utterance) to it.norm() }?.toMap()
-
-            // Regardless, we always use verified values.
-            val surfaceValues = mutableSetOf<String>()
-            if (!valuesForSlot.isNullOrEmpty()) {
-                for (valueInfo in valuesForSlot) {
-                    val value = valueInfo.original(duContext.utterance)
-                    if (!normValueMap.isNullOrEmpty() && normValueMap.containsKey(value) && value !in surfaceValues) {
-                        surfaceValues.add(value)
-                        entityEvents.add(EntityEvent.build(slotName, value, normValueMap[value]!!, slotType))
-                    }
-                }
-            }
-
-            // Most of the type are normalizable, except person name for now.
-            // The normalizable basically means the recognizer is dependable.
-            val normalizable = duMeta!!.getEntityMeta(slotType)?.normalizable ?: false
-            if (!normalizable && equalSlotValues.containsKey(slotName)) {
-                val slotValues = equalSlotValues[slotName]!!.distinct()
-                // For now, assume the operator are always equal
-                for (value in slotValues) {
-                    if (value in surfaceValues) continue
-                    surfaceValues.add(value)
-                    entityEvents.add(EntityEvent.build(slotName, value, value, slotType))
-                }
-            }
-        }
-
-        // Now handle partial match for focused slot, we might need to have better check.
-        val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(topLevelFrameType, focusedSlot)
-        if (entityEvents.size == 0 && focusedSlotType != null) {
-            val spannedValues = duContext.entityTypeToValueInfoMap[focusedSlotType]
-            val normalizable = duMeta.getEntityMeta(focusedSlotType)?.normalizable
-            // under condition where we have a unique partial match
-            if (spannedValues?.size == 1 && normalizable == true) {
-                val value = spannedValues[0]!!
-                entityEvents.add(EntityEvent.build(focusedSlot!!, value.origValue!!, value.norm()!!, focusedSlotType))
-            }
-        }
-
-        // not
-        return if (!duContext.expectations.isFrameCompatible(topLevelFrameType) || entityEvents.size != 0) {
-            listOf(FrameEvent.build(topLevelFrameType, entityEvents))
-        } else  {
-            emptyList()
-        }
+        slotValueDecider.resolveType(duContext, nluSlotMetas)
+        return slotValueDecider.resolveSlot(topLevelFrameType,  focusedSlot)
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
