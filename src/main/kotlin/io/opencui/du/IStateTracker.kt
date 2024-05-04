@@ -431,7 +431,8 @@ class SlotValueCandidates {
         
         val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slotValue.slot)!!
         // Find recognized value.
-        return recognizedInfos.find { it.type == slotMeta.type!!}?.apply{slotName = slotValue.slot} ?: return null
+        val typeMatched = recognizedInfos.find { EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
+        return typeMatched?.apply{slotName = slotValue.slot} ?: return null
     }
 }
 
@@ -536,17 +537,18 @@ data class EntityEventExtractor(val duContext: DuContext){
 
     fun resolveRecognizedSlot(frame: String, results: MutableList<EntityEvent>, isGoodValue: (ValueInfo) -> Boolean) {
         val slotMetas = duContext.duMeta!!.getSlotMetas(frame)
-        val slotTypes = slotMetas.map { it.type }.toSet()
+        val slotTypes = slotMetas.map { it.type!! }.toSet()
+        if (slotTypes.isEmpty()) return
 
         for (entry in candidateMap) {
             if (!entry.value.active) continue
-            val typedCandidates = entry.value.recognizedInfos.filter { isGoodValue(it) }.filter {it.type in slotTypes}
+            val typedCandidates = entry.value.recognizedInfos.filter { isGoodValue(it) }.filter { isCompatible(it.type, slotTypes)}
             if (typedCandidates.isEmpty()) continue
             if (typedCandidates.size == 1) {
                 val valueInfo = typedCandidates[0]
                 val value = valueInfo.original(duContext.utterance)
 
-                val compatibleSlots = slotMetas.filter { it.type == valueInfo.type }
+                val compatibleSlots = slotMetas.filter { isCompatible(valueInfo.type, it.type!!) }
                 if (compatibleSlots.isNotEmpty()) {
                     if (compatibleSlots.size == 1) {
                         val slotName = compatibleSlots[0].label
@@ -638,6 +640,14 @@ data class EntityEventExtractor(val duContext: DuContext){
 
     companion object {
         val logger = LoggerFactory.getLogger(EntityEventExtractor::class.java)
+
+        fun isCompatible(type: String, slotTypes: Set<String>): Boolean {
+            return type in slotTypes || "T" in slotTypes
+        }
+
+        fun isCompatible(valueType: String, slotType: String): Boolean {
+            return slotType == "T" || slotType == valueType
+        }
     }
 }
 
