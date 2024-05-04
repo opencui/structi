@@ -166,9 +166,6 @@ data class RestNluService(val url: String) {
     }
 }
 
-
-
-
 /**
  * DecoderStateTracker assumes the underlying nlu module has decoder.
  */
@@ -659,7 +656,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // we need to make sure we include slots mentioned in the intent expression
         val nluSlotValues = mutableMapOf<String, List<String>>()
-        val slotValueDecider = EntityEventExtractor(duContext)
+        val slotValueDecider = duContext.entityEventExtractor
+
+        // This way, we do not reuse the span that is used.
+        slotValueDecider.cleanExtracted(topLevelFrameType, slotMetas)
 
         // The question here is, do we resolve the type overlapped slot before we send to NLU?
         // TODO: Should this be label, or name?
@@ -671,8 +671,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 // For now, we only support entity level value extraction.
                 val valuesByType = duContext.getValuesByType(slotType)
 
-                // Add this to decider for later decision-making.
-                valuesByType.map { slotValueDecider.put(it) }
                 // Should we resolve the confused type where more than one slot have the same type?
                 val values = valuesByType.map { duContext.utterance.substring(it.start, it.end) } ?: emptyList()
                 nluSlotMetas.add(slot)
