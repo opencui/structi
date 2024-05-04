@@ -662,7 +662,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val slotValueDecider = EntityEventExtractor(duContext)
 
         // The question here is, do we resolve the type overlapped slot before we send to NLU?
-        val duMeta = duContext.duMeta!!
         // TODO: Should this be label, or name?
         val nluSlotMetas = mutableListOf<DUSlotMeta>()
         for (slot in slotMetas) {
