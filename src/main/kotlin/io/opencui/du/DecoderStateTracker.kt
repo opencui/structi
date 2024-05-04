@@ -9,7 +9,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
-import org.jetbrains.kotlin.diagnostics.WhenMissingCase
 import java.util.*
 
 enum class DugMode {
@@ -255,7 +254,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // Now we apply recognizers on every triggerable.
         for (triggerable in triggerables) {
-            triggerable as TriggerDecision
             triggerable.duContext = buildDuContext(session, triggerable.utterance, expectations)
             if (triggerable.owner == null) {
                 val exactOwner = triggerable.exactMatch(triggerable.duContext)
@@ -661,7 +659,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // we need to make sure we include slots mentioned in the intent expression
         val nluSlotValues = mutableMapOf<String, List<String>>()
-        val slotValueDecider = SlotValueDecider(duContext)
+        val slotValueDecider = EntityEventExtractor(duContext)
 
         // The question here is, do we resolve the type overlapped slot before we send to NLU?
         val duMeta = duContext.duMeta!!

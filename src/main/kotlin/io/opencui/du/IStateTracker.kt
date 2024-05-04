@@ -412,7 +412,9 @@ class SlotValueCandidates {
     }
 
     fun addTypeEvidence(value: ValueInfo) {
-        recognizedInfos.add(value)
+        if (recognizedInfos.find { it.type == value.type && it.partialMatch == value.partialMatch} == null) {
+            recognizedInfos.add(value)
+        }
     }
 
     fun addTypeBonus(slot: String, bonus: Float) {
@@ -435,7 +437,7 @@ class SlotValueCandidates {
 
 
 // We use this for decide how to interpret the extracted value
-data class SlotValueDecider(val duContext: DuContext){
+data class EntityEventExtractor(val duContext: DuContext){
     val candidateMap = mutableMapOf<Pair<Int, Int>, SlotValueCandidates>()
 
     fun markUsed(span: Pair<Int, Int>) {
@@ -512,7 +514,7 @@ data class SlotValueDecider(val duContext: DuContext){
         }
     }
 
-    fun resolveSupportedSlot(frame: String, results: MutableList<EntityEvent>, isGoodValue: (OpSlotValue) -> Boolean)  {
+    fun resolveExtractedSlot(frame: String, results: MutableList<EntityEvent>, isGoodValue: (OpSlotValue) -> Boolean)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
             // Given a span, if we find a slot with slot bonus, and type,
@@ -528,6 +530,34 @@ data class SlotValueDecider(val duContext: DuContext){
                 val value = valueInfo.original(duContext.utterance)
                 markUsed(entry.key)
                 results.add(EntityEvent.build(valueInfo.slotName!!, value, valueInfo.norm()!!, valueInfo.type))
+            }
+        }
+    }
+
+    fun resolveRecognizedSlot(frame: String, results: MutableList<EntityEvent>, isGoodValue: (ValueInfo) -> Boolean) {
+        val slotMetas = duContext.duMeta!!.getSlotMetas(frame)
+        val slotTypes = slotMetas.map { it.type }.toSet()
+
+        for (entry in candidateMap) {
+            if (!entry.value.active) continue
+            val typedCandidates = entry.value.recognizedInfos.filter { isGoodValue(it) }.filter {it.type in slotTypes}
+            if (typedCandidates.isEmpty()) continue
+            if (typedCandidates.size == 1) {
+                val valueInfo = typedCandidates[0]
+                val value = valueInfo.original(duContext.utterance)
+
+                val compatibleSlots = slotMetas.filter { it.type == valueInfo.type }
+                if (compatibleSlots.isNotEmpty()) {
+                    if (compatibleSlots.size == 1) {
+                        val slotName = compatibleSlots[0].label
+                        markUsed(entry.key)
+                        results.add(EntityEvent.build(slotName, value, valueInfo.norm()!!, valueInfo.type))
+                    } else {
+                        // TODO: This has two potential binding, we should use slot clarification.
+                    }
+                }
+            } else {
+                // TODO: There are two types associated with this span.
             }
         }
     }
@@ -549,10 +579,10 @@ data class SlotValueDecider(val duContext: DuContext){
 
         // First round we require that we have support, and it needs to be normalizable.
         // slot model + slot context + any type evidence.
-        resolveSupportedSlot(frame, entityEvents){ it.slotSurroundingBonus > 0f }
+        resolveExtractedSlot(frame, entityEvents){ it.slotSurroundingBonus > 0f }
 
         // slot model + any type evidence.
-        resolveSupportedSlot(frame, entityEvents){ it.slotSurroundingBonus >= 0f }
+        resolveExtractedSlot(frame, entityEvents){ it.slotSurroundingBonus == 0f }
 
 
         // if it is not normalizable
@@ -575,15 +605,16 @@ data class SlotValueDecider(val duContext: DuContext){
                     markUsed(entry.key)
                 }
             } else {
-                // we extract slot clarification.
+                // TODO: we extract slot clarification.
             }
         }
 
 
         // TODO(sean): we are potentially missing two rounds here.
         // both type evidence.
-
-        // with type model.
+        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport > 0f}
+        // with just type model.
+        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport == 0f }
 
         // if it is without extraction support, and some time just partial match.
         val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(frame, focusedSlot)
@@ -604,9 +635,11 @@ data class SlotValueDecider(val duContext: DuContext){
             emptyList()
         }
     }
+
+    companion object {
+        val logger = LoggerFactory.getLogger(EntityEventExtractor::class.java)
+    }
 }
-
-
 
 
 // LlmStateTracker always try to recognize frame first, and then slot.
