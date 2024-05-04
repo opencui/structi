@@ -375,11 +375,19 @@ enum class ValueOperator {
     EqualTo,
     LessThan,
     GreaterThan,
-    LessThanOrEqualTo,
-    GreaterThanOrEqualTo
+    LessThanOrEqualTo;
+
+    companion object {
+        fun convert(str: String) : ValueOperator {
+            return when (str) {
+                "==" -> EqualTo
+                else -> throw IllegalArgumentException(str)
+            }
+        }
+    }
 }
 
-data class SlotValue(val values: List<String>, val operator: String  = "==")
+data class SlotValue(val values: List<String>, val operator: String  = "EqualTo")
 
 
 // We need to figure out how to resolve the surface value to slot, from surface to type to slot to semantics.
@@ -463,17 +471,17 @@ data class SlotValueDecider(val duContext: DuContext){
     }
 
     fun put(surface: String, slot: String, type: String, op: String="==") {
-        if (surface.isNotEmpty()) return
+        if (surface.isEmpty()) return
         // We do not need to worry about the overlapping for now.
         var startIndex = 0
         while (startIndex < duContext.utterance.length) {
             val index = duContext.utterance.indexOf(surface, startIndex)
             if (index != -1) {
                 val span = Pair(index, index + surface.length)
-                if (candidateMap.containsKey(span)) {
+                if (!candidateMap.containsKey(span)) {
                     candidateMap[span] = SlotValueCandidates()
                 }
-                candidateMap[span]!!.addSlotEvidence(OpSlotValue(slot, surface, type, ValueOperator.valueOf(op)))
+                candidateMap[span]!!.addSlotEvidence(OpSlotValue(slot, surface, type, ValueOperator.convert(op)))
                 startIndex = index + 1
             } else {
                 // This exit the loop.
@@ -519,7 +527,7 @@ data class SlotValueDecider(val duContext: DuContext){
             if (valueInfo != null) {
                 val value = valueInfo.original(duContext.utterance)
                 markUsed(entry.key)
-                results.add(EntityEvent.build(valueInfo.type, value, valueInfo.norm()!!, valueInfo.slotName!!))
+                results.add(EntityEvent.build(valueInfo.slotName!!, value, valueInfo.norm()!!, valueInfo.type))
             }
         }
     }
