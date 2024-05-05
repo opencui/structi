@@ -153,8 +153,6 @@ class SlotValueCandidates {
     // Both has nothing to do with value itself.
     // slot context support the same type between different slots.
     val slotSurroundingBonuses = mutableMapOf<String, Float>()
-    // type context support : useful for distinguish the same value between different type.
-    val typeSurroundingBonuses = mutableMapOf<String, Float>()
 
     var active: Boolean = true
 
@@ -406,10 +404,10 @@ data class EntityEventExtractor(val duContext: DuContext){
             }
         }
 
-
         // TODO(sean): we are potentially missing two rounds here.
         // both type evidence.
         resolveRecognizedSlot(frame, entityEvents) { it.hasTypeBonus() }
+
         // with just type model.
         resolveRecognizedSlot(frame, entityEvents) { !it.hasTypeBonus() }
 
