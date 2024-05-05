@@ -105,6 +105,355 @@ data class ExpectedFrame(
     }
 }
 
+// These are the semantic operator that we might support down the road
+enum class ValueOperator {
+    And,
+    Not,
+    Or,
+    EqualTo,
+    LessThan,
+    GreaterThan,
+    LessThanOrEqualTo;
+
+    companion object {
+        fun convert(str: String) : ValueOperator {
+            return when (str) {
+                "==" -> EqualTo
+                else -> throw IllegalArgumentException(str)
+            }
+        }
+    }
+}
+
+fun <F,T> List<F>.mapFirst(block: (F) -> T?): T? {
+    for (e in this) {
+        block(e)?.let { return it }
+    }
+    return null
+}
+
+
+data class SlotValue(val values: List<String>, val operator: String  = "EqualTo")
+
+
+// We need to figure out how to resolve the surface value to slot, from surface to type to slot to semantics.
+class OpSlotValue(val slot: String, val surface: String, val type: String, val operator: ValueOperator = ValueOperator.EqualTo) {
+    var slotSurroundingBonus : Float = 0f
+    var typeSurroundingBonus : Float =0f
+}
+
+/**
+ * The helper class need to resolve the entities. Recognized value are type based, extracted value are
+ * slot model based.
+ */
+class SlotValueCandidates {
+    val recognizedInfos = mutableListOf<ValueInfo>()
+    val extractedInfos = mutableListOf<OpSlotValue>()
+
+    // Both has nothing to do with value itself.
+    // slot context support the same type between different slots.
+    val slotSurroundingBonuses = mutableMapOf<String, Float>()
+    // type context support : useful for distinguish the same value between different type.
+    val typeSurroundingBonuses = mutableMapOf<String, Float>()
+
+    var active: Boolean = true
+
+
+    fun addExtractedEvidence(OpSlotValue: OpSlotValue) {
+        extractedInfos.add(OpSlotValue)
+    }
+
+    fun addRecognizedEvidence(value: ValueInfo) {
+        if (recognizedInfos.find { it.type == value.type && it.partialMatch == value.partialMatch} == null) {
+            recognizedInfos.add(value)
+        }
+    }
+
+    fun addSlotContextBonus(slot: String, bonus: Float) {
+        // Add to the right value
+        extractedInfos.filter {it.slot == slot}.map { it.slotSurroundingBonus = bonus}
+        slotSurroundingBonuses[slot] = bonus
+    }
+
+    private fun slotToValue(duContext: DuContext, frame: String, slot: String) : ValueInfo? {
+        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)!!
+        // Find recognized value.
+        val typeMatched = recognizedInfos.find { !it.partialMatch && EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
+        return typeMatched?.apply{ slotName = slot } ?: return null
+    }
+
+    fun valueByContext(duContext: DuContext, frame: String) : ValueInfo? {
+        val withBonus =  slotSurroundingBonuses.filterValues { it > 0f}.toList()
+        if (withBonus.isEmpty()) {
+            return null
+        }
+        val slots = withBonus.sortedBy { -it.second }
+        return slots.mapFirst { slotToValue(duContext, frame, it.first) }
+    }
+
+    fun valueByExtractionAndContext(duContext: DuContext, frame: String) : ValueInfo? {
+        val withBonus =  extractedInfos
+            .filter { it.slotSurroundingBonus > 0f }
+            .map { Pair(it.slot, it.slotSurroundingBonus) }
+        if (withBonus.isEmpty()) return null
+        val slots = withBonus.sortedBy { -it.second }.map { it.first }
+
+        return slots.mapFirst { slotToValue(duContext, frame, it) }
+    }
+}
+
+
+// We use this for decide how to interpret the extracted value
+data class EntityEventExtractor(val duContext: DuContext){
+    val candidateMap = mutableMapOf<Pair<Int, Int>, SlotValueCandidates>()
+
+    // We might want to reuse the recognized entity for all the frames.
+    var frame: String = ""
+    var slotMetas: List<DUSlotMeta> = emptyList()
+
+    fun markUsed(span: Pair<Int, Int>) {
+        // Now we go over all the rest of span, if it is incompatible with this span,
+        // know them off.
+        candidateMap[span]!!.active = false
+        for (entry in candidateMap) {
+            val key = entry.key
+            if (key.first >= span.first && key.first <= span.second) {
+                entry.value.active = false
+            }
+            if (key.second >= span.second && key.second <= span.second) {
+                entry.value.active = false
+            }
+        }
+    }
+
+    fun cleanExtracted(frame: String, slotMetas: List<DUSlotMeta>) {
+        // This way, we can reuse the recognized part.
+        for (entry in candidateMap) {
+            entry.value.extractedInfos.clear()
+            entry.value.slotSurroundingBonuses.clear()
+        }
+        this.frame = frame
+        this.slotMetas = slotMetas
+    }
+
+    fun initWithRecognized() {
+        // We only need to do this once for all the potentially nested frames, if any.
+        for (entry in duContext.entityTypeToValueInfoMap) {
+            val values = entry.value
+            for (value in values) {
+                put(value)
+            }
+        }
+    }
+
+    fun put(valueInfo: ValueInfo) {
+        val span = Pair(valueInfo.start, valueInfo.end)
+        if (!candidateMap.containsKey(span)) {
+            candidateMap[span] = SlotValueCandidates()
+        }
+        val candidates = candidateMap[span]!!
+        candidates.addRecognizedEvidence(valueInfo)
+    }
+
+    fun put(surface: String, slot: String, type: String, op: String="==") {
+        if (surface.isEmpty()) return
+        // We do not need to worry about the overlapping for now.
+        var startIndex = 0
+        while (startIndex < duContext.utterance.length) {
+            val index = duContext.utterance.indexOf(surface, startIndex)
+            if (index != -1) {
+                val span = Pair(index, index + surface.length)
+                if (!candidateMap.containsKey(span)) {
+                    candidateMap[span] = SlotValueCandidates()
+                }
+                candidateMap[span]!!.addExtractedEvidence(OpSlotValue(slot, surface, type, ValueOperator.convert(op)))
+                startIndex = index + 1
+            } else {
+                // This exit the loop.
+                startIndex = duContext.utterance.length
+            }
+        }
+    }
+
+    fun addExtractedEvidence(results: Map<String, SlotValue>) {
+        for (entry in results.entries) {
+            val values = entry.value.values.toMutableList()
+            for (value in values) {
+                put(value, entry.key, entry.value.operator)
+            }
+        }
+    }
+
+    fun resolveType(ducontext: DuContext, slotMetas: List<DUSlotMeta>) {
+        // This resolve type.
+        for (entry in candidateMap) {
+            val span = entry.key
+            val evidence = entry.value
+
+            for (slotMeta in slotMetas) {
+                val bonus = ducontext.getSurroundingWordsBonus(slotMeta, span.first, span.second)
+                evidence.addSlotContextBonus(slotMeta.label, bonus)
+            }
+        }
+    }
+
+    fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>)  {
+        // First round we require that we have support, and it needs to be normalizable.
+        for (entry in candidateMap) {
+            // Given a span, if we find a slot with slot bonus, and type,
+            // instance agreement for normalizable. We used it, we then knock all the incompatible
+            // span off.
+            // only use active one
+            if (!entry.value.active) continue
+
+            //  TODO(sean): how do we handle slot clarification, etc.
+            // first we require that we have some slot support.
+            val valueInfo = entry.value.valueByExtractionAndContext(duContext, frame)
+            if (valueInfo != null) {
+                val value = valueInfo.original(duContext.utterance)
+                markUsed(entry.key)
+                results.add(EntityEvent.build(valueInfo.slotName!!, value, valueInfo.norm()!!, valueInfo.type))
+            }
+        }
+    }
+
+    fun resolveByContext(frame: String, results: MutableList<EntityEvent>)  {
+        // First round we require that we have support, and it needs to be normalizable.
+        for (entry in candidateMap) {
+            // Given a span, if we find a slot with slot bonus, and type,
+            // instance agreement for normalizable. We used it, we then knock all the incompatible
+            // span off.
+            // only use active one
+            if (!entry.value.active) continue
+
+            //  TODO(sean): how do we handle slot clarification, etc.
+            // first we require that we have some slot support.
+            val valueInfo = entry.value.valueByContext(duContext, frame)
+            if (valueInfo != null) {
+                val value = valueInfo.original(duContext.utterance)
+                markUsed(entry.key)
+                results.add(EntityEvent.build(valueInfo.slotName!!, value, valueInfo.norm()!!, valueInfo.type))
+            }
+        }
+    }
+
+    fun resolveRecognizedSlot(frame: String, results: MutableList<EntityEvent>, isGoodValue: (ValueInfo) -> Boolean) {
+        val slotMetas = duContext.duMeta!!.getSlotMetas(frame)
+        val slotTypes = slotMetas.map { it.type!! }.toSet()
+        if (slotTypes.isEmpty()) return
+
+        for (entry in candidateMap) {
+            if (!entry.value.active) continue
+            val typedCandidates = entry.value.recognizedInfos.filter { isGoodValue(it) }.filter { isCompatible(it.type, slotTypes)}
+            if (typedCandidates.isEmpty()) continue
+            if (typedCandidates.size == 1) {
+                val valueInfo = typedCandidates[0]
+                val value = valueInfo.original(duContext.utterance)
+
+                val compatibleSlots = slotMetas.filter { isCompatible(valueInfo.type, it.type!!) }
+                if (compatibleSlots.isNotEmpty()) {
+                    if (compatibleSlots.size == 1) {
+                        val slotName = compatibleSlots[0].label
+                        markUsed(entry.key)
+                        results.add(EntityEvent.build(slotName, value, valueInfo.norm()!!, valueInfo.type))
+                    } else {
+                        // TODO: This has two potential binding, we should use slot clarification.
+                    }
+                }
+            } else {
+                // TODO: There are two types associated with this span.
+            }
+        }
+    }
+
+
+    fun resolveSlot(frame: String, focusedSlot: String? = null) : List<FrameEvent> {
+        // We need to do this from multiple rounds
+        // Aside from the operator semantic: equals, not, etc. The evidence for value
+        // comes from these four possibilities:
+        // Slot model, slot context
+        // type model, type context
+
+        //  We try to extract the value with the most confidence first.
+        val duMeta = duContext.duMeta!!
+
+        val entityEvents = mutableListOf<EntityEvent>()
+        val frameEvents = mutableListOf<FrameEvent>()
+        // For now, we trust the evidence we found.
+
+        // First round we require that we have support, and it needs to be normalizable.
+        // slot model + slot context + any type evidence.
+        resolveByExtractionAndContext(frame, entityEvents)
+
+        // slot model + any type evidence.
+        resolveByContext(frame, entityEvents)
+
+
+        // if it is not normalizable
+        for (entry in candidateMap) {
+            // No need to handle the ones that is handled
+            if (!entry.value.active) continue
+
+            val slotCandidates = entry.value.extractedInfos
+
+            // if there is no model support, skip
+            if (slotCandidates.isNullOrEmpty()) continue
+
+            if (slotCandidates.size == 1) {
+                val slotName = slotCandidates[0].slot
+                val slotValue = slotCandidates[0].surface
+                val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slotCandidates[0].slot)!!
+                val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type!!)?.normalizable ?: false
+                if (!normalizable) {
+                    entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
+                    markUsed(entry.key)
+                }
+            } else {
+                // TODO: we extract slot clarification.
+            }
+        }
+
+
+        // TODO(sean): we are potentially missing two rounds here.
+        // both type evidence.
+        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport > 0f}
+        // with just type model.
+        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport == 0f }
+
+        // if it is without extraction support, and some time just partial match.
+        val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(frame, focusedSlot)
+        if (entityEvents.size == 0 && focusedSlotType != null) {
+            val spannedValues = duContext.entityTypeToValueInfoMap[focusedSlotType]
+            val normalizable = duMeta.getEntityMeta(focusedSlotType)?.normalizable
+            // under condition where we have a unique partial match
+            if (spannedValues?.size == 1 && normalizable == true) {
+                val value = spannedValues[0]!!
+                val originalValue = value.original(duContext.utterance)
+                entityEvents.add(EntityEvent.build(focusedSlot!!, originalValue, value.norm()!!, focusedSlotType))
+            }
+        }
+
+        return if (!duContext.expectations.isFrameCompatible(frame) || entityEvents.size != 0) {
+            listOf(FrameEvent.build(frame, entityEvents))
+        } else  {
+            emptyList()
+        }
+    }
+
+    companion object {
+        val logger = LoggerFactory.getLogger(EntityEventExtractor::class.java)
+
+        fun isCompatible(type: String, slotTypes: Set<String>): Boolean {
+            return type in slotTypes || "T" in slotTypes
+        }
+
+        fun isCompatible(valueType: String, slotType: String): Boolean {
+            return slotType == "T" || slotType == valueType
+        }
+    }
+}
+
+
 /**
  * This can be used to capture the intermediate result from understanding.
  * So that we can save some effort by avoiding repeated work.
@@ -248,30 +597,33 @@ open class DuContext(
 
 
     fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, entity: ValueInfo): Float {
-        var bonus = 0f
-        var denominator = 0.0000001f
+        return getSurroundingWordsBonus(slotMeta, entity.start, entity.end)
+    }
+
+    fun getSurroundingWordsBonus(slotMeta: DUSlotMeta, start: Int, end: Int): Float {
+        var prefix_bonus = 0f
         // for now, we assume simple unigram model.
         if (slotMeta.prefixes?.isNotEmpty() == true) {
-            denominator += 1
-            val previousTokenIndex = previousTokenByChar[entity.start]
+            val previousTokenIndex = previousTokenByChar[start]
             if (previousTokenIndex != null) {
                 val tkn = tokens!![previousTokenIndex].token
                 if (slotMeta.prefixes!!.contains(tkn)) {
-                    bonus += 1
+                    prefix_bonus += 1
                 }
             }
         }
+
+        var suffix_bonus = 0f
         if (slotMeta.suffixes?.isNotEmpty() == true) {
-            denominator += 1
-            val nextTokenIndex = nextTokenByChar[entity.end]
+            val nextTokenIndex = nextTokenByChar[end]
             if (nextTokenIndex != null) {
                 val tkn = tokens!![nextTokenIndex].token
                 if (slotMeta.suffixes!!.contains(tkn)) {
-                    bonus += 1
+                    suffix_bonus += 1
                 }
             }
         }
-        return bonus/denominator
+        return (prefix_bonus + suffix_bonus) as Float
     }
 
 
@@ -281,6 +633,7 @@ open class DuContext(
         for (slotMeta in slotMetas) {
             scores.add(getSurroundingWordsBonus(slotMeta, entity))
         }
+
         // If we have clear winner, we assign that, otherwise, we assign all slot to it.
         val maxScore = scores.maxByOrNull {it}!!
         val indexes = scores.indexesOf {it == maxScore}
@@ -362,19 +715,7 @@ data class DialogExpectations(val expectations: List<DialogExpectation>) {
     }
 }
 
-// These are the semantic operator that we might support down the road
-enum class ValueOperator {
-    And,
-    Not,
-    Or,
-    EqualTo,
-    LessThan,
-    GreaterThan,
-    LessThanOrEqualTo,
-    GreaterThanOrEqualTo
-}
 
-data class SlotValue(val values: List<String>, val operator: String  = "==")
 
 
 // LlmStateTracker always try to recognize frame first, and then slot.
