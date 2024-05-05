@@ -336,7 +336,8 @@ data class EntityEventExtractor(val duContext: DuContext){
 
         for (entry in candidateMap) {
             if (!entry.value.active) continue
-            val typedCandidates = entry.value.recognizedInfos.filter { isGoodValue(it) }.filter { isCompatible(it.type, slotTypes)}
+            val typedCandidates0 = entry.value.recognizedInfos.filter { isGoodValue(it) }
+            val typedCandidates = typedCandidates0.filter { isCompatible(it.type, slotTypes)}
             if (typedCandidates.isEmpty()) continue
             if (typedCandidates.size == 1) {
                 val valueInfo = typedCandidates[0]
@@ -408,9 +409,9 @@ data class EntityEventExtractor(val duContext: DuContext){
 
         // TODO(sean): we are potentially missing two rounds here.
         // both type evidence.
-        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport > 0f}
+        resolveRecognizedSlot(frame, entityEvents) { it.hasTypeBonus() }
         // with just type model.
-        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport == 0f }
+        resolveRecognizedSlot(frame, entityEvents) { !it.hasTypeBonus() }
 
         // if it is without extraction support, and some time just partial match.
         val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(frame, focusedSlot)
