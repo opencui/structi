@@ -113,6 +113,63 @@ fun extractSlotSurroundingWords(
     return Pair(slotPrefixes, slotSuffixes)
 }
 
+
+// This builds the slot context so that we can help with slot resolution.
+data class SlotContextAccumulator(val analyzer: Analyzer){
+    val slotPrefixes = mutableMapOf<String, MutableMap<String, Int>>()
+
+    // frame#slot: suffixes
+    val slotSuffixes = mutableMapOf<String, MutableMap<String, Int>>()
+
+    fun MutableMap<String, Int>.add(key: String) {
+        val value = this[key] ?: 0
+        this.put(key, value + 1)
+    }
+
+    fun extract(exprByOwners: Map<String, List<Exemplar>>) {
+        // frame dontcare annotations
+        for ((ownerId, expressions) in exprByOwners) {
+            // entity dontcare annotations has been processed in above loop
+            for (expression in expressions) {
+                if (expression.contextFrame != null) {
+                    // When there is no context
+                    val typedSegments = Exemplar.segment(expression.template, ownerId)
+                    if (typedSegments.segments.size <= 1) continue
+                    println("handling ${expression.template}")
+                    // first get parts tokenized.
+                    val tknMap = mutableMapOf<Int, List<BoundToken>>()
+                    for ((i, part) in typedSegments.segments.withIndex()) {
+                        if (part is ExprSegment) {
+                            tknMap[i] = analyzer.tokenize(part.expr)
+                        }
+                    }
+
+                    for ((i, part) in typedSegments.segments.withIndex()) {
+                        if (part is MetaSegment) {
+                            val key = "$ownerId:${part.meta}"
+                            if (!slotSuffixes.containsKey(key)) slotSuffixes[key] =
+                                mutableMapOf<String, Int>().withDefault { 0 }
+                            if (!slotPrefixes.containsKey(key)) slotPrefixes[key] =
+                                mutableMapOf<String, Int>().withDefault { 0 }
+                            if (i > 0 && !tknMap[i - 1].isNullOrEmpty()) {
+                                slotPrefixes[key]!!.add(tknMap[i - 1]!!.last().token)
+                            }
+                            if (i < typedSegments.segments.size - 1 && !tknMap[i + 1].isNullOrEmpty()) {
+                                slotSuffixes[key]!!.add(tknMap[i + 1]!!.first().token)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun getSetContext():   Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
+        return Pair(slotPrefixes.mapValues { it.value.keys }, slotSuffixes.mapValues { it.value.keys })
+    }
+}
+
+
 interface LangBase {
     fun getLang(): String
 
