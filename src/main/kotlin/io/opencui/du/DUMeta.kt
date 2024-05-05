@@ -16,14 +16,16 @@ import java.util.*
  */
 // TODO (xiaobo): please fill the triggers and prompts, so that DU have enough information.
 data class DUSlotMeta(
-        val label: String,                           // this is language independent.
-        val triggers: List<String> = emptyList(),    // this is language dependent.
-        val type: String?=null,
-        // TODO (@flora default false, compiler need to pass annotation from platform)
-        val isMultiValue: Boolean? = false,
-        // We need to populate this soon.
-        val parent: String? = null,
-        val isHead: Boolean = false) {
+    val label: String,                           // this is language independent.
+    val triggers: List<String> = emptyList(),    // this is language dependent.
+    val type: String?=null,
+    // TODO (@flora default false, compiler need to pass annotation from platform)
+    val isMultiValue: Boolean? = false,
+    // We need to populate this soon.
+    val parent: String? = null,
+    val isHead: Boolean = false,
+    val prefixMap: Map<String, Int> = emptyMap(),  //  So that we can do correct naive bayes for context.
+    val suffixMap: Map<String, Int> = emptyMap()) {
 
     // Only direct filled slot does not need description, otherwise.
     var isDirectFilled: Boolean = false

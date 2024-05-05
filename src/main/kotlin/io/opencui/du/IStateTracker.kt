@@ -300,10 +300,6 @@ data class EntityEventExtractor(val duContext: DuContext){
     fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
-            // Given a span, if we find a slot with slot bonus, and type,
-            // instance agreement for normalizable. We used it, we then knock all the incompatible
-            // span off.
-            // only use active one
             if (!entry.value.active) continue
 
             //  TODO(sean): how do we handle slot clarification, etc.
@@ -320,10 +316,6 @@ data class EntityEventExtractor(val duContext: DuContext){
     fun resolveByContext(frame: String, results: MutableList<EntityEvent>)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
-            // Given a span, if we find a slot with slot bonus, and type,
-            // instance agreement for normalizable. We used it, we then knock all the incompatible
-            // span off.
-            // only use active one
             if (!entry.value.active) continue
 
             //  TODO(sean): how do we handle slot clarification, etc.
