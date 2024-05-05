@@ -125,6 +125,14 @@ enum class ValueOperator {
     }
 }
 
+fun <F,T> List<F>.mapFirst(block: (F) -> T?): T? {
+    for (e in this) {
+        block(e)?.let { return it }
+    }
+    return null
+}
+
+
 data class SlotValue(val values: List<String>, val operator: String  = "EqualTo")
 
 
@@ -167,32 +175,36 @@ class SlotValueCandidates {
         slotSurroundingBonuses[slot] = bonus
     }
 
-    fun slotWithSupport(duContext: DuContext, frame: String, isGoodValue: (OpSlotValue) -> Boolean) : ValueInfo? {
-        val slotValue = extractedInfos.maxByOrNull { it.slotSurroundingBonus } ?: return null
-        if (!isGoodValue(slotValue)) return null
-
-        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slotValue.slot)!!
+    private fun slotToValue(duContext: DuContext, frame: String, slot: String) : ValueInfo? {
+        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)!!
         // Find recognized value.
-        val typeMatched = recognizedInfos.find { EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
-        return typeMatched?.apply{slotName = slotValue.slot} ?: return null
+        val typeMatched = recognizedInfos.find { !it.partialMatch && EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
+        return typeMatched?.apply{ slotName = slot } ?: return null
+    }
+
+    fun valueByContext(duContext: DuContext, frame: String) : ValueInfo? {
+        val withBonus =  slotSurroundingBonuses.filterValues { it > 0f}.toList()
+        if (withBonus.isEmpty()) {
+            return null
+        }
+        val slots = withBonus.sortedBy { -it.second }
+        return slots.mapFirst { slotToValue(duContext, frame, it.first) }
+    }
+
+    fun valueByExtractionAndContext(duContext: DuContext, frame: String) : ValueInfo? {
+        val withBonus =  extractedInfos
+            .filter { it.slotSurroundingBonus > 0f }
+            .map { Pair(it.slot, it.slotSurroundingBonus) }
+        if (withBonus.isEmpty()) return null
+        val slots = withBonus.sortedBy { -it.second }.map { it.first }
+
+        return slots.mapFirst { slotToValue(duContext, frame, it) }
     }
 }
 
 
 // We use this for decide how to interpret the extracted value
 data class EntityEventExtractor(val duContext: DuContext){
-
-    init {
-        // We only need to do this once for all the potentially nested frames, if any.
-        for (entry in duContext.entityTypeToValueInfoMap) {
-            val values = entry.value
-            for (value in values) {
-                put(value)
-            }
-        }
-    }
-
-
     val candidateMap = mutableMapOf<Pair<Int, Int>, SlotValueCandidates>()
 
     // We might want to reuse the recognized entity for all the frames.
@@ -224,6 +236,15 @@ data class EntityEventExtractor(val duContext: DuContext){
         this.slotMetas = slotMetas
     }
 
+    fun initWithRecognized() {
+        // We only need to do this once for all the potentially nested frames, if any.
+        for (entry in duContext.entityTypeToValueInfoMap) {
+            val values = entry.value
+            for (value in values) {
+                put(value)
+            }
+        }
+    }
 
     fun put(valueInfo: ValueInfo) {
         val span = Pair(valueInfo.start, valueInfo.end)
@@ -276,7 +297,7 @@ data class EntityEventExtractor(val duContext: DuContext){
         }
     }
 
-    fun resolveExtractedSlot(frame: String, results: MutableList<EntityEvent>, isGoodValue: (OpSlotValue) -> Boolean)  {
+    fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
             // Given a span, if we find a slot with slot bonus, and type,
@@ -287,7 +308,27 @@ data class EntityEventExtractor(val duContext: DuContext){
 
             //  TODO(sean): how do we handle slot clarification, etc.
             // first we require that we have some slot support.
-            val valueInfo = entry.value.slotWithSupport(duContext, frame) { isGoodValue(it) }
+            val valueInfo = entry.value.valueByExtractionAndContext(duContext, frame)
+            if (valueInfo != null) {
+                val value = valueInfo.original(duContext.utterance)
+                markUsed(entry.key)
+                results.add(EntityEvent.build(valueInfo.slotName!!, value, valueInfo.norm()!!, valueInfo.type))
+            }
+        }
+    }
+
+    fun resolveByContext(frame: String, results: MutableList<EntityEvent>)  {
+        // First round we require that we have support, and it needs to be normalizable.
+        for (entry in candidateMap) {
+            // Given a span, if we find a slot with slot bonus, and type,
+            // instance agreement for normalizable. We used it, we then knock all the incompatible
+            // span off.
+            // only use active one
+            if (!entry.value.active) continue
+
+            //  TODO(sean): how do we handle slot clarification, etc.
+            // first we require that we have some slot support.
+            val valueInfo = entry.value.valueByContext(duContext, frame)
             if (valueInfo != null) {
                 val value = valueInfo.original(duContext.utterance)
                 markUsed(entry.key)
@@ -342,10 +383,10 @@ data class EntityEventExtractor(val duContext: DuContext){
 
         // First round we require that we have support, and it needs to be normalizable.
         // slot model + slot context + any type evidence.
-        resolveExtractedSlot(frame, entityEvents){ it.slotSurroundingBonus > 0f }
+        resolveByExtractionAndContext(frame, entityEvents)
 
         // slot model + any type evidence.
-        resolveExtractedSlot(frame, entityEvents){ it.slotSurroundingBonus == 0f }
+        resolveByContext(frame, entityEvents)
 
 
         // if it is not normalizable
@@ -432,9 +473,6 @@ open class DuContext(
 
     val expectedFrames by lazy { expectations.activeFrames }
     val normalizers = mutableListOf<EntityRecognizer>()
-
-    val entityEventExtractor = EntityEventExtractor(this)
-
 
     val emapByCharStart by lazy { convert() }
 

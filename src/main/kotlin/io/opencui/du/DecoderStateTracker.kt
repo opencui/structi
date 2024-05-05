@@ -188,8 +188,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     val dontCareForPagedSelectable = DontCareForPagedSelectable()
 
-    val useSlotLabel = true
-
     // Eventually we should use this new paradigm.
     // First, we detect triggereables this should imply skill understanding.
     // then we first handle the expectation
@@ -656,10 +654,11 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // we need to make sure we include slots mentioned in the intent expression
         val nluSlotValues = mutableMapOf<String, List<String>>()
-        val slotValueDecider = duContext.entityEventExtractor
+        val slotValueDecider = EntityEventExtractor(duContext)
+        slotValueDecider.initWithRecognized()
 
         // This way, we do not reuse the span that is used.
-        slotValueDecider.cleanExtracted(topLevelFrameType, slotMetas)
+        // slotValueDecider.cleanExtracted(topLevelFrameType, slotMetas)
 
         // The question here is, do we resolve the type overlapped slot before we send to NLU?
         // TODO: Should this be label, or name?
