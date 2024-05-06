@@ -306,8 +306,11 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val utterance = triggerable.utterance
             val duContext = triggerable.duContext
 
+            val slotValueDecider = EntityEventExtractor(duContext)
+            slotValueDecider.initWithRecognized()
+
             logger.debug("handling $triggerables for utterance: $utterance")
-            val events = fillSlotsByFrame(duContext, triggerable.owner!!, null)
+            val events = fillSlotsByFrame(duContext, slotValueDecider, triggerable.owner!!, null)
             logger.debug("getting $events for $triggerable")
             results.addAll(events)
 
@@ -319,7 +322,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 .filter { duMeta.getSlotMetas(it.type!!).find {it.isHead} != null }
 
             for (frameSlot in frameSlots) {
-                val events = fillSlotsByFrame(duContext, frameSlot.type!!, null)
+                val events = fillSlotsByFrame(duContext, slotValueDecider, frameSlot.type!!, null)
                 logger.debug("getting $events for ${frameSlot.type}")
 
                 if (duMeta.getSlotMetas(frameSlot.type).firstOrNull{it.isHead} != null) {
@@ -377,11 +380,14 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             val slotName = partsInQualified.last()
             val slotsInActiveFrame = duContext.duMeta!!.getSlotMetas(activeFrame.frame)
 
+            val slotValueDecider = EntityEventExtractor(duContext)
+            slotValueDecider.initWithRecognized()
+
             val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
             if (targetEntitySlot != null) {
                 val topLevelFrameType = IStateTracker.SlotUpdate
                 val slotMapAft = bindTargetSlotAsGenerics(duContext, targetEntitySlot, triggerable.owner!!)
-                return fillTheseSlots(duContext, slotMapAft, topLevelFrameType, null)
+                return fillTheseSlots(duContext, slotValueDecider, slotMapAft, topLevelFrameType, null)
             } else {
                 // This find the headed frame slot.
                 val targetFrameType =
@@ -389,7 +395,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 val targetEntitySlot = duMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
                 val topLevelFrameType = IStateTracker.SlotUpdate
                 val slotMapAft = bindTargetSlotAsGenerics(duContext, targetEntitySlot, triggerable.owner!!)
-                return fillTheseSlots(duContext, slotMapAft, topLevelFrameType, null)
+                return fillTheseSlots(duContext, slotValueDecider, slotMapAft, topLevelFrameType, null)
             }
         }
         return null
@@ -408,7 +414,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 if (!duContext.entityTypeToValueInfoMap.containsKey(slotMeta.type)) continue
                 // Try this slot as the target or original slot.
                 val slotMapAft = bindTargetSlotAsGenerics(duContext, slotMeta, triggerable.owner!!)
-                return fillTheseSlots(duContext, slotMapAft, triggerable.owner!!, null)
+
+                val slotValueDecider = EntityEventExtractor(duContext)
+                slotValueDecider.initWithRecognized()
+                return fillTheseSlots(duContext, slotValueDecider, slotMapAft, triggerable.owner!!, null)
             }
         }
         return null
@@ -530,9 +539,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     lowResults.add(FrameEvent.build(frame, listOf(EntityEvent(duContext.utterance, slot))))
                 }
             } else {
+
+                val slotValueDecider = EntityEventExtractor(duContext)
+                slotValueDecider.initWithRecognized()
                 // if there is no good match, we need to just find it using slot model.
                 // try to fill slot for active frames, assuming the expected!! is the at the beginning.
-                val extractedEvents = fillSlotsByFrame(duContext, expectedFrame.frame, expectedFrame.slot, true)
+                val extractedEvents = fillSlotsByFrame(duContext, slotValueDecider, expectedFrame.frame, expectedFrame.slot, true)
                 logger.info("for ${expectedFrame} getting event: ${extractedEvents}")
                 if (extractedEvents.isNotEmpty()) {
                     results.addAll(extractedEvents)
@@ -610,7 +622,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     /**
      * fillSlots is used to create entity event.
      */
-    private fun fillSlotsByFrame(duContext: DuContext, topLevelFrameType: String, focusedSlot: String?, expected: Boolean=false): List<FrameEvent> {
+    private fun fillSlotsByFrame(
+        duContext: DuContext,
+        slotValueDecider: EntityEventExtractor,
+        topLevelFrameType: String,
+        focusedSlot: String?,
+        expected: Boolean=false): List<FrameEvent> {
         // we need to make sure we include slots mentioned in the intent expression
         // We only need description for slots with no direct fill.
         val slotMapBef = duMeta
@@ -643,19 +660,18 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             throw BadConfiguration("Missing triggers for slots $slotsMissing on $topLevelFrameType")
         }*/
 
-        return fillTheseSlots(duContext, slotMapAft, topLevelFrameType, focusedSlot)
+        return fillTheseSlots(duContext, slotValueDecider, slotMapAft, topLevelFrameType, focusedSlot)
     }
 
     fun fillTheseSlots(
         duContext: DuContext,
+        slotValueDecider: EntityEventExtractor,
         slotMetas: List<DUSlotMeta>,
         topLevelFrameType: String,
         focusedSlot: String?): List<FrameEvent> {
 
         // we need to make sure we include slots mentioned in the intent expression
         val nluSlotValues = mutableMapOf<String, List<String>>()
-        val slotValueDecider = EntityEventExtractor(duContext)
-        slotValueDecider.initWithRecognized()
 
         // This way, we do not reuse the span that is used.
         // slotValueDecider.cleanExtracted(topLevelFrameType, slotMetas)
