@@ -174,7 +174,14 @@ class SlotValueCandidates {
     }
 
     private fun slotToValue(duContext: DuContext, frame: String, slot: String) : ValueInfo? {
-        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)!!
+        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)
+
+        if (slotMeta == null) {
+            // We should have data issues.
+            EntityEventExtractor.logger.warn("Found no slot named $slot in $frame.")
+            return null
+        }
+
         // Find recognized value.
         val typeMatched = recognizedInfos.find { !it.partialMatch && EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
         return typeMatched?.apply{ slotName = slot } ?: return null
@@ -189,9 +196,9 @@ class SlotValueCandidates {
         return slots.mapFirst { slotToValue(duContext, frame, it.first) }
     }
 
-    fun valueByExtractionAndContext(duContext: DuContext, frame: String) : ValueInfo? {
+    fun valueByExtractionAndContext(duContext: DuContext, frame: String, isGoodValue: (OpSlotValue) -> Boolean) : ValueInfo? {
         val withBonus =  extractedInfos
-            .filter { it.slotSurroundingBonus > 0f }
+            .filter { isGoodValue(it) }
             .map { Pair(it.slot, it.slotSurroundingBonus) }
         if (withBonus.isEmpty()) return null
         val slots = withBonus.sortedBy { -it.second }.map { it.first }
@@ -295,14 +302,14 @@ data class EntityEventExtractor(val duContext: DuContext){
         }
     }
 
-    fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>)  {
+    fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>, isGoodValue: (OpSlotValue) -> Boolean)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
             if (!entry.value.active) continue
 
             //  TODO(sean): how do we handle slot clarification, etc.
             // first we require that we have some slot support.
-            val valueInfo = entry.value.valueByExtractionAndContext(duContext, frame)
+            val valueInfo = entry.value.valueByExtractionAndContext(duContext, frame, isGoodValue)
             if (valueInfo != null) {
                 val value = valueInfo.original(duContext.utterance)
                 markUsed(entry.key)
@@ -374,7 +381,8 @@ data class EntityEventExtractor(val duContext: DuContext){
 
         // First round we require that we have support, and it needs to be normalizable.
         // slot model + slot context + any type evidence.
-        resolveByExtractionAndContext(frame, entityEvents)
+        resolveByExtractionAndContext(frame, entityEvents) { it.slotSurroundingBonus > 0.0f }
+        resolveByExtractionAndContext(frame, entityEvents) { it.slotSurroundingBonus == 0.0f }
 
         // slot model + any type evidence.
         resolveByContext(frame, entityEvents)
@@ -398,6 +406,8 @@ data class EntityEventExtractor(val duContext: DuContext){
                 if (!normalizable) {
                     entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
                     markUsed(entry.key)
+                } else {
+
                 }
             } else {
                 // TODO: we extract slot clarification.
