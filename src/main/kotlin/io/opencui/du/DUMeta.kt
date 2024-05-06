@@ -16,14 +16,16 @@ import java.util.*
  */
 // TODO (xiaobo): please fill the triggers and prompts, so that DU have enough information.
 data class DUSlotMeta(
-        val label: String,                           // this is language independent.
-        val triggers: List<String> = emptyList(),    // this is language dependent.
-        val type: String?=null,
-        // TODO (@flora default false, compiler need to pass annotation from platform)
-        val isMultiValue: Boolean? = false,
-        // We need to populate this soon.
-        val parent: String? = null,
-        val isHead: Boolean = false) {
+    val label: String,                           // this is language independent.
+    val triggers: List<String> = emptyList(),    // this is language dependent.
+    val type: String?=null,
+    // TODO (@flora default false, compiler need to pass annotation from platform)
+    val isMultiValue: Boolean? = false,
+    // We need to populate this soon.
+    val parent: String? = null,
+    val isHead: Boolean = false,
+    val prefixMap: Map<String, Int> = emptyMap(),  //  So that we can do correct naive bayes for context.
+    val suffixMap: Map<String, Int> = emptyMap()) {
 
     // Only direct filled slot does not need description, otherwise.
     var isDirectFilled: Boolean = false
@@ -110,6 +112,63 @@ fun extractSlotSurroundingWords(
     }
     return Pair(slotPrefixes, slotSuffixes)
 }
+
+
+// This builds the slot context so that we can help with slot resolution.
+data class SlotContextAccumulator(val analyzer: Analyzer){
+    val slotPrefixes = mutableMapOf<String, MutableMap<String, Int>>()
+
+    // frame#slot: suffixes
+    val slotSuffixes = mutableMapOf<String, MutableMap<String, Int>>()
+
+    fun MutableMap<String, Int>.add(key: String) {
+        val value = this[key] ?: 0
+        this.put(key, value + 1)
+    }
+
+    fun extract(exprByOwners: Map<String, List<Exemplar>>) {
+        // frame dontcare annotations
+        for ((ownerId, expressions) in exprByOwners) {
+            // entity dontcare annotations has been processed in above loop
+            for (expression in expressions) {
+                if (expression.contextFrame != null) {
+                    // When there is no context
+                    val typedSegments = Exemplar.segment(expression.template, ownerId)
+                    if (typedSegments.segments.size <= 1) continue
+                    println("handling ${expression.template}")
+                    // first get parts tokenized.
+                    val tknMap = mutableMapOf<Int, List<BoundToken>>()
+                    for ((i, part) in typedSegments.segments.withIndex()) {
+                        if (part is ExprSegment) {
+                            tknMap[i] = analyzer.tokenize(part.expr)
+                        }
+                    }
+
+                    for ((i, part) in typedSegments.segments.withIndex()) {
+                        if (part is MetaSegment) {
+                            val key = "$ownerId:${part.meta}"
+                            if (!slotSuffixes.containsKey(key)) slotSuffixes[key] =
+                                mutableMapOf<String, Int>().withDefault { 0 }
+                            if (!slotPrefixes.containsKey(key)) slotPrefixes[key] =
+                                mutableMapOf<String, Int>().withDefault { 0 }
+                            if (i > 0 && !tknMap[i - 1].isNullOrEmpty()) {
+                                slotPrefixes[key]!!.add(tknMap[i - 1]!!.last().token)
+                            }
+                            if (i < typedSegments.segments.size - 1 && !tknMap[i + 1].isNullOrEmpty()) {
+                                slotSuffixes[key]!!.add(tknMap[i + 1]!!.first().token)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun getSetContext():   Pair<Map<String, Set<String>>, Map<String, Set<String>>> {
+        return Pair(slotPrefixes.mapValues { it.value.keys }, slotSuffixes.mapValues { it.value.keys })
+    }
+}
+
 
 interface LangBase {
     fun getLang(): String

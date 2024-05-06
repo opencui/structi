@@ -153,8 +153,6 @@ class SlotValueCandidates {
     // Both has nothing to do with value itself.
     // slot context support the same type between different slots.
     val slotSurroundingBonuses = mutableMapOf<String, Float>()
-    // type context support : useful for distinguish the same value between different type.
-    val typeSurroundingBonuses = mutableMapOf<String, Float>()
 
     var active: Boolean = true
 
@@ -176,7 +174,14 @@ class SlotValueCandidates {
     }
 
     private fun slotToValue(duContext: DuContext, frame: String, slot: String) : ValueInfo? {
-        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)!!
+        val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)
+
+        if (slotMeta == null) {
+            // We should have data issues.
+            EntityEventExtractor.logger.warn("Found no slot named $slot in $frame.")
+            return null
+        }
+
         // Find recognized value.
         val typeMatched = recognizedInfos.find { !it.partialMatch && EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
         return typeMatched?.apply{ slotName = slot } ?: return null
@@ -191,9 +196,9 @@ class SlotValueCandidates {
         return slots.mapFirst { slotToValue(duContext, frame, it.first) }
     }
 
-    fun valueByExtractionAndContext(duContext: DuContext, frame: String) : ValueInfo? {
+    fun valueByExtractionAndContext(duContext: DuContext, frame: String, isGoodValue: (OpSlotValue) -> Boolean) : ValueInfo? {
         val withBonus =  extractedInfos
-            .filter { it.slotSurroundingBonus > 0f }
+            .filter { isGoodValue(it) }
             .map { Pair(it.slot, it.slotSurroundingBonus) }
         if (withBonus.isEmpty()) return null
         val slots = withBonus.sortedBy { -it.second }.map { it.first }
@@ -297,18 +302,14 @@ data class EntityEventExtractor(val duContext: DuContext){
         }
     }
 
-    fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>)  {
+    fun resolveByExtractionAndContext(frame: String, results: MutableList<EntityEvent>, isGoodValue: (OpSlotValue) -> Boolean)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
-            // Given a span, if we find a slot with slot bonus, and type,
-            // instance agreement for normalizable. We used it, we then knock all the incompatible
-            // span off.
-            // only use active one
             if (!entry.value.active) continue
 
             //  TODO(sean): how do we handle slot clarification, etc.
             // first we require that we have some slot support.
-            val valueInfo = entry.value.valueByExtractionAndContext(duContext, frame)
+            val valueInfo = entry.value.valueByExtractionAndContext(duContext, frame, isGoodValue)
             if (valueInfo != null) {
                 val value = valueInfo.original(duContext.utterance)
                 markUsed(entry.key)
@@ -320,10 +321,6 @@ data class EntityEventExtractor(val duContext: DuContext){
     fun resolveByContext(frame: String, results: MutableList<EntityEvent>)  {
         // First round we require that we have support, and it needs to be normalizable.
         for (entry in candidateMap) {
-            // Given a span, if we find a slot with slot bonus, and type,
-            // instance agreement for normalizable. We used it, we then knock all the incompatible
-            // span off.
-            // only use active one
             if (!entry.value.active) continue
 
             //  TODO(sean): how do we handle slot clarification, etc.
@@ -344,7 +341,8 @@ data class EntityEventExtractor(val duContext: DuContext){
 
         for (entry in candidateMap) {
             if (!entry.value.active) continue
-            val typedCandidates = entry.value.recognizedInfos.filter { isGoodValue(it) }.filter { isCompatible(it.type, slotTypes)}
+            val typedCandidates0 = entry.value.recognizedInfos.filter { isGoodValue(it) }
+            val typedCandidates = typedCandidates0.filter { isCompatible(it.type, slotTypes)}
             if (typedCandidates.isEmpty()) continue
             if (typedCandidates.size == 1) {
                 val valueInfo = typedCandidates[0]
@@ -383,7 +381,8 @@ data class EntityEventExtractor(val duContext: DuContext){
 
         // First round we require that we have support, and it needs to be normalizable.
         // slot model + slot context + any type evidence.
-        resolveByExtractionAndContext(frame, entityEvents)
+        resolveByExtractionAndContext(frame, entityEvents) { it.slotSurroundingBonus > 0.0f }
+        resolveByExtractionAndContext(frame, entityEvents) { it.slotSurroundingBonus == 0.0f }
 
         // slot model + any type evidence.
         resolveByContext(frame, entityEvents)
@@ -407,18 +406,20 @@ data class EntityEventExtractor(val duContext: DuContext){
                 if (!normalizable) {
                     entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
                     markUsed(entry.key)
+                } else {
+
                 }
             } else {
                 // TODO: we extract slot clarification.
             }
         }
 
-
         // TODO(sean): we are potentially missing two rounds here.
         // both type evidence.
-        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport > 0f}
+        resolveRecognizedSlot(frame, entityEvents) { it.hasTypeBonus() }
+
         // with just type model.
-        resolveRecognizedSlot(frame, entityEvents) { it.typeSurroundingSupport == 0f }
+        resolveRecognizedSlot(frame, entityEvents) { !it.hasTypeBonus() }
 
         // if it is without extraction support, and some time just partial match.
         val focusedSlotType = if (focusedSlot.isNullOrEmpty()) null else duMeta.getSlotType(frame, focusedSlot)
