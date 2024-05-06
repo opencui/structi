@@ -50,6 +50,10 @@ class ValueInfo(
         return utterance.substring(start, end)
     }
 
+    fun hasTypeBonus() : Boolean {
+        return score > 2.0f || typeSurroundingSupport > 0.0f
+    }
+
     fun withNewType(type: String) : ValueInfo {
         val res = ValueInfo(type, start, end, value, recognizer, latent = latent)
         res.typeSurroundingSupport = typeSurroundingSupport
