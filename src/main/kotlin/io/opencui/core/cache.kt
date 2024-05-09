@@ -133,10 +133,10 @@ interface Recyclable {
 /**
  * Add support for the common function cache.
  */
-class CachedMethod1<A, out R>(
-    val f: (A) -> List<R>, val values: MutableMap<A, Pair<List<@UnsafeVariance R>, LocalDateTime>>
-) : (A) -> List<R> {
-    private val seconds = 60
+class CachedMethod1<A, out R>(val f: (A) -> List<R>, expireTimeInSeconds: Int = 60) : (A) -> List<R> {
+    val values: MutableMap<A, Pair<List<@UnsafeVariance R>, LocalDateTime>> = mutableMapOf()
+    private val seconds = expireTimeInSeconds
+
     override fun invoke(a: A): List<R> {
         val input = a
         val cache = values[input]
@@ -155,9 +155,9 @@ class CachedMethod1<A, out R>(
 
 
 class CachedMethod2<A, B, out R>(
-    val f: (A, B) -> List<R>, val values: MutableMap<Pair<A, B>, Pair<List<@UnsafeVariance R>, LocalDateTime>>
-) : (A, B) -> List<R> {
-    private val seconds = 60
+    val f: (A, B) -> List<R>, expireTimeInSeconds: Int = 60) : (A, B) -> List<R> {
+    val values: MutableMap<Pair<A, B>, Pair<List<@UnsafeVariance R>, LocalDateTime>> = mutableMapOf()
+    private val seconds = expireTimeInSeconds
     override fun invoke(a: A, b: B): List<R> {
         val input = Pair(a, b)
         val cache = values[input]
@@ -168,17 +168,18 @@ class CachedMethod2<A, B, out R>(
         }
         return values[input]!!.first
     }
-    
+
     fun invalidate(a: A, b: B) {
         val input = Pair(a, b)
         values.remove(input)
     }
 }
 
+
 class CachedMethod3<A, B, C, out R>(
-    val f: (A, B, C) -> List<R>, val values: MutableMap<Triple<A, B, C>, Pair<List<@UnsafeVariance R>, LocalDateTime>>
-) : (A, B, C) -> List<R> {
-    private val seconds = 60
+    val f: (A, B, C) -> List<R>, expireTimeInSeconds: Int = 60) : (A, B, C) -> List<R> {
+    val values: MutableMap<Triple<A, B, C>, Pair<List<@UnsafeVariance R>, LocalDateTime>> = mutableMapOf()
+    private val seconds = expireTimeInSeconds
     override fun invoke(a: A, b: B, c: C): List<R> {
         val input = Triple(a, b, c)
         val cache = values[input]
@@ -189,9 +190,10 @@ class CachedMethod3<A, B, C, out R>(
         }
         return values[input]!!.first
     }
-    
+
     fun invalidate(a: A, b: B, c: C) {
         val input = Triple(a, b, c)
         values.remove(input)
     }
 }
+
