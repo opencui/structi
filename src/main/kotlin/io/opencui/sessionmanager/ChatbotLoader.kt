@@ -34,7 +34,9 @@ object ChatbotLoader {
             val qualifiedAgentName = "${botInfo.fullName}.Agent"
             val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
             val chatbot = (kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot)
-            chatbotCache[key] = RecyclableAgentResource(chatbot, classLoader, file.lastModified())
+            val agent = RecyclableAgentResource(chatbot, classLoader, file.lastModified())
+            chatbotCache[key] = agent
+            chatbotCache[chatbot.agentLang] = agent
         }
         return chatbotCache[key]!!
     }
