@@ -29,7 +29,7 @@ data class BadConfiguration(val error: String) : Exception() {}
  * for headache, stomachache etc.
  *
  */
-interface FillBuilder : (ParamPath) -> FrameFiller<*>, Serializable
+interface FillBuilder : (HostPath) -> FrameFiller<*>, Serializable
 
 interface PolymorphicFrameGenerator: (String) -> IFrame?, Serializable
 

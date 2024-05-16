@@ -41,7 +41,7 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame:SoftEarlyTerminationIntent? = this@SoftEarlyTerminationIntent
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             filler.add(frame!!.f!!.createBuilder().invoke(path.join("f", f)))
             return filler
@@ -332,7 +332,7 @@ data class AbstractEntityIntent(
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
         var frame: AbstractEntityIntent? = this@AbstractEntityIntent
 
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             filler.addWithPath(EntityFiller({frame!!::dish}, {s: String? -> dish?.origValue = s}) { s, t -> Json.decodeFromString(s, session!!.findKClass(t ?: "io.opencui.test.VirtualDish")!!) as? Dish })
             return filler

@@ -900,7 +900,7 @@ data class UserSession(
         val ctor = kClass.primaryConstructor ?: return
         val frame = ctor.call(this) as? ISingleton
         if (frame != null) {
-            frame.filler = frame.createBuilder().invoke(ParamPath(frame))
+            frame.filler = frame.createBuilder().invoke(HostPath(frame))
             globals[qname] = frame
         }
     }

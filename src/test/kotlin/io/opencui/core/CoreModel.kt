@@ -19,7 +19,7 @@ data class IDonotGetIt(override var session: UserSession? = null) : IIntent {
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
         var frame: IDonotGetIt? = this@IDonotGetIt
 
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             return filler
         }
@@ -91,7 +91,7 @@ data class IntentSuggestion(override var session: UserSession? = null
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame:IntentSuggestion? = this@IntentSuggestion
 
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             with(filler) {
                 addWithPath(EntityFiller({target.get()!!::intentPackage}) { s -> Json.decodeFromString(s) })
@@ -113,7 +113,7 @@ data class IDonotKnowWhatToDo(override var session: UserSession? = null
 ) : IIntent {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: IDonotKnowWhatToDo?= this@IDonotKnowWhatToDo
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             return filler
         }
@@ -196,7 +196,7 @@ data class ResumeIntent(override var session: UserSession? = null
 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ResumeIntent?= this@ResumeIntent
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             filler.addWithPath(InterfaceFiller({ frame!!::intent }, createFrameGenerator(frame!!.session!!, "io.opencui.core.IIntent")))
             return filler
@@ -217,7 +217,7 @@ data class ResumeIntent(override var session: UserSession? = null
 data class CleanSession(override var session: UserSession? = null) : IIntent {
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: CleanSession? = this@CleanSession
-        override fun invoke(path: ParamPath): FrameFiller<*> {
+        override fun invoke(path: HostPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             return filler
         }

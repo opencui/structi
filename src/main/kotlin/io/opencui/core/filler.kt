@@ -51,31 +51,31 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Param(val target: IFrame, val fromAttribute: String): Serializable {
+data class Host(val target: IFrame, val fromAttribute: String): Serializable {
     override fun toString(): String = "${target::class.qualifiedName}:${fromAttribute}"
-    fun isRoot() = fromAttribute == ParamPath.ROOT
-    fun isNotRoot() = fromAttribute != ParamPath.ROOT
+    fun isRoot() = fromAttribute == HostPath.ROOT
+    fun isNotRoot() = fromAttribute != HostPath.ROOT
 }
 
 
-data class ParamPath(val path: List<Param>): Serializable {
-    constructor(frame: IFrame): this(listOf(Param(frame, ROOT)))
+data class HostPath(val path: List<Host>): Serializable {
+    constructor(frame: IFrame): this(listOf(Host(frame, ROOT)))
     override fun toString(): String {
         return path.joinToString { "${it.target::class.qualifiedName}:${it.fromAttribute}" }
     }
 
-    fun last() : Param = path.last()
+    fun last() : Host = path.last()
 
-    fun join(a: String, nf: IFrame? = null): ParamPath {
+    fun join(a: String, nf: IFrame? = null): HostPath {
         val last = path.last()
-        val list = mutableListOf<Param>()
+        val list = mutableListOf<Host>()
         list.addAll(path.subList(0, path.size - 1))
-        list.add(Param(last.target, a))
+        list.add(Host(last.target, a))
         if (nf != null) {
             // throw RuntimeException()
-            list.add(Param(nf, ROOT))
+            list.add(Host(nf, ROOT))
         }
-        return ParamPath(list)
+        return HostPath(list)
     }
 
     fun root(): IFrame {
@@ -194,7 +194,7 @@ data class ParamPath(val path: List<Param>): Serializable {
  */
 interface IFiller: Compatible, Serializable {
     var parent: ICompositeFiller?
-    var path: ParamPath?
+    var path: HostPath?
     val decorativeAnnotations: MutableList<Annotation>
 
     val attribute: String
@@ -260,7 +260,7 @@ interface IFiller: Compatible, Serializable {
 
 // The goal of this to fill the slot from typed string form, to typed form.
 abstract class AEntityFiller : IFiller, Committable {
-    override var path: ParamPath? = null
+    override var path: HostPath? = null
     override var parent: ICompositeFiller? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
@@ -599,7 +599,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     val hasMorePackage = io.opencui.core.hasMore.IStatus::class.java.`package`.name
     override var parent: ICompositeFiller? = null
 
-    override var path: ParamPath? = targetFiller.path
+    override var path: HostPath? = targetFiller.path
 
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
@@ -954,7 +954,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
  */
 class FrameFiller<T: IFrame>(
     val buildSink: () -> KMutableProperty0<T?>,
-    override var path: ParamPath?
+    override var path: HostPath?
 ) : ICompositeFiller, MappedFiller, TypedFiller<T>, Committable {
 
     override val target: KMutableProperty0<T?>
@@ -1083,7 +1083,7 @@ class InterfaceFiller<T>(
     }
 
     override var parent: ICompositeFiller? = null
-    override var path: ParamPath? = null
+    override var path: HostPath? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
 
@@ -1152,7 +1152,7 @@ class MultiValueFiller<T>(
     override val target: KMutableProperty0<MutableList<T>?>
         get() = buildSink()
 
-    override var path: ParamPath? = null
+    override var path: HostPath? = null
     override var parent: ICompositeFiller? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
