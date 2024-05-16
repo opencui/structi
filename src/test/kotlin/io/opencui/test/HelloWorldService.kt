@@ -21,7 +21,7 @@ public data class HelloWorldService(
       FillBuilder {
     public var frame: HelloWorldService? = this@HelloWorldService
 
-    public override fun invoke(path: HostPath): FrameFiller<HelloWorldService> {
+    public override fun invoke(path: ParamPath): FrameFiller<HelloWorldService> {
       val filler = FrameFiller({(p as? KMutableProperty0<HelloWorldService?>) ?: ::frame}, path)
       return filler
     }

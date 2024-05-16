@@ -53,12 +53,12 @@ import kotlin.reflect.full.isSubclassOf
  */
 data class Host(val target: IFrame, val fromAttribute: String): Serializable {
     override fun toString(): String = "${target::class.qualifiedName}:${fromAttribute}"
-    fun isRoot() = fromAttribute == HostPath.ROOT
-    fun isNotRoot() = fromAttribute != HostPath.ROOT
+    fun isRoot() = fromAttribute == ParamPath.ROOT
+    fun isNotRoot() = fromAttribute != ParamPath.ROOT
 }
 
 
-data class HostPath(val path: List<Host>): Serializable {
+data class ParamPath(val path: List<Host>): Serializable {
     constructor(frame: IFrame): this(listOf(Host(frame, ROOT)))
     override fun toString(): String {
         return path.joinToString { "${it.target::class.qualifiedName}:${it.fromAttribute}" }
@@ -66,7 +66,7 @@ data class HostPath(val path: List<Host>): Serializable {
 
     fun last() : Host = path.last()
 
-    fun join(a: String, nf: IFrame? = null): HostPath {
+    fun join(a: String, nf: IFrame? = null): ParamPath {
         val last = path.last()
         val list = mutableListOf<Host>()
         list.addAll(path.subList(0, path.size - 1))
@@ -75,7 +75,7 @@ data class HostPath(val path: List<Host>): Serializable {
             // throw RuntimeException()
             list.add(Host(nf, ROOT))
         }
-        return HostPath(list)
+        return ParamPath(list)
     }
 
     fun root(): IFrame {
@@ -194,7 +194,7 @@ data class HostPath(val path: List<Host>): Serializable {
  */
 interface IFiller: Compatible, Serializable {
     var parent: ICompositeFiller?
-    var path: HostPath?
+    var path: ParamPath?
     val decorativeAnnotations: MutableList<Annotation>
 
     val attribute: String
@@ -260,7 +260,7 @@ interface IFiller: Compatible, Serializable {
 
 // The goal of this to fill the slot from typed string form, to typed form.
 abstract class AEntityFiller : IFiller, Committable {
-    override var path: HostPath? = null
+    override var path: ParamPath? = null
     override var parent: ICompositeFiller? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
@@ -599,7 +599,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     val hasMorePackage = io.opencui.core.hasMore.IStatus::class.java.`package`.name
     override var parent: ICompositeFiller? = null
 
-    override var path: HostPath? = targetFiller.path
+    override var path: ParamPath? = targetFiller.path
 
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
@@ -954,7 +954,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
  */
 class FrameFiller<T: IFrame>(
     val buildSink: () -> KMutableProperty0<T?>,
-    override var path: HostPath?
+    override var path: ParamPath?
 ) : ICompositeFiller, MappedFiller, TypedFiller<T>, Committable {
 
     override val target: KMutableProperty0<T?>
@@ -1083,7 +1083,7 @@ class InterfaceFiller<T>(
     }
 
     override var parent: ICompositeFiller? = null
-    override var path: HostPath? = null
+    override var path: ParamPath? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
 
@@ -1152,7 +1152,7 @@ class MultiValueFiller<T>(
     override val target: KMutableProperty0<MutableList<T>?>
         get() = buildSink()
 
-    override var path: HostPath? = null
+    override var path: ParamPath? = null
     override var parent: ICompositeFiller? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 

@@ -11,7 +11,7 @@ data class Yes(
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
         var frame: Yes? = this@Yes
 
-        override fun invoke(path: HostPath): FrameFiller<*> {
+        override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             return filler
         }
@@ -24,7 +24,7 @@ data class No(
     override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
         var frame: No? = this@No
 
-        override fun invoke(path: HostPath): FrameFiller<*> {
+        override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
             return filler
         }

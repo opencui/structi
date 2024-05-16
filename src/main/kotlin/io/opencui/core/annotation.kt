@@ -202,25 +202,25 @@ class ActionBuilders{
 }
 
 class AnnotationBuilders {
-    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, HostPath) -> List<Annotation>>()
+    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, ParamPath) -> List<Annotation>>()
 
-    inline fun <reified T : IFrame> register(noinline creater: (IFrame, HostPath) -> List<Annotation>) {
+    inline fun <reified T : IFrame> register(noinline creater: (IFrame, ParamPath) -> List<Annotation>) {
         creators[T::class] = creater
     }
 
-    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: HostPath): List<Annotation> {
+    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: ParamPath): List<Annotation> {
         return creators[T::class]!!(p, slot)
     }
 }
 
 class ConfirmationBuilders {
-    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, HostPath) -> IFrame?>()
+    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, ParamPath) -> IFrame?>()
 
-    inline fun <reified T : IFrame> register(noinline creater: (IFrame, HostPath) -> IFrame?) {
+    inline fun <reified T : IFrame> register(noinline creater: (IFrame, ParamPath) -> IFrame?) {
         creators[T::class] = creater
     }
 
-    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: HostPath): IFrame? {
+    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: ParamPath): IFrame? {
         return creators[T::class]!!(p, slot)
     }
 }

@@ -116,7 +116,7 @@ data class StartFill(
         // control. Notice we will do two things, if the top filler attribute is not branchable
         // then we use send the frame at intent level, if it is, then we set the top one to be
         // it, and then adjust the stack.
-        val filler = intent.createBuilder().invoke(HostPath(intent))
+        val filler = intent.createBuilder().invoke(ParamPath(intent))
         val wrapperFiller = AnnotatedWrapperFiller(filler)
         filler.parent = wrapperFiller
 
@@ -190,7 +190,7 @@ data class StartFill(
                     )
 
                 val clarificationIntent = buildIntent.invoke(session)!!
-                val clarificationFiller = clarificationIntent.createBuilder().invoke(HostPath(clarificationIntent))
+                val clarificationFiller = clarificationIntent.createBuilder().invoke(ParamPath(clarificationIntent))
                 val clarificationWrapperFiller = AnnotatedWrapperFiller(clarificationFiller)
                 clarificationFiller.parent = clarificationWrapperFiller
                 session.schedulers += Scheduler(session)
@@ -585,7 +585,7 @@ data class IntentAction(
         val topFiller = session.schedule.lastOrNull()
         check(topFiller != null)
         val currentFiller = if (topFiller is AnnotatedWrapperFiller)  topFiller.targetFiller else topFiller
-        val targetFiller = intentFillerBuilder.invoke(if (currentFiller != null) currentFiller.path!!.join("_action", intent) else HostPath(intent))
+        val targetFiller = intentFillerBuilder.invoke(if (currentFiller != null) currentFiller.path!!.join("_action", intent) else ParamPath(intent))
         val targetFillerWrapper = AnnotatedWrapperFiller(targetFiller)
         targetFiller.parent = targetFillerWrapper
         targetFillerWrapper.parent = currentFiller as FrameFiller<*>
