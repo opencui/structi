@@ -83,7 +83,7 @@ object Dispatcher {
     }
 
     fun getSupport(botInfo: BotInfo): ISupport? {
-        return getChatbot(botInfo).getExtension<ISupport>("default")
+        return getChatbot(botInfo).getExtension<ISupport>()
     }
 
     fun closeSession(target: IUserIdentifier, botInfo: BotInfo) {
