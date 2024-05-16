@@ -9,6 +9,7 @@ import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
+import java.lang.RuntimeException
 import kotlin.collections.LinkedHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
@@ -56,6 +57,7 @@ data class Param(val frame: IFrame, val attribute: String): Serializable {
     override fun toString(): String = "${frame::class.qualifiedName}:${attribute}"
 }
 
+
 data class ParamPath(val path: List<Param>): Serializable {
     constructor(frame: IFrame): this(listOf(Param(frame, "this")))
     override fun toString(): String {
@@ -69,7 +71,10 @@ data class ParamPath(val path: List<Param>): Serializable {
         val list = mutableListOf<Param>()
         list.addAll(path.subList(0, path.size - 1))
         list.add(Param(last.frame, a))
-        if (nf != null) list.add(Param(nf, "this"))
+        if (nf != null) {
+            // throw RuntimeException()
+            list.add(Param(nf, "this"))
+        }
         return ParamPath(list)
     }
 
@@ -1309,19 +1314,5 @@ class MultiValueFiller<T>(
             schedule.push(wrapper)
         }
         return true
-    }
-}
-
-
-// This can manage all the builder creation so that we do not have to create this separate method for this.
-class FillCreatorManager {
-    val creators = mutableMapOf<KClass<out IFrame>, (p: KMutableProperty0<out Any?>?) -> FillBuilder>()
-
-    inline fun <reified T : IFrame> register(noinline creater: (p: KMutableProperty0<out Any?>?) -> FillBuilder) {
-        creators[T::class] = creater
-    }
-
-    inline fun <reified  T: IFrame> createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder {
-        return creators[T::class]!!(p)
     }
 }
