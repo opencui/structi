@@ -9,9 +9,7 @@ import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
-import java.lang.RuntimeException
 import kotlin.collections.LinkedHashMap
-import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
 
@@ -53,15 +51,17 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Param(val frame: IFrame, val attribute: String): Serializable {
-    override fun toString(): String = "${frame::class.qualifiedName}:${attribute}"
+data class Param(val target: IFrame, val fromAttribute: String): Serializable {
+    override fun toString(): String = "${target::class.qualifiedName}:${fromAttribute}"
+    fun isRoot() = fromAttribute == ParamPath.ROOT
+    fun isNotRoot() = fromAttribute != ParamPath.ROOT
 }
 
 
 data class ParamPath(val path: List<Param>): Serializable {
-    constructor(frame: IFrame): this(listOf(Param(frame, "this")))
+    constructor(frame: IFrame): this(listOf(Param(frame, ROOT)))
     override fun toString(): String {
-        return path.joinToString { "${it.frame::class.qualifiedName}:${it.attribute}" }
+        return path.joinToString { "${it.target::class.qualifiedName}:${it.fromAttribute}" }
     }
 
     fun last() : Param = path.last()
@@ -70,23 +70,23 @@ data class ParamPath(val path: List<Param>): Serializable {
         val last = path.last()
         val list = mutableListOf<Param>()
         list.addAll(path.subList(0, path.size - 1))
-        list.add(Param(last.frame, a))
+        list.add(Param(last.target, a))
         if (nf != null) {
             // throw RuntimeException()
-            list.add(Param(nf, "this"))
+            list.add(Param(nf, ROOT))
         }
         return ParamPath(list)
     }
 
     fun root(): IFrame {
-        return path[0].frame
+        return path[0].target
     }
 
     fun findRPath(i: Int) =
         if (i != path.size - 1) {
-            path.subList(i, path.size).filter { it.attribute != "this" }.joinToString(separator = ".") { it.attribute }
+            path.subList(i, path.size).filter { it.fromAttribute != ROOT }.joinToString(separator = ".") { it.fromAttribute }
         } else {
-            path.last().attribute
+            path.last().fromAttribute
         }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
@@ -97,7 +97,7 @@ data class ParamPath(val path: List<Param>): Serializable {
 
         for (i in path.indices) {
             val attribute = findRPath(i)
-            val frame = path[i].frame
+            val frame = path[i].target
             val t: List<T> = frame.findAll<T>(attribute)
             res.addAll(t)
         }
@@ -110,15 +110,15 @@ data class ParamPath(val path: List<Param>): Serializable {
         }
 
         if (T::class == AskStrategy::class) {
-            val paramPath = if (path.last().attribute == "this" && path.size > 1) path[path.size - 2] else path.last()
-            val frame = paramPath.frame
-            val attr = paramPath.attribute
+            val paramPath = if (path.last().fromAttribute == ROOT && path.size > 1) path[path.size - 2] else path.last()
+            val frame = paramPath.target
+            val attr = paramPath.fromAttribute
             return frame.find(attr) ?: AlwaysAsk() as T
         }
 
         for (i in path.indices) {
             val attribute = findRPath(i)
-            val frame = path[i].frame
+            val frame = path[i].target
             val t: T? = pathFind(frame, attribute)
             if (t != null) {
                 return t
@@ -135,23 +135,23 @@ data class ParamPath(val path: List<Param>): Serializable {
                 var currentPath = rpath
                 val origAnno: T? = frame.find(currentPath)
                 if (origAnno != null) return origAnno
-                if (currentPath.endsWith("._realtype")) {
-                    currentPath = currentPath.substringBeforeLast("._realtype")
+                if (currentPath.endsWith(REALTYPE)) {
+                    currentPath = currentPath.substringBeforeLast(".$REALTYPE")
                     val interfaceSlotAnno: T? = frame.find(currentPath)
                     if (interfaceSlotAnno != null) return interfaceSlotAnno
                 }
-                if (currentPath.endsWith("._item")) {
-                    currentPath = currentPath.substringBeforeLast("._item")
+                if (currentPath.endsWith(ITEM)) {
+                    currentPath = currentPath.substringBeforeLast(".$ITEM")
                     val mvSlotAnno: T? = frame.find(currentPath)
                     if (mvSlotAnno != null) return mvSlotAnno
                 }
                 return null
             }
             clazz == IValueRecAnnotation::class -> {
-                val finalPath = if (rpath.endsWith("._hast.status._realtype")) {
-                    rpath.substringBeforeLast("._hast.status._realtype")
-                } else if (rpath.endsWith("._item")) {
-                    rpath.substringBeforeLast("._item")
+                val finalPath = if (rpath.endsWith("$HAST.status.$REALTYPE")) {
+                    rpath.substringBeforeLast(".$HAST.status.$REALTYPE")
+                } else if (rpath.endsWith(".$ITEM")) {
+                    rpath.substringBeforeLast(".$ITEM")
                 } else {
                     rpath
                 }
@@ -161,6 +161,15 @@ data class ParamPath(val path: List<Param>): Serializable {
                 return frame.find(rpath)
             }
         }
+    }
+
+    companion object {
+        const val ROOT = "this"
+        const val ITEM = "_item"
+        const val DOTITEM= "._item"
+        const val HAST = "_hast"
+        const val DOTHAST = "._hast"
+        const val REALTYPE = "_realtype"
     }
 }
 
@@ -192,10 +201,10 @@ interface IFiller: Compatible, Serializable {
         get() {
             if (path == null) return ""
             val last = path!!.path.last()
-            return if (last.attribute != "this") {
-                last.attribute
+            return if (last.isNotRoot()) {
+                last.fromAttribute
             } else {
-                if (path!!.path.size == 1) last.frame::class.simpleName!! else path!!.path[path!!.path.size - 2].attribute
+                if (path!!.path.size == 1) last.target::class.simpleName!! else path!!.path[path!!.path.size - 2].fromAttribute
             }
         }
 
@@ -330,7 +339,7 @@ class EntityFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.path.last().frame::class.qualifiedName!!.let {
+        val frameType = path!!.path.last().target::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
@@ -405,7 +414,7 @@ class OpaqueFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.path.last().frame::class.qualifiedName!!.let {
+        val frameType = path!!.path.last().target::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
@@ -956,14 +965,14 @@ class FrameFiller<T: IFrame>(
     }
 
     override fun qualifiedEventType(): String? {
-        val frameType = path!!.path.last().frame::class.qualifiedName!!.let {
+        val frameType = path!!.path.last().target::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
     }
 
     override fun frame(): IFrame {
-        return path!!.path.last().frame
+        return path!!.path.last().target
     }
 
     override fun get(s: String): IFiller? {

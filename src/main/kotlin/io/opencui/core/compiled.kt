@@ -286,7 +286,7 @@ data class CleanupAction(
         }
 
         return ActionResult(
-            createLog("CLEANUP SLOT : ${toBeCleaned.map { it.path!!.path.last() }.joinToString { "target=${it.frame.javaClass.name}&slot=${if (it.attribute == "this") "" else it.attribute}" }}"),
+            createLog("CLEANUP SLOT : ${toBeCleaned.map { it.path!!.path.last() }.joinToString { "target=${it.target.javaClass.name}&slot=${if (it.isRoot()) "" else it.fromAttribute}" }}"),
             true
         )
     }
@@ -311,7 +311,7 @@ data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
         }
 
         return ActionResult(
-            createLog("RECHECK SLOT : ${toBeRechecked.map { it.path!!.path.last() }.joinToString { "target=${it.frame.javaClass.name}&slot=${if (it.attribute == "this") "" else it.attribute}" }}"),
+            createLog("RECHECK SLOT : ${toBeRechecked.map { it.path!!.path.last() }.joinToString { "target=${it.target.javaClass.name}&slot=${if (it.isRoot()) "" else it.fromAttribute}" }}"),
             true
         )
     }
@@ -336,7 +336,7 @@ data class ReinitAction(val toBeReinit: List<IFiller>) : StateAction {
         }
 
         return ActionResult(
-            createLog("REINIT SLOT : ${toBeReinit.map { it.path!!.path.last() }.joinToString { "target=${it.frame.javaClass.name}&slot=${if (it.attribute == "this") "" else it.attribute}" }}"),
+            createLog("REINIT SLOT : ${toBeReinit.map { it.path!!.path.last() }.joinToString { "target=${it.target.javaClass.name}&slot=${if (it.isRoot()) "" else it.fromAttribute}" }}"),
             true
         )
     }
@@ -360,13 +360,13 @@ data class DirectlyFillAction<T>(
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
-            createLog("FILL SLOT value is null for target : ${param.frame::class.qualifiedName}, slot : ${if (param.attribute == "this") "" else param.attribute}"),
+            createLog("FILL SLOT value is null for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
             true
         )
         filler.directlyFill(value)
         filler.decorativeAnnotations.addAll(decorativeAnnotations)
         return ActionResult(
-            createLog("FILL SLOT for target : ${param.frame::class.qualifiedName}, slot : ${if (param.attribute == "this") "" else param.attribute}"),
+            createLog("FILL SLOT for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
             true
         )
     }
@@ -393,7 +393,7 @@ data class FillAction<T>(
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
-            createLog("FILL SLOT value is null for target : ${param.frame::class.qualifiedName}, slot : ${if (param.attribute == "this") "" else param.attribute}"),
+            createLog("FILL SLOT value is null for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
             true
         )
         val frameEventList = session.generateFrameEvent(filler, value)
@@ -406,7 +406,7 @@ data class FillAction<T>(
 
         if (frameEventList.isNotEmpty()) session.addEvents(frameEventList)
         return ActionResult(
-            createLog("FILL SLOT for target : ${param.frame::class.qualifiedName}, slot : ${if (param.attribute == "this") "" else param.attribute}"),
+            createLog("FILL SLOT for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
             true
         )
     }
@@ -1343,7 +1343,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         if (originalSlot == null) return null
         val filter = { f: IFiller ->
             val param = f.path!!.path.last()
-            val slotName = if (param.attribute == "this") param.frame::class.qualifiedName!! else "${param.frame::class.qualifiedName}.${param.attribute}"
+            val slotName = if (param.isRoot()) param.target::class.qualifiedName!! else "${param.target::class.qualifiedName}.${param.fromAttribute}"
             f is AnnotatedWrapperFiller && originalSlot?.value == slotName
         }
         var topFiller = session!!.mainSchedule.firstOrNull() as? AnnotatedWrapperFiller
