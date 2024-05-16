@@ -10,6 +10,7 @@ import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
 
@@ -1308,5 +1309,19 @@ class MultiValueFiller<T>(
             schedule.push(wrapper)
         }
         return true
+    }
+}
+
+
+// This can manage all the builder creation so that we do not have to create this separate method for this.
+class FillCreatorManager {
+    val creators = mutableMapOf<KClass<out IFrame>, (p: KMutableProperty0<out Any?>?) -> FillBuilder>()
+
+    inline fun <reified T : IFrame> register(noinline creater: (p: KMutableProperty0<out Any?>?) -> FillBuilder) {
+        creators[T::class] = creater
+    }
+
+    inline fun <reified  T: IFrame> createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder {
+        return creators[T::class]!!(p)
     }
 }

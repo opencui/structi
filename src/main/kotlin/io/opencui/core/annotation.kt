@@ -173,3 +173,16 @@ enum class SystemAnnotationType(val typeName: String) {
     System1Skill("io.opencui.core.System1")
 }
 
+
+
+// The goal of annotation is to support the following interface on IFrame:
+//  fun annotations(path: String): List<Annotation> = listOf()
+//  fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
+//  slot "this" is a special slot which indicates searching for frame confirmation
+//  fun searchConfirmation(slot: String): IFrame?
+//  fun searchStateUpdateByEvent(event: String): IFrameBuilder?
+//  fun searchResponse(): Action?
+
+// There are two type/instances are involved: Context, and Owner, with Owner's behavior are dependent on
+// Context. Further more, the context impact are from most specific to most general, which is no context at all.
+
