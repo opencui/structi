@@ -4,6 +4,8 @@ package io.opencui.core
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.SlotRequest
 import java.io.Serializable
+import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty0
 
 /**
  * Dialog behaviors are controlled by largely by annotations, but some of these
@@ -173,3 +175,76 @@ enum class SystemAnnotationType(val typeName: String) {
     System1Skill("io.opencui.core.System1")
 }
 
+
+
+// The goal of annotation is to support the following interface on IFrame:
+//  fun annotations(path: String): List<Annotation> = listOf()
+//  fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
+//  slot "this" is a special slot which indicates searching for frame confirmation
+//  fun searchConfirmation(slot: String): IFrame?
+//  fun searchStateUpdateByEvent(event: String): IFrameBuilder?
+//  fun searchResponse(): Action?
+
+// There are two type/instances are involved: Context, and Owner, with Owner's behavior are dependent on
+// Context. Furthermore, the context impact are from most specific to most general, which is no context at all.
+
+class ActionBuilders{
+
+    val creators = mutableMapOf<KClass<out IFrame>, (IFrame) -> Action?>()
+
+    inline fun <reified T : IFrame> register(noinline creater: (IFrame) -> Action?) {
+        creators[T::class] = creater
+    }
+
+    inline fun <reified  T: IFrame> searchResponse(p: IFrame): Action? {
+        return creators[T::class]!!(p)
+    }
+}
+
+class AnnotationBuilders {
+    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, ParamPath) -> List<Annotation>>()
+
+    inline fun <reified T : IFrame> register(noinline creater: (IFrame, ParamPath) -> List<Annotation>) {
+        creators[T::class] = creater
+    }
+
+    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: ParamPath): List<Annotation> {
+        return creators[T::class]!!(p, slot)
+    }
+}
+
+class ConfirmationBuilders {
+    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, ParamPath) -> IFrame?>()
+
+    inline fun <reified T : IFrame> register(noinline creater: (IFrame, ParamPath) -> IFrame?) {
+        creators[T::class] = creater
+    }
+
+    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: ParamPath): IFrame? {
+        return creators[T::class]!!(p, slot)
+    }
+}
+
+class StateUpdateByEventBuilders {
+    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, String) -> IFrameBuilder?>()
+    inline fun <reified T : IFrame> register(noinline creater: (IFrame, String) -> IFrameBuilder?) {
+        creators[T::class] = creater
+    }
+
+    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: String): IFrameBuilder? {
+        return creators[T::class]!!(p, slot)
+    }
+}
+
+// This can manage all the builder creation so that we do not have to create this separate method for this.
+class FillCreatorManager {
+    val creators = mutableMapOf<KClass<out IFrame>, (p: KMutableProperty0<out Any?>?) -> FillBuilder>()
+
+    inline fun <reified T : IFrame> register(noinline creater: (p: KMutableProperty0<out Any?>?) -> FillBuilder) {
+        creators[T::class] = creater
+    }
+
+    inline fun <reified  T: IFrame> createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder {
+        return creators[T::class]!!(p)
+    }
+}

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.*
-import org.jetbrains.kotlin.psi.parameterRecursiveVisitor
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -172,7 +171,7 @@ data class StartFill(
                         else Json.encodeToString((f.targetFiller.fillers[index-1].targetFiller as TypedFiller<*>).target.get()!!) == value
                     }
                 })
-                candidates.addAll(candidateFillers.map { it.path!!.path.last().let { p -> if (p.attribute == "this") p.frame::class.qualifiedName!! else "${p.frame::class.qualifiedName!!}.${p.attribute}" } }.map { SlotType(it).apply { this.session = session } }.toSet())
+                candidates.addAll(candidateFillers.map { it.path!!.path.last().let { p -> if (p.isRoot()) p.target::class.qualifiedName!! else "${p.target::class.qualifiedName!!}.${p.fromAttribute}" } }.map { SlotType(it).apply { this.session = session } }.toSet())
             }
 
             if (candidates.isEmpty()) {
