@@ -39,7 +39,7 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:SoftEarlyTerminationIntent? = this@SoftEarlyTerminationIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -329,7 +329,7 @@ data class AbstractEntityIntent(
         )
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    override fun createBuilder(): FillBuilder = object : FillBuilder {
         var frame: AbstractEntityIntent? = this@AbstractEntityIntent
 
         override fun invoke(path: ParamPath): FrameFiller<*> {

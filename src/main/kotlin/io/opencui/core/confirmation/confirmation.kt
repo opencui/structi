@@ -8,7 +8,7 @@ interface IStatus
 data class Yes(
     override var session: UserSession? = null
 ) : IFrame, IStatus {
-    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    override fun createBuilder(): FillBuilder = object : FillBuilder {
         var frame: Yes? = this@Yes
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -22,7 +22,7 @@ data class Yes(
 data class No(
     override var session: UserSession? = null
 ) : IFrame, IStatus {
-    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    override fun createBuilder(): FillBuilder = object : FillBuilder {
         var frame: No? = this@No
 
         override fun invoke(path: ParamPath): FrameFiller<*> {

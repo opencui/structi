@@ -17,7 +17,7 @@ public data class HelloWorldService(
     else -> HelloWorld_else_branch(this)
   }
 
-  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+  public override fun createBuilder(): FillBuilder = object :
       FillBuilder {
     public var frame: HelloWorldService? = this@HelloWorldService
 
