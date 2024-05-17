@@ -22,7 +22,7 @@ public data class HelloWorldService(
     public var frame: HelloWorldService? = this@HelloWorldService
 
     public override fun invoke(path: ParamPath): FrameFiller<HelloWorldService> {
-      val filler = FrameFiller({(p as? KMutableProperty0<HelloWorldService?>) ?: ::frame}, path)
+      val filler = FrameFiller({::frame}, path)
       return filler
     }
   }

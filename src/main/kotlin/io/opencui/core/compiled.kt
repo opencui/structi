@@ -161,7 +161,7 @@ data class HasMore(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: HasMore? = this@HasMore
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<HasMore?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(InterfaceFiller({ tp.get()!!::status }, createFrameGenerator(tp.get()!!.session!!, ISTATUS), inferFunc))
             return filler
@@ -191,7 +191,7 @@ data class BoolGate(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BoolGate? = this@BoolGate
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<BoolGate?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(InterfaceFiller({ tp.get()!!::status }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.booleanGate.IStatus::class.qualifiedName!!), inferFunc))
             return filler
@@ -214,7 +214,7 @@ data class ActionWrapperIntent(override var session: UserSession? = null, val ac
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ActionWrapperIntent? = this@ActionWrapperIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<ActionWrapperIntent?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -240,7 +240,7 @@ data class StitchedIntent<T: IFrame>(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: StitchedIntent<T>? = this@StitchedIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<StitchedIntent<T>?> ?: ::frame
+            val tp = ::frame
             val eventFrame = eventFrame
             val filler = FrameFiller({ tp }, path)
             filler.add(eventFrame.createBuilder().invoke(path.join("eventFrame", eventFrame)) as FrameFiller<*>)
@@ -488,7 +488,7 @@ abstract class AbstractAbortIntent(override var session: UserSession? = null) : 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: AbstractAbortIntent? = this@AbstractAbortIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<AbstractAbortIntent?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(EntityFiller({tp.get()!!::intentType}, { s: String? -> intentType?.origValue = s}) { s -> builder(s) })
             return filler
@@ -590,7 +590,7 @@ data class Confirmation(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: Confirmation? = this@Confirmation
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<Confirmation?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(
                 InterfaceFiller(
@@ -648,7 +648,7 @@ data class FreeActionConfirmation(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: FreeActionConfirmation? = this@FreeActionConfirmation
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<FreeActionConfirmation?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(InterfaceFiller({ tp.get()!!::status }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
             filler.addWithPath(InterfaceFiller({ tp.get()!!::action }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.IIntent::class.qualifiedName!!)))
@@ -670,7 +670,7 @@ data class ValueCheck(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ValueCheck? = this@ValueCheck
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<ValueCheck?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -697,7 +697,7 @@ data class OldValueCheck(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: OldValueCheck? = this@OldValueCheck
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<OldValueCheck?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -776,7 +776,7 @@ data class MaxValueCheck(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: MaxValueCheck? = this@MaxValueCheck
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<MaxValueCheck?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -819,7 +819,7 @@ data class NextPage(override var session: UserSession? = null) : IBotMode, IFram
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: NextPage? = this@NextPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<NextPage?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -830,7 +830,7 @@ data class PreviousPage(override var session: UserSession? = null) : IBotMode, I
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: PreviousPage? = this@PreviousPage
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<PreviousPage?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -847,7 +847,7 @@ data class FilterCandidate(override var session: UserSession? = null) : IBotMode
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: FilterCandidate? = this@FilterCandidate
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<FilterCandidate?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             filler.addWithPath(EntityFiller({tp.get()!!::conditionMapJson}) { s -> Json.decodeFromString(s) })
             return filler
@@ -859,7 +859,7 @@ abstract class ValueRecSourceWrapper(override var session: UserSession? = null) 
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: ValueRecSourceWrapper? = this@ValueRecSourceWrapper
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<ValueRecSourceWrapper?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -870,7 +870,7 @@ data class BadCandidate<T>(override var session: UserSession? = null, var value:
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BadCandidate<T>? = this@BadCandidate
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<BadCandidate<T>?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -882,7 +882,7 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: BadIndex? = this@BadIndex
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<BadIndex?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }
@@ -1190,7 +1190,7 @@ data class PagedSelectable<T: Any> (
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object: FillBuilder {
         var frame: PagedSelectable<T>? = this@PagedSelectable
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<PagedSelectable<T>?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
 
             with(filler) {
@@ -1247,7 +1247,7 @@ abstract class AbstractValueClarification<T: Any>(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: AbstractValueClarification<T>? = this@AbstractValueClarification
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<AbstractValueClarification<T>?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             when {
                 getClass().isSubclassOf(IFrame::class) -> {
@@ -1411,7 +1411,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: AbstractSlotUpdate<T>? = this@AbstractSlotUpdate
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<AbstractSlotUpdate<T>?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotUpdate.session } }
             filler.addWithPath(originalSlotFiller)
@@ -1534,7 +1534,7 @@ class IntentClarification(
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: IntentClarification? = this@IntentClarification
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<IntentClarification?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             return filler
         }

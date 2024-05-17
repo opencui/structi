@@ -384,7 +384,7 @@ data class HotelSuggestionIntent(override var session: UserSession? = null) : II
     override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
         var frame: HotelSuggestionIntent? = this@HotelSuggestionIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<HotelSuggestionIntent?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             with(filler) {
                 addWithPath(EntityFiller({tp.get()!!::city}) { s -> Json.decodeFromString(s) })
