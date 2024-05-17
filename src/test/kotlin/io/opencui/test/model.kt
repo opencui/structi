@@ -50,7 +50,7 @@ data class Symptom(@JsonIgnore @Transient override var session: UserSession? = n
     override var duration: Int? = null
     override var cause: String? = null
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: Symptom? = this@Symptom
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -88,7 +88,7 @@ data class Fever(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: Fever? = this@Fever
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -129,7 +129,7 @@ data class Headache(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object: FillBuilder {
+    override fun createBuilder() = object: FillBuilder {
         var frame : Headache? = this@Headache
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -177,7 +177,7 @@ data class Person(override var session: UserSession? = null
     override lateinit var filler: FrameFiller<*>
 
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object: FillBuilder {
+    override fun createBuilder() = object: FillBuilder {
         var frame:Person? = this@Person
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -258,7 +258,7 @@ data class MobileWithAdvances(@JsonInclude(JsonInclude.Include.NON_NULL) overrid
     val mobileService: IMobileService
         get() = session!!.getExtension<IMobileService>() as IMobileService
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object :  FillBuilder {
+    override fun createBuilder() = object :  FillBuilder {
         var frame: MobileWithAdvances? = this@MobileWithAdvances
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -351,7 +351,7 @@ data class Mobile(override var session: UserSession? = null) : IFrame {
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
          var frame: Mobile? = this@Mobile
          override fun invoke(path: ParamPath): FrameFiller<*> {
              val filler = FrameFiller({ ::frame }, path)
@@ -381,10 +381,10 @@ data class HotelSuggestionIntent(override var session: UserSession? = null) : II
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: HotelSuggestionIntent? = this@HotelSuggestionIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
-            val tp = p as? KMutableProperty0<HotelSuggestionIntent?> ?: ::frame
+            val tp = ::frame
             val filler = FrameFiller({ tp }, path)
             with(filler) {
                 addWithPath(EntityFiller({tp.get()!!::city}) { s -> Json.decodeFromString(s) })
@@ -450,7 +450,7 @@ data class Hotel(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object: FillBuilder {
+    override fun createBuilder() = object: FillBuilder {
         var frame: Hotel? = this@Hotel
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -542,7 +542,7 @@ data class PreDiagnosis(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: PreDiagnosis? = this@PreDiagnosis
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -599,7 +599,7 @@ data class Hi(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: Hi? = this@Hi
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -627,7 +627,7 @@ data class Hello(override var session: UserSession? = null
     var mobile: Mobile? = Mobile(session)
     var payable: PayMethod? = null
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: Hello? = this@Hello
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -722,7 +722,7 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: BookFlight? = this@BookFlight
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -778,7 +778,7 @@ data class BookHotel(override var session: UserSession? = null
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: BookHotel? = this@BookHotel
         override fun invoke(path: ParamPath): FrameFiller<BookHotel> {
             val filler = FrameFiller({ ::frame }, path)
@@ -798,7 +798,7 @@ data class BookHotel(override var session: UserSession? = null
 }
 
 data class CreateUnimportant(override var session: UserSession? = null) : IFrame {
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: CreateUnimportant? = this@CreateUnimportant
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -828,7 +828,7 @@ data class HotelAddress(override var session: UserSession? = null
         return "generated_unimportant"
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: HotelAddress? = this@HotelAddress
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -868,7 +868,7 @@ data class FirstLevelQuestion(override var session: UserSession? = null) : IInte
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: FirstLevelQuestion? = this@FirstLevelQuestion
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -902,7 +902,7 @@ data class BookVacation(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: BookVacation? = this@BookVacation
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -922,7 +922,7 @@ data class CompositeWithIIntent(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: CompositeWithIIntent? = this@CompositeWithIIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -969,7 +969,7 @@ data class MoreBasics(override var session: UserSession? = null
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: MoreBasics? = this@MoreBasics
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1023,7 +1023,7 @@ data class IntentNeedConfirm(override var session: UserSession? = null
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: IntentNeedConfirm? = this@IntentNeedConfirm
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1096,7 +1096,7 @@ data class WeakRecommendation(override var session: UserSession? = null
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:WeakRecommendation? = this@WeakRecommendation
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1135,7 +1135,7 @@ data class ContractBasedIntentA(override var session: UserSession? = null): IInt
     var a: String? = null
     override var contractId: String? = null
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:ContractBasedIntentA? = this@ContractBasedIntentA
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1169,7 +1169,7 @@ data class ContractBasedIntentB(override var session: UserSession? = null): IInt
     var b: String? = null
     override var contractId: String? = null
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:ContractBasedIntentB? = this@ContractBasedIntentB
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1208,7 +1208,7 @@ data class RecoverTestIntent(override var session: UserSession? = null): IIntent
     var aaa: String? = null
     var bbb: String? = null
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:RecoverTestIntent? = this@RecoverTestIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1249,7 +1249,7 @@ data class AssociationTestFrame(override var session: UserSession? = null): IFra
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:AssociationTestFrame? = this@AssociationTestFrame
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1294,7 +1294,7 @@ data class AssociationTestIntent(override var session: UserSession? = null): IIn
         }
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:AssociationTestIntent? = this@AssociationTestIntent
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)
@@ -1339,7 +1339,7 @@ data class ValueRecInteractionFrame(override var session: UserSession? = null): 
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:ValueRecInteractionFrame? = this@ValueRecInteractionFrame
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1436,7 +1436,7 @@ data class ValueRecInteractionIntent(override var session: UserSession? = null):
         else -> listOf()
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:ValueRecInteractionIntent? = this@ValueRecInteractionIntent
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1498,7 +1498,7 @@ data class CustomizedRecommendationIntent(override var session: UserSession? = n
         )
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame:CustomizedRecommendationIntent? = this@CustomizedRecommendationIntent
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1531,7 +1531,7 @@ data class Greeting(
         else -> UserDefinedInform(this, templateOf("""Good day!"""))
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    override fun createBuilder(): FillBuilder = object : FillBuilder {
         var frame: Greeting? = this@Greeting
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1549,7 +1549,7 @@ data class Goodbye(
         else -> UserDefinedInform(this, templateOf("""Have a nice day! """))
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    override fun createBuilder(): FillBuilder = object : FillBuilder {
         var frame: Goodbye? = this@Goodbye
 
         override fun invoke(path: ParamPath): FrameFiller<*> {
@@ -1603,7 +1603,7 @@ data class Main(
         else -> null
     }
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    override fun createBuilder(): FillBuilder = object : FillBuilder {
         var frame: Main? = this@Main
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)

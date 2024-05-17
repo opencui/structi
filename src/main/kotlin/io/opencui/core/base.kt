@@ -66,7 +66,7 @@ interface IFrame : Serializable {
 
     fun annotations(path: String): List<Annotation> = listOf()
 
-    fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
+    fun createBuilder(): FillBuilder
 
 
     // slot "this" is a special slot which indicates searching for frame confirmation

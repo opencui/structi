@@ -59,7 +59,7 @@ class UserIdentifier (
     @JsonIgnore
     override lateinit var filler: FrameFiller<*>
 
-    override fun createBuilder(p: KMutableProperty0<out Any?>?) = object : FillBuilder {
+    override fun createBuilder() = object : FillBuilder {
         var frame: UserIdentifier? = this@UserIdentifier
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val filler = FrameFiller({ ::frame }, path)

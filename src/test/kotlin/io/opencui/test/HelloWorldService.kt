@@ -17,12 +17,12 @@ public data class HelloWorldService(
     else -> HelloWorld_else_branch(this)
   }
 
-  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+  public override fun createBuilder(): FillBuilder = object :
       FillBuilder {
     public var frame: HelloWorldService? = this@HelloWorldService
 
     public override fun invoke(path: ParamPath): FrameFiller<HelloWorldService> {
-      val filler = FrameFiller({(p as? KMutableProperty0<HelloWorldService?>) ?: ::frame}, path)
+      val filler = FrameFiller({::frame}, path)
       return filler
     }
   }
