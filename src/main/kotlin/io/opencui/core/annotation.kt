@@ -16,6 +16,7 @@ import kotlin.reflect.KMutableProperty0
  * input and developer supplied annotation, predefined system rules.
  */
 interface Annotation: Serializable {
+    // This can be used to switch the annotation off when need to.
     val switch: () -> Boolean
         get() = {true}
 }

@@ -17,7 +17,6 @@ import io.opencui.serialization.Json
 import java.io.Serializable
 import java.util.*
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.KProperty1
@@ -1131,8 +1130,8 @@ data class PagedSelectable<T: Any> (
         else -> listOf()
     }
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "index" -> if (singleEntryAutoFill() && singleEntryPrompt != null) sepConfirm else null
             else -> null
         }

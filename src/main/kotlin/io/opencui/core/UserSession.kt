@@ -841,6 +841,10 @@ data class UserSession(
         return true
     }
 
+    // So we do not splill this out.
+    inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
+        annotations(path).filter { it is T && it.switch() }.map { it as T }
+
     private fun findDialogActCustomization(dialogAct: DialogAct): Templates? {
         if (dialogAct is SlotDialogAct) {
             val annotations = dialogAct.context.firstOrNull()?.findAll<DialogActCustomizationAnnotation>(dialogAct.slotName) ?: listOf()

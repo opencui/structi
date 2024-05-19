@@ -9,7 +9,6 @@ import io.opencui.core.da.*
 import io.opencui.serialization.InterfaceIEntitySerializer
 import io.opencui.serialization.Json
 import io.opencui.serialization.deserializeIEntity
-import kotlin.reflect.KMutableProperty0
 
 data class SlotOfferSepInformConfirmRule(val slot0: SlotOfferSepInform<*>, val slot1: SlotConfirm<*>):
     DialogActRewriter {
@@ -66,8 +65,8 @@ data class SoftEarlyTerminationIntent(override var session: UserSession? = null)
                 templateOf("""r u sure of this intent and f.a value ${f?.a}""")
             ) })
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "this" -> confirmThis
             else -> null
         }

@@ -7,7 +7,6 @@ import io.opencui.du.*
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
 
@@ -70,7 +69,7 @@ interface IFrame : Serializable {
 
 
     // slot "this" is a special slot which indicates searching for frame confirmation
-    fun searchConfirmation(slot: String): IFrame? {
+    fun searchConfirmation(path: String): IFrame? {
         return null
     }
 
@@ -79,11 +78,7 @@ interface IFrame : Serializable {
     }
 }
 
-inline fun <reified T : Annotation> IFrame.find(rpath: String): T? =
-    annotations(rpath).firstOrNull { it is T && it.switch() } as T?
 
-inline fun <reified T : Annotation> IFrame.findAll(rpath: String): List<T> =
-    annotations(rpath).filter { it is T && it.switch() }?.map { it as T } ?: listOf()
 
 interface IIntent : IFrame {
     // TODO(xiaobo, xiaoyun): all the filling related property should be in filler instead of frame, ideally.

@@ -715,8 +715,8 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
                 ) },
             true)
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "this" -> confirmThis
             else -> null
         }
@@ -771,8 +771,8 @@ data class BookHotel(override var session: UserSession? = null
                 ) }
     )
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "this" -> confirmThis
             else -> null
         }
@@ -1015,8 +1015,8 @@ data class IntentNeedConfirm(override var session: UserSession? = null
             { SlotConfirm(boolVar, "boolVar", "kotlin.Boolean", templateOf("""r u sure of bool value $boolVar""")) }
     )
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "this" -> confirmThis
             "boolVar" -> confirmboolVar
             else -> null

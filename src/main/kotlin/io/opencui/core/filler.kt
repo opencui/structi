@@ -59,10 +59,19 @@ data class Host(val target: IFrame, val fromAttribute: String): Serializable {
 
 
 data class ParamPath(val path: List<Host>): Serializable {
+
     constructor(frame: IFrame): this(listOf(Host(frame, ROOT)))
+
     override fun toString(): String {
         return path.joinToString { "${it.target::class.qualifiedName}:${it.fromAttribute}" }
     }
+
+    inline fun <reified T : Annotation> IFrame.find(path: String): T? =
+        annotations(path).firstOrNull { it is T && it.switch() } as T?
+
+    inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
+        annotations(path).filter { it is T && it.switch() }.map { it as T }
+
 
     fun last() : Host = path.last()
 
