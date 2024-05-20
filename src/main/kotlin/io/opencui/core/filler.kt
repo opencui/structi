@@ -51,8 +51,7 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Branch(val host: IFrame, var attribute: String): Serializable {
-    var next: Branch? = null
+data class Branch(val host: IFrame, val attribute: String): Serializable {
     override fun toString(): String = "${host::class.qualifiedName}:${attribute}"
     fun isRoot() = attribute == ParamPath.ROOT
     fun isNotRoot() = attribute != ParamPath.ROOT
@@ -60,8 +59,7 @@ data class Branch(val host: IFrame, var attribute: String): Serializable {
 
 
 data class ParamPath(val path: List<Branch>): Serializable {
-
-    constructor(frame: IFrame): this(listOf(Branch(frame, ROOT)))
+    constructor(frame: IFrame): this(listOf(Branch(frame, ROOT))) {}
 
     override fun toString(): String {
         return path.joinToString { "${it.host::class.qualifiedName}:${it.attribute}" }
@@ -73,9 +71,7 @@ data class ParamPath(val path: List<Branch>): Serializable {
     inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
         annotations(path).filter { it is T && it.switch() }.map { it as T }
 
-
     fun last() : Branch = path.last()
-
 
     val leafAttribute: String
         get() {
@@ -108,7 +104,7 @@ data class ParamPath(val path: List<Branch>): Serializable {
         return path[0].host
     }
 
-    fun findRPath(i: Int) =
+    fun restAttribute(i: Int) =
         if (i != path.size - 1) {
             path.subList(i, path.size).filter { it.attribute != ROOT }.joinToString(separator = ".") { it.attribute }
         } else {
@@ -117,7 +113,7 @@ data class ParamPath(val path: List<Branch>): Serializable {
 
     inline fun <reified T : Annotation> findAll(): List<T> {
         for (i in path.indices) {
-            val attribute = findRPath(i)
+            val attribute = restAttribute(i)
             val frame = path[i].host
             val t: List<T> = frame.findAll<T>(attribute)
             if (t.isNotEmpty()) return t
@@ -126,30 +122,20 @@ data class ParamPath(val path: List<Branch>): Serializable {
     }
 
     inline fun <reified T : Annotation> find(): T? {
-        if (this.path.isEmpty()) {
-            return null
-        }
-
-        if (T::class == AskStrategy::class) {
-            val paramPath = if (path.last().attribute == ROOT && path.size > 1) path[path.size - 2] else path.last()
-            val frame = paramPath.host
-            val attr = paramPath.attribute
-            return frame.find(attr) ?: AlwaysAsk() as T
-        }
-
         for (i in path.indices) {
-            val attribute = findRPath(i)
-            val frame = path[i].host
-            val t: T? = pathFind(frame, attribute)
+            val t: T? = pathFind(i)
             if (t != null) {
                 return t
             }
         }
+        
         return null
     }
 
     // we need a path since granularity of runtime annotations are finer than that of platform's
-    inline fun <reified T : Annotation> pathFind(frame: IFrame, rpath: String): T? {
+    inline fun <reified T : Annotation> pathFind(idx: Int): T? {
+        val rpath = restAttribute(idx)
+        val frame = path[idx].host
         val clazz = T::class
         when {
             clazz.isSubclassOf(PromptAnnotation::class) -> {
@@ -249,7 +235,7 @@ interface IFiller: Compatible, Serializable {
     }
 
     fun askStrategy(): AskStrategy {
-        return path!!.find()!!
+        return path!!.find() ?: AlwaysAsk()
     }
 
     // fully type for compatible FrameEvent
