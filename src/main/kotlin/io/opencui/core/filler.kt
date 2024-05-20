@@ -112,11 +112,7 @@ data class ParamPath(val path: List<Branch>): Serializable {
         }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
-        for (i in path.indices) {
-            val t: List<T> = pathFind(i)
-            if (t.isNotEmpty()) return t
-        }
-        return emptyList()
+        return path.indices.firstNotNullOfOrNull { idx -> pathFind<T>(idx).takeIf { it.isNotEmpty() } } ?: emptyList()
     }
 
     // we need a path since granularity of runtime annotations are finer than that of platform's
