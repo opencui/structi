@@ -51,7 +51,8 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Branch(val host: IFrame, val attribute: String): Serializable {
+data class Branch(val host: IFrame, var attribute: String): Serializable {
+    var next: Branch? = null
     override fun toString(): String = "${host::class.qualifiedName}:${attribute}"
     fun isRoot() = attribute == ParamPath.ROOT
     fun isNotRoot() = attribute != ParamPath.ROOT
@@ -74,6 +75,7 @@ data class ParamPath(val path: List<Branch>): Serializable {
 
 
     fun last() : Branch = path.last()
+    val size : Int = path.size
 
     val leafAttribute: String
         get() {
@@ -351,7 +353,7 @@ class EntityFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.path.last().host::class.qualifiedName!!.let {
+        val frameType = path!!.last().host::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
@@ -426,7 +428,7 @@ class OpaqueFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.path.last().host::class.qualifiedName!!.let {
+        val frameType = path!!.last().host::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
@@ -977,14 +979,14 @@ class FrameFiller<T: IFrame>(
     }
 
     override fun qualifiedEventType(): String? {
-        val frameType = path!!.path.last().host::class.qualifiedName!!.let {
+        val frameType = path!!.last().host::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
     }
 
     override fun frame(): IFrame {
-        return path!!.path.last().host
+        return path!!.last().host
     }
 
     override fun get(s: String): IFiller? {
