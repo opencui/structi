@@ -122,16 +122,15 @@ data class ParamPath(val path: List<Branch>): Serializable {
         val clazz = T::class
         when {
             clazz.isSubclassOf(PromptAnnotation::class) -> {
-                var currentPath = rpath
-                val origAnno: List<T> = frame.findAll(currentPath)
+                val origAnno: List<T> = frame.findAll(rpath)
                 if (origAnno.isNotEmpty()) return origAnno
-                if (currentPath.endsWith(REALTYPE)) {
-                    currentPath = currentPath.substringBeforeLast(".$REALTYPE")
+                if (rpath.endsWith(REALTYPE)) {
+                    val currentPath = rpath.substringBeforeLast(".$REALTYPE")
                     val interfaceSlotAnno: List<T> = frame.findAll(currentPath)
                     if (interfaceSlotAnno.isNotEmpty()) return interfaceSlotAnno
                 }
-                if (currentPath.endsWith(ITEM)) {
-                    currentPath = currentPath.substringBeforeLast(".$ITEM")
+                if (rpath.endsWith(ITEM)) {
+                    val currentPath = rpath.substringBeforeLast(".$ITEM")
                     val mvSlotAnno: List<T> = frame.findAll(currentPath)
                     if (mvSlotAnno.isNotEmpty()) return mvSlotAnno
                 }
