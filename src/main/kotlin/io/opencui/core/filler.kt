@@ -51,19 +51,19 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Host(val target: IFrame, val fromAttribute: String): Serializable {
-    override fun toString(): String = "${target::class.qualifiedName}:${fromAttribute}"
-    fun isRoot() = fromAttribute == ParamPath.ROOT
-    fun isNotRoot() = fromAttribute != ParamPath.ROOT
+data class Param(val host: IFrame, val attribute: String): Serializable {
+    override fun toString(): String = "${host::class.qualifiedName}:${attribute}"
+    fun isRoot() = attribute == ParamPath.ROOT
+    fun isNotRoot() = attribute != ParamPath.ROOT
 }
 
 
-data class ParamPath(val path: List<Host>): Serializable {
+data class ParamPath(val path: List<Param>): Serializable {
 
-    constructor(frame: IFrame): this(listOf(Host(frame, ROOT)))
+    constructor(frame: IFrame): this(listOf(Param(frame, ROOT)))
 
     override fun toString(): String {
-        return path.joinToString { "${it.target::class.qualifiedName}:${it.fromAttribute}" }
+        return path.joinToString { "${it.host::class.qualifiedName}:${it.attribute}" }
     }
 
     inline fun <reified T : Annotation> IFrame.find(path: String): T? =
@@ -73,29 +73,34 @@ data class ParamPath(val path: List<Host>): Serializable {
         annotations(path).filter { it is T && it.switch() }.map { it as T }
 
 
-    fun last() : Host = path.last()
+    fun last() : Param = path.last()
 
     fun join(a: String, nf: IFrame? = null): ParamPath {
         val last = path.last()
-        val list = mutableListOf<Host>()
+        val list = mutableListOf<Param>()
         list.addAll(path.subList(0, path.size - 1))
-        list.add(Host(last.target, a))
+        // Make sure the last meaningful.
+        if(!(last.isRoot() || last.attribute.endsWith(DOTITEM))) {
+            println("whole = $this")
+            println("last = $last | a = $a | nf = $nf")
+        }
+        list.add(Param(last.host, a))
         if (nf != null) {
             // throw RuntimeException()
-            list.add(Host(nf, ROOT))
+            list.add(Param(nf, ROOT))
         }
         return ParamPath(list)
     }
 
     fun root(): IFrame {
-        return path[0].target
+        return path[0].host
     }
 
     fun findRPath(i: Int) =
         if (i != path.size - 1) {
-            path.subList(i, path.size).filter { it.fromAttribute != ROOT }.joinToString(separator = ".") { it.fromAttribute }
+            path.subList(i, path.size).filter { it.attribute != ROOT }.joinToString(separator = ".") { it.attribute }
         } else {
-            path.last().fromAttribute
+            path.last().attribute
         }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
@@ -106,7 +111,7 @@ data class ParamPath(val path: List<Host>): Serializable {
 
         for (i in path.indices) {
             val attribute = findRPath(i)
-            val frame = path[i].target
+            val frame = path[i].host
             val t: List<T> = frame.findAll<T>(attribute)
             res.addAll(t)
         }
@@ -119,15 +124,15 @@ data class ParamPath(val path: List<Host>): Serializable {
         }
 
         if (T::class == AskStrategy::class) {
-            val paramPath = if (path.last().fromAttribute == ROOT && path.size > 1) path[path.size - 2] else path.last()
-            val frame = paramPath.target
-            val attr = paramPath.fromAttribute
+            val paramPath = if (path.last().attribute == ROOT && path.size > 1) path[path.size - 2] else path.last()
+            val frame = paramPath.host
+            val attr = paramPath.attribute
             return frame.find(attr) ?: AlwaysAsk() as T
         }
 
         for (i in path.indices) {
             val attribute = findRPath(i)
-            val frame = path[i].target
+            val frame = path[i].host
             val t: T? = pathFind(frame, attribute)
             if (t != null) {
                 return t
@@ -211,9 +216,9 @@ interface IFiller: Compatible, Serializable {
             if (path == null) return ""
             val last = path!!.path.last()
             return if (last.isNotRoot()) {
-                last.fromAttribute
+                last.attribute
             } else {
-                if (path!!.path.size == 1) last.target::class.simpleName!! else path!!.path[path!!.path.size - 2].fromAttribute
+                if (path!!.path.size == 1) last.host::class.simpleName!! else path!!.path[path!!.path.size - 2].attribute
             }
         }
 
@@ -348,7 +353,7 @@ class EntityFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.path.last().target::class.qualifiedName!!.let {
+        val frameType = path!!.path.last().host::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
@@ -423,7 +428,7 @@ class OpaqueFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.path.last().target::class.qualifiedName!!.let {
+        val frameType = path!!.path.last().host::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
@@ -974,14 +979,14 @@ class FrameFiller<T: IFrame>(
     }
 
     override fun qualifiedEventType(): String? {
-        val frameType = path!!.path.last().target::class.qualifiedName!!.let {
+        val frameType = path!!.path.last().host::class.qualifiedName!!.let {
             if (it.endsWith("?")) it.dropLast(1) else it
         }
         return frameType.substringBefore("<")
     }
 
     override fun frame(): IFrame {
-        return path!!.path.last().target
+        return path!!.path.last().host
     }
 
     override fun get(s: String): IFiller? {
