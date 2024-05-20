@@ -75,7 +75,7 @@ data class ParamPath(val path: List<Branch>): Serializable {
 
 
     fun last() : Branch = path.last()
-    val size : Int = path.size
+
 
     val leafAttribute: String
         get() {
