@@ -113,46 +113,33 @@ data class ParamPath(val path: List<Branch>): Serializable {
 
     inline fun <reified T : Annotation> findAll(): List<T> {
         for (i in path.indices) {
-            val attribute = restAttribute(i)
-            val frame = path[i].host
-            val t: List<T> = frame.findAll<T>(attribute)
+            val t: List<T> = pathFind(i)
             if (t.isNotEmpty()) return t
         }
         return emptyList()
     }
 
-    inline fun <reified T : Annotation> find(): T? {
-        for (i in path.indices) {
-            val t: T? = pathFind(i)
-            if (t != null) {
-                return t
-            }
-        }
-        
-        return null
-    }
-
     // we need a path since granularity of runtime annotations are finer than that of platform's
-    inline fun <reified T : Annotation> pathFind(idx: Int): T? {
+    inline fun <reified T : Annotation> pathFind(idx: Int): List<T> {
         val rpath = restAttribute(idx)
         val frame = path[idx].host
         val clazz = T::class
         when {
             clazz.isSubclassOf(PromptAnnotation::class) -> {
                 var currentPath = rpath
-                val origAnno: T? = frame.find(currentPath)
-                if (origAnno != null) return origAnno
+                val origAnno: List<T> = frame.findAll(currentPath)
+                if (origAnno.isNotEmpty()) return origAnno
                 if (currentPath.endsWith(REALTYPE)) {
                     currentPath = currentPath.substringBeforeLast(".$REALTYPE")
-                    val interfaceSlotAnno: T? = frame.find(currentPath)
-                    if (interfaceSlotAnno != null) return interfaceSlotAnno
+                    val interfaceSlotAnno: List<T> = frame.findAll(currentPath)
+                    if (interfaceSlotAnno.isNotEmpty()) return interfaceSlotAnno
                 }
                 if (currentPath.endsWith(ITEM)) {
                     currentPath = currentPath.substringBeforeLast(".$ITEM")
-                    val mvSlotAnno: T? = frame.find(currentPath)
-                    if (mvSlotAnno != null) return mvSlotAnno
+                    val mvSlotAnno: List<T> = frame.findAll(currentPath)
+                    if (mvSlotAnno.isNotEmpty()) return mvSlotAnno
                 }
-                return null
+                return emptyList()
             }
             clazz == IValueRecAnnotation::class -> {
                 val finalPath = if (rpath.endsWith("$HAST.status.$REALTYPE")) {
@@ -162,10 +149,10 @@ data class ParamPath(val path: List<Branch>): Serializable {
                 } else {
                     rpath
                 }
-                return frame.find(finalPath)
+                return frame.findAll(finalPath)
             }
             else -> {
-                return frame.find(rpath)
+                return frame.findAll(rpath)
             }
         }
     }
@@ -227,15 +214,15 @@ interface IFiller: Compatible, Serializable {
     fun slotAskAnnotation(): PromptAnnotation? {
         val decorativePrompt = decorativeAnnotations.firstIsInstanceOrNull<PromptAnnotation>()
         if (decorativePrompt != null) return decorativePrompt
-        return path?.find()
+        return path?.let { it.findAll<PromptAnnotation>().firstOrNull() }
     }
 
     fun slotInformActionAnnotation(): SlotInformActionAnnotation? {
-        return path?.find()
+        return path?.let { it.findAll<SlotInformActionAnnotation>().firstOrNull() }
     }
 
     fun askStrategy(): AskStrategy {
-        return path!!.find() ?: AlwaysAsk()
+        return path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk()
     }
 
     // fully type for compatible FrameEvent
@@ -677,14 +664,16 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         } else {
             null
         }
-        val annotation = path?.find<IValueRecAnnotation>() ?: return null
+        val annotation = path?.let { it.findAll<IValueRecAnnotation>().firstOrNull() } ?: return null
         val recFrame = when (annotation) {
             is ValueRecAnnotation -> {
                 annotation.recFrameGen()
             }
+
             is TypedValueRecAnnotation<*> -> {
                 (annotation.recFrameGen as Any?.() -> IFrame).invoke(node)
             }
+
             else -> {
                 throw Exception("IValueRecAnnotation type not supported")
             }
@@ -700,12 +689,14 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     var recommendationFiller: AnnotatedWrapperFiller? = null
 
     val stateUpdateFiller: AnnotatedWrapperFiller? by lazy {
-        val slotInitAnnotation = path!!.find<SlotInitAnnotation>() ?: return@lazy null
+        val slotInitAnnotation =
+            path!!.findAll<SlotInitAnnotation>().firstOrNull<SlotInitAnnotation>() ?: return@lazy null
 
         println("create stateUpdateFiller: $path")
 
         val updateIntent = ActionWrapperIntent(path!!.root().session, slotInitAnnotation.action)
-        val updateFiller = updateIntent.createBuilder().invoke(path!!.join("$attribute._update", updateIntent)) as FrameFiller<*>
+        val updateFiller =
+            updateIntent.createBuilder().invoke(path!!.join("$attribute._update", updateIntent)) as FrameFiller<*>
         // We need to create slot updater.
         val res = AnnotatedWrapperFiller(updateFiller, false)
         res.slotUpdateFlag = true
@@ -726,12 +717,12 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             // so we have to disable vr for mvSlot for now
             // maybe we will need vr for mvSlot and mvSlot._hast and mvSlot._item respectively in the future
             return targetFiller is MultiValueFiller<*> ||
-                    path?.find<IValueRecAnnotation>() == null ||
+                    path?.let { it.findAll<IValueRecAnnotation>().firstOrNull() } == null ||
                     recommendationFiller?.done(emptyList()) == true
         }
 
     fun initCheckFiller(): AnnotatedWrapperFiller? {
-        val checkFrame = path!!.find<ValueCheckAnnotation>()?.checkFrame?.invoke() ?: return null
+        val checkFrame = path!!.findAll<ValueCheckAnnotation>().firstOrNull()?.checkFrame?.invoke() ?: return null
         return (checkFrame.createBuilder().invoke(path!!.join("$attribute._check", checkFrame)) as FrameFiller<*>).let {
             val res = AnnotatedWrapperFiller(it, false)
             res.parent = this@AnnotatedWrapperFiller
@@ -745,7 +736,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     val confirmDone: Boolean
         get() {
-            val confirmFrame = path!!.find<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
+            val confirmFrame = path!!.findAll<ConfirmationAnnotation>().firstOrNull()?.confirmFrameGetter?.invoke()
             val decorativeConfirm = targetFiller
                 .decorativeAnnotations
                 .firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
@@ -760,7 +751,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     val checkDone: Boolean
         get() {
-            return path!!.find<ValueCheckAnnotation>() == null || checkFiller?.done(emptyList()) == true
+            return path!!.findAll<ValueCheckAnnotation>()
+                .firstOrNull() == null || checkFiller?.done(emptyList()) == true
         }
 
     var resultFiller: AnnotatedWrapperFiller? = (targetFiller as? FrameFiller<*>)?.fillers?.get("result")
@@ -845,7 +837,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             }
 
             // value confirm
-            val confirmFrame = path?.find<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
+            val confirmFrame =
+                path?.let { it.findAll<ConfirmationAnnotation>().firstOrNull() }?.confirmFrameGetter?.invoke()
             val decorativeConfirm = targetFiller.decorativeAnnotations.firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
             val confirmFrameList = mutableListOf<IFrame>()
             if (confirmFrame != null) confirmFrameList += confirmFrame
@@ -1156,7 +1149,7 @@ class MultiValueFiller<T>(
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
 
     private val minMaxAnnotation: MinMaxAnnotation? by lazy {
-        path!!.find()
+        path!!.findAll<MinMaxAnnotation>().firstOrNull()
     }
 
     private val singleTargetFiller : IFiller by lazy { createTFiller(-1) }
@@ -1286,7 +1279,7 @@ class MultiValueFiller<T>(
         val schedule = session.schedule
         if (target.get() == null) {
             target.set(mutableListOf())
-            val vrec = path?.find<IValueRecAnnotation>()
+            val vrec = path?.let { it.findAll<IValueRecAnnotation>().firstOrNull() }
             // When MV is not on abstract time, and there is no value rec define on it
             // and there is no FrameEvent that need to be take care of.
             val testFiller = createTFiller(-1)
