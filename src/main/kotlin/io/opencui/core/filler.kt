@@ -65,12 +65,6 @@ data class ParamPath(val path: List<Branch>): Serializable {
         return path.joinToString { "${it.host::class.qualifiedName}:${it.attribute}" }
     }
 
-    inline fun <reified T : Annotation> IFrame.find(path: String): T? =
-        annotations(path).firstOrNull { it is T && it.switch() } as T?
-
-    inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
-        annotations(path).filter { it is T && it.switch() }.map { it as T }
-
     fun last() : Branch = path.last()
 
     val leafAttribute: String

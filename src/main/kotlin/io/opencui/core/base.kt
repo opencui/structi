@@ -78,7 +78,8 @@ interface IFrame : Serializable {
     }
 }
 
-
+inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
+    annotations(path).filter { it is T && it.switch() }.map { it as T }
 
 interface IIntent : IFrame {
     // TODO(xiaobo, xiaoyun): all the filling related property should be in filler instead of frame, ideally.
