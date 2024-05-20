@@ -17,7 +17,6 @@ import io.opencui.serialization.Json
 import java.io.Serializable
 import java.util.*
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.KProperty1
@@ -286,7 +285,7 @@ data class CleanupAction(
         }
 
         return ActionResult(
-            createLog("CLEANUP SLOT : ${toBeCleaned.map { it.path!!.path.last() }.joinToString { "target=${it.target.javaClass.name}&slot=${if (it.isRoot()) "" else it.fromAttribute}" }}"),
+            createLog("CLEANUP SLOT : ${toBeCleaned.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}"),
             true
         )
     }
@@ -311,7 +310,7 @@ data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
         }
 
         return ActionResult(
-            createLog("RECHECK SLOT : ${toBeRechecked.map { it.path!!.path.last() }.joinToString { "target=${it.target.javaClass.name}&slot=${if (it.isRoot()) "" else it.fromAttribute}" }}"),
+            createLog("RECHECK SLOT : ${toBeRechecked.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}"),
             true
         )
     }
@@ -336,7 +335,7 @@ data class ReinitAction(val toBeReinit: List<IFiller>) : StateAction {
         }
 
         return ActionResult(
-            createLog("REINIT SLOT : ${toBeReinit.map { it.path!!.path.last() }.joinToString { "target=${it.target.javaClass.name}&slot=${if (it.isRoot()) "" else it.fromAttribute}" }}"),
+            createLog("REINIT SLOT : ${toBeReinit.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}"),
             true
         )
     }
@@ -360,13 +359,13 @@ data class DirectlyFillAction<T>(
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
-            createLog("FILL SLOT value is null for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
+            createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
             true
         )
         filler.directlyFill(value)
         filler.decorativeAnnotations.addAll(decorativeAnnotations)
         return ActionResult(
-            createLog("FILL SLOT for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
+            createLog("FILL SLOT for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
             true
         )
     }
@@ -393,7 +392,7 @@ data class FillAction<T>(
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
-            createLog("FILL SLOT value is null for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
+            createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
             true
         )
         val frameEventList = session.generateFrameEvent(filler, value)
@@ -406,7 +405,7 @@ data class FillAction<T>(
 
         if (frameEventList.isNotEmpty()) session.addEvents(frameEventList)
         return ActionResult(
-            createLog("FILL SLOT for target : ${param.target::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.fromAttribute}"),
+            createLog("FILL SLOT for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
             true
         )
     }
@@ -1131,8 +1130,8 @@ data class PagedSelectable<T: Any> (
         else -> listOf()
     }
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "index" -> if (singleEntryAutoFill() && singleEntryPrompt != null) sepConfirm else null
             else -> null
         }
@@ -1343,7 +1342,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         if (originalSlot == null) return null
         val filter = { f: IFiller ->
             val param = f.path!!.path.last()
-            val slotName = if (param.isRoot()) param.target::class.qualifiedName!! else "${param.target::class.qualifiedName}.${param.fromAttribute}"
+            val slotName = if (param.isRoot()) param.host::class.qualifiedName!! else "${param.host::class.qualifiedName}.${param.attribute}"
             f is AnnotatedWrapperFiller && originalSlot?.value == slotName
         }
         var topFiller = session!!.mainSchedule.firstOrNull() as? AnnotatedWrapperFiller

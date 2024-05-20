@@ -345,8 +345,8 @@ data class SepTestIntentExplicit(override var session: UserSession? = null): IIn
         else -> listOf()
     }
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "b" -> confirmb
             else -> null
         }
@@ -426,8 +426,8 @@ data class SepTestIntentImplicit(override var session: UserSession? = null): IIn
         else -> listOf()
     }
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "b" -> confirmb
             else -> null
         }
@@ -1533,8 +1533,8 @@ data class MVEntryConfirmationTestIntent(override var session: UserSession? = nu
                 ) },
             true)
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "payMethodList._item" -> {
                 when (s) {
                     "aaa" -> mvEntryConfirm
@@ -1961,8 +1961,8 @@ data class FreeActionConfirmationTestIntent(
         else -> listOf()
     }
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "s" -> confirmS
             else -> null
         }
@@ -2084,8 +2084,8 @@ data class ExternalEventContainerIntent(
                 ) },
             true)
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "this" -> confirmThis
             else -> null
         }
@@ -2314,8 +2314,8 @@ data class SlotDoubleConfirmTestIntent(
     var confirmSlot: Confirmation = Confirmation(session, this, "slot",
         { SlotConfirm(slot, "slot", "kotlin.String", listOf(this), templateOf("""r u sure of slot value $slot""")) })
 
-    override fun searchConfirmation(slot: String): IFrame? {
-        return when (slot) {
+    override fun searchConfirmation(path: String): IFrame? {
+        return when (path) {
             "slot" -> confirmSlot
             else -> null
         }

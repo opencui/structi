@@ -171,7 +171,7 @@ data class StartFill(
                         else Json.encodeToString((f.targetFiller.fillers[index-1].targetFiller as TypedFiller<*>).target.get()!!) == value
                     }
                 })
-                candidates.addAll(candidateFillers.map { it.path!!.path.last().let { p -> if (p.isRoot()) p.target::class.qualifiedName!! else "${p.target::class.qualifiedName!!}.${p.fromAttribute}" } }.map { SlotType(it).apply { this.session = session } }.toSet())
+                candidates.addAll(candidateFillers.map { it.path!!.path.last().let { p -> if (p.isRoot()) p.host::class.qualifiedName!! else "${p.host::class.qualifiedName!!}.${p.attribute}" } }.map { SlotType(it).apply { this.session = session } }.toSet())
             }
 
             if (candidates.isEmpty()) {
