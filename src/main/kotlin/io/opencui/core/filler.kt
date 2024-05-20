@@ -75,6 +75,17 @@ data class ParamPath(val path: List<Branch>): Serializable {
 
     fun last() : Branch = path.last()
 
+    val leafAttribute: String
+        get() {
+            if (path == null) return ""
+            val last = path.last()
+            return if (last.isNotRoot()) {
+                last.attribute
+            } else {
+                if (path.size == 1) last.host::class.simpleName!! else path[path.size - 2].attribute
+            }
+        }
+
     fun join(a: String, nf: IFrame? = null): ParamPath {
         val last = path.last()
         val list = mutableListOf<Branch>()
@@ -207,15 +218,7 @@ interface IFiller: Compatible, Serializable {
     val decorativeAnnotations: MutableList<Annotation>
 
     val attribute: String
-        get() {
-            if (path == null) return ""
-            val last = path!!.path.last()
-            return if (last.isNotRoot()) {
-                last.attribute
-            } else {
-                if (path!!.path.size == 1) last.host::class.simpleName!! else path!!.path[path!!.path.size - 2].attribute
-            }
-        }
+        get() = path!!.leafAttribute
 
     // Make scheduler state move on to next one, return true if we moved, if there are no legit
     fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
