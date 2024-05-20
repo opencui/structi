@@ -51,16 +51,16 @@ import kotlin.reflect.full.isSubclassOf
  *
  * For interface, we add a param with empty string.
  */
-data class Param(val host: IFrame, val attribute: String): Serializable {
+data class Branch(val host: IFrame, val attribute: String): Serializable {
     override fun toString(): String = "${host::class.qualifiedName}:${attribute}"
     fun isRoot() = attribute == ParamPath.ROOT
     fun isNotRoot() = attribute != ParamPath.ROOT
 }
 
 
-data class ParamPath(val path: List<Param>): Serializable {
+data class ParamPath(val path: List<Branch>): Serializable {
 
-    constructor(frame: IFrame): this(listOf(Param(frame, ROOT)))
+    constructor(frame: IFrame): this(listOf(Branch(frame, ROOT)))
 
     override fun toString(): String {
         return path.joinToString { "${it.host::class.qualifiedName}:${it.attribute}" }
@@ -73,21 +73,21 @@ data class ParamPath(val path: List<Param>): Serializable {
         annotations(path).filter { it is T && it.switch() }.map { it as T }
 
 
-    fun last() : Param = path.last()
+    fun last() : Branch = path.last()
 
     fun join(a: String, nf: IFrame? = null): ParamPath {
         val last = path.last()
-        val list = mutableListOf<Param>()
+        val list = mutableListOf<Branch>()
         list.addAll(path.subList(0, path.size - 1))
         // Make sure the last meaningful.
         if(!(last.isRoot() || last.attribute.endsWith(DOTITEM))) {
             println("whole = $this")
             println("last = $last | a = $a | nf = $nf")
         }
-        list.add(Param(last.host, a))
+        list.add(Branch(last.host, a))
         if (nf != null) {
             // throw RuntimeException()
-            list.add(Param(nf, ROOT))
+            list.add(Branch(nf, ROOT))
         }
         return ParamPath(list)
     }
@@ -104,18 +104,13 @@ data class ParamPath(val path: List<Param>): Serializable {
         }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
-        val res = mutableListOf<T>()
-        if (this.path.isEmpty()) {
-            return res
-        }
-
         for (i in path.indices) {
             val attribute = findRPath(i)
             val frame = path[i].host
             val t: List<T> = frame.findAll<T>(attribute)
-            res.addAll(t)
+            if (t.isNotEmpty()) return t
         }
-        return res
+        return emptyList()
     }
 
     inline fun <reified T : Annotation> find(): T? {
