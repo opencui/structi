@@ -79,7 +79,6 @@ data class ParamPath(val path: List<Branch>): Serializable {
 
     val leafAttribute: String
         get() {
-            if (path == null) return ""
             val last = path.last()
             return if (last.isNotRoot()) {
                 last.attribute
