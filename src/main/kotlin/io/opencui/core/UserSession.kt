@@ -540,20 +540,14 @@ data class UserSession(
         return result
     }
 
-    fun findWrapperFillerForTargetSlot(frame: IFrame, nested_slot: String?): AnnotatedWrapperFiller? {
-        var filler = findWrapperFillerWithFrame(frame)
-        if (nested_slot.isNullOrEmpty() || nested_slot == "this") return filler
-
-        // For nested slot, we move down the chain.
-        val slots = nested_slot.split(".")
-        for (slot in slots) {
-            filler = (filler?.targetFiller as? FrameFiller<*>)?.fillers?.get(slot) ?: return null
-        }
-        return filler
+    fun findWrapperFillerForTargetSlot(frame: IFrame, slot: String?): AnnotatedWrapperFiller? {
+        val filler = findWrapperFillerWithFrame(frame)
+        return (if (slot.isNullOrEmpty() || slot == "this") filler else (filler?.targetFiller as? FrameFiller<*>)?.fillers?.get(slot))
     }
 
     fun findWrapperFillerWithFrame(frame: IFrame): AnnotatedWrapperFiller? {
         for (s in schedulers) {
+
             // search in all builder defined slots first
             val first = s.firstOrNull() ?: continue
             val path = findFillerPath(first) { f -> f is AnnotatedWrapperFiller && f.targetFiller is FrameFiller<*> && f.targetFiller.frame() === frame }
