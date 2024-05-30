@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
+import java.lang.RuntimeException
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
@@ -401,13 +402,20 @@ data class EntityEventExtractor(val duContext: DuContext){
             if (slotCandidates.size == 1) {
                 val slotName = slotCandidates[0].slot
                 val slotValue = slotCandidates[0].surface
-                val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slotCandidates[0].slot)!!
-                val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type!!)?.normalizable ?: false
-                if (!normalizable) {
-                    entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
-                    markUsed(entry.key)
+                val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slotCandidates[0].slot)
+                if (slotMeta != null) {
+                    val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type!!)?.normalizable ?: false
+                    if (!normalizable) {
+                        entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
+                        markUsed(entry.key)
+                    } else {
+                        //TODO(sean): what happens if it is normalizable?
+                        logger.debug("Strange, why are we here?")
+                    }
                 } else {
-
+                    // This is where nested slot go, for now, we skip, but we might need to revisit
+                    // for the nested slot where their host frame is not on stack. We need to expand the host frame.
+                    logger.debug("nested slot for $frame?")
                 }
             } else {
                 // TODO: we extract slot clarification.
