@@ -703,7 +703,14 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // Now, we need to do slot resolutions for the slots with the same type.
         slotValueDecider.resolveType(duContext, nluSlotMetas)
-        return slotValueDecider.resolveSlot(topLevelFrameType,  focusedSlot)
+        slotValueDecider.resolveSlot(topLevelFrameType,  focusedSlot)
+        for (slot in slotMetas) {
+            if (slot.parent != topLevelFrameType) {
+                slotValueDecider.resolveSlot(slot.parent!!, null)
+            }
+        }
+
+        return slotValueDecider.frameEvents
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.

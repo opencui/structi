@@ -149,6 +149,12 @@ data class BoolGateAsk(val generator: () -> DialogAct): AskStrategy {
     }
 }
 
+// This is used to create the filter (dataflow program).
+data class FilterAnnotation<T, W>(
+    val filter: (W) -> Boolean,
+    val batch: (List<T>) -> List<W>) : kotlin.Annotation
+
+
 interface IValueRecAnnotation: Annotation
 
 data class ValueRecAnnotation(val recFrameGen: () -> IFrame, val showOnce: Boolean = false): IValueRecAnnotation
