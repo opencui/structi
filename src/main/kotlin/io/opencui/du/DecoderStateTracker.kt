@@ -700,17 +700,24 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // Now we add the extract evidence.
         slotValueDecider.addExtractedEvidence(results)
-
+        val frameEvents = mutableListOf<FrameEvent>()
         // Now, we need to do slot resolutions for the slots with the same type.
         slotValueDecider.resolveType(duContext, nluSlotMetas)
-        slotValueDecider.resolveSlot(topLevelFrameType,  focusedSlot)
+        val rootEvent = slotValueDecider.resolveSlot(topLevelFrameType,  focusedSlot)
+        if (rootEvent != null) {
+            frameEvents.add(rootEvent)
+        }
+
         for (slot in slotMetas) {
             if (slot.parent != topLevelFrameType) {
-                slotValueDecider.resolveSlot(slot.parent!!, null)
+                val leafEvent = slotValueDecider.resolveSlot(slot.parent!!, null)
+                if (leafEvent != null && leafEvent.slots.size != 0) {
+                    frameEvents.add(leafEvent)
+                }
             }
         }
 
-        return slotValueDecider.frameEvents
+        return frameEvents
     }
 
     // given a list of frame event, add the entailed slots to the right frame event.
