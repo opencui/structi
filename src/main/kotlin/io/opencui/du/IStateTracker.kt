@@ -216,7 +216,6 @@ data class EntityEventExtractor(val duContext: DuContext){
     // We might want to reuse the recognized entity for all the frames.
     var frame: String = ""
     var slotMetas: List<DUSlotMeta> = emptyList()
-    var frameEvents = mutableListOf<FrameEvent>()
 
 
     fun markUsed(span: Pair<Int, Int>) {
@@ -368,7 +367,7 @@ data class EntityEventExtractor(val duContext: DuContext){
     }
 
 
-    fun resolveSlot(frame: String, focusedSlot: String? = null) {
+    fun resolveSlot(frame: String, focusedSlot: String? = null): FrameEvent? {
         // We need to do this from multiple rounds
         // Aside from the operator semantic: equals, not, etc. The evidence for value
         // comes from these four possibilities:
@@ -408,9 +407,9 @@ data class EntityEventExtractor(val duContext: DuContext){
                 if (slotMeta != null) {
                     // We only handle entity slot for now, for frame slot.
                     if (duContext.duMeta!!.isEntity(slotMeta.type!!)) {
-                        val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type!!)?.normalizable ?: false
+                        val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type)?.normalizable ?: false
                         if (!normalizable) {
-                            entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
+                            entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type))
                             markUsed(entry.key)
                         } else {
                             //TODO(sean): what happens if it is normalizable?
@@ -441,15 +440,17 @@ data class EntityEventExtractor(val duContext: DuContext){
             val normalizable = duMeta.getEntityMeta(focusedSlotType)?.normalizable
             // under condition where we have a unique partial match
             if (spannedValues?.size == 1 && normalizable == true) {
-                val value = spannedValues[0]!!
+                val value = spannedValues[0]
                 val originalValue = value.original(duContext.utterance)
                 entityEvents.add(EntityEvent.build(focusedSlot!!, originalValue, value.norm()!!, focusedSlotType))
+                markUsed(Pair(value.start, value.end))
             }
         }
 
         if (!duContext.expectations.isFrameCompatible(frame) || entityEvents.size != 0) {
-            frameEvents.add(FrameEvent.build(frame, entityEvents))
+            return FrameEvent.build(frame, entityEvents)
         }
+        return null
     }
 
     companion object {
