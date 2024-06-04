@@ -138,9 +138,9 @@ data class SlotValue(val values: List<String>, val operator: String  = "EqualTo"
 
 
 // We need to figure out how to resolve the surface value to slot, from surface to type to slot to semantics.
-class OpSlotValue(val slot: String, val surface: String, val type: String, val operator: ValueOperator = ValueOperator.EqualTo) {
+data class OpSlotValue(val slot: String, val surface: String, val type: String, val operator: ValueOperator = ValueOperator.EqualTo) {
     var slotSurroundingBonus : Float = 0f
-    var typeSurroundingBonus : Float =0f
+    var typeSurroundingBonus : Float = 0f
 }
 
 /**
@@ -149,7 +149,7 @@ class OpSlotValue(val slot: String, val surface: String, val type: String, val o
  */
 class SlotValueCandidates {
     val recognizedInfos = mutableListOf<ValueInfo>()
-    val extractedInfos = mutableListOf<OpSlotValue>()
+    val extractedInfos = mutableSetOf<OpSlotValue>()
 
     // Both has nothing to do with value itself.
     // slot context support the same type between different slots.
@@ -216,6 +216,8 @@ data class EntityEventExtractor(val duContext: DuContext){
     // We might want to reuse the recognized entity for all the frames.
     var frame: String = ""
     var slotMetas: List<DUSlotMeta> = emptyList()
+    var frameEvents = mutableListOf<FrameEvent>()
+
 
     fun markUsed(span: Pair<Int, Int>) {
         // Now we go over all the rest of span, if it is incompatible with this span,
@@ -366,7 +368,7 @@ data class EntityEventExtractor(val duContext: DuContext){
     }
 
 
-    fun resolveSlot(frame: String, focusedSlot: String? = null) : List<FrameEvent> {
+    fun resolveSlot(frame: String, focusedSlot: String? = null) {
         // We need to do this from multiple rounds
         // Aside from the operator semantic: equals, not, etc. The evidence for value
         // comes from these four possibilities:
@@ -377,7 +379,7 @@ data class EntityEventExtractor(val duContext: DuContext){
         val duMeta = duContext.duMeta!!
 
         val entityEvents = mutableListOf<EntityEvent>()
-        val frameEvents = mutableListOf<FrameEvent>()
+
         // For now, we trust the evidence we found.
 
         // First round we require that we have support, and it needs to be normalizable.
@@ -394,23 +396,26 @@ data class EntityEventExtractor(val duContext: DuContext){
             // No need to handle the ones that is handled
             if (!entry.value.active) continue
 
-            val slotCandidates = entry.value.extractedInfos
+            val slotCandidates = entry.value.extractedInfos.toList()
 
             // if there is no model support, skip
-            if (slotCandidates.isNullOrEmpty()) continue
+            if (slotCandidates.isEmpty()) continue
 
             if (slotCandidates.size == 1) {
                 val slotName = slotCandidates[0].slot
                 val slotValue = slotCandidates[0].surface
                 val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slotCandidates[0].slot)
                 if (slotMeta != null) {
-                    val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type!!)?.normalizable ?: false
-                    if (!normalizable) {
-                        entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
-                        markUsed(entry.key)
-                    } else {
-                        //TODO(sean): what happens if it is normalizable?
-                        logger.debug("Strange, why are we here?")
+                    // We only handle entity slot for now, for frame slot.
+                    if (duContext.duMeta!!.isEntity(slotMeta.type!!)) {
+                        val normalizable = duContext.duMeta!!.getEntityMeta(slotMeta.type!!)?.normalizable ?: false
+                        if (!normalizable) {
+                            entityEvents.add(EntityEvent.build(slotName, slotValue, slotValue, slotMeta.type!!))
+                            markUsed(entry.key)
+                        } else {
+                            //TODO(sean): what happens if it is normalizable?
+                            logger.debug("Strange, why are we here?")
+                        }
                     }
                 } else {
                     // This is where nested slot go, for now, we skip, but we might need to revisit
@@ -442,10 +447,8 @@ data class EntityEventExtractor(val duContext: DuContext){
             }
         }
 
-        return if (!duContext.expectations.isFrameCompatible(frame) || entityEvents.size != 0) {
-            listOf(FrameEvent.build(frame, entityEvents))
-        } else  {
-            emptyList()
+        if (!duContext.expectations.isFrameCompatible(frame) || entityEvents.size != 0) {
+            frameEvents.add(FrameEvent.build(frame, entityEvents))
         }
     }
 
