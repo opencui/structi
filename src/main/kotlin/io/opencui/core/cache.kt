@@ -1,10 +1,8 @@
 package io.opencui.core
 
-import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.translateCallArguments
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
-import kotlin.math.sin
 import kotlin.reflect.KFunction
 
 interface Cache<Key, Value> {
