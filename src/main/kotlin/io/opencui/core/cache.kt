@@ -1,8 +1,11 @@
 package io.opencui.core
 
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.translateCallArguments
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
+import kotlin.math.sin
+import kotlin.reflect.KFunction
 
 interface Cache<Key, Value> {
     val size: Int
@@ -197,3 +200,17 @@ class CachedMethod3<A, B, C, out R>(
     }
 }
 
+
+data class CachedFunction<T>(
+    val values: MutableMap<String, Pair<List<@UnsafeVariance T>, LocalDateTime>> = mutableMapOf()) {
+
+    operator fun invoke(func: KFunction<List<T>>, vararg otherParams: Any) : List<T> {
+        // Create an array with fixedParam1 followed by otherParams
+        val signature = """${func.name}(${otherParams.joinToString(", ")})"""
+        if (!values.containsKey(signature)) {
+            values[signature] = Pair(func.call(*otherParams), LocalDateTime.now())
+        }
+        // Use reflection to call the target function with allParams
+        return values[signature]!!.first
+    }
+}

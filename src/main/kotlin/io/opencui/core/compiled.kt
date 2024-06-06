@@ -888,6 +888,32 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
     }
 }
 
+// This for and, used at out most as filters.
+fun <T> List<(T) -> Boolean>.invoke(t: T) : Boolean {
+    for (filter in this) {
+        if (!filter(t)) return false
+    }
+    return true
+}
+
+data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
+    override fun invoke(t: T): Boolean {
+        for (filter in filters) {
+            if (filter(t)) return false
+        }
+        return true
+    }
+}
+
+data class Or<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
+    override fun invoke(t: T): Boolean {
+        for (filter in filters) {
+            if (filter(t)) return true
+        }
+        return false
+    }
+}
+
 data class PagedSelectable<T: Any> (
     override var session: UserSession? = null,
     var suggestionIntentBuilder: FullFrameBuilder?,
@@ -903,7 +929,7 @@ data class PagedSelectable<T: Any> (
     @JsonIgnore var singleEntryPrompt: ((T) -> DialogAct)? = null,
     @JsonIgnore var implicit: Boolean = false,
     @JsonIgnore var autoFillSwitch: () -> Boolean = {true},
-    @JsonIgnore var candidateListProvider: (() -> List<T>)? = null,
+    @JsonIgnore var candidateListProvider: (() -> List<T>)? = null
 ): IIntent {
     // So that we can use the old construction.
     constructor(
