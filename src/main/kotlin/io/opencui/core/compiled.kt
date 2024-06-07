@@ -889,7 +889,7 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
 }
 
 // This turns a closure with receiver
-fun <T, P> bindReceiver1(lambda: T?.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
+fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
 
 // This for and, used at out most as filters.
 fun <T> List<(T) -> Boolean>.invoke(t: T) : Boolean {
@@ -910,6 +910,7 @@ data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
 
 data class Or<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
     override fun invoke(t: T): Boolean {
+        if (filters.isEmpty()) return true
         for (filter in filters) {
             if (filter(t)) return true
         }
@@ -917,8 +918,16 @@ data class Or<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
     }
 }
 
-data class Filter<T, P>(
-    val test: T?.(P) -> Boolean,
+data class And<T>(val filters: List<(T) -> Boolean>): (T) -> Boolean {
+    constructor(vararg fs: (T) -> Boolean) : this(fs.toList())
+
+    override fun invoke(p1: T): Boolean {
+        return filters.invoke(p1)
+    }
+}
+
+data class ValueFilter<T, P>(
+    val test: T.(P) -> Boolean,
     val originalValue: T?,
     val negateValues: List<T> = emptyList(),
     val orValues: List<T> = emptyList()) : (P) -> Boolean {

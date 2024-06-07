@@ -1,5 +1,7 @@
 package io.opencui.du
 
+import io.opencui.core.And
+import io.opencui.core.ValueFilter
 import io.opencui.core.IChatbot
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
@@ -280,6 +282,16 @@ class DslTest() : DuTestHelper() {
         val pattern = Regex("\\{.*\\}")
         val value = "{'@class'='io.opencui.core.That'}"
         assert(pattern.matches(value))
+    }
+
+    @Test
+    fun testFilter() {
+        val x : Int.(Int) -> Boolean = { it % this == 0 }
+        val ints = listOf(2, 3, 4, 5, 6)
+        val filters = And(ValueFilter(x, 3, listOf(2, 6), listOf(3, 4)))
+        val post = ints.filter { filters(it) }
+        assertEquals(post.size, 1)
+        assertEquals(post[0], 3)
     }
 
     @Test
