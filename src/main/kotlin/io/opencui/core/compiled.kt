@@ -891,14 +891,6 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
 // This turns a closure with receiver
 fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
 
-// This for and, used at out most as filters.
-fun <T> List<(T) -> Boolean>.invoke(t: T) : Boolean {
-    for (filter in this) {
-        if (!filter(t)) return false
-    }
-    return true
-}
-
 data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
     override fun invoke(t: T): Boolean {
         for (filter in filters) {
@@ -922,7 +914,10 @@ data class And<T>(val filters: List<(T) -> Boolean>): (T) -> Boolean {
     constructor(vararg fs: (T) -> Boolean) : this(fs.toList())
 
     override fun invoke(p1: T): Boolean {
-        return filters.invoke(p1)
+        for (filter in filters) {
+            if (!filter(p1)) return false
+        }
+        return true
     }
 }
 
@@ -932,7 +927,7 @@ data class ValueFilter<T, P>(
     val negateValues: List<T> = emptyList(),
     val orValues: List<T> = emptyList()) : (P) -> Boolean {
 
-    private val testers = listOf(
+    private val testers = And(
         bindReceiver1(test, originalValue),
         Negate(negateValues.map { bindReceiver1(test, it)}),
         Or(orValues.map { bindReceiver1(test, it)})
