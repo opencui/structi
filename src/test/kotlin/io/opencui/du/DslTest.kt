@@ -1,8 +1,6 @@
 package io.opencui.du
 
-import io.opencui.core.And
-import io.opencui.core.ValueFilter
-import io.opencui.core.IChatbot
+import io.opencui.core.*
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.StringField
@@ -288,8 +286,12 @@ class DslTest() : DuTestHelper() {
     fun testFilter() {
         val x : Int.(Int) -> Boolean = { it % this == 0 }
         val ints = listOf(2, 3, 4, 5, 6)
-        val filters = And(ValueFilter(x, 3, listOf(2, 6), listOf(3, 4)))
+        val filters = valueFilter(x, 3, mapOf(
+            Companion.NEGATE to listOf(2, 6),
+            Companion.OR to listOf(3, 4))
+        )
         val post = ints.filter { filters(it) }
+        println(post)
         assertEquals(post.size, 1)
         assertEquals(post[0], 3)
     }

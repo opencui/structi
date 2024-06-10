@@ -15,6 +15,7 @@ import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
 import java.io.Serializable
+import java.lang.RuntimeException
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -888,6 +889,12 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
     }
 }
 
+
+// This
+enum class Companion {
+    AND, NEGATE, OR, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
+}
+
 // This turns a closure with receiver
 fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
 
@@ -914,7 +921,6 @@ data class Or<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
 
 data class And<T>(val filters: List<(T) -> Boolean>): (T) -> Boolean {
     constructor(vararg fs: (T) -> Boolean) : this(fs.toList())
-
     override fun invoke(p1: T): Boolean {
         for (filter in filters) {
             if (!filter(p1)) return false
@@ -925,8 +931,6 @@ data class And<T>(val filters: List<(T) -> Boolean>): (T) -> Boolean {
 
 
 data class LessThan<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
-    constructor(vararg fs: T) : this(fs.minOrNull())
-    constructor(fs: List<T>) : this(fs.minOrNull())
     override fun invoke(p1: T): Boolean {
         return min == null || p1 < min
     }
@@ -934,8 +938,6 @@ data class LessThan<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
 
 
 data class LessThanEqualTo<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
-    constructor(vararg fs: T) : this(fs.minOrNull())
-    constructor(fs: List<T>) : this(fs.minOrNull())
     override fun invoke(p1: T): Boolean {
         return min == null || p1 <= min
     }
@@ -943,8 +945,6 @@ data class LessThanEqualTo<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
 
 
 data class GreaterThan<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
-    constructor(vararg fs: T) : this(fs.maxOrNull())
-   constructor(fs: List<T>) : this(fs.maxOrNull())
     override fun invoke(p1: T): Boolean {
         return max == null || p1 > max
     }
@@ -952,29 +952,42 @@ data class GreaterThan<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
 
 
 data class GreaterThanEqualTo<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
-    constructor(vararg fs: T) : this(fs.maxOrNull())
-    constructor(fs: List<T>) : this(fs.maxOrNull())
     override fun invoke(p1: T): Boolean {
         return max == null || p1 >= max
     }
 }
 
-
-data class ValueFilter<T, P>(
-    val test: T.(P) -> Boolean,
-    val originalValue: T?,
-    val negateValues: List<T> = emptyList(),
-    val orValues: List<T> = emptyList()) : (P) -> Boolean {
-
-    private val testers = And(
-        bindReceiver1(test, originalValue),
-        Negate(negateValues.map { bindReceiver1(test, it)}),
-        Or(orValues.map { bindReceiver1(test, it)})
-    )
-
-    override fun invoke(p1: P): Boolean {
-        return testers.invoke(p1)
+fun <T, P: Comparable<P>> valueFilter(
+    test: T.(P) -> Boolean,
+    originalValue: T?,
+    companions: Map<Companion, List<T>>): (P) -> Boolean {
+    val filters = mutableListOf<(P)->Boolean>()
+    filters.add(bindReceiver1(test, originalValue))
+    companions.map{
+        when(it.key) {
+            Companion.AND -> filters.add(And(it.value.map { itt -> bindReceiver1(test, itt) }))
+            Companion.OR -> filters.add(Or(it.value.map { itt -> bindReceiver1(test, itt)}))
+            Companion.NEGATE -> filters.add(Negate(it.value.map { itt -> bindReceiver1(test, itt) }))
+            else -> throw RuntimeException("Auxiliary slot only support ")
+        }
     }
+    return And(filters)
+}
+
+fun <P: Comparable<P>> valueFilter(companions: Map<Companion, List<P>>): (P) -> Boolean {
+    val filters = mutableListOf<(P) -> Boolean>()
+    companions.map {
+        when (it.key) {
+            Companion.OR -> filters.add(Or(it.value))
+            Companion.NEGATE -> filters.add(Negate(it.value))
+            Companion.LESSTHAN -> filters.add(LessThan(it.value.minOrNull()))
+            Companion.LESSTHANEQUALTO -> filters.add(LessThan(it.value.minOrNull()))
+            Companion.GREATERTHAN -> filters.add(GreaterThan(it.value.maxOrNull()))
+            Companion.GREATERTHANQUALTO -> filters.add(GreaterThanEqualTo(it.value.maxOrNull()))
+            else -> throw RuntimeException("Auxiliary slot only support ")
+        }
+    }
+    return And(filters)
 }
 
 
