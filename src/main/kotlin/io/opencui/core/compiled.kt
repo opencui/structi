@@ -892,6 +892,7 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
 fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
 
 data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
+    constructor(vararg fs: T): this ( fs.map { f -> { it : T -> it != f} } )
     override fun invoke(t: T): Boolean {
         for (filter in filters) {
             if (filter(t)) return false
@@ -901,6 +902,7 @@ data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
 }
 
 data class Or<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
+    constructor(vararg fs: T): this ( fs.map { f -> { it : T -> it == f} } )
     override fun invoke(t: T): Boolean {
         if (filters.isEmpty()) return true
         for (filter in filters) {
@@ -920,6 +922,43 @@ data class And<T>(val filters: List<(T) -> Boolean>): (T) -> Boolean {
         return true
     }
 }
+
+
+data class LessThan<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
+    constructor(vararg fs: T) : this(fs.minOrNull())
+    constructor(fs: List<T>) : this(fs.minOrNull())
+    override fun invoke(p1: T): Boolean {
+        return min == null || p1 < min
+    }
+}
+
+
+data class LessThanEqualTo<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
+    constructor(vararg fs: T) : this(fs.minOrNull())
+    constructor(fs: List<T>) : this(fs.minOrNull())
+    override fun invoke(p1: T): Boolean {
+        return min == null || p1 <= min
+    }
+}
+
+
+data class GreaterThan<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
+    constructor(vararg fs: T) : this(fs.maxOrNull())
+   constructor(fs: List<T>) : this(fs.maxOrNull())
+    override fun invoke(p1: T): Boolean {
+        return max == null || p1 > max
+    }
+}
+
+
+data class GreaterThanEqualTo<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
+    constructor(vararg fs: T) : this(fs.maxOrNull())
+    constructor(fs: List<T>) : this(fs.maxOrNull())
+    override fun invoke(p1: T): Boolean {
+        return max == null || p1 >= max
+    }
+}
+
 
 data class ValueFilter<T, P>(
     val test: T.(P) -> Boolean,
