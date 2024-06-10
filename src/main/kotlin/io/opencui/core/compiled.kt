@@ -891,7 +891,7 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
 
 
 // This
-enum class Companion {
+enum class CompanionType {
     AND, NEGATE, OR, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
 }
 
@@ -957,39 +957,40 @@ data class GreaterThanEqualTo<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
     }
 }
 
-fun <T, P: Comparable<P>> valueFilter(
-    test: T.(P) -> Boolean,
-    originalValue: T?,
-    companions: Map<Companion, List<T>>): (P) -> Boolean {
-    val filters = mutableListOf<(P)->Boolean>()
-    filters.add(bindReceiver1(test, originalValue))
-    companions.map{
-        when(it.key) {
-            Companion.AND -> filters.add(And(it.value.map { itt -> bindReceiver1(test, itt) }))
-            Companion.OR -> filters.add(Or(it.value.map { itt -> bindReceiver1(test, itt)}))
-            Companion.NEGATE -> filters.add(Negate(it.value.map { itt -> bindReceiver1(test, itt) }))
-            else -> throw RuntimeException("Auxiliary slot only support ")
+object ValueFilterBuilder{
+    fun <T, P: Comparable<P>> build(
+        test: T.(P) -> Boolean,
+        originalValue: T?,
+        companions: Map<CompanionType, List<T>>): (P) -> Boolean {
+        val filters = mutableListOf<(P)->Boolean>()
+        filters.add(bindReceiver1(test, originalValue))
+        companions.map{
+            when(it.key) {
+                CompanionType.AND -> filters.add(And(it.value.map { itt -> bindReceiver1(test, itt) }))
+                CompanionType.OR -> filters.add(Or(it.value.map { itt -> bindReceiver1(test, itt)}))
+                CompanionType.NEGATE -> filters.add(Negate(it.value.map { itt -> bindReceiver1(test, itt) }))
+                else -> throw RuntimeException("Auxiliary slot only support ")
+            }
         }
+        return And(filters)
     }
-    return And(filters)
-}
 
-fun <P: Comparable<P>> valueFilter(companions: Map<Companion, List<P>>): (P) -> Boolean {
-    val filters = mutableListOf<(P) -> Boolean>()
-    companions.map {
-        when (it.key) {
-            Companion.OR -> filters.add(Or(it.value))
-            Companion.NEGATE -> filters.add(Negate(it.value))
-            Companion.LESSTHAN -> filters.add(LessThan(it.value.minOrNull()))
-            Companion.LESSTHANEQUALTO -> filters.add(LessThan(it.value.minOrNull()))
-            Companion.GREATERTHAN -> filters.add(GreaterThan(it.value.maxOrNull()))
-            Companion.GREATERTHANQUALTO -> filters.add(GreaterThanEqualTo(it.value.maxOrNull()))
-            else -> throw RuntimeException("Auxiliary slot only support ")
+    fun <P: Comparable<P>> build(companions: Map<CompanionType, List<P>>): (P) -> Boolean {
+        val filters = mutableListOf<(P) -> Boolean>()
+        companions.map {
+            when (it.key) {
+                CompanionType.OR -> filters.add(Or(it.value))
+                CompanionType.NEGATE -> filters.add(Negate(it.value))
+                CompanionType.LESSTHAN -> filters.add(LessThan(it.value.minOrNull()))
+                CompanionType.LESSTHANEQUALTO -> filters.add(LessThan(it.value.minOrNull()))
+                CompanionType.GREATERTHAN -> filters.add(GreaterThan(it.value.maxOrNull()))
+                CompanionType.GREATERTHANQUALTO -> filters.add(GreaterThanEqualTo(it.value.maxOrNull()))
+                else -> throw RuntimeException("Auxiliary slot only support ")
+            }
         }
+        return And(filters)
     }
-    return And(filters)
 }
-
 
 data class PagedSelectable<T: Any> (
     override var session: UserSession? = null,
