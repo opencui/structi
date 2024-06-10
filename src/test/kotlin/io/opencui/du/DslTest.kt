@@ -286,9 +286,9 @@ class DslTest() : DuTestHelper() {
     fun testFilter() {
         val x : Int.(Int) -> Boolean = { it % this == 0 }
         val ints = listOf(2, 3, 4, 5, 6)
-        val filters = valueFilter(x, 3, mapOf(
-            Companion.NEGATE to listOf(2, 6),
-            Companion.OR to listOf(3, 4))
+        val filters = ValueFilterBuilder.build(x, 3, mapOf(
+            CompanionType.NEGATE to listOf(2, 6),
+            CompanionType.OR to listOf(3, 4))
         )
         val post = ints.filter { filters(it) }
         println(post)
