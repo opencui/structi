@@ -892,6 +892,7 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
 fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
 
 data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
+    constructor(vararg fs: T): this ( fs.map { f -> { it : T -> it != f} } )
     override fun invoke(t: T): Boolean {
         for (filter in filters) {
             if (filter(t)) return false
@@ -901,6 +902,7 @@ data class Negate<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
 }
 
 data class Or<T>(val filters: List<(T)->Boolean>) : (T) -> Boolean {
+    constructor(vararg fs: T): this ( fs.map { f -> { it : T -> it == f} } )
     override fun invoke(t: T): Boolean {
         if (filters.isEmpty()) return true
         for (filter in filters) {
