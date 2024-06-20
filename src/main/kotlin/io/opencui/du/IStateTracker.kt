@@ -767,6 +767,10 @@ interface IStateTracker : IExtension {
         return frame == PickValue
     }
 
+    fun isPickNotValue(frame: String?) : Boolean {
+        return frame == PickNotValue
+    }
+
     fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**
      * Test whether a given entity event is from partial match. Mainly used for potential slot
@@ -818,6 +822,8 @@ interface IStateTracker : IExtension {
         const val KotlinString = "kotlin.String"
         const val ValueSymbol = "<>"
         const val PickValue = "io.opencui.core.PickValue"
+        const val PickNotValue = "io.opencui.core.PickNotValue"
+        const val PickOrtValue = "io.opencui.core.PickOrValue"
         const val PagedSelectable = "io.opencui.core.PagedSelectable"
         const val SlotUpdateGenericType = "<T>"
         val IStatusSet = setOf(

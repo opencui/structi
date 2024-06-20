@@ -276,10 +276,20 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 val expectedFrames = duContext.expectedFrames.filter {it.slot != null }
                 val events = handleExpectations(triggerable, expectedFrames)
                 if (!events.isNullOrEmpty()) {
-                    logger.debug("getting $events for $utterance in handleExpectations")
+                    logger.debug("getting $events for $utterance in handleExpectations for Equal")
                     // This is an opportunity for filtering the events again.
                     // if event agrees with one of expectation, and
                     results.addAll(events)
+                }
+            } else if (isPickNotValue(triggerable.owner)) {
+                val expectedFrames = duContext.expectedFrames.filter {it.slot != null }
+                val events = handleExpectations(triggerable, expectedFrames)
+                if (!events.isNullOrEmpty()) {
+                    logger.debug("getting $events for $utterance in handleExpectations for Negate")
+                    // This is an opportunity for filtering the events again.
+                    // if event agrees with one of expectation
+                    // remember to update event for corresponding NOT
+                    results.addAll(events.map { it.toCompanion(CompanionType.NEGATE) })
                 }
             } else if (isUpdateSlot(triggerable.owner)) {
                 // now we handle slot update not working yet.
