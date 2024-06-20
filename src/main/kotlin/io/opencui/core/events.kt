@@ -39,6 +39,23 @@ data class EntityEvent(
         return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
     }
 
+
+    constructor(value: String, attribute: String, type: String?) : this(value, attribute) {
+        this.type = type
+    }
+
+    fun toCompanion(companionType: CompanionType) : EntityEvent {
+        return when (companionType) {
+            CompanionType.NEGATE -> EntityEvent(value, "${attribute}_Not", type)
+            CompanionType.OR -> EntityEvent(value, "${attribute}_Or", type)
+            CompanionType.LESSTHAN -> EntityEvent(value, "${attribute}_LessThan", type)
+            CompanionType.LESSTHANEQUALTO -> EntityEvent(value, "${attribute}_LessThanEqualTO", type)
+            CompanionType.GREATERTHAN -> EntityEvent(value, "${attribute}_GreaterThan", type)
+            CompanionType.GREATERTHANQUALTO -> EntityEvent(value, "${attribute}_GreaterThanEqualTo", type)
+            else -> throw RuntimeException("Not support companion: $companionType")
+        }
+    }
+
     // TODO(sean) what is this used for?
     @JsonIgnore
     val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
@@ -75,7 +92,9 @@ data class FrameEvent(
     var attribute: String? = null
     var query: String? = null
 
-    val delta: Boolean = true
+    fun toCompanion(companionType: CompanionType) : FrameEvent {
+        return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
+    }
 
     @JsonIgnore
     var triggered: Boolean = false
@@ -125,6 +144,8 @@ data class FrameEvent(
     fun updateTurnId(pturnId: Int) {
         turnId = pturnId
     }
+
+
 
     var source: EventSource = EventSource.UNKNOWN
 

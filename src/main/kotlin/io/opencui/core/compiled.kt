@@ -961,31 +961,35 @@ object ValueFilterBuilder{
     fun <T, P: Comparable<P>> build(
         test: T.(P) -> Boolean,
         originalValue: T?,
-        companions: Map<CompanionType, List<T>>): (P) -> Boolean {
+        companions: Map<CompanionType, List<T>?>): (P) -> Boolean {
         val filters = mutableListOf<(P)->Boolean>()
         filters.add(bindReceiver1(test, originalValue))
         companions.map{
-            when(it.key) {
-                CompanionType.AND -> filters.add(And(it.value.map { itt -> bindReceiver1(test, itt) }))
-                CompanionType.OR -> filters.add(Or(it.value.map { itt -> bindReceiver1(test, itt)}))
-                CompanionType.NEGATE -> filters.add(Negate(it.value.map { itt -> bindReceiver1(test, itt) }))
-                else -> throw RuntimeException("Auxiliary slot only support ")
+            if (it.value != null) {
+                when (it.key) {
+                    CompanionType.AND -> filters.add(And(it.value!!.map { itt -> bindReceiver1(test, itt) }))
+                    CompanionType.OR -> filters.add(Or(it.value!!.map { itt -> bindReceiver1(test, itt) }))
+                    CompanionType.NEGATE -> filters.add(Negate(it.value!!.map { itt -> bindReceiver1(test, itt) }))
+                    else -> throw RuntimeException("Auxiliary slot only support ")
+                }
             }
         }
         return And(filters)
     }
 
-    fun <P: Comparable<P>> build(companions: Map<CompanionType, List<P>>): (P) -> Boolean {
+    fun <P: Comparable<P>> build(companions: Map<CompanionType, List<P>?>): (P) -> Boolean {
         val filters = mutableListOf<(P) -> Boolean>()
         companions.map {
-            when (it.key) {
-                CompanionType.OR -> filters.add(Or(it.value))
-                CompanionType.NEGATE -> filters.add(Negate(it.value))
-                CompanionType.LESSTHAN -> filters.add(LessThan(it.value.minOrNull()))
-                CompanionType.LESSTHANEQUALTO -> filters.add(LessThan(it.value.minOrNull()))
-                CompanionType.GREATERTHAN -> filters.add(GreaterThan(it.value.maxOrNull()))
-                CompanionType.GREATERTHANQUALTO -> filters.add(GreaterThanEqualTo(it.value.maxOrNull()))
-                else -> throw RuntimeException("Auxiliary slot only support ")
+            if (it.value != null) {
+                when (it.key) {
+                    CompanionType.OR -> filters.add(Or(it.value))
+                    CompanionType.NEGATE -> filters.add(Negate(it.value))
+                    CompanionType.LESSTHAN -> filters.add(LessThan(it.value!!.minOrNull()))
+                    CompanionType.LESSTHANEQUALTO -> filters.add(LessThan(it.value!!.minOrNull()))
+                    CompanionType.GREATERTHAN -> filters.add(GreaterThan(it.value!!.maxOrNull()))
+                    CompanionType.GREATERTHANQUALTO -> filters.add(GreaterThanEqualTo(it.value!!.maxOrNull()))
+                    else -> throw RuntimeException("Auxiliary slot only support ")
+                }
             }
         }
         return And(filters)
