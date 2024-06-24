@@ -1307,7 +1307,7 @@ data class PagedSelectable<T: Any> (
             AUXILIARYCHANGE -> intentBuilder<AuxiliaryChange>(
                 auxiliaryChange,
                 listOf(
-                    UpdateRule({ with(auxiliaryChange) { println("We got here with ${candidates.size}"); true } },
+                    UpdateRule({ with(auxiliaryChange) { true } },
                         SeqAction(
                             ReinitActionBySlot(listOf(Pair(this, "index"))),
                             CleanupActionBySlot(listOf(Pair(this, "index")))
