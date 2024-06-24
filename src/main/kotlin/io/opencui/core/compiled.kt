@@ -837,6 +837,7 @@ data class PreviousPage(override var session: UserSession? = null) : IBotMode, I
     }
 }
 
+
 data class FilterCandidate(override var session: UserSession? = null) : IBotMode, IFrame {
     var conditionMapJson: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
@@ -854,6 +855,24 @@ data class FilterCandidate(override var session: UserSession? = null) : IBotMode
         }
     }
 }
+
+
+// We might need to make sure we clean the index slot the right way.
+data class AuxiliaryChange(override var session: UserSession? = null) : IBotMode, IFrame {
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        else -> listOf()
+    }
+
+    override fun createBuilder() = object : FillBuilder {
+        var frame: AuxiliaryChange? = this@AuxiliaryChange
+        override fun invoke(path: ParamPath): FrameFiller<*> {
+            val tp = ::frame
+            val filler = FrameFiller({ tp }, path)
+            return filler
+        }
+    }
+}
+
 
 abstract class ValueRecSourceWrapper(override var session: UserSession? = null) : IIntent {
     override fun createBuilder() = object : FillBuilder {
