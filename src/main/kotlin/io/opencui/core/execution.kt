@@ -468,6 +468,9 @@ class DialogManager {
                             if (nonFunctionCallSlotEvents.isNotEmpty()) {
                                 res += FrameEvent(event.type, slots = nonFunctionCallSlotEvents, packageName = event.packageName)
                             }
+                        } else if (targetFrame::class.qualifiedName == event.qualifiedName) {
+                            res += event
+                            res += FrameEvent(AuxiliaryChange::class.simpleName!!, slots = listOf(), packageName = AuxiliaryChange::class.qualifiedName!!.substringBeforeLast("."))
                         } else {
                             res += event
                         }

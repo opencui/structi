@@ -39,7 +39,6 @@ data class EntityEvent(
         return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
     }
 
-
     constructor(value: String, attribute: String, type: String?) : this(value, attribute) {
         this.type = type
     }
@@ -95,6 +94,9 @@ data class FrameEvent(
     fun toCompanion(companionType: CompanionType) : FrameEvent {
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
     }
+
+
+    val qualifiedName = "$packageName.$type"
 
     @JsonIgnore
     var triggered: Boolean = false
