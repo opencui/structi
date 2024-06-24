@@ -1268,34 +1268,51 @@ data class PagedSelectable<T: Any> (
         val nextPage = NextPage(session)
         val previousPage = PreviousPage(session)
         val filterCandidate = FilterCandidate(session)
+        val auxiliaryChange = AuxiliaryChange(session)
+        // println("Seeing event: ${event} with index = $index  and Candidate")
         return when (event) {
             NEXTPAGE -> intentBuilder<NextPage>(
                 nextPage,
-                listOf(UpdateRule({ with(nextPage) { true } },
-                    DirectlyFillActionBySlot({ with(nextPage) { nextPage() } }, this, "page")
-                )
+                listOf(
+                    UpdateRule({ with(nextPage) { true } },
+                        DirectlyFillActionBySlot({ with(nextPage) { nextPage() } }, this, "page")
+                    )
                 )
             )
             PREVIOUSPAGE -> intentBuilder<PreviousPage>(
                 previousPage,
-                listOf(UpdateRule({ with(previousPage) { true } },
-                    DirectlyFillActionBySlot({ with(previousPage) { prevPage() } }, this, "page")
-                )
+                listOf(
+                    UpdateRule({ with(previousPage) { true } },
+                        DirectlyFillActionBySlot({ with(previousPage) { prevPage() } }, this, "page")
+                    )
                 )
             )
             FILTERCANDIDATE -> intentBuilder<FilterCandidate>(
-                filterCandidate, listOf(UpdateRule({ with(filterCandidate) { conditionMapJson != null } },
-                    SeqAction(
-                        DirectlyFillActionBySlot(
-                            { with(filterCandidate) { Json.decodeFromString<ObjectNode>(select(conditionMapJson!!)) } },
-                            this,
-                            "conditionMap"
-                        ),
-                        DirectlyFillActionBySlot({ with(filterCandidate) { 0 } }, this, "page"),
-                        ReinitActionBySlot(listOf(Pair(this, "index"))),
-                        CleanupActionBySlot(listOf(Pair(this, "index")))
+                filterCandidate,
+                listOf(
+                    UpdateRule({ with(filterCandidate) { conditionMapJson != null } },
+                        SeqAction(
+                            DirectlyFillActionBySlot(
+                                { with(filterCandidate) { Json.decodeFromString<ObjectNode>(select(conditionMapJson!!)) } },
+                                this,
+                                "conditionMap"
+                            ),
+                            DirectlyFillActionBySlot({ with(filterCandidate) { 0 } }, this, "page"),
+                            ReinitActionBySlot(listOf(Pair(this, "index"))),
+                            CleanupActionBySlot(listOf(Pair(this, "index")))
+                        )
                     )
                 )
+            )
+            AUXILIARYCHANGE -> intentBuilder<AuxiliaryChange>(
+                auxiliaryChange,
+                listOf(
+                    UpdateRule({ with(auxiliaryChange) { println("We got here with ${candidates.size}"); true } },
+                        SeqAction(
+                            ReinitActionBySlot(listOf(Pair(this, "index"))),
+                            CleanupActionBySlot(listOf(Pair(this, "index")))
+                        )
+                    )
                 )
             )
             else -> null
@@ -1343,6 +1360,7 @@ data class PagedSelectable<T: Any> (
         val NEXTPAGE = io.opencui.core.NextPage::class.qualifiedName!!
         val PREVIOUSPAGE = io.opencui.core.PreviousPage::class.qualifiedName!!
         val FILTERCANDIDATE = io.opencui.core.FilterCandidate::class.qualifiedName!!
+        val AUXILIARYCHANGE = io.opencui.core.AuxiliaryChange::class.qualifiedName!!
     }
 }
 
