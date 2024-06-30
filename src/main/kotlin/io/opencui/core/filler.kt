@@ -354,6 +354,85 @@ class EntityFiller<T>(
     }
 }
 
+// This filler is used to fill the helper so that we do not have to mess up the state for the
+// original filler.
+class HelperFiller<T>(
+    val target: Helper<T>,
+    val origSetter: ((String?) -> Unit)?,
+    val builder: (String, String?) -> T?
+) :  AEntityFiller() {
+
+    var valueGood: ((String, String?) -> Boolean)? = null
+
+    init {
+        valueGood = {
+                s, t ->
+            try {
+                builder(s, t) != null
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    override val attribute: String
+        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
+
+    override fun clear() {
+        event = null
+        origSetter?.invoke(null)
+        target.clear()
+        done = false
+        super.clear()
+    }
+
+    override fun qualifiedEventType(): String {
+        val frameType = path!!.last().host::class.qualifiedName!!.let {
+            if (it.endsWith("?")) it.dropLast(1) else it
+        }
+        return frameType.substringBefore("<")
+    }
+
+    override fun isCompatible(frameEvent: FrameEvent): Boolean {
+        return simpleEventType() == frameEvent.type && frameEvent.activeEntitySlots.any { it.attribute == attribute }
+    }
+
+    override fun commit(frameEvent: FrameEvent): Boolean {
+        val related = frameEvent.slots.find { it.attribute == "_$attribute" && !it.isUsed }!!
+        related.isUsed = true
+
+        if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
+
+        val typedValue = builder.invoke(related.value, related.type) ?: return true
+
+        if (related.semantic == CompanionType.AND) {
+            // We mainly need to remove the value from
+            target.not.removeIf{ it == typedValue }
+            done = true
+        }
+
+        if (related.semantic == CompanionType.NEGATE) {
+            target.not.add(typedValue)
+            done = true
+        }
+        return true
+    }
+
+    companion object {
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ): EntityFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (String) -> T? = { s ->
+                Json.decodeFromString(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return EntityFiller(buildSink, null, builder)
+        }
+    }
+}
+
 
 // Used with composite with VR (or almost always).
 class OpaqueFiller<T>(
