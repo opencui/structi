@@ -35,24 +35,19 @@ data class EntityEvent(
 
     var isLeaf: Boolean = true
 
+    var semantic : CompanionType = CompanionType.AND
+
+    fun toCompanion(companionType: CompanionType) : EntityEvent {
+        return EntityEvent(value, "_${attribute}", type).apply { semantic = companionType }
+    }
+
+
     fun toLongForm() : String {
         return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
     }
 
     constructor(value: String, attribute: String, type: String?) : this(value, attribute) {
         this.type = type
-    }
-
-    fun toCompanion(companionType: CompanionType) : EntityEvent {
-        return when (companionType) {
-            CompanionType.NEGATE -> EntityEvent(value, "${attribute}_Not", type)
-            CompanionType.OR -> EntityEvent(value, "${attribute}_Or", type)
-            CompanionType.LESSTHAN -> EntityEvent(value, "${attribute}_LessThan", type)
-            CompanionType.LESSTHANEQUALTO -> EntityEvent(value, "${attribute}_LessThanEqualTO", type)
-            CompanionType.GREATERTHAN -> EntityEvent(value, "${attribute}_GreaterThan", type)
-            CompanionType.GREATERTHANQUALTO -> EntityEvent(value, "${attribute}_GreaterThanEqualTo", type)
-            else -> throw RuntimeException("Not support companion: $companionType")
-        }
     }
 
     // TODO(sean) what is this used for?
