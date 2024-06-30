@@ -914,6 +914,25 @@ enum class CompanionType {
     AND, NEGATE, OR, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
 }
 
+data class Helper<T> (
+    val not: MutableList<T> = mutableListOf(),
+    val or: MutableList<T> = mutableListOf(),
+    val lessThan: MutableList<T> = mutableListOf(),
+    val greaterThan: MutableList<T> = mutableListOf(),
+    val lessThanEqualTo: MutableList<T> = mutableListOf(),
+    val greaterThanEqualTo: MutableList<T> = mutableListOf()) {
+
+    fun clear() {
+        not.clear()
+        or.clear()
+        lessThan.clear()
+        greaterThan.clear()
+        lessThanEqualTo.clear()
+        greaterThanEqualTo.clear()
+    }
+}
+
+
 // This turns a closure with receiver
 fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
 
