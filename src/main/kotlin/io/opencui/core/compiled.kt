@@ -1015,14 +1015,14 @@ object ValueFilterBuilder{
         return And(filters)
     }
 
-        fun <T, P: Comparable<P>> build(
+    fun <T, P: Comparable<P>> build(
         test: T.(P) -> Boolean,
         originalValue: T?,
         helper: Helper<T>?= null): (P) -> Boolean {
         val filters = mutableListOf<(P)->Boolean>()
         filters.add(bindReceiver1(test, originalValue))
         if (helper != null) {
-            if (helper.not.isNotEmpty()) filters.add(And(helper.not.map { itt -> bindReceiver1(test, itt) }))
+            if (helper.not.isNotEmpty()) filters.add(Negate(helper.not.map { itt -> bindReceiver1(test, itt) }))
             if (helper.or.isNotEmpty()) filters.add(Or(helper.or.map { itt -> bindReceiver1(test, itt) }))
         }
         return And(filters)

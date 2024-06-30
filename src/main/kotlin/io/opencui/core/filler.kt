@@ -357,10 +357,11 @@ class EntityFiller<T>(
 // This filler is used to fill the helper so that we do not have to mess up the state for the
 // original filler.
 class HelperFiller<T>(
-    val target: Helper<T>,
+    override val target: KMutableProperty0<Helper<T>?>,
+    val helper: Helper<T>,
     val origSetter: ((String?) -> Unit)?,
     val builder: (String, String?) -> T?
-) :  AEntityFiller() {
+) :  AEntityFiller(), TypedFiller<Helper<T>> {
 
     var valueGood: ((String, String?) -> Boolean)? = null
 
@@ -376,13 +377,10 @@ class HelperFiller<T>(
         }
     }
 
-    override val attribute: String
-        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
-
     override fun clear() {
         event = null
         origSetter?.invoke(null)
-        target.clear()
+        helper.clear()
         done = false
         super.clear()
     }
@@ -394,12 +392,17 @@ class HelperFiller<T>(
         return frameType.substringBefore("<")
     }
 
+   override val attribute: String
+        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
+
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        return simpleEventType() == frameEvent.type && frameEvent.activeEntitySlots.any { it.attribute == attribute }
+        val typeAgree = simpleEventType() == frameEvent.type
+        val attributeMatch = frameEvent.activeEntitySlots.any { it.attribute == attribute }
+        return typeAgree && attributeMatch
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
-        val related = frameEvent.slots.find { it.attribute == "_$attribute" && !it.isUsed }!!
+        val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
         related.isUsed = true
 
         if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
@@ -408,12 +411,12 @@ class HelperFiller<T>(
 
         if (related.semantic == CompanionType.AND) {
             // We mainly need to remove the value from
-            target.not.removeIf{ it == typedValue }
+            helper.not.removeIf{ it == typedValue }
             done = true
         }
 
         if (related.semantic == CompanionType.NEGATE) {
-            target.not.add(typedValue)
+            helper.not.add(typedValue)
             done = true
         }
         return true
