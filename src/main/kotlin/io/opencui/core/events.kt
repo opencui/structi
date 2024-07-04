@@ -38,7 +38,7 @@ data class EntityEvent(
     var semantic : CompanionType = CompanionType.AND
 
     fun toCompanion(companionType: CompanionType) : EntityEvent {
-        return EntityEvent(value, "_${attribute}", type).apply { semantic = companionType }
+        return EntityEvent(value, "${attribute}_", type).apply { semantic = companionType }
     }
 
 
