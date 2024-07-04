@@ -359,7 +359,6 @@ class EntityFiller<T>(
 class HelperFiller<T>(
     override val target: KMutableProperty0<Helper<T>?>,
     val helper: Helper<T>,
-    val origSetter: ((String?) -> Unit)?,
     val builder: (String, String?) -> T?
 ) :  AEntityFiller(), TypedFiller<Helper<T>> {
 
@@ -379,7 +378,6 @@ class HelperFiller<T>(
 
     override fun clear() {
         event = null
-        origSetter?.invoke(null)
         helper.clear()
         done = false
         super.clear()
