@@ -300,6 +300,16 @@ class EntityFiller<T>(
         }
     }
 
+    // We will check if there are negate value.
+    override fun done(frameEvents: List<FrameEvent>): Boolean {
+        // If we find value with alternative value, we handle it.
+        for (frameEvent in frameEvents) {
+            val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed && it.semantic != CompanionType.AND }
+            if (related != null) return false
+        }
+        return done
+    }
+
     override val attribute: String
         get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
 
@@ -328,15 +338,27 @@ class EntityFiller<T>(
         val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
         related.isUsed = true
 
-        if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
-        target.set(builder.invoke(related.value, related.type))
-        value = related.value
-        origValue = related.origValue
-        event = frameEvent
-        decorativeAnnotations.clear()
-        decorativeAnnotations.addAll(related.decorativeAnnotations)
-        origSetter?.invoke(origValue)
-        done = true
+
+        if (related.semantic == CompanionType.AND) {
+            if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
+            target.set(builder.invoke(related.value, related.type))
+            value = related.value
+            origValue = related.origValue
+            event = frameEvent
+            decorativeAnnotations.clear()
+            decorativeAnnotations.addAll(related.decorativeAnnotations)
+            origSetter?.invoke(origValue)
+            done = true
+        }
+
+        if (related.semantic == CompanionType.NEGATE) {
+            val newValue = builder.invoke(related.value, related.type)
+            val oldValue = target.get()
+            if (oldValue == newValue) {
+                clear()
+            }
+        }
+
         return true
     }
 
@@ -363,6 +385,7 @@ class HelperFiller<T>(
 ) :  AEntityFiller(), TypedFiller<Helper<T>> {
 
     var valueGood: ((String, String?) -> Boolean)? = null
+    var entityEvent : EntityEvent? = null
 
     init {
         valueGood = {
@@ -377,10 +400,23 @@ class HelperFiller<T>(
     }
 
     override fun clear() {
-        event = null
-        helper.clear()
-        done = false
-        super.clear()
+        // For now, we support two level clear.
+        if (entityEvent != null) {
+            // small clear remove the entityEvent so that next clear will clear everything.
+            if (entityEvent!!.semantic == CompanionType.NEGATE) {
+                // if the last event is negation, clear should remove that from not.
+                val typedValue = builder.invoke(entityEvent!!.value, entityEvent!!.type)
+                helper.not.removeIf { it == typedValue }
+            }
+
+            entityEvent = null
+        } else {
+            helper.clear()
+            super.clear()
+        }
+        // for helper, we are always done.
+        done = true
+
     }
 
     override fun qualifiedEventType(): String {
@@ -407,6 +443,8 @@ class HelperFiller<T>(
 
         val typedValue = builder.invoke(related.value, related.type) ?: return true
 
+        entityEvent = related
+
         if (related.semantic == CompanionType.AND) {
             // We mainly need to remove the value from
             helper.not.removeIf{ it == typedValue }
@@ -417,6 +455,8 @@ class HelperFiller<T>(
             helper.not.add(typedValue)
             done = true
         }
+
+        // TODO: add support for other semantics
         return true
     }
 
