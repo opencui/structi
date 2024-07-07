@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.TextNode
 import com.fasterxml.jackson.databind.node.ValueNode
 import io.opencui.serialization.*
+import org.jetbrains.kotlin.cli.common.CLICompiler
 import java.io.Serializable
 
 
@@ -73,8 +74,11 @@ enum class EventSource {
     UNKNOWN
 }
 
+
+data class EntityValue<E: IEntity>(val value: E, val semantic: CompanionType = CompanionType.AND) : Serializable {}
+
 /**
- * This is used for specify proposed template match, each is contains one trigger, and
+ * This is used for specify proposed template match, each contains one trigger, and
  * multiple slot filling.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -141,8 +145,6 @@ data class FrameEvent(
     fun updateTurnId(pturnId: Int) {
         turnId = pturnId
     }
-
-
 
     var source: EventSource = EventSource.UNKNOWN
 
