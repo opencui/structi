@@ -289,7 +289,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     // This is an opportunity for filtering the events again.
                     // if event agrees with one of expectation
                     // remember to update event for corresponding NOT
+
                     results.addAll(events.map { it.toCompanion(CompanionType.NEGATE) })
+
+                    // We try to use the EntityValue to change the original.
+                    events.map { it.toOriginal(CompanionType.NEGATE)}
+                    results.addAll(events)
                 }
             } else if (isUpdateSlot(triggerable.owner)) {
                 // now we handle slot update not working yet.
