@@ -338,7 +338,6 @@ class EntityFiller<T>(
         val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
         related.isUsed = true
 
-
         if (related.semantic == CompanionType.AND) {
             if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
             target.set(builder.invoke(related.value, related.type))

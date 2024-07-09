@@ -92,11 +92,9 @@ data class FrameEvent(
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
     }
 
-    fun toOriginal(companionType: CompanionType) {
-        for (frame in frames) {
-            for (event in frame.slots) {
-                event.semantic = companionType
-            }
+    fun updateSemantic(companionType: CompanionType) {
+        for (event in slots) {
+            event.semantic = companionType
         }
     }
 

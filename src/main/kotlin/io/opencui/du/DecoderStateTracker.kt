@@ -293,7 +293,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     results.addAll(events.map { it.toCompanion(CompanionType.NEGATE) })
 
                     // We try to use the EntityValue to change the original.
-                    events.map { it.toOriginal(CompanionType.NEGATE)}
+                    for (event in events) {
+                        event.updateSemantic(CompanionType.NEGATE)
+                    }
                     results.addAll(events)
                 }
             } else if (isUpdateSlot(triggerable.owner)) {
