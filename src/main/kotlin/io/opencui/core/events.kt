@@ -41,6 +41,10 @@ data class EntityEvent(
         return EntityEvent(value, "${attribute}_", type).apply { semantic = companionType }
     }
 
+    fun toOriginal(companionType: CompanionType) : EntityEvent {
+        return EntityEvent(value, attribute, type).apply { semantic = companionType }
+    }
+
     fun toLongForm() : String {
         return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
     }
@@ -89,7 +93,7 @@ data class FrameEvent(
     var query: String? = null
 
     fun toCompanion(companionType: CompanionType) : FrameEvent {
-        return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
+        return FrameEvent(type, slots.map { it.toCompanion(companionType) } + slots.map {it.toOriginal(companionType)}, frames, packageName)
     }
 
     fun updateSemantic(companionType: CompanionType) {
