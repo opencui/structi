@@ -414,8 +414,7 @@ class HelperFiller<T>(
             super.clear()
         }
         // for helper, we are always done.
-        done = true
-
+        done = false
     }
 
     override fun qualifiedEventType(): String {
