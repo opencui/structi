@@ -41,6 +41,10 @@ data class EntityEvent(
         return EntityEvent(value, "${attribute}_", type).apply { semantic = companionType }
     }
 
+    fun toOriginal(companionType: CompanionType) : EntityEvent {
+        return EntityEvent(value, attribute, type).apply { semantic = companionType }
+    }
+
     fun toLongForm() : String {
         return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
     }
@@ -91,15 +95,7 @@ data class FrameEvent(
     fun toCompanion(companionType: CompanionType) : FrameEvent {
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
     }
-
-    fun toOriginal(companionType: CompanionType) {
-        for (frame in frames) {
-            for (event in frame.slots) {
-                event.semantic = companionType
-            }
-        }
-    }
-
+    
     val qualifiedName = "$packageName.$type"
 
     @JsonIgnore
