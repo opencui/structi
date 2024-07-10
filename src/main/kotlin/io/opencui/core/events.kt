@@ -77,8 +77,6 @@ enum class EventSource {
 }
 
 
-data class EntityValue<E: IEntity>(val value: E, val semantic: CompanionType = CompanionType.AND) : Serializable {}
-
 /**
  * This is used for specify proposed template match, each contains one trigger, and
  * multiple slot filling.
@@ -93,7 +91,7 @@ data class FrameEvent(
     var query: String? = null
 
     fun toCompanion(companionType: CompanionType) : FrameEvent {
-        return FrameEvent(type, slots.map { it.toCompanion(companionType) } + slots.map {it.toOriginal(companionType)}, frames, packageName)
+        return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
     }
 
     fun updateSemantic(companionType: CompanionType) {
