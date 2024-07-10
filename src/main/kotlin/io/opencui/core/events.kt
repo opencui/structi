@@ -41,6 +41,10 @@ data class EntityEvent(
         return EntityEvent(value, "${attribute}_", type).apply { semantic = companionType }
     }
 
+    fun toOriginal(companionType: CompanionType) : EntityEvent {
+        return EntityEvent(value, attribute, type).apply { semantic = companionType }
+    }
+
     fun toLongForm() : String {
         return """EntityEvent(value=$value, attribute=$attribute, isLeaf=$isLeaf, type=$type)"""
     }
@@ -73,8 +77,6 @@ enum class EventSource {
 }
 
 
-data class EntityValue<E: IEntity>(val value: E, val semantic: CompanionType = CompanionType.AND) : Serializable {}
-
 /**
  * This is used for specify proposed template match, each contains one trigger, and
  * multiple slot filling.
@@ -92,11 +94,9 @@ data class FrameEvent(
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
     }
 
-    fun toOriginal(companionType: CompanionType) {
-        for (frame in frames) {
-            for (event in frame.slots) {
-                event.semantic = companionType
-            }
+    fun updateSemantic(companionType: CompanionType) {
+        for (event in slots) {
+            event.semantic = companionType
         }
     }
 
