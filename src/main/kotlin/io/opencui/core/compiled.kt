@@ -1061,7 +1061,6 @@ object ValueFilterBuilder{
     }
 }
 
-
 data class PagedSelectable<T: Any> (
     override var session: UserSession? = null,
     var suggestionIntentBuilder: FullFrameBuilder?,
@@ -1077,8 +1076,7 @@ data class PagedSelectable<T: Any> (
     @JsonIgnore var singleEntryPrompt: ((T) -> DialogAct)? = null,
     @JsonIgnore var implicit: Boolean = false,
     @JsonIgnore var autoFillSwitch: () -> Boolean = {true},
-    @JsonIgnore var candidateListProvider: (() -> List<T>)? = null,
-    @JsonIgnore var filterGenerator: (() -> (T) -> Boolean)? = null
+    @JsonIgnore var candidateListProvider: (() -> List<T>)? = null
 ): IIntent {
     // So that we can use the old construction.
     constructor(
@@ -1095,9 +1093,8 @@ data class PagedSelectable<T: Any> (
         indexOutlierPrompt: ((BadIndex) -> DialogAct)? = null,
         singleEntryPrompt: ((T) -> DialogAct)? = null,
         implicit: Boolean = false,
-        autoFillSwitch: () -> Boolean = {true},
-        filterGenerator: (() -> (T) -> Boolean)? = null
-    ) : this (session, null, kClass, promptTemplate, pageSize, target, slot, hard, zeroEntryActions, valueOutlierPrompt, indexOutlierPrompt, singleEntryPrompt, implicit, autoFillSwitch, valuesProvider, filterGenerator)
+        autoFillSwitch: () -> Boolean = {true}
+    ) : this (session, null, kClass, promptTemplate, pageSize, target, slot, hard, zeroEntryActions, valueOutlierPrompt, indexOutlierPrompt, singleEntryPrompt, implicit, autoFillSwitch, valuesProvider)
 
     init {
         // make one of them are true
@@ -1115,23 +1112,15 @@ data class PagedSelectable<T: Any> (
 
     var suggestionIntent: IIntent? = suggestionIntentBuilder?.invoke(session!!) as IIntent?
 
-    fun getCandidates(noFiltering: Boolean = false): List<T> {
-        return if (suggestionIntentBuilder != null) {
+    val candidatesRaw : List<T>
+        get() =  if (suggestionIntentBuilder != null) {
             getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
-        } else if (filterGenerator == null || noFiltering ) {
-            candidateListProvider!!()
         } else {
-            // If filter is not null, we need to create
-            candidateListProvider!!().filter { filterGenerator!!().invoke(it) }
+            candidateListProvider!!()
         }
-    }
 
     val candidates: List<T>
-        get() { return getCandidates(false).filter(matcher) }
-
-    // This does not use filtering.
-    val hardCandidates: List<T>
-        get() { return getCandidates(true).filter(matcher) }
+        get() { return candidatesRaw.filter(matcher) }
 
 
     val lastPage: Int
@@ -1379,7 +1368,7 @@ data class PagedSelectable<T: Any> (
     override fun searchResponse(): Action? {
         val candidate = generateCandidate()
         return when {
-            hardCandidates.isEmpty() && isConditionEmpty() && hard ->
+            candidates.isEmpty() && isConditionEmpty() && hard ->
                 SeqAction(zeroEntryActions)
             candidate != null ->
                 SeqAction(FillAction({candidate}, findTargetFiller()!!.targetFiller, listOf<Annotation>()))
