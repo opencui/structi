@@ -358,56 +358,54 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     fun handleSlotSkill(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
-         logger.debug("enter slot update.")
-         // Potentially, we need to figure out two things, value and slot identifier. And of course
-         // slot identifier need to agree with value on the types.
-         val slotTypeSpanInfo = duContext.entityTypeToValueInfoMap[triggerable.owner]?.filter { !it.partialMatch }
-         // Make sure there are slot type entity matches.
-        return if (!slotTypeSpanInfo.isNullOrEmpty()) {
-            if (slotTypeSpanInfo.size > 1) {
+        logger.debug("enter slot update.")
+        // Potentially, we need to figure out two things, value and slot identifier. And of course
+        // slot identifier need to agree with value on the types.
+        val slotTypeSpanInfo = duContext.entityTypeToValueInfoMap[IStateTracker.SlotType]?.filter { !it.partialMatch }
+
+        val slotTypeSpanMap = slotTypeSpanInfo?.groupBy{ it -> Pair(it.start, it.end) }
+
+        // Make sure there are slot type entity matches.
+        return if (!slotTypeSpanMap.isNullOrEmpty()) {
+            if (slotTypeSpanMap.size > 1) {
                 // For now, we only handle
                 IStateTracker.onlyHandleOneSlot()
             } else {
                 // here we already know the target slot
-                handleGenericSlotWithSlotType(duContext, slotTypeSpanInfo[0], triggerable)
+                val span = slotTypeSpanMap.keys.toList().firstOrNull()
+                handleGenericSlotWithSlotType(duContext, slotTypeSpanMap[span]!!, triggerable)
             }
         } else {
             handleGenericSlotWithValue(duContext, triggerable)
         }
     }
 
-    fun handleGenericSlotWithSlotType(duContext: DuContext, valueInfo: ValueInfo, triggerable: TriggerDecision) : List<FrameEvent>? {
 
-        for (activeFrame in duContext.expectations.activeFrames) {
+    fun handleGenericSlotWithSlotType(duContext: DuContext, valueInfos: List<ValueInfo>, triggerable: TriggerDecision) : List<FrameEvent>? {
+        val activeFrames = expandActiveFrames(duContext)
+        for (activeFrame in activeFrames) {
             // Just in case the same slot is used in different frames.
-            val matchedSlotExists = isSlotMatched(duMeta, valueInfo, activeFrame.frame)
-            if (!matchedSlotExists) {
-                // if the claimed slot does not exist, we simply ignore.
-                continue
-            }
+            val valueInfo = valueInfos.firstOrNull { isSlotMatched(duMeta, it, activeFrame.frame) }
+            if (valueInfo == null) continue
 
             // Here the constraint first expressed in slottype occurrances.
             val partsInQualified = valueInfo.value.toString().split(".")
             val slotName = partsInQualified.last()
             val slotsInActiveFrame = duContext.duMeta!!.getSlotMetas(activeFrame.frame)
 
+
             val slotValueDecider = EntityEventExtractor(duContext)
             slotValueDecider.initWithRecognized()
 
             val targetEntitySlot = slotsInActiveFrame.find { it.label == slotName }
-            if (targetEntitySlot != null) {
-                val topLevelFrameType = IStateTracker.SlotUpdate
-                val slotMapAft = bindTargetSlotAsGenerics(duContext, targetEntitySlot, triggerable.owner!!)
-                return fillTheseSlots(duContext, slotValueDecider, slotMapAft, topLevelFrameType, null)
-            } else {
-                // This find the headed frame slot.
-                val targetFrameType =
-                    partsInQualified.subList(0, partsInQualified.size - 1).joinToString(separator = ".")
-                val targetEntitySlot = duMeta.getSlotMetas(targetFrameType).find { it.label == slotName }!!
-                val topLevelFrameType = IStateTracker.SlotUpdate
-                val slotMapAft = bindTargetSlotAsGenerics(duContext, targetEntitySlot, triggerable.owner!!)
-                return fillTheseSlots(duContext, slotValueDecider, slotMapAft, topLevelFrameType, null)
-            }
+            check (targetEntitySlot != null)
+
+            // We pass in the expected slot.
+            slotValueDecider.slotOfSlotType = targetEntitySlot
+
+            val topLevelFrameType = IStateTracker.SlotUpdate
+            val slotMapAft = bindTargetSlotAsGenerics(duContext, targetEntitySlot, triggerable.owner!!)
+            return fillTheseSlotsIndirect(duContext, slotValueDecider, slotMapAft, topLevelFrameType, targetEntitySlot)
         }
         return null
     }
@@ -417,10 +415,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // For now we assume there is only one generic type, and we do not know which slot is our target.
         // In case there is no guessed slot.
         val duMeta = duContext.duMeta
-        for (activeFrame in duContext.expectations.activeFrames) {
+        val activeFrames = expandActiveFrames(duContext)
+
+        for (activeFrame in activeFrames) {
             // Just in case the same slot is used in different frames.
             // now we iterate through all possible slots of this.
-            for (slotMeta in duMeta!!.getSlotMetas(activeFrame.frame)) {
+            val slotMetas = duMeta!!.getSlotMetas(activeFrame.frame)
+            for (slotMeta in slotMetas) {
                 // For now, we trust the recognizer
                 if (!duContext.entityTypeToValueInfoMap.containsKey(slotMeta.type)) continue
                 // Try this slot as the target or original slot.
@@ -428,11 +429,23 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
                 val slotValueDecider = EntityEventExtractor(duContext)
                 slotValueDecider.initWithRecognized()
+
                 return fillTheseSlots(duContext, slotValueDecider, slotMapAft, triggerable.owner!!, null)
             }
         }
         return null
     }
+
+
+    private fun expandActiveFrames(duContext: DuContext) : List<ExpectedFrame> {
+        val result = mutableListOf<ExpectedFrame>()
+        for (activeFrame in duContext.expectations.activeFrames) {
+            result.add(activeFrame)
+            result.addAll(duContext.duMeta!!.findHeadedFrame(activeFrame.frame))
+        }
+        return result
+    }
+
 
     /**
      * This is used to get new slot meta for slot skills,
@@ -444,8 +457,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // we need to rewrite the slot map to replace all the T into actual slot type.
         for (slotMeta in slotMapBef) {
-            // We can not fill slot without triggers.
             if (slotMeta.isGenericTyped()) {
+                // We can not fill slot without triggers.
                 // NOTE: assume the pattern for generated type is <T>
                 val targetTrigger = targetSlot.triggers[1]
                 val newTriggerTemplate = slotMeta.triggers.firstOrNull { it.contains(IStateTracker.ValueSymbol)}
@@ -730,6 +743,65 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         return frameEvents
     }
+
+
+    // For Slot{Update, *}, we might need to have a separate logic.
+    fun fillTheseSlotsIndirect(
+        duContext: DuContext,
+        slotValueDecider: EntityEventExtractor,
+        slotMetas: List<DUSlotMeta>,
+        topLevelFrameType: String,
+        targetSlot: DUSlotMeta): List<FrameEvent> {
+
+        // we need to make sure we include slots mentioned in the intent expression
+        val nluSlotValues = mutableMapOf<String, List<String>>()
+
+        // This way, we do not reuse the span that is used.
+        // slotValueDecider.cleanExtracted(topLevelFrameType, slotMetas)
+
+        // The question here is, do we resolve the type overlapped slot before we send to NLU?
+        // TODO: Should this be label, or name?
+        val nluSlotMetas = mutableListOf<DUSlotMeta>()
+        for (slot in slotMetas) {
+            val slotType = slot.type
+            if (slotType != null) {
+                val slotLabel = slot.label
+                // For now, we only support entity level value extraction.
+                val valuesByType = duContext.getValuesByType(slotType)
+
+                // Should we resolve the confused type where more than one slot have the same type?
+                val values = valuesByType.map { duContext.utterance.substring(it.start, it.end) } ?: emptyList()
+                nluSlotMetas.add(slot)
+                nluSlotValues[slotLabel] = values
+            }
+        }
+
+        // For now, we only focus on the equal operator, we will handle other semantics later.
+        val nluSlots = nluSlotMetas.map { it.asMap() }.toList()
+        val results = nluService.fillSlots(context, duContext.utterance, nluSlots, nluSlotValues)
+        logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
+
+        // Now we add the extract evidence.
+        slotValueDecider.addExtractedEvidence(results)
+        val frameEvents = mutableListOf<FrameEvent>()
+        // Now, we need to do slot resolutions for the slots with the same type.
+        slotValueDecider.resolveType(duContext, nluSlotMetas)
+        val rootEvent = slotValueDecider.resolveSlot(topLevelFrameType, targetSlot.label)
+        if (rootEvent != null) {
+            frameEvents.add(rootEvent)
+        }
+
+        for (slot in slotMetas) {
+            if (slot.parent != topLevelFrameType) {
+                val leafEvent = slotValueDecider.resolveSlot(slot.parent!!, null)
+                if (leafEvent != null && leafEvent.slots.size != 0) {
+                    frameEvents.add(leafEvent)
+                }
+            }
+        }
+        return frameEvents
+    }
+
 
     // given a list of frame event, add the entailed slots to the right frame event.
     override fun recycle() {

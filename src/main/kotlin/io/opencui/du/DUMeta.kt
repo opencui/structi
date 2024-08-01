@@ -299,6 +299,31 @@ fun DUMeta.getNestedSlotMetas(
     return slotsMetaMap
 }
 
+
+// If a frame slot has head, these head should be directly interactable.
+fun DUMeta.findHeadedFrame(
+    frame: String,
+): List<ExpectedFrame> {
+    // Including all the top level slots.
+    val slotMetas = getSlotMetas(frame)
+    val result = mutableListOf<ExpectedFrame>()
+    // We will test the nested slot at the top level, note that only handles the ones has head.
+    for (slot in slotMetas) {
+        val slotMeta = getSlotMeta(frame, slot.label)
+        if (slotMeta != null) {
+            val nestedMetas = getSlotMetas(slotMeta.type!!)
+            val hasHead = nestedMetas.firstOrNull { it.isHead } != null
+            if (hasHead) {
+                result.add(ExpectedFrame(slot.type!!))
+            }
+        }
+    }
+
+    return result
+}
+
+
+
 fun DUMeta.getSlotMeta(frame:String, pslots:String) : DUSlotMeta? {
     // We can handle the nested slots if we need to.
     val slots = pslots.split(".")

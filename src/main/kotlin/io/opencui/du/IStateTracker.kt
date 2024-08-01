@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import org.slf4j.LoggerFactory
-import java.lang.RuntimeException
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
@@ -163,8 +162,14 @@ class SlotValueCandidates {
     }
 
     fun addRecognizedEvidence(value: ValueInfo) {
-        if (recognizedInfos.find { it.type == value.type && it.partialMatch == value.partialMatch} == null) {
-            recognizedInfos.add(value)
+        if (value.type != IStateTracker.SlotType) {
+            if (recognizedInfos.find { it.type == value.type && it.partialMatch == value.partialMatch } == null) {
+                recognizedInfos.add(value)
+            }
+        } else {
+            if (recognizedInfos.find { it.type == value.type && it.value == value.value } == null) {
+                recognizedInfos.add(value)
+            }
         }
     }
 
@@ -174,7 +179,7 @@ class SlotValueCandidates {
         slotSurroundingBonuses[slot] = bonus
     }
 
-    private fun slotToValue(duContext: DuContext, frame: String, slot: String) : ValueInfo? {
+    private fun slotToValue(duContext: DuContext, frame: String, slot: String, targetSlot: DUSlotMeta?=null) : ValueInfo? {
         val slotMeta = duContext.duMeta!!.getSlotMeta(frame, slot)
 
         if (slotMeta == null) {
@@ -182,19 +187,31 @@ class SlotValueCandidates {
             EntityEventExtractor.logger.warn("Found no slot named $slot in $frame.")
             return null
         }
+        val typeMatched = if (targetSlot == null) {
+            // Find recognized value.
+            recognizedInfos.find { !it.partialMatch && EntityEventExtractor.isCompatible(it.type, slotMeta.type!!) }
+        } else {
+            recognizedInfos.find { !it.partialMatch &&
+                    EntityEventExtractor.isCompatible(it.type, slotMeta.type!!) &&
+                    (it.value as String).startsWith(targetSlot!!.parent!!)
+            }
+        }
+        return typeMatched?.apply { slotName = slot } ?: return null
 
-        // Find recognized value.
-        val typeMatched = recognizedInfos.find { !it.partialMatch && EntityEventExtractor.isCompatible(it.type, slotMeta.type!!)}
-        return typeMatched?.apply{ slotName = slot } ?: return null
     }
 
-    fun valueByContext(duContext: DuContext, frame: String) : ValueInfo? {
-        val withBonus =  slotSurroundingBonuses.filterValues { it > 0f}.toList()
+    fun valueByContext(duContext: DuContext, frame: String, targetSlot: DUSlotMeta?=null) : ValueInfo? {
+        val withBonus = slotSurroundingBonuses.filterValues { it > 0f }.toList()
         if (withBonus.isEmpty()) {
             return null
         }
         val slots = withBonus.sortedBy { -it.second }
-        return slots.mapFirst { slotToValue(duContext, frame, it.first) }
+        if (frame != IStateTracker.SlotUpdate) {
+            return slots.mapFirst { slotToValue(duContext, frame, it.first) }
+        } else {
+            val result = slots.mapFirst { slotToValue(duContext, frame, it.first, targetSlot) }
+            return result
+        }
     }
 
     fun valueByExtractionAndContext(duContext: DuContext, frame: String, isGoodValue: (OpSlotValue) -> Boolean) : ValueInfo? {
@@ -216,6 +233,8 @@ data class EntityEventExtractor(val duContext: DuContext){
     // We might want to reuse the recognized entity for all the frames.
     var frame: String = ""
     var slotMetas: List<DUSlotMeta> = emptyList()
+
+    var slotOfSlotType : DUSlotMeta? = null
 
 
     fun markUsed(span: Pair<Int, Int>) {
@@ -254,6 +273,17 @@ data class EntityEventExtractor(val duContext: DuContext){
     }
 
     fun put(valueInfo: ValueInfo) {
+
+        // We need to remove the frame slot for SlotType
+        if (valueInfo.type == IStateTracker.SlotType) {
+            val partsInQualified = valueInfo.value.toString().split(".")
+            val slotName = partsInQualified.last()
+            val frameName = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(".")
+            val duMeta = duContext.duMeta!!
+            val slotMeta = duMeta.getSlotMeta(frameName, slotName)
+            if (!duMeta.isEntity(slotMeta!!.type!!)) return
+        }
+
         val span = Pair(valueInfo.start, valueInfo.end)
         if (!candidateMap.containsKey(span)) {
             candidateMap[span] = SlotValueCandidates()
@@ -327,7 +357,7 @@ data class EntityEventExtractor(val duContext: DuContext){
 
             //  TODO(sean): how do we handle slot clarification, etc.
             // first we require that we have some slot support.
-            val valueInfo = entry.value.valueByContext(duContext, frame)
+            val valueInfo = entry.value.valueByContext(duContext, frame, slotOfSlotType)
             if (valueInfo != null) {
                 val value = valueInfo.original(duContext.utterance)
                 markUsed(entry.key)
@@ -787,7 +817,7 @@ interface IStateTracker : IExtension {
      */
     fun recycle()
 
-    fun isSlotMatched(duMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
+    fun isSlotMatchedWithHead(duMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
         val spanTargetSlot = valueInfo.value.toString()
         val parts = spanTargetSlot.split(".")
         val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
@@ -801,6 +831,14 @@ interface IStateTracker : IExtension {
         return spanTargetFrameHasHead && matchedFrameSlots.size == 1
     }
 
+    fun isSlotMatched(duMeta: DUMeta, valueInfo: ValueInfo, activeFrame: String): Boolean {
+        val spanTargetSlot = valueInfo.value.toString()
+        val parts = spanTargetSlot.split(".")
+        val spanTargetFrame = parts.subList(0, parts.size - 1).joinToString(separator = ".")
+        val slotName = parts.last()
+        val slotMeta = duMeta.getSlotMeta(spanTargetFrame, slotName)!!
+        return (spanTargetSlot.startsWith(activeFrame) && duMeta.isEntity(slotMeta.type!!))
+    }
 
     companion object {
         const val FullIDonotKnow = "io.opencui.core.IDonotGetIt"
