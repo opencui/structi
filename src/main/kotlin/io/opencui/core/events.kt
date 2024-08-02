@@ -92,6 +92,7 @@ data class FrameEvent(
 
     fun toCompanion(companionType: CompanionType) : FrameEvent {
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
+        // return FrameEvent(type, slots.map { it.toCompanion(companionType) } + slots.map { it.toOriginal(companionType) }, frames, packageName)
     }
 
     fun updateSemantic(companionType: CompanionType) {
