@@ -265,10 +265,11 @@ data class CleanupAction(
 ) : StateAction {
     override fun run(session: UserSession): ActionResult {
         for (fillerToBeCleaned in toBeCleaned) {
+            // (TODO: verify whether this indeed is not needed)
             fillerToBeCleaned.clear()
             for (currentScheduler in session.schedulers.reversed()) {
                 var index = currentScheduler.size
-                for ((i, f) in currentScheduler.withIndex()) {
+                for ((i, f) in currentScheduler.withIndex().reversed()) {
                     if (f == fillerToBeCleaned) {
                         index = i
                         break
@@ -278,7 +279,8 @@ data class CleanupAction(
                 if (index < currentScheduler.size) {
                     var count = currentScheduler.size - index
                     while (count-- > 0 && currentScheduler.size > 1) {
-                        currentScheduler.pop()
+                        val filler = currentScheduler.pop()
+                        filler.clear()
                     }
                     break
                 }

@@ -414,6 +414,7 @@ class HelperFiller<T>(
             super.clear()
         }
         // for helper, we are always done.
+        super.clear()
         done = false
     }
 
@@ -1368,10 +1369,12 @@ class MultiValueFiller<T>(
     }
 
     override fun done(frameEvents: List<FrameEvent>): Boolean {
-        return target.get() != null &&
-                findCurrentFiller() == null &&
-                (hasMore?.status is No || (target.get()!!.size >= minMaxAnnotation?.max ?: Int.MAX_VALUE && frameEvents.firstOrNull { isCompatible(it) } == null))
+        return target.get() != null && findCurrentFiller() == null &&
+                (hasMore?.status is No ||
+                        (target.get()!!.size >= (minMaxAnnotation?.max ?: Int.MAX_VALUE) &&
+                                frameEvents.firstOrNull { isCompatible(it) } == null))
     }
+
     override fun clear() {
         hasMoreFiller?.clear()
         hasMoreFiller = null
