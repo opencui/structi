@@ -42,7 +42,7 @@ sealed interface RGBase: Serializable {
         val frameName = slotFull.substring(0, lastDotIndex)
         val slotName = slotFull.substring(lastDotIndex+1)
         val slotMeta = duMeta.getSlotMeta(frameName, slotName)
-        val triggers = slotMeta?.triggers!!
+        val triggers = slotMeta?.triggers ?: return null
         return triggers.subList(1, triggers.size).firstOrNull()
     }
 
