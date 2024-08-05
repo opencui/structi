@@ -224,6 +224,7 @@ data class UserSession(
 
     @Transient
     var turnRecognizer: ListRecognizer? = null
+    @Transient
     var sessionRecognizer: ListRecognizer? = null
 
     @Transient

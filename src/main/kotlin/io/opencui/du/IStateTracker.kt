@@ -280,8 +280,8 @@ data class EntityEventExtractor(val duContext: DuContext){
             val slotName = partsInQualified.last()
             val frameName = partsInQualified.subList(0, partsInQualified.size - 1).joinToString(".")
             val duMeta = duContext.duMeta!!
-            val slotMeta = duMeta.getSlotMeta(frameName, slotName)
-            if (!duMeta.isEntity(slotMeta!!.type!!)) return
+            val slotMeta = duMeta.getSlotMeta(frameName, slotName) ?: return
+            if (!duMeta.isEntity(slotMeta.type!!)) return
         }
 
         val span = Pair(valueInfo.start, valueInfo.end)
