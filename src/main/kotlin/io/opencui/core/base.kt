@@ -217,6 +217,13 @@ abstract class IChatbot : Component {
         return extensions.get(labels[0])
     }
 
+    fun getExtensionByTypeName(typeName: String): IExtension? {
+        val type = Class.forName(typeName).kotlin
+        val labels = extensions.labelsByInterface[type] ?: emptyList()
+        if (labels.isEmpty()) return null
+        return extensions.get(labels[0])
+    }
+
     fun getConfiguration(label: String): Configuration? {
         return Configuration.get(label)
     }
