@@ -15,13 +15,17 @@ object ChatbotLoader {
     val pattern = Pattern.compile("[^a-z]", Pattern.CASE_INSENSITIVE)
     var botPrefix: String = ""
 
+    private fun findResource(botInfo: BotInfo): RecyclableAgentResource {
+        return chatbotCache[botInfo.lang] ?: loadChatbot(botInfo)
+    }
+
     // load chatbot based on BotInfo and BotVersion
     fun findChatbot(botInfo: BotInfo): IChatbot {
-        return chatbotCache[botInfo.lang]?.chatbot ?: loadChatbot(botInfo).chatbot
+        return findResource(botInfo).chatbot
     }
 
     fun findClassLoader(botInfo: BotInfo): ClassLoader {
-        return chatbotCache[botInfo.lang]?.classLoader ?: loadChatbot(botInfo).classLoader
+        return findResource(botInfo).classLoader
     }
 
     private fun loadChatbot(botInfo: BotInfo): RecyclableAgentResource {
@@ -41,6 +45,7 @@ object ChatbotLoader {
         return chatbotCache[key]!!
     }
 
+    // TODO(sean): to support A/B test, we just need to add the support for branch back.
     fun getJarFile(botInfo: BotInfo): File {
         return File("./jardir/agent-${botInfo.lang}.jar")
     }

@@ -6,6 +6,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import io.opencui.core.user.IUserIdentifier
+import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.support.ISupport
 
 
@@ -94,8 +95,16 @@ object Dispatcher {
             }
         }
         sessionManager.deleteUserSession(target, botInfo)
-
     }
+
+
+    /**
+     * Return the best implementation for given agentId.
+     */
+    fun getAgent(botInfo: BotInfo): IChatbot {
+        return ChatbotLoader.findChatbot(botInfo)
+    }
+
 
     fun send(target: IUserIdentifier, botInfo: BotInfo, msgs: List<String>) {
         val channel = getChatbot(botInfo).getChannel(target.channelLabel!!)

@@ -29,7 +29,13 @@ interface ISessionStore {
 
 // Some time, we need to save the bot related information across different versions for all users.
 interface IBotStore: IKVStore {
+    // For most part, the bot store is keyed on the bot itself, instead of bot + branch.
+    // Language should never be part of key, branch can be useful for A/B testing eventually.
     val botInfo: BotInfo
+
+    fun getKey(key: String): String {
+        return "agent:${botInfo.fullName}|$key"
+    }
 }
 
 /**
