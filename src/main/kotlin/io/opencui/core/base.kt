@@ -9,7 +9,7 @@ import java.io.Serializable
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
-
+import kotlin.reflect.jvm.isAccessible
 
 
 data class BadConfiguration(val error: String) : Exception() {}
@@ -223,6 +223,32 @@ abstract class IChatbot : Component {
         if (labels.isEmpty()) return null
         return extensions.get(labels[0])
     }
+
+    fun executeByName(moduleName: String, funcName: String, parameters: Map<String, Any>) : Any? {
+        val extension = getExtensionByTypeName(moduleName)
+
+        if (extension == null) {
+            Dispatcher.logger.error("Could not find extension for module : $moduleName")
+            return null
+        }
+
+		val kClass = extension::class
+		val function = kClass.declaredFunctions.find { it.name == funcName }
+
+        if (function == null) {
+            Dispatcher.logger.error("Could not find function for module : $moduleName/$funcName")
+            return null
+        }
+
+		val result = function.let {
+			it.isAccessible = true
+			val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
+			it.call(function, *parameterValues.toTypedArray())
+		}
+
+        return result
+    }
+
 
     fun getConfiguration(label: String): Configuration? {
         return Configuration.get(label)
