@@ -14,15 +14,15 @@ interface Closable {
 
 interface IConnection: Closable, IExtension {
     fun <T> svInvoke(
+        providerMeta: Map<String, String>,
         functionMeta: Map<String, String>,
-        context: Map<String, Any?>,
         body: String,
         converter: Converter<T>
     ): T
 
     fun <T> mvInvoke(
+        providerMeta: Map<String, String>,
         functionMeta: Map<String, String>,
-        context: Map<String, Any?>,
         body: String,
         converter: Converter<T>
     ): List<T>
@@ -60,7 +60,7 @@ data class SqlConnection(val cfg: Configuration) : IConnection {
     }
 
     @Throws(ProviderInvokeException::class)
-    fun invoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String): ArrayNode {
+    fun invoke(body: String): ArrayNode {
         val results = mutableListOf<JsonNode>()
         try {
             val stmt = dbConn.createStatement()
@@ -95,14 +95,14 @@ data class SqlConnection(val cfg: Configuration) : IConnection {
     }
 
     @Throws(ProviderInvokeException::class)
-    override fun <T> svInvoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String, converter: Converter<T>): T {
-        val result = invoke(functionMeta, context, body)
+    override fun <T> svInvoke(providerMeta: Map<String, String>, functionMeta: Map<String, String>, body: String, converter: Converter<T>): T {
+        val result = invoke(body)
         return if (result.isEmpty) { converter(null) } else { converter(result[0]) }
     }
 
     @Throws(ProviderInvokeException::class)
-    override fun <T> mvInvoke(functionMeta: Map<String, String>, context: Map<String, Any?>, body: String, converter: Converter<T>): List<T> {
-        val result = invoke(functionMeta, context, body)
+    override fun <T> mvInvoke(providerMeta: Map<String, String>, functionMeta: Map<String, String>, body: String, converter: Converter<T>): List<T> {
+        val result = invoke(body)
         val results = mutableListOf<T>()
         result.map { results.add(converter(it)) }
         return results
