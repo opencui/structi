@@ -323,7 +323,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             logger.debug("handling $triggerables for utterance: $utterance")
             val events = fillSlotsByFrame(duContext, slotValueDecider, triggerable.owner!!, null)
             logger.debug("getting $events for $triggerable")
-            results.addAll(events)
+            if (events.size != 0) {
+                results.addAll(events)
+            } else {
+                results.add(FrameEvent.build(triggerable.owner!!, emptyList()))
+            }
+
+
 
             val frameSlots = duMeta
                 .getSlotMetas(triggerable.owner!!)
