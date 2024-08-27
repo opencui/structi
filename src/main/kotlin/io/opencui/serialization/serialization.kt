@@ -259,11 +259,24 @@ object Json {
         }
     }
 
+    fun <T> getJsonNodeConverter(clazz: Class<T>): Converter<T> {
+        return object : Converter<T> {
+            override fun invoke(o: JsonElement?): T {
+                return o as T
+            }
+
+            override val isEntity: Boolean
+                get() = false
+        }
+    }
+
     fun <T> getConverter(session: UserSession?, clazz: Class<T>): Converter<T> {
         return if (clazz.isInterface && IEntity::class.java.isAssignableFrom(clazz)) {
             getInterfaceConverter(session!!, clazz)
         } else if (IFrame::class.java.isAssignableFrom(clazz)) {
             getFrameConverter(session, clazz)
+        } else if (JsonNode::class.java.isAssignableFrom(clazz)) {
+            getJsonNodeConverter(clazz)
         } else {
             getEntityConverter(clazz)
         }
