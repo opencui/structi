@@ -35,7 +35,6 @@ data class Call(val phoneNumber: String, val display: String, val payload: Strin
 
 interface IPayload : Serializable
 
-data class RawPayload(val context: String) : IPayload
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,
