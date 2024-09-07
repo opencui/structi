@@ -125,7 +125,6 @@ fun <T:IFrame> intentBuilder(eventFrame: T, updateRules: List<UpdateRule>):IFram
     return IFrameBuilder{ session -> StitchedIntent<T>(session, eventFrame, updateRules) }
 }
 
-
 data class HasMore(
         override var session: UserSession? = null,
         val promptActions: List<Action>,
@@ -209,7 +208,6 @@ class CloseSession() : ChartAction {
     }
 }
 
-
 data class ActionWrapperIntent(override var session: UserSession? = null, val action: Action): IIntent {
     override fun createBuilder() = object : FillBuilder {
         var frame: ActionWrapperIntent? = this@ActionWrapperIntent
@@ -227,7 +225,6 @@ data class ActionWrapperIntent(override var session: UserSession? = null, val ac
 
 //TODO(xiaobo): have a condition is good, but it will be more powerful if it is outside of list.
 data class UpdateRule(val condition: () -> Boolean, val action: Action, val score: Int = 0) : Serializable
-
 
 /**
  * Dynamically created intent from the event frame T and update rules.
@@ -258,7 +255,6 @@ data class StitchedIntent<T: IFrame>(
         }
     }
 }
-
 
 data class CleanupAction(
     val toBeCleaned: List<IFiller>
@@ -763,7 +759,6 @@ data class MaxDiscardAction(
     }
 }
 
-
 data class MaxValueCheck(
     override var session: UserSession? = null,
     val targetSlotGetter: () -> MutableList<*>?,
@@ -795,7 +790,6 @@ data class MaxValueCheck(
     }
 }
 
-
 data class Ordinal(
     @get:JsonIgnore var value: String
 ): Serializable {
@@ -815,7 +809,6 @@ data class Ordinal(
         }
     }
 }
-
 
 data class NextPage(override var session: UserSession? = null) : IBotMode, IFrame {
     override fun createBuilder() = object : FillBuilder {
@@ -839,7 +832,6 @@ data class PreviousPage(override var session: UserSession? = null) : IBotMode, I
     }
 }
 
-
 data class FilterCandidate(override var session: UserSession? = null) : IBotMode, IFrame {
     var conditionMapJson: String? = null
     override fun annotations(path: String): List<Annotation> = when(path) {
@@ -858,7 +850,6 @@ data class FilterCandidate(override var session: UserSession? = null) : IBotMode
     }
 }
 
-
 // We might need to make sure we clean the index slot the right way.
 data class AuxiliaryChange(override var session: UserSession? = null) : IBotMode, IFrame {
     override fun annotations(path: String): List<Annotation> = when(path) {
@@ -874,7 +865,6 @@ data class AuxiliaryChange(override var session: UserSession? = null) : IBotMode
         }
     }
 }
-
 
 abstract class ValueRecSourceWrapper(override var session: UserSession? = null) : IIntent {
     override fun createBuilder() = object : FillBuilder {
@@ -898,7 +888,6 @@ data class BadCandidate<T>(override var session: UserSession? = null, var value:
     }
 }
 
-
 data class BadIndex(override var session: UserSession? = null, var index: Int) : IIntent {
     override fun createBuilder() = object : FillBuilder {
         var frame: BadIndex? = this@BadIndex
@@ -910,8 +899,6 @@ data class BadIndex(override var session: UserSession? = null, var index: Int) :
     }
 }
 
-
-// This
 enum class CompanionType {
     AND, NEGATE, OR, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
 }
@@ -933,7 +920,6 @@ data class Helper<T> (
         greaterThanEqualTo.clear()
     }
 }
-
 
 // This turns a closure with receiver
 fun <T, P> bindReceiver1(lambda: T.(P) -> Boolean, t: T?): (P) -> Boolean = { p -> t == null || t.lambda(p) }
@@ -969,13 +955,11 @@ data class And<T>(val filters: List<(T) -> Boolean>): (T) -> Boolean {
     }
 }
 
-
 data class LessThan<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
     override fun invoke(p1: T): Boolean {
         return min == null || p1 < min
     }
 }
-
 
 data class LessThanEqualTo<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
     override fun invoke(p1: T): Boolean {
@@ -983,13 +967,11 @@ data class LessThanEqualTo<T: Comparable<T>>(val min: T?) : (T) -> Boolean {
     }
 }
 
-
 data class GreaterThan<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
     override fun invoke(p1: T): Boolean {
         return max == null || p1 > max
     }
 }
-
 
 data class GreaterThanEqualTo<T: Comparable<T>>(val max: T?) : (T) -> Boolean {
     override fun invoke(p1: T): Boolean {
@@ -1412,7 +1394,6 @@ data class PagedSelectable<T: Any> (
     }
 }
 
-
 abstract class AbstractValueClarification<T: Any>(
     override var session: UserSession? = null,
     open val getClass: () -> KClass<T>,
@@ -1680,7 +1661,6 @@ data class PhoneNumber(
     }
 }
 
-
 data class Email(
     @get:JsonIgnore
     override var value: String
@@ -1696,7 +1676,6 @@ data class Email(
     }
 }
 
-
 data class PersonName(
     @get:JsonIgnore
     override var value: String
@@ -1711,7 +1690,6 @@ data class PersonName(
         val valueGood: ((String) -> Boolean)? = { true }
     }
 }
-
 
 class IntentClarification(
     @JsonInclude(JsonInclude.Include.NON_NULL)

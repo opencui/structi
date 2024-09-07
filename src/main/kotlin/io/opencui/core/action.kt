@@ -15,7 +15,6 @@ import kotlin.reflect.full.primaryConstructor
  * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
  * and only the map utterance need the get utterance with channel as input parameter.
  */
-
 // isTestable controls whether this log will participate in the log comparison during testing.
 data class ActionLog(
     val type: String,
@@ -31,7 +30,6 @@ data class ActionResult(
         botUtterance = b
     }
 }
-
 
 /**
  * SideEffect means that action will render message to user, all the response will be doing that.
@@ -72,15 +70,9 @@ interface StateAction : AtomAction
 
 interface SchemaAction: AtomAction
 
-
 // There are different composite actions, easy ones are list.
-interface CompositeAction : Action {
-}
+interface CompositeAction : Action
 
-
-fun Action.emptyResult() : ActionResult {
-    return ActionResult(emptyLog())
-}
 fun Action.emptyLog() : ActionLog {
     return ActionLog(this::class.java.simpleName, Json.makePrimitive(""), false)
 }
@@ -308,10 +300,7 @@ data class RecoverAction(val tag: String = "") : StateAction {
     }
 }
 
-
-
 data class SlotAskAction(val tag: String = "") : StateAction {
-
     // This is mainly used to process the one level nested structure.
     private fun frameInform(session:UserSession, filler: AEntityFiller, res: MutableList<List<Action>>) {
         val parent0 = filler.parent
@@ -327,8 +316,6 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         parent1.inside = true
         session.schedule.side = Scheduler.Side.INSIDE
     }
-
-
 
     override fun run(session: UserSession): ActionResult {
         val filler = session.schedule.last()
@@ -391,7 +378,6 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         return ActionResult(res.botUtterance, actionLog, res.success)
     }
 }
-
 
 data class SlotPostAskAction(
     val filler: IFiller,
@@ -594,9 +580,6 @@ data class IntentAction(
         return ActionResult(createLog("INTENT ACTION : ${intent.javaClass.name}"), true)
     }
 }
-
-
-
 
 // TODO(xiaoyun): separate execution path for composite action later.
 open class SeqAction(val actions: List<Action>): CompositeAction {
