@@ -374,18 +374,3 @@ inline fun <reified T> deserialize(encodedSession: String, classLoader: ClassLoa
     }
     return objectIn.readObject() as? T
 }
-
-fun parseJsonString(jsonString: String, key: String): String {
-    val jsonObject = Json.parseToJsonElement(jsonString) as JsonObject
-    return jsonObject.getString(key)
-}
-
-fun main() {
-    // Usage example
-    val json1 = """{"name":  "[{\"name\":\"Opencui-01\",\"id\":\"408274272370485\",\"access_token\":\"EAAWaxzSoKhsBO1RPMRf5EIZCZAjZBclGZA3Ij874Q2tCRCio1RbEyFklRQYeoTATBiJDR9ICWj7mKc9tnUqmpBHPWK2vFzHGmdhN6VTxc6SS6Tg03MeyMya6EyebOikfYCmF0YMZCqo2XBZAZCSQsOyZCUsw2MNcEbbcF2J4iD1nBIA3XG7LPbVNjvHwrTnkyR9pWsZBZCkWZASMXOwnqXh0krv7f1rZC3jzKd9KmZCdBimgM\"}]", "age": 30}"""
-    val jsons = Json.escapeDoubleQuotes(json1)
-    println(jsons)
-    val name = parseJsonString(json1, "name")
-    val json2 = Json.parseToJsonElement(name) as ArrayNode
-    println(json2)
-}
