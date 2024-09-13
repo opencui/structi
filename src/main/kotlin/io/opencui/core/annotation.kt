@@ -101,6 +101,7 @@ data class SlotInformActionAnnotation(override val actions: List<Action>) : Prom
     constructor(vararg acts: Action): this(acts.toList())
 }
 
+// We should have changed this to FillStrategy.
 interface AskStrategy: Annotation {
     fun canEnter(): Boolean
 }
@@ -111,7 +112,17 @@ data class AlwaysAsk(val condition: Boolean = true): AskStrategy {
     }
 }
 
-data class ExternalEventStrategy(val condition: Boolean = true): AskStrategy {
+interface EventStrategy : AskStrategy {}
+
+// This is async event strategy, where we expect prompt is Inform.
+data class ExternalEventStrategy(val condition: Boolean = true): EventStrategy {
+    override fun canEnter(): Boolean {
+        return true
+    }
+}
+
+// This is sync event strategy, where we expect prompt is Request.
+data class InternalEventStrategy(val condition: Boolean = true): EventStrategy {
     override fun canEnter(): Boolean {
         return true
     }

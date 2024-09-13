@@ -76,7 +76,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
      */
     fun grow(): Boolean {
         var top = this.peek()
-
+        // If we moved to a new state, we do not need to grow the state tree.
         while (!top.move(session, session.activeEvents)) {
             // Find some open composite to put to top, so that we have more things to work with.
             val grown = if (top is ICompositeFiller) top.grow(session, session.activeEvents) else false
