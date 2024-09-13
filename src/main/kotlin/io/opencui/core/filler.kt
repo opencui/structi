@@ -184,6 +184,7 @@ interface IFiller: Compatible, Serializable {
         get() = path!!.leafAttribute
 
     // Make scheduler state move on to next one, return true if we moved, if there are no legit
+    // state to move to return false.
     fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
 
     fun isMV(): Boolean = false
@@ -985,7 +986,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     }
 
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
-        if (boolGateFiller?.done(flatEvents) == false) return false
+        val boolGateStatus = boolGateFiller?.done(flatEvents)
+        if (boolGateStatus == false) return false
         if (filled(session.activeEvents) && postFillDone() && needResponse && !responseDone) {
             session.schedule.state = Scheduler.State.RESPOND
             return true
@@ -1122,7 +1124,8 @@ class FrameFiller<T: IFrame>(
      */
     override fun done(frameEvents: List<FrameEvent>): Boolean {
         val a = findNextChildFiller(frameEvents)
-        return a == null && (askStrategy() !is ExternalEventStrategy || committed)
+        val askStrategy = askStrategy()
+        return a == null && (askStrategy !is ExternalEventStrategy || committed)
     }
 
     override fun clear() {
@@ -1246,7 +1249,7 @@ class InterfaceFiller<T>(
 // ValueRec is a filler as well.
 class MultiValueFiller<T>(
     val buildSink: () -> KMutableProperty0<MutableList<T>?>,
-    val buildFiller: (KMutableProperty0<T?>) -> IFiller
+    val buildItemFiller: (KMutableProperty0<T?>) -> IFiller
 ) : ICompositeFiller, TypedFiller<MutableList<T>> {
     val hasMorePackage = io.opencui.core.hasMore.IStatus::class.java.`package`.name
     override val target: KMutableProperty0<MutableList<T>?>
@@ -1344,7 +1347,7 @@ class MultiValueFiller<T>(
 
     private fun createTFiller(index: Int): IFiller {
         val wrapper = Wrapper(index)
-        return buildFiller(wrapper::tValue).apply {
+        return buildItemFiller(wrapper::tValue).apply {
             if (this !is FrameFiller<*>) {
                 this.path = this@MultiValueFiller.path!!.join("${this@MultiValueFiller.attribute}._item")
             }
@@ -1369,6 +1372,7 @@ class MultiValueFiller<T>(
     }
 
     override fun done(frameEvents: List<FrameEvent>): Boolean {
+        // We need to first make sure we got started.
         return target.get() != null && findCurrentFiller() == null &&
                 (hasMore?.status is No ||
                         (target.get()!!.size >= (minMaxAnnotation?.max ?: Int.MAX_VALUE) &&
