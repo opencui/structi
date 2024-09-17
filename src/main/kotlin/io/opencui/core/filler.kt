@@ -376,195 +376,6 @@ class EntityFiller<T>(
     }
 }
 
-// This filler is used to fill the helper so that we do not have to mess up the state for the
-// original filler.
-class HelperFiller<T>(
-    override val target: KMutableProperty0<Helper<T>?>,
-    val helper: Helper<T>,
-    val builder: (String, String?) -> T?
-) :  AEntityFiller(), TypedFiller<Helper<T>> {
-
-    var valueGood: ((String, String?) -> Boolean)? = null
-    var entityEvent : EntityEvent? = null
-
-    init {
-        valueGood = {
-                s, t ->
-            try {
-                builder(s, t) != null
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        }
-    }
-
-    override fun clear() {
-        // For now, we support two level clear.
-        if (entityEvent != null) {
-            // small clear remove the entityEvent so that next clear will clear everything.
-            if (entityEvent!!.semantic == CompanionType.NEGATE) {
-                // if the last event is negation, clear should remove that from not.
-                val typedValue = builder.invoke(entityEvent!!.value, entityEvent!!.type)
-                helper.not.removeIf { it == typedValue }
-            }
-
-            entityEvent = null
-        } else {
-            helper.clear()
-            super.clear()
-        }
-        // for helper, we are always done.
-        super.clear()
-        done = false
-    }
-
-    override fun qualifiedEventType(): String {
-        val frameType = path!!.last().host::class.qualifiedName!!.let {
-            if (it.endsWith("?")) it.dropLast(1) else it
-        }
-        return frameType.substringBefore("<")
-    }
-
-   override val attribute: String
-        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
-
-    override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        val typeAgree = simpleEventType() == frameEvent.type
-        val attributeMatch = frameEvent.activeEntitySlots.any { it.attribute == attribute }
-        return typeAgree && attributeMatch
-    }
-
-    override fun commit(frameEvent: FrameEvent): Boolean {
-        val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
-        related.isUsed = true
-
-        if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
-
-        val typedValue = builder.invoke(related.value, related.type) ?: return true
-
-        entityEvent = related
-
-        if (related.semantic == CompanionType.AND) {
-            // We mainly need to remove the value from
-            helper.not.removeIf{ it == typedValue }
-            done = true
-        }
-
-        if (related.semantic == CompanionType.NEGATE) {
-            helper.not.add(typedValue)
-            done = true
-        }
-
-        // TODO: add support for other semantics
-        return true
-    }
-
-    companion object {
-        inline fun <reified T> build(
-            session: UserSession,
-            noinline buildSink: () -> KMutableProperty0<T?>
-        ): EntityFiller<T> {
-            val fullName = T::class.java.canonicalName
-            val builder: (String) -> T? = { s ->
-                Json.decodeFromString(s, session!!.findKClass(fullName)!!) as? T
-            }
-            return EntityFiller(buildSink, null, builder)
-        }
-    }
-}
-
-
-// Used with composite with VR (or almost always).
-class OpaqueFiller<T>(
-    val buildSink: () -> KMutableProperty0<T?>,
-    val declaredType: String,
-    val builder: (JsonObject) -> T?) : AEntityFiller(), TypedFiller<T> {
-
-    override val target: KMutableProperty0<T?>
-        get() = buildSink()
-
-    var value: FrameEvent? = null
-    var valueGood: ((JsonObject) -> Boolean)? = null
-
-    init {
-        valueGood = {
-            s -> try { builder(s) != null }
-            catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        }
-    }
-
-    override val attribute: String
-        get() = if (super.attribute.endsWith("._item")) super.attribute.substringBeforeLast("._item") else super.attribute
-
-    override fun clear() {
-        value = null
-        event = null
-        target.set(null)
-        done = false
-        super.clear()
-    }
-
-    override fun qualifiedEventType(): String {
-        val frameType = path!!.last().host::class.qualifiedName!!.let {
-            if (it.endsWith("?")) it.dropLast(1) else it
-        }
-        return frameType.substringBefore("<")
-    }
-
-    override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        val simpleType = simpleEventType()
-        val typeMatch = (simpleType == frameEvent.type)
-        val nestedMatch = frameEvent.activeFrameSlots.any { it.attribute == attribute }
-        return typeMatch && nestedMatch || declaredType == frameEvent.fullType
-    }
-
-    override fun commit(frameEvent: FrameEvent): Boolean {
-        val related = frameEvent.activeFrameSlots.find { it.attribute == attribute }
-
-        related?.typeUsed = true
-
-        val jsonObject = toJson(related ?: frameEvent)
-
-        if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
-
-        target.set(builder.invoke(jsonObject))
-        value = related
-        event = frameEvent
-        decorativeAnnotations.clear()
-        // decorativeAnnotations.addAll(related.decorativeAnnotations)
-        done = true
-        return true
-    }
-
-    companion object {
-        val regex = "^\"|\"$".toRegex()
-        fun toJson(event: FrameEvent) : JsonObject {
-            // check(event.attribute != null)
-            // (TODO): add support for frames, and interface type.
-            val values = mutableMapOf<String, Any>()
-            for (slot in event.slots) {
-                // We need to prevent double encode.
-                values[slot.attribute] = slot.value.replace(regex, "")
-            }
-            return Json.encodeToJsonElement(values) as JsonObject
-        }
-
-        inline fun <reified T> build(
-            session: UserSession,
-            noinline buildSink: () -> KMutableProperty0<T?>
-        ) : OpaqueFiller<T> {
-            val fullName = T::class.java.canonicalName
-            val builder: (JsonObject) -> T? = {
-                    s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!) as? T
-            }
-            return OpaqueFiller(buildSink, fullName, builder)
-        }
-    }
-}
 
 
 class RealTypeFiller(
@@ -651,6 +462,198 @@ interface ICompositeFiller : IFiller {
     // if the top filler is unable to move, we grow scheduler
     fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
 }
+
+// This filler is used to fill the helper so that we do not have to mess up the state for the
+// original filler.
+class HelperFiller<T>(
+    override val target: KMutableProperty0<Helper<T>?>,
+    val helper: Helper<T>,
+    val builder: (String, String?) -> T?
+) :  AEntityFiller(), ICompositeFiller, TypedFiller<Helper<T>> {
+
+    var valueGood: ((String, String?) -> Boolean)? = null
+    var entityEvent : EntityEvent? = null
+
+    init {
+        valueGood = {
+                s, t ->
+            try {
+                builder(s, t) != null
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    override fun clear() {
+        // For now, we support two level clear.
+        if (entityEvent != null) {
+            // small clear remove the entityEvent so that next clear will clear everything.
+            if (entityEvent!!.semantic == CompanionType.NEGATE) {
+                // if the last event is negation, clear should remove that from not.
+                val typedValue = builder.invoke(entityEvent!!.value, entityEvent!!.type)
+                helper.not.removeIf { it == typedValue }
+            }
+
+            entityEvent = null
+        } else {
+            helper.clear()
+            super<AEntityFiller>.clear()
+        }
+        // for helper, we are always done.
+        super<AEntityFiller>.clear()
+        done = false
+    }
+
+    override fun qualifiedEventType(): String {
+        val frameType = path!!.last().host::class.qualifiedName!!.let {
+            if (it.endsWith("?")) it.dropLast(1) else it
+        }
+        return frameType.substringBefore("<")
+    }
+
+   override val attribute: String
+        get() = if (super<AEntityFiller>.attribute.endsWith("._item")) super<AEntityFiller>.attribute.substringBeforeLast("._item") else super<AEntityFiller>.attribute
+
+    override fun isCompatible(frameEvent: FrameEvent): Boolean {
+        val typeAgree = simpleEventType() == frameEvent.type
+        val attributeMatch = frameEvent.activeEntitySlots.any { it.attribute == attribute }
+        return typeAgree && attributeMatch
+    }
+
+    override fun commit(frameEvent: FrameEvent): Boolean {
+        val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed }!!
+        related.isUsed = true
+
+        if (valueGood != null && !valueGood!!.invoke(related.value, related.type)) return false
+
+        val typedValue = builder.invoke(related.value, related.type) ?: return true
+
+        entityEvent = related
+
+        if (related.semantic == CompanionType.AND) {
+            // We mainly need to remove the value from
+            helper.not.removeIf{ it == typedValue }
+            done = true
+        }
+
+        if (related.semantic == CompanionType.NEGATE) {
+            helper.not.add(typedValue)
+            done = true
+        }
+
+        // TODO: add support for other semantics
+        return true
+    }
+
+    companion object {
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ): EntityFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (String) -> T? = { s ->
+                Json.decodeFromString(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return EntityFiller(buildSink, null, builder)
+        }
+    }
+}
+
+
+// Used with composite with VR (or almost always).
+class OpaqueFiller<T>(
+    val buildSink: () -> KMutableProperty0<T?>,
+    val declaredType: String,
+    val builder: (JsonObject) -> T?) : AEntityFiller(), ICompositeFiller, TypedFiller<T> {
+
+    override val target: KMutableProperty0<T?>
+        get() = buildSink()
+
+    var value: FrameEvent? = null
+    var valueGood: ((JsonObject) -> Boolean)? = null
+
+    init {
+        valueGood = {
+            s -> try { builder(s) != null }
+            catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    override val attribute: String
+        get() = if (super<AEntityFiller>.attribute.endsWith("._item")) super<AEntityFiller>.attribute.substringBeforeLast("._item") else super<AEntityFiller>.attribute
+
+    override fun clear() {
+        value = null
+        event = null
+        target.set(null)
+        done = false
+        super<AEntityFiller>.clear()
+    }
+
+    override fun qualifiedEventType(): String {
+        val frameType = path!!.last().host::class.qualifiedName!!.let {
+            if (it.endsWith("?")) it.dropLast(1) else it
+        }
+        return frameType.substringBefore("<")
+    }
+
+    override fun isCompatible(frameEvent: FrameEvent): Boolean {
+        val simpleType = simpleEventType()
+        val typeMatch = (simpleType == frameEvent.type)
+        val nestedMatch = frameEvent.activeFrameSlots.any { it.attribute == attribute }
+        return typeMatch && nestedMatch || declaredType == frameEvent.fullType
+    }
+
+    override fun commit(frameEvent: FrameEvent): Boolean {
+        val related = frameEvent.activeFrameSlots.find { it.attribute == attribute }
+
+        related?.typeUsed = true
+
+        val jsonObject = toJson(related ?: frameEvent)
+
+        if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
+
+        target.set(builder.invoke(jsonObject))
+        value = related
+        event = frameEvent
+        decorativeAnnotations.clear()
+        // decorativeAnnotations.addAll(related.decorativeAnnotations)
+        done = true
+        return true
+    }
+
+    companion object {
+        val regex = "^\"|\"$".toRegex()
+        fun toJson(event: FrameEvent) : JsonObject {
+            // check(event.attribute != null)
+            // (TODO): add support for frames, and interface type.
+            val values = mutableMapOf<String, Any>()
+            for (slot in event.slots) {
+                // We need to prevent double encode.
+                values[slot.attribute] = slot.value.replace(regex, "")
+            }
+            return Json.encodeToJsonElement(values) as JsonObject
+        }
+
+        inline fun <reified T> build(
+            session: UserSession,
+            noinline buildSink: () -> KMutableProperty0<T?>
+        ) : OpaqueFiller<T> {
+            val fullName = T::class.java.canonicalName
+            val builder: (JsonObject) -> T? = {
+                    s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!) as? T
+            }
+            return OpaqueFiller(buildSink, fullName, builder)
+        }
+    }
+}
+
+
 
 /**
  * This interface provide the support for finding the right filler based on path. The
