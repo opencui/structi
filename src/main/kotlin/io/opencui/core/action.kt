@@ -114,7 +114,7 @@ data class StartFill(
 
         // init if needed
         if (buildIntent is FullFrameBuilder) {
-            buildIntent.init(session, filler)
+            buildIntent.init(session, filler as FrameFiller<*>)
         }
 
         if (session.inKernelMode(session.schedule)) return ActionResult(emptyLog())
@@ -171,7 +171,7 @@ data class StartFill(
                 // prevent slot events to take effect in the following turns
                 match.slots.forEach { it.isUsed = true }
             } else if (candidates.size == 1) {
-                val frameEventList = session.generateFrameEvent(filler.fillers[originalSlot]!!.targetFiller, candidates.first())
+                val frameEventList = session.generateFrameEvent((filler as FrameFiller<*>).fillers[originalSlot]!!.targetFiller, candidates.first())
                 if (frameEventList.isNotEmpty()) session.addEvents(frameEventList)
             } else {
                 val clarificationClass = SystemAnnotationType.ValueClarification.typeName
@@ -576,7 +576,7 @@ data class IntentAction(
         targetFiller.parent = targetFillerWrapper
         targetFillerWrapper.parent = currentFiller as FrameFiller<*>
         session.schedule.push(targetFillerWrapper)
-        jsonIntent.init(session, targetFiller)
+        jsonIntent.init(session, targetFiller as FrameFiller<*>)
         return ActionResult(createLog("INTENT ACTION : ${intent.javaClass.name}"), true)
     }
 }

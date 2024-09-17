@@ -57,7 +57,7 @@ class UserIdentifier (
 ): IUserIdentifier by session!!, ISingleton {
 
     @JsonIgnore
-    override lateinit var filler: FrameFiller<*>
+    override lateinit var filler: ICompositeFiller
 
     override fun createBuilder() = object : FillBuilder {
         var frame: UserIdentifier? = this@UserIdentifier

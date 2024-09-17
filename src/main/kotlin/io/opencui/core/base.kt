@@ -28,7 +28,7 @@ data class BadConfiguration(val error: String) : Exception() {}
  * for headache, stomachache etc.
  *
  */
-interface FillBuilder : (ParamPath) -> FrameFiller<*>, Serializable
+interface FillBuilder : (ParamPath) -> ICompositeFiller, Serializable
 
 interface PolymorphicFrameGenerator: (String) -> IFrame?, Serializable
 

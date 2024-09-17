@@ -174,7 +174,7 @@ data class Person(override var session: UserSession? = null
         else -> listOf()
     }
 
-    override lateinit var filler: FrameFiller<*>
+    override lateinit var filler: ICompositeFiller
 
 
     override fun createBuilder() = object: FillBuilder {

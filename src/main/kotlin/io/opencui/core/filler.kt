@@ -688,7 +688,7 @@ interface Committable {
  * Only one instance per user session are created for  implementation of this interface.
  */
 interface ISingleton : IFrame {
-    var filler: FrameFiller<*>
+    var filler: ICompositeFiller
 }
 
 // Filler for a slot needs to access the annotation attached to type as well as slot on the host.
