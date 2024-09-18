@@ -115,18 +115,23 @@ data class FrameEvent(
     @JsonIgnore
     var typeUsed: Boolean = false
 
+    // This is used by OpaqueFiller to mark entire frame event is usable.
+    @get:JsonIgnore
+    var allUsed: Boolean = false
 
+    // TODO (sean: there are some inconsistency here.
+    // This seems to mean that this event is at least partially used. But why partially used is useful?
     @get:JsonIgnore
     val isUsed: Boolean
         get() = typeUsed || slots.firstOrNull { it.isUsed } != null || frames.firstOrNull { it.isUsed } != null
 
     @get:JsonIgnore
     val consumed : Boolean
-        get() = slots.firstOrNull { !it.isUsed } == null && frames.firstOrNull { !it.usedUp } == null
+        get() = allUsed || slots.firstOrNull { !it.isUsed } == null && frames.firstOrNull { !it.usedUp } == null
 
     @get:JsonIgnore
     val usedUp: Boolean
-        get() = ((slots.isNotEmpty() || frames.isNotEmpty()) && consumed) || (slots.isEmpty() && frames.isEmpty() && typeUsed)
+        get() = allUsed || ((slots.isNotEmpty() || frames.isNotEmpty()) && consumed) || (slots.isEmpty() && frames.isEmpty() && typeUsed)
 
     @get:JsonIgnore
     val activeEntitySlots: List<EntityEvent>

@@ -247,8 +247,11 @@ abstract class AEntityFiller : IFiller, Committable {
     override fun done(frameEvents: List<FrameEvent>): Boolean = done
 
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
-        val frameEvent: FrameEvent? = flatEvents.firstOrNull { isCompatible(it) }
-                ?: flatEvents.firstOrNull { !it.isUsed && !it.inferredFrom && it.turnId == session.turnId && (this as? Infer)?.infer(it) != null }
+        val frameEvent: FrameEvent? =
+            flatEvents.firstOrNull { isCompatible(it) } ?:
+            flatEvents.firstOrNull {
+                !it.isUsed && !it.inferredFrom && it.turnId == session.turnId && (this as? Infer)?.infer(it) != null
+            }
         if (frameEvent == null) {
             session.schedule.state = Scheduler.State.ASK
         } else {
@@ -463,13 +466,42 @@ interface ICompositeFiller : IFiller {
     fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean = false
 }
 
+// The goal of this to fill the slot from typed string form, to typed form.
+abstract class AFrameFiller : ICompositeFiller, Committable {
+    override var path: ParamPath? = null
+    override var parent: ICompositeFiller? = null
+    override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
+
+    // it is important to keep FrameEvent in filler in order to tell whether it is autofilled
+    var event: FrameEvent? = null
+    var done: Boolean = false
+
+    override fun done(frameEvents: List<FrameEvent>): Boolean = done
+
+    override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
+        val frameEvent: FrameEvent? =
+            flatEvents.firstOrNull { isCompatible(it) } ?:
+            flatEvents.firstOrNull {
+                !it.isUsed && !it.inferredFrom && it.turnId == session.turnId && (this as? Infer)?.infer(it) != null
+            }
+        if (frameEvent == null) {
+            session.schedule.state = Scheduler.State.ASK
+        } else {
+            session.schedule.state = Scheduler.State.POST_ASK
+        }
+        return true
+    }
+}
+
+
+
 // This filler is used to fill the helper so that we do not have to mess up the state for the
 // original filler.
 class HelperFiller<T>(
     override val target: KMutableProperty0<Helper<T>?>,
     val helper: Helper<T>,
     val builder: (String, String?) -> T?
-) :  AEntityFiller(), ICompositeFiller, TypedFiller<Helper<T>> {
+) :  AFrameFiller(), TypedFiller<Helper<T>> {
 
     var valueGood: ((String, String?) -> Boolean)? = null
     var entityEvent : EntityEvent? = null
@@ -499,10 +531,10 @@ class HelperFiller<T>(
             entityEvent = null
         } else {
             helper.clear()
-            super<AEntityFiller>.clear()
+            super.clear()
         }
         // for helper, we are always done.
-        super<AEntityFiller>.clear()
+        super.clear()
         done = false
     }
 
@@ -514,7 +546,10 @@ class HelperFiller<T>(
     }
 
    override val attribute: String
-        get() = if (super<AEntityFiller>.attribute.endsWith("._item")) super<AEntityFiller>.attribute.substringBeforeLast("._item") else super<AEntityFiller>.attribute
+        get() = if (super.attribute.endsWith("._item"))
+            super.attribute.substringBeforeLast("._item")
+        else
+            super.attribute
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
         val typeAgree = simpleEventType() == frameEvent.type
@@ -561,12 +596,12 @@ class HelperFiller<T>(
     }
 }
 
-
-// Used with composite with VR (or almost always).
+// Used with composite for VR and also when frame has not cui (all string slots).
+// (TODO): this should be at the slot level, instead of container level.
 class OpaqueFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
     val declaredType: String,
-    val builder: (JsonObject) -> T?) : AEntityFiller(), ICompositeFiller, TypedFiller<T> {
+    val builder: (JsonObject) -> T?) : AFrameFiller(), TypedFiller<T> {
 
     override val target: KMutableProperty0<T?>
         get() = buildSink()
@@ -585,41 +620,41 @@ class OpaqueFiller<T>(
     }
 
     override val attribute: String
-        get() = if (super<AEntityFiller>.attribute.endsWith("._item")) super<AEntityFiller>.attribute.substringBeforeLast("._item") else super<AEntityFiller>.attribute
+        get() = if (super.attribute.endsWith("._item"))
+            super.attribute.substringBeforeLast("._item")
+        else
+            super.attribute
 
     override fun clear() {
         value = null
         event = null
         target.set(null)
         done = false
-        super<AEntityFiller>.clear()
+        super.clear()
     }
 
     override fun qualifiedEventType(): String {
-        val frameType = path!!.last().host::class.qualifiedName!!.let {
-            if (it.endsWith("?")) it.dropLast(1) else it
-        }
-        return frameType.substringBefore("<")
+        return target()!!::class.java.canonicalName
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
-        val simpleType = simpleEventType()
-        val typeMatch = (simpleType == frameEvent.type)
-        val nestedMatch = frameEvent.activeFrameSlots.any { it.attribute == attribute }
-        return typeMatch && nestedMatch || declaredType == frameEvent.fullType
+        // For now, we assume the frameEvent need to match at the top level.
+        // if attribute does not agree, it is not compatiable.
+        if (frameEvent.attribute != null && frameEvent.attribute != attribute) return false
+        // if there is no attribute or attribute agrees, we check the type agreement.
+        return declaredType == frameEvent.fullType
     }
 
     override fun commit(frameEvent: FrameEvent): Boolean {
-        val related = frameEvent.activeFrameSlots.find { it.attribute == attribute }
+        frameEvent.typeUsed = true
+        frameEvent.allUsed = true
 
-        related?.typeUsed = true
-
-        val jsonObject = toJson(related ?: frameEvent)
+        val jsonObject = toJson(frameEvent)
 
         if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
 
         target.set(builder.invoke(jsonObject))
-        value = related
+        value = frameEvent
         event = frameEvent
         decorativeAnnotations.clear()
         // decorativeAnnotations.addAll(related.decorativeAnnotations)
@@ -652,6 +687,8 @@ class OpaqueFiller<T>(
         }
     }
 }
+
+
 
 
 
@@ -991,7 +1028,9 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     override fun move(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
         val boolGateStatus = boolGateFiller?.done(flatEvents)
         if (boolGateStatus == false) return false
-        if (filled(session.activeEvents) && postFillDone() && needResponse && !responseDone) {
+        val filledDone = filled(session.activeEvents)
+        val postFilledDone = postFillDone()
+        if (filledDone && postFilledDone && needResponse && !responseDone) {
             session.schedule.state = Scheduler.State.RESPOND
             return true
         }
@@ -1294,6 +1333,7 @@ class MultiValueFiller<T>(
     val svType: SvType
         get() = when (singleTargetFiller) {
             is AEntityFiller -> SvType.ENTITY
+            is AFrameFiller -> SvType.ENTITY   // this is frame by should be treated as entity.
             is FrameFiller<*> -> SvType.FRAME
             is InterfaceFiller<*> -> SvType.INTERFACE
             else -> error("no such sv type")
@@ -1376,7 +1416,8 @@ class MultiValueFiller<T>(
 
     override fun done(frameEvents: List<FrameEvent>): Boolean {
         // We need to first make sure we got started.
-        return target.get() != null && findCurrentFiller() == null &&
+        val currentFiller = findCurrentFiller()
+        return target.get() != null && currentFiller == null &&
                 (hasMore?.status is No ||
                         (target.get()!!.size >= (minMaxAnnotation?.max ?: Int.MAX_VALUE) &&
                                 frameEvents.firstOrNull { isCompatible(it) } == null))
