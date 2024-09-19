@@ -10,14 +10,20 @@ import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.memberProperties
 
 /**
  * Each filler is a statechart itself, but also a part of larger statechart.
  */
 
 /**
+ * This is really like static graph, we first build graph itself, and then let graph run.
+ * So it is a bit difficult to keep track of both graph building and graph running. Of course,
+ * Graph here is state chart, or nested state machines.
+ *
  * To make context read writable, we need to make some assumptions: there is only one frame
  * in focus, which interfaces can be referred as context by small intents. And we can only
  * access it locally, or top frame of filling stack.
@@ -596,6 +602,24 @@ class HelperFiller<T>(
     }
 }
 
+// We need to swap instead of set.
+fun <T : Any> swap(obj1: T, obj2: T) {
+    if (obj1::class != obj2::class) {
+        throw IllegalArgumentException("Objects must be of the same class")
+    }
+
+    obj1::class.memberProperties.forEach { property ->
+        if (property is KMutableProperty<*>) {
+            val value1 = property.getter.call(obj1)
+            val value2 = property.getter.call(obj2)
+
+            property.setter.call(obj1, value2)
+            property.setter.call(obj2, value1)
+        }
+    }
+}
+
+
 // Used with composite for VR and also when frame has not cui (all string slots).
 // (TODO): this should be at the slot level, instead of container level.
 class OpaqueFiller<T>(
@@ -653,7 +677,15 @@ class OpaqueFiller<T>(
 
         if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
 
-        target.set(builder.invoke(jsonObject))
+        val newObject = builder.invoke(jsonObject) ?: return false
+
+        // If there is no value in it, we assign, if there is already value, we swap.
+        if (target.get() == null) {
+            target.set(builder.invoke(jsonObject))
+        } else {
+            swap(target.get()!!, newObject)
+        }
+
         value = frameEvent
         event = frameEvent
         decorativeAnnotations.clear()
@@ -672,6 +704,8 @@ class OpaqueFiller<T>(
                 // We need to prevent double encode.
                 values[slot.attribute] = slot.value.replace(regex, "")
             }
+            // To make sure
+            check(event.frames.isEmpty())  { "Nested frame event is not supported yet."}
             return Json.encodeToJsonElement(values) as JsonObject
         }
 
@@ -687,10 +721,6 @@ class OpaqueFiller<T>(
         }
     }
 }
-
-
-
-
 
 /**
  * This interface provide the support for finding the right filler based on path. The
@@ -1305,6 +1335,7 @@ class MultiValueFiller<T>(
         path!!.findAll<MinMaxAnnotation>().firstOrNull()
     }
 
+    // This is not used for filling at all, just so that we can test filler type.
     private val singleTargetFiller : IFiller by lazy { createTFiller(-1) }
 
     enum class SvType {
@@ -1389,6 +1420,7 @@ class MultiValueFiller<T>(
     }
 
     private fun createTFiller(index: Int): IFiller {
+        // This is hosting the single item outside of list.
         val wrapper = Wrapper(index)
         return buildItemFiller(wrapper::tValue).apply {
             if (this !is FrameFiller<*>) {
@@ -1403,6 +1435,7 @@ class MultiValueFiller<T>(
 
     fun abortCurrentChild(): Boolean {
         if (singleTargetFiller is AEntityFiller) return false
+        if (singleTargetFiller is AFrameFiller) return false
         val currentFiller = findCurrentFiller() ?: return false
         if (currentFiller == fillers.lastOrNull()) {
             fillers.removeLast()
@@ -1438,11 +1471,11 @@ class MultiValueFiller<T>(
         if (target.get() == null) {
             target.set(mutableListOf())
             val vrec = path?.let { it.findAll<IValueRecAnnotation>().firstOrNull() }
-            // When MV is not on abstract time, and there is no value rec define on it
+            // When MV is not on abstract item, and there is no value rec define on it
             // and there is no FrameEvent that need to be take care of.
-            val testFiller = createTFiller(-1)
             if (vrec == null) {
-                if (testFiller is MappedFiller) {
+                // Is this just a dangling filler?
+                if (singleTargetFiller is MappedFiller) {
                     val ffiller = createTFiller(fillers.size)
                     val wrapper = AnnotatedWrapperFiller(ffiller)
                     ffiller.parent = wrapper
