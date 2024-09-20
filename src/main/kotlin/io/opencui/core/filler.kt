@@ -704,7 +704,6 @@ class OpaqueFiller<T>(
                 // We need to prevent double encode.
                 values[slot.attribute] = slot.value.replace(regex, "")
             }
-            // To make sure
             check(event.frames.isEmpty())  { "Nested frame event is not supported yet."}
             return Json.encodeToJsonElement(values) as JsonObject
         }
@@ -989,7 +988,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             if (!recommendationDone
                 && (frameEvent == null ||
                         (targetFiller !is AEntityFiller &&
-                                frameEvent.source != EventSource.UNKNOWN &&
+                                frameEvent.source != null &&
                                 frameEvent.packageName != hasMorePackage) ||
                         (targetFiller is AEntityFiller && frameEvent.slots.firstOrNull { !it.isLeaf } != null))) {
                 if (recommendationFiller == null || frameEvent != null) {

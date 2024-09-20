@@ -78,7 +78,8 @@ class DialogManager {
         duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
         logger.debug("Du returned frame events : $duReturnedFrameEvent")
         logger.debug("Extra frame events : $frameEvents")
-        frameEvents.forEach { it.source = EventSource.API }
+        // If the event is created in the user role, we respect that.
+        frameEvents.forEach { if (it.source == null ) { it.source = EventSource.API } }
         val convertedFrameEventList = convertSpecialFrameEvent(session, duReturnedFrameEvent + frameEvents)
         logger.debug("Converted frame events : $convertedFrameEventList")
         val results = response(ParsedQuery(query, convertedFrameEventList), session)

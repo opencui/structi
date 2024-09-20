@@ -2,6 +2,7 @@ package io.opencui.core
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.TextNode
 import com.fasterxml.jackson.databind.node.ValueNode
@@ -53,6 +54,18 @@ data class EntityEvent(
         this.type = type
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is EntityEvent) return false
+
+        val otherEvent = other as EntityEvent ?: return false
+        return value == otherEvent.value && attribute == otherEvent.attribute
+    }
+
+    override fun hashCode(): Int {
+        return 31 * value.hashCode() + attribute.hashCode()
+    }
+
     // TODO(sean) what is this used for?
     @JsonIgnore
     val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
@@ -71,9 +84,8 @@ data class EntityEvent(
 }
 
 enum class EventSource {
-    USER,   // From user query.
-    API,  // From api.
-    UNKNOWN
+    @JsonProperty("user") USER,   // From user query.
+    @JsonProperty("api") API,  // From api.
 }
 
 
@@ -93,6 +105,33 @@ data class FrameEvent(
     fun toCompanion(companionType: CompanionType) : FrameEvent {
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)
         // return FrameEvent(type, slots.map { it.toCompanion(companionType) } + slots.map { it.toOriginal(companionType) }, frames, packageName)
+    }
+
+    fun allAttributes() : Set<String?> {
+        return slots.map {it.attribute}.toSet().union(frames.map {it.attribute}.toSet())
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is FrameEvent) return false
+
+        val otherEvent = other as FrameEvent ?: return false
+
+        val attributes = allAttributes()
+        val otherAttributes = otherEvent.allAttributes()
+
+        if (attributes.size != otherAttributes.size) return false
+        if (!attributes.containsAll(otherAttributes)) return false
+        return type == otherEvent.type && attribute == otherEvent.attribute && packageName == otherEvent.packageName
+    }
+
+    override fun hashCode(): Int {
+        val subAttributes = allAttributes()
+        var result = type.hashCode()
+        result = 31 * result + attribute.hashCode()
+        result = 31 * result + subAttributes.hashCode()
+        result = 31 * result + (packageName?.hashCode() ?: 0)
+        return result
     }
 
     fun updateSemantic(companionType: CompanionType) {
@@ -157,7 +196,7 @@ data class FrameEvent(
         turnId = pturnId
     }
 
-    var source: EventSource = EventSource.UNKNOWN
+    var source: EventSource? = null
 
     companion object {
         // TODO(xiaobo): is this frameName simple or qualified?
