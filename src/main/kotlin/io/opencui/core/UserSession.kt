@@ -207,13 +207,14 @@ data class UserSession(
         return Locale(botInfo.lang)
     }
 
-
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
         if (frameEvent.source == EventSource.API) {
-            events.removeIf{ it.fullType == frameEvent.fullType }
+            // We dedup the event based on keys not values for API generated events.
+            events.removeIf{ it == frameEvent }
         }
         events.add(frameEvent)
+        println(events)
     }
 
     val history = mutableListOf<CoreMessage>()
