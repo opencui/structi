@@ -172,7 +172,7 @@ object Json {
     }
 
     fun <T: Any> decodeFromString(s: String, kClass: KClass<T>): T {
-        return if (kClass == String::class) s as T else mapper.readValue(s, kClass.java)
+        return mapper.readValue(s, kClass.java) as T
     }
 
     inline fun <reified T> decodeFromString(s: String) : T {

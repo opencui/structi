@@ -1534,7 +1534,7 @@ class RuntimeTest {
             """>{"query": "2", "frames": [{"type": "No", "slots": [], "packagename": "io.opencui.core.confirmation"}]}""",
             """<{"type":"SlotAskAction","payload":"What do you want to do next? You can change your choice before, leave the task and more."}""",
             """<{"activeFrames":[{"frame":"io.opencui.core.FreeActionConfirmation","slot":"action"}]}""",
-            """>{"query": "3", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "aaa", "attribute" : "oldValue"}, {"value" : "bbb", "attribute" : "newValue"}, {"value" : "\"io.opencui.test.FreeActionConfirmationTestIntent.s\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
+            """>{"query": "3", "frames": [{"type": "SlotUpdate", "slots": [{"value" : "\"aaa\"", "attribute" : "oldValue"}, {"value" : "\"bbb\"", "attribute" : "newValue"}, {"value" : "\"io.opencui.test.FreeActionConfirmationTestIntent.s\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
             """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotUpdate, slot : originalValue"}""",
             """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.FreeActionConfirmationTestIntent, slot : s"},{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.FreeActionConfirmationTestIntent&slot=s"},{"type":"RefocusAction","payload":""}]}""",
             """<{"type":"SlotAskAction","payload":"r u sure of string value bbb"}""",
