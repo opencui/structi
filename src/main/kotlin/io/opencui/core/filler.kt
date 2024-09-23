@@ -10,6 +10,7 @@ import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
+import kotlin.concurrent.fixedRateTimer
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
@@ -673,6 +674,7 @@ class OpaqueFiller<T>(
         frameEvent.typeUsed = true
         frameEvent.allUsed = true
 
+        // For now, it only works with concrete types.
         val jsonObject = toJson(frameEvent)
 
         if (valueGood != null && !valueGood!!.invoke(jsonObject)) return false
@@ -696,7 +698,9 @@ class OpaqueFiller<T>(
 
     companion object {
         val regex = "^\"|\"$".toRegex()
-        fun toJson(event: FrameEvent) : JsonObject {
+
+        // To handle the nested frame events, we need to used recursion.
+        fun frameToMap(event: FrameEvent) : Map<String, Any> {
             // check(event.attribute != null)
             // (TODO): add support for frames, and interface type.
             val values = mutableMapOf<String, Any>()
@@ -704,7 +708,19 @@ class OpaqueFiller<T>(
                 // We need to prevent double encode.
                 values[slot.attribute] = slot.value.replace(regex, "")
             }
-            check(event.frames.isEmpty())  { "Nested frame event is not supported yet."}
+            //  We handle the nested frame event for concrete types.
+            for (slot in event.frames) {
+                check(slot.attribute != null) {"Nested frame $slot need to have attributes"}
+                values[slot.attribute!!] = frameToMap(slot)
+            }
+            return values
+        }
+
+        //
+        fun toJson(event: FrameEvent) : JsonObject {
+            // check(event.attribute != null)
+            // (TODO): add support interface type.
+            val values = frameToMap(event)
             return Json.encodeToJsonElement(values) as JsonObject
         }
 
