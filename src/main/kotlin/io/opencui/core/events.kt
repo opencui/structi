@@ -34,6 +34,9 @@ data class EntityEvent(
     var isUsed: Boolean = false
     var origValue: String? = null
 
+    // This and attribute define the context, and type/value defined value semantics.
+    var ownerType : String? = null
+
     var isLeaf: Boolean = true
 
     var semantic : CompanionType = CompanionType.AND
@@ -99,7 +102,9 @@ data class FrameEvent(
         val slots: List<EntityEvent> = emptyList(),
         val frames: List<FrameEvent> = emptyList(),
         var packageName: String? = null): Serializable {
+    // This and attribute define the context,
     var attribute: String? = null
+    var ownerType: String? = null
     var query: String? = null
 
     fun toCompanion(companionType: CompanionType) : FrameEvent {
