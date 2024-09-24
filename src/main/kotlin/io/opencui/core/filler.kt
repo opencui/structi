@@ -1329,9 +1329,6 @@ class InterfaceFiller<T>(
     }
 }
 
-// So that we can test
-
-
 // MV can be defined for abstract type, or concrete type, with/without recomemndation.
 // ValueRec is a filler as well.
 class MultiValueFiller<T>(
