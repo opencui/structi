@@ -470,6 +470,7 @@ data class UserSession(
         val typeString = fullyQualifiedType.substringAfterLast(".")
         val packageName = fullyQualifiedType.substringBeforeLast(".")
         val result = if (value is ObjectNode) {
+            // When it is object already.
             value.remove("@class")
             when (value) {
                 is ValueNode -> {
@@ -519,7 +520,8 @@ data class UserSession(
                         this.packageName = nestedPackageName
                     }
                     nestedFrames.attribute = filler.attribute
-                    listOf(FrameEvent(typeString, listOf(), listOf(nestedFrames)).apply { this.packageName = packageName })
+                    // There is no reason why we need to add these into some container.
+                    listOf(nestedFrames)
                 }
                 jsonElement is ValueNode || value is IEntity -> {
                     listOf(
