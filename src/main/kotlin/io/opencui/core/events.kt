@@ -146,7 +146,7 @@ data class FrameEvent(
     }
 
     val qualifiedName :String
-        get() = "${packageName!!}.$type"
+        get() = "${packageName}.$type"
 
     @JsonIgnore
     var triggered: Boolean = false
