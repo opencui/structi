@@ -510,6 +510,7 @@ data class UserSession(
                 }
             }
         } else {
+            // We go from object to json back to event, can we not go this indirect?
             val jsonElement = Json.encodeToJsonElement(value)
             when {
                 filler is OpaqueFiller<*> -> {

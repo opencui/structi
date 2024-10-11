@@ -721,7 +721,9 @@ class OpaqueFiller<T>(
             // check(event.attribute != null)
             // (TODO): add support interface type.
             val values = frameToMap(event)
-            return Json.encodeToJsonElement(values) as JsonObject
+            val valueJson = Json.encodeToJsonElement(values) as JsonObject
+            valueJson.put("@class", event.qualifiedName)
+            return valueJson
         }
 
         inline fun <reified T> build(
