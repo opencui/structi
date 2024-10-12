@@ -731,8 +731,9 @@ class OpaqueFiller<T>(
             noinline buildSink: () -> KMutableProperty0<T?>
         ) : OpaqueFiller<T> {
             val fullName = T::class.java.canonicalName
+            val classLoader = session.chatbot!!.getLoader()
             val builder: (JsonObject) -> T? = {
-                    s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!) as? T
+                    s -> Json.decodeFromJsonElement(s, session!!.findKClass(fullName)!!, classLoader) as? T
             }
             return OpaqueFiller(buildSink, fullName, builder)
         }
