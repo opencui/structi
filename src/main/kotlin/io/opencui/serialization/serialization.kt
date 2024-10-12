@@ -168,19 +168,22 @@ object Json {
         }
     }
 
+    fun <T: Any> useClassLoader(classLoader: ClassLoader, block: () -> T): T {
+        val oldClassLoader = Thread.currentThread().getContextClassLoader()
+        Thread.currentThread().setContextClassLoader(classLoader)
+        try {
+            return block()
+        } finally {
+            Thread.currentThread().setContextClassLoader(oldClassLoader)
+        }
+    }
+    
     fun <T: Any> decodeFromJsonElement(s: JsonNode, kClass: KClass<T>): T {
         return mapper.treeToValue(s, kClass.java)
     }
 
     fun <T: Any> decodeFromJsonElement(s: JsonNode, kClass: KClass<T>, classLoader: ClassLoader): T {
-        // Do not know whether this will fix it, but let's try.
-        val oldClassLoader = Thread.currentThread().getContextClassLoader()
-        Thread.currentThread().setContextClassLoader(classLoader)
-        try {
-            return mapper.treeToValue(s, kClass.java)
-        } finally {
-            Thread.currentThread().setContextClassLoader(oldClassLoader)
-        }
+        return useClassLoader(classLoader) { mapper.treeToValue(s, kClass.java) }
     }
 
 
@@ -188,22 +191,24 @@ object Json {
         return mapper.readValue(s, kClass.java) as T
     }
 
+    fun <T: Any> decodeFromString(s: String, kClass: KClass<T>, classLoader: ClassLoader): T {
+         return useClassLoader(classLoader) { mapper.readValue(s, kClass.java) as T }
+    }
+
     inline fun <reified T> decodeFromString(s: String) : T {
         return mapper.readValue(s)
     }
 
     inline fun <reified T> decodeFromString(s: String, classLoader: ClassLoader) : T {
-        val oldClassLoader = Thread.currentThread().getContextClassLoader()
-        Thread.currentThread().setContextClassLoader(classLoader)
-        try {
-            return mapper.readValue(s)
-        } finally {
-            Thread.currentThread().setContextClassLoader(oldClassLoader)
-        }
+        return useClassLoader(classLoader) { mapper.readValue(s) }
     }
 
     inline fun <reified T> decodeFromJsonElement(s: JsonElement) : T {
         return mapper.treeToValue(s, T::class.java)
+    }
+
+    inline fun <reified T : Any> decodeFromJsonElement(s: JsonElement, classLoader: ClassLoader) : T {
+        return useClassLoader(classLoader) { mapper.treeToValue(s, T::class.java) as T }
     }
 
     fun <T> getFrameConverter(session: UserSession?, clazz: Class<T>): Converter<T> {
