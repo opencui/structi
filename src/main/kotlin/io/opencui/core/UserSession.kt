@@ -453,6 +453,7 @@ data class UserSession(
 
     inline fun <reified T : IExtension> getExtension() : T? {
         val kClass = T::class.java
+        // What does this do?
         if (kClass.isAssignableFrom(IKVStore::class.java)) {
             return Dispatcher.sessionManager.botStore as T
         }
