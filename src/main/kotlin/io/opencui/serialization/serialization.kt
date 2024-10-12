@@ -169,11 +169,20 @@ object Json {
     }
 
     fun <T: Any> decodeFromJsonElement(s: JsonNode, kClass: KClass<T>): T {
-        // Do not know whether this will fix it, but let's try.
-        mapper.setTypeFactory(TypeFactory.defaultInstance().withClassLoader(kClass.java.classLoader));
-
         return mapper.treeToValue(s, kClass.java)
     }
+
+    fun <T: Any> decodeFromJsonElement(s: JsonNode, kClass: KClass<T>, classLoader: ClassLoader): T {
+        // Do not know whether this will fix it, but let's try.
+        val oldClassLoader = Thread.currentThread().getContextClassLoader()
+        Thread.currentThread().setContextClassLoader(classLoader)
+        try {
+            return mapper.treeToValue(s, kClass.java)
+        } finally {
+            Thread.currentThread().setContextClassLoader(oldClassLoader)
+        }
+    }
+
 
     fun <T: Any> decodeFromString(s: String, kClass: KClass<T>): T {
         return mapper.readValue(s, kClass.java) as T
