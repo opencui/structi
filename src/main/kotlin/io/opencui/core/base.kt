@@ -211,37 +211,33 @@ abstract class IChatbot : Component {
         return extensions.get(label)
     }
 
-    fun getExtensionByLabel(label: String): IExtension? {
-        return extensions.get(label)
-    }
-
     inline fun <reified T : IExtension> getExtension(): T? {
         val labels = extensions.labelsByInterface[T::class] ?: emptyList()
         if (labels.isEmpty()) return null
         return extensions.get(labels[0])
     }
 
-    fun executeByLabel(label: String, funcName: String, parameters: Map<String, Any>) : Any? {
-        val extension = getExtensionByLabel(label)
+    fun executeByLabel(label: String, funcName: String, parameters: Map<String, Any>): Any? {
+        val extension = extensions.get<IExtension>(label)
 
         if (extension == null) {
             Dispatcher.logger.error("Could not find extension for module : $label")
             return null
         }
 
-		val kClass = extension::class
-		val function = kClass.declaredFunctions.find { it.name == funcName }
+        val kClass = extension::class
+        val function = kClass.declaredFunctions.find { it.name == funcName }
 
         if (function == null) {
             Dispatcher.logger.error("Could not find function for module : $label/$funcName")
             return null
         }
 
-		val result = function.let {
-			it.isAccessible = true
-			val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
-			it.call(function, *parameterValues.toTypedArray())
-		}
+        val result = function.let {
+            it.isAccessible = true
+            val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
+            it.call(function, *parameterValues.toTypedArray())
+        }
 
         return result
     }
