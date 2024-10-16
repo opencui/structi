@@ -225,22 +225,35 @@ abstract class IChatbot : Component {
             return null
         }
 
-        val kClass = extension::class
-        val function = kClass.declaredFunctions.find { it.name == funcName }
+        return executeFunc(extension, funcName, parameters)
+    }
+
+    fun executeByInterface(interfaceName: String, funcName: String, parameters: Map<String, Any>) : Any? {
+        val type = Class.forName(interfaceName).kotlin
+        val labels = extensions.labelsByInterface[type] ?: emptyList()
+        if (labels.isEmpty()) return null
+        val extension = extensions.get(labels[0]) as IExtension? ?: return null
+        return executeFunc(extension, funcName, parameters)
+    }
+    
+    private fun executeFunc(extension: IExtension, funcName: String, parameters: Map<String, Any>) : Any? {
+		val kClass = extension::class
+		val function = kClass.declaredFunctions.find { it.name == funcName }
 
         if (function == null) {
-            Dispatcher.logger.error("Could not find function for module : $label/$funcName")
+            Dispatcher.logger.error("Could not find function for module : $funcName")
             return null
         }
 
-        val result = function.let {
-            it.isAccessible = true
-            val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
-            it.call(function, *parameterValues.toTypedArray())
-        }
+		val result = function.let {
+			it.isAccessible = true
+			val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
+			it.call(function, *parameterValues.toTypedArray())
+		}
 
         return result
     }
+
 
     fun getConfiguration(label: String): Configuration? {
         return Configuration.get(label)
