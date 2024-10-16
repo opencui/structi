@@ -211,24 +211,21 @@ abstract class IChatbot : Component {
         return extensions.get(label)
     }
 
+    fun getExtensionByLabel(label: String): IExtension? {
+        return extensions.get(label)
+    }
+
     inline fun <reified T : IExtension> getExtension(): T? {
         val labels = extensions.labelsByInterface[T::class] ?: emptyList()
         if (labels.isEmpty()) return null
         return extensions.get(labels[0])
     }
 
-    fun getExtensionByTypeName(typeName: String): IExtension? {
-        val type = Class.forName(typeName).kotlin
-        val labels = extensions.labelsByInterface[type] ?: emptyList()
-        if (labels.isEmpty()) return null
-        return extensions.get(labels[0])
-    }
-
-    fun executeByName(moduleName: String, funcName: String, parameters: Map<String, Any>) : Any? {
-        val extension = getExtensionByTypeName(moduleName)
+    fun executeByLabel(label: String, funcName: String, parameters: Map<String, Any>) : Any? {
+        val extension = getExtensionByLabel(label)
 
         if (extension == null) {
-            Dispatcher.logger.error("Could not find extension for module : $moduleName")
+            Dispatcher.logger.error("Could not find extension for module : $label")
             return null
         }
 
@@ -236,7 +233,7 @@ abstract class IChatbot : Component {
 		val function = kClass.declaredFunctions.find { it.name == funcName }
 
         if (function == null) {
-            Dispatcher.logger.error("Could not find function for module : $moduleName/$funcName")
+            Dispatcher.logger.error("Could not find function for module : $label/$funcName")
             return null
         }
 
@@ -248,7 +245,6 @@ abstract class IChatbot : Component {
 
         return result
     }
-
 
     fun getConfiguration(label: String): Configuration? {
         return Configuration.get(label)
