@@ -238,6 +238,17 @@ abstract class IChatbot : Component {
         return executeFunc(extension, funcName, parameters)
     }
 
+    fun executeByLabel(label: String, funcName: String, parameters: List<Any?>): Any? {
+        val extension = extensions.get<IExtension>(label)
+
+        if (extension == null) {
+            Dispatcher.logger.error("Could not find extension for module : $label")
+            return null
+        }
+
+        return executeFunc(extension, funcName, parameters)
+    }
+
     fun executeByInterface(interfaceName: String, funcName: String, parameters: Map<String, Any>) : Any? {
         // Try to get class using this class loader.
         val type = useClassLoader(getLoader()) { Class.forName(interfaceName).kotlin }
@@ -267,11 +278,49 @@ abstract class IChatbot : Component {
 		val result = function.let {
 			it.isAccessible = true
 			val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
-			it.call(function, *parameterValues.toTypedArray())
+			it.call(extension, *parameterValues.toTypedArray())
 		}
 
         return result
     }
+
+    // This calls from
+    fun executeByInterface(interfaceName: String, funcName: String, parameters: List<Any?>) : Any? {
+        // Try to get class using this class loader.
+        val type = useClassLoader(getLoader()) { Class.forName(interfaceName).kotlin }
+
+        val labels = extensions.labelsByInterface[type] ?: emptyList()
+        Dispatcher.logger.info("executeByInterface: found ${labels.size} labels")
+
+        if (labels.isEmpty()) return null
+
+        val extension = extensions.get(labels[0]) as IExtension?
+        if (extension == null) {
+            Dispatcher.logger.error("Could not find extension for module : $interfaceName and ${labels[0]}")
+            return null
+        }
+        return executeFunc(extension, funcName, parameters)
+    }
+
+
+    private fun executeFunc(extension: IExtension, funcName: String, parameters: List<Any?>) : Any? {
+		val kClass = extension::class
+		val function = kClass.declaredFunctions.find { it.name == funcName }
+
+        if (function == null) {
+            Dispatcher.logger.error("Could not find function for module : $funcName")
+            return null
+        }
+
+		val result = function.let {
+			it.isAccessible = true
+			it.call(extension, *parameters.toTypedArray())
+		}
+
+        return result
+    }
+
+
 
 
     fun getConfiguration(label: String): Configuration? {
