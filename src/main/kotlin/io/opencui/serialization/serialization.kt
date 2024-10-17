@@ -13,6 +13,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.opencui.core.IFrame
 import io.opencui.core.IEntity
 import io.opencui.core.UserSession
+import io.opencui.core.useClassLoader
 import java.io.*
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -168,16 +169,6 @@ object Json {
         }
     }
 
-    fun <T: Any> useClassLoader(classLoader: ClassLoader, block: () -> T): T {
-        val oldClassLoader = Thread.currentThread().getContextClassLoader()
-        Thread.currentThread().setContextClassLoader(classLoader)
-        try {
-            return block()
-        } finally {
-            Thread.currentThread().setContextClassLoader(oldClassLoader)
-        }
-    }
-    
     fun <T: Any> decodeFromJsonElement(s: JsonNode, kClass: KClass<T>): T {
         return mapper.treeToValue(s, kClass.java)
     }
