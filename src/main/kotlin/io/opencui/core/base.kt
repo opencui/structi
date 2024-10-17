@@ -42,6 +42,16 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
     }
 }
 
+fun <T: Any> useClassLoader(classLoader: ClassLoader, block: () -> T): T {
+    val oldClassLoader = Thread.currentThread().getContextClassLoader()
+    Thread.currentThread().setContextClassLoader(classLoader)
+    try {
+        return block()
+    } finally {
+        Thread.currentThread().setContextClassLoader(oldClassLoader)
+    }
+}
+
 /**
  * One should be able to access connection, and even session. The IService contains a set of functions.
  * Service is also attached to session, just like frame.
@@ -229,10 +239,19 @@ abstract class IChatbot : Component {
     }
 
     fun executeByInterface(interfaceName: String, funcName: String, parameters: Map<String, Any>) : Any? {
-        val type = Class.forName(interfaceName).kotlin
+        // Try to get class using this class loader.
+        val type = useClassLoader(getLoader()) { Class.forName(interfaceName).kotlin }
+
         val labels = extensions.labelsByInterface[type] ?: emptyList()
+        Dispatcher.logger.info("executeByInterface: found ${labels.size} labels")
+
         if (labels.isEmpty()) return null
-        val extension = extensions.get(labels[0]) as IExtension? ?: return null
+
+        val extension = extensions.get(labels[0]) as IExtension?
+        if (extension == null) {
+            Dispatcher.logger.error("Could not find extension for module : $interfaceName and ${labels[0]}")
+            return null
+        }
         return executeFunc(extension, funcName, parameters)
     }
     
