@@ -311,7 +311,8 @@ abstract class IChatbot : Component {
             Dispatcher.logger.error("Could not find function for module : $funcName")
             return null
         }
-
+        
+        Dispatcher.logger.info("Executing $funcName with parameters $parameters")
 		val result = function.let {
 			it.isAccessible = true
 			it.call(extension, *parameters.toTypedArray())
