@@ -301,28 +301,24 @@ abstract class IChatbot : Component {
         }
         return executeFunc(extension, funcName, parameters)
     }
-
-
+    
     private fun executeFunc(extension: IExtension, funcName: String, parameters: List<Any?>) : Any? {
-		val kClass = extension::class
-		val function = kClass.declaredFunctions.find { it.name == funcName }
+        val kClass = extension::class
+        val function = kClass.declaredFunctions.find { it.name == funcName }
 
         if (function == null) {
             Dispatcher.logger.error("Could not find function for module : $funcName")
             return null
         }
-        
+
         Dispatcher.logger.info("Executing $funcName with parameters $parameters")
-		val result = function.let {
-			it.isAccessible = true
-			it.call(extension, *parameters.toTypedArray())
-		}
+        val result = function.let {
+            it.isAccessible = true
+            it.call(extension, *parameters.toTypedArray())
+        }
 
         return result
     }
-
-
-
 
     fun getConfiguration(label: String): Configuration? {
         return Configuration.get(label)
