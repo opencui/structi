@@ -365,6 +365,10 @@ abstract class IChatbot : Component {
         }
 
         fun loadDUMetaDsl(langPack: LangPack, classLoader: ClassLoader, org: String, agent: String, lang: String, branch: String, version: String, timezone: String = "america/los_angeles"): DUMeta {
+            return loadDUMetaDsl(langPack, org, agent, lang, branch, version, timezone)
+        }
+
+        fun loadDUMetaDsl(langPack: LangPack, org: String, agent: String, lang: String, branch: String, version: String, timezone: String): DUMeta {
             return object : DslDUMeta() {
                 override val entityTypes = langPack.entityTypes
                 override val slotMetaMap = langPack.frameSlotMetas

@@ -8,6 +8,8 @@ import io.opencui.kvstore.IKVStore
 import io.opencui.logger.ILogger
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.*
+import java.util.*
 
 /**
  * We assume that at no circumstances that user will access more than one language at the same time.
@@ -22,6 +24,33 @@ interface ISessionStore {
         fun key(channel: String, id:String, botInfo: BotInfo): String {
             // We do not use language as part of key so that multiple language support is easier.
             return "${botInfo.fullName}:s:${channel}:${id}"
+        }
+
+        // This make is easy to catch the session serialization issue.
+        fun decodeSession(encodedSession: String, classLoader: ClassLoader) : UserSession? {
+            val decodedSession = Base64.getDecoder().decode(encodedSession)
+            val objectIn = object : ObjectInputStream(ByteArrayInputStream(decodedSession)) {
+                override fun resolveClass(desc: ObjectStreamClass?): Class<*> {
+                    try {
+                        return Class.forName(desc!!.name, true, classLoader)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    return super.resolveClass(desc)
+                }
+            }
+            objectIn.use {
+                return it.readObject() as? UserSession
+            }
+        }
+
+        fun encodeSession(session: UserSession) : String {
+            val byteArrayOut = ByteArrayOutputStream()
+            val objectOut = ObjectOutputStream(byteArrayOut)
+            objectOut.use {
+                it.writeObject(session)
+                return String(Base64.getEncoder().encode(byteArrayOut.toByteArray()))
+            }
         }
     }
 }
