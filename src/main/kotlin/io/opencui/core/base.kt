@@ -267,19 +267,19 @@ abstract class IChatbot : Component {
     }
     
     private fun executeFunc(extension: IExtension, funcName: String, parameters: Map<String, Any>) : Any? {
-		val kClass = extension::class
-		val function = kClass.declaredFunctions.find { it.name == funcName }
+        val kClass = extension::class
+        val function = kClass.declaredFunctions.find { it.name == funcName }
 
         if (function == null) {
             Dispatcher.logger.error("Could not find function for module : $funcName")
             return null
         }
 
-		val result = function.let {
-			it.isAccessible = true
-			val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
-			it.call(extension, *parameterValues.toTypedArray())
-		}
+        val result = function.let {
+            it.isAccessible = true
+            val parameterValues = it.parameters.drop(1).map { param -> parameters[param.name] }
+            it.call(extension, *parameterValues.toTypedArray())
+        }
 
         return result
     }
