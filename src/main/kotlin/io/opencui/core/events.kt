@@ -37,6 +37,9 @@ data class EntityEvent(
     // This and attribute define the context, and type/value defined value semantics.
     var ownerType : String? = null
 
+    // Should we use JsonElement or JsonValue, depends on whether we want to be general.
+    // We should gradually replace the value with jsonValue.
+    var jsonValue: JsonValue? = null
     var isLeaf: Boolean = true
 
     var semantic : CompanionType = CompanionType.AND
@@ -106,6 +109,11 @@ data class FrameEvent(
     var attribute: String? = null
     var ownerType: String? = null
     var query: String? = null
+
+    // Event can be used in two different modes: direct fill or cui fill. For direct fill,
+    // we should use the jsonValue to encode the value. When jsonValue is not null, slots/frames should
+    // empty.
+    var jsonValue: JsonObject? = null
 
     fun toCompanion(companionType: CompanionType) : FrameEvent {
         return FrameEvent(type, slots.map { it.toCompanion(companionType) }, frames, packageName)

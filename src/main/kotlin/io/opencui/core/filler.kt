@@ -720,8 +720,16 @@ class OpaqueFiller<T>(
         fun toJson(event: FrameEvent) : JsonObject {
             // check(event.attribute != null)
             // (TODO): add support interface type.
-            val values = frameToMap(event)
-            val valueJson = Json.encodeToJsonElement(values) as JsonObject
+            val valueJson = if (event.jsonValue == null) {
+                val values = frameToMap(event)
+                Json.encodeToJsonElement(values) as JsonObject
+            } else {
+                // when jsonValue is not null, it can not have slots/frames.
+                check(event.slots.isEmpty())
+                check(event.frames.isEmpty())
+                event.jsonValue as JsonObject
+            }
+
             valueJson.put("@class", event.qualifiedName)
             return valueJson
         }
