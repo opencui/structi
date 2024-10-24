@@ -172,11 +172,15 @@ object Dispatcher {
         val userInfo = userSession.userIdentifier
         val botInfo = userSession.botInfo
 
-        val channel = getChatbot(botInfo).getChannel(userInfo.channelLabel!!)!!
-        logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
-        val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
+        val channel = getChatbot(botInfo).getChannel(userInfo.channelLabel!!)
+        if (channel != null) {
+            logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
+            val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
 
-        getReply(userSession, message, sink, events)
+            getReply(userSession, message, sink, events)
+        } else {
+            logger.error("could not find ${userInfo.channelLabel}")
+        }
     }
 
     fun getReply(userSession: UserSession, message: TextPayload? = null, sink: Sink, events: List<FrameEvent> = emptyList()) {
