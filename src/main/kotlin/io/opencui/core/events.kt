@@ -37,6 +37,9 @@ data class EntityEvent(
     // This and attribute define the context, and type/value defined value semantics.
     var ownerType : String? = null
 
+    // Should we use JsonElement or JsonValue, depends on whether we want to be general.
+    // We should gradually replace the value with jsonValue.
+    var jsonValue: JsonValue? = null
     var isLeaf: Boolean = true
 
     var semantic : CompanionType = CompanionType.AND
