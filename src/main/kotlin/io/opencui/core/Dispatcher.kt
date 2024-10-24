@@ -8,6 +8,8 @@ import java.util.*
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.support.ISupport
+import java.time.Duration
+import java.time.LocalDateTime
 
 
 /**
@@ -71,6 +73,9 @@ data class SimpleSink(val sink: MutableList<String>): Sink {
 object Dispatcher {
     lateinit var sessionManager: SessionManager
     val logger: Logger = LoggerFactory.getLogger(Dispatcher::class.java)
+
+    // if a user session is in passive for idleTimeInMinutes, it is considered to be idle.
+    val idleTimeInMinutes = 5
 
     // This is used to make sure that we have a singleton to start the task.
     val timer = Timer()
@@ -154,6 +159,32 @@ object Dispatcher {
         }else{
             val userSession = getUserSession(userInfo, botInfo)!!
             getReply(userSession, message)
+        }
+    }
+
+    fun notify(userInfo: IUserIdentifier, botInfo: BotInfo, events: List<FrameEvent>) {
+        // Notify should be handled as async.
+        if (getUserSession(userInfo, botInfo) == null) {
+            val userSession = createUserSession(userInfo, botInfo)
+            // start the conversation from the Main.
+            getReply(userSession, null, events)
+        }else {
+            val userSession = getUserSession(userInfo, botInfo)!!
+            // We add the event to user session, and let it run.
+            // The tricky part is user have the dangling/zombie session.
+            val lastTouch = userSession.lastTouch
+            if (lastTouch == null) {
+                getReply(userSession, null, events)
+                return
+            }
+
+            // Now whether it is considered to be idle
+            val duration = Duration.between(lastTouch, LocalDateTime.now())
+            if (duration.toMinutes() > idleTimeInMinutes) {
+                getReply(userSession, null, events)
+            } else {
+                userSession.addEvents(events)
+            }
         }
     }
 

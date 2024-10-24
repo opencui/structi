@@ -263,6 +263,8 @@ data class UserSession(
     // thing about san fransisco.
     var timezone : String? = null
 
+    var lastTouch: LocalDateTime?  = null
+
     fun addUserMessage(msg: String) {
         history.add(CoreMessage(true, msg))
     }
