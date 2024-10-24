@@ -10,6 +10,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.*
 import java.util.*
+import java.time.LocalDateTime
 
 /**
  * We assume that at no circumstances that user will access more than one language at the same time.
@@ -45,6 +46,9 @@ interface ISessionStore {
         }
 
         fun encodeSession(session: UserSession) : String {
+            // Always keep record of the last touch, so that we can decide whether we want to wake
+            // up the conversation.
+            session.lastTouch = LocalDateTime.now()
             val byteArrayOut = ByteArrayOutputStream()
             val objectOut = ObjectOutputStream(byteArrayOut)
             objectOut.use {
