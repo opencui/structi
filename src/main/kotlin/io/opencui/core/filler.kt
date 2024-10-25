@@ -10,7 +10,6 @@ import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
-import kotlin.concurrent.fixedRateTimer
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.full.isSubclassOf
@@ -788,7 +787,7 @@ interface ISingleton : IFrame {
 }
 
 // Does this handles nested properties correctly?
-fun copyPropertiesAny(from: Any, to: Any) {
+fun shallowCoverProperties(from: Any, to: Any) {
     val fromClass = from::class
     val toClass = to::class
 
@@ -797,10 +796,15 @@ fun copyPropertiesAny(from: Any, to: Any) {
         .forEach { property ->
             val targetProperty = toClass.members.find { it.name == property.name }
             if (targetProperty is kotlin.reflect.KMutableProperty1<*, *>) {
-                targetProperty.setter.call(to, property.get(from))
+                // Only we have value on from side for this property.
+                val value = property.get(from)
+                if (value != null) {
+                    targetProperty.setter.call(to, property.get(from))
+                }
             }
         }
 }
+
 
 // Filler for a slot needs to access the annotation attached to type as well as slot on the host.
 class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = true): ICompositeFiller {
@@ -829,8 +833,9 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     fun directlyFill(a: Any) {
         val ltarget = (targetFiller as TypedFiller<in Any>).target
         val vtarget = ltarget.get()
+        // There are so many potential problem here.
         if (a is IFrame && vtarget != null) {
-            copyPropertiesAny(a, vtarget)
+            shallowCoverProperties(a, vtarget)
         } else {
             ltarget.set(a)
         }
