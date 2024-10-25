@@ -787,6 +787,21 @@ interface ISingleton : IFrame {
     var filler: ICompositeFiller
 }
 
+// Does this handles nested properties correctly?
+fun copyPropertiesAny(from: Any, to: Any) {
+    val fromClass = from::class
+    val toClass = to::class
+
+    // Make sure the target class has the same properties as the source class
+    fromClass.members.filterIsInstance<kotlin.reflect.KMutableProperty1<Any, *>>()
+        .forEach { property ->
+            val targetProperty = toClass.members.find { it.name == property.name }
+            if (targetProperty is kotlin.reflect.KMutableProperty1<*, *>) {
+                targetProperty.setter.call(to, property.get(from))
+            }
+        }
+}
+
 // Filler for a slot needs to access the annotation attached to type as well as slot on the host.
 class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = true): ICompositeFiller {
     val boolGatePackage = io.opencui.core.booleanGate.IStatus::class.java.`package`.name
@@ -812,7 +827,13 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     }
 
     fun directlyFill(a: Any) {
-        (targetFiller as TypedFiller<in Any>).target.set(a)
+        val ltarget = (targetFiller as TypedFiller<in Any>).target
+        val vtarget = ltarget.get()
+        if (a is IFrame && vtarget != null) {
+            copyPropertiesAny(a, vtarget)
+        } else {
+            ltarget.set(a)
+        }
         markDone()
     }
 
