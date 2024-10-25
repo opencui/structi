@@ -711,7 +711,11 @@ class OpaqueFiller<T>(
             //  We handle the nested frame event for concrete types.
             for (slot in event.frames) {
                 check(slot.attribute != null) {"Nested frame $slot need to have attributes"}
-                values[slot.attribute!!] = frameToMap(slot)
+                if (slot.jsonValue == null) {
+                    values[slot.attribute!!] = frameToMap(slot)
+                } else {
+                    values[slot.attribute!!] = slot.jsonValue!!
+                }
             }
             return values
         }
