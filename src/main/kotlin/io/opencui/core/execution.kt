@@ -115,8 +115,7 @@ class DialogManager {
         if (frameEvents.isEmpty()) {
             // if we do not have system1 for backup.
             val delegateActionResult =
-                session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()
-                    ?.wrappedRun(session)
+                session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
             if (delegateActionResult != null) {
                 return listOf(delegateActionResult)
             }

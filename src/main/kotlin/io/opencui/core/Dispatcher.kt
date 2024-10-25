@@ -102,15 +102,6 @@ object Dispatcher {
         sessionManager.deleteUserSession(target, botInfo)
     }
 
-
-    /**
-     * Return the best implementation for given agentId.
-     */
-    fun getAgent(botInfo: BotInfo): IChatbot {
-        return ChatbotLoader.findChatbot(botInfo)
-    }
-
-
     fun send(target: IUserIdentifier, botInfo: BotInfo, msgs: List<String>) {
         val channel = getChatbot(botInfo).getChannel(target.channelLabel!!)
         if (channel != null && channel is IMessageChannel) {
@@ -167,7 +158,7 @@ object Dispatcher {
         if (getUserSession(userInfo, botInfo) == null) {
             val userSession = createUserSession(userInfo, botInfo)
             // start the conversation from the Main.
-            logger.info("There is no existing user session, so create one and process the events right away.")
+            logger.info("notifyy: There is no existing user session, so create one and process the events right away.")
             getReply(userSession, null, events)
         }else {
             val userSession = getUserSession(userInfo, botInfo)!!
@@ -175,7 +166,7 @@ object Dispatcher {
             // The tricky part is user have the dangling/zombie session.
             val lastTouch = userSession.lastTouch
             if (lastTouch == null) {
-                logger.info("There is no last touch, so create one and process the events right away.")
+                logger.info("notifyy: There is no last touch, so create one and process the events right away.")
                 getReply(userSession, null, events)
                 return
             }
@@ -183,11 +174,16 @@ object Dispatcher {
             // Now whether it is considered to be idle
             val duration = Duration.between(lastTouch, LocalDateTime.now())
             if (duration.toMinutes() > idleTimeInMinutes) {
-                logger.info("Last touch is a while, so create one and process the events right away.")
+                logger.info("notifyy: Last touch is a while, so create one and process the events right away.")
                 getReply(userSession, null, events)
             } else {
-                logger.info("Last touch is too soon, so add to queue right away.")
-                userSession.addEvents(events)
+                if (userSession.isBreak()) {
+                    logger.info("notifyy: On break, so create one and process the events right away.")
+                    getReply(userSession, null, events)
+                } else {
+                    logger.info("notifyy: Last touch is too soon, not on break, so add to queue right away.")
+                    userSession.addEvents(events)
+                }
             }
         }
     }
