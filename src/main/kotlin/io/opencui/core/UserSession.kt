@@ -17,6 +17,7 @@ import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
+import org.jetbrains.kotlin.backend.common.peek
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -302,6 +303,11 @@ data class UserSession(
         return res
     }
 
+    // We need to test whether current bot is waiting for user to start the next async skill.
+    fun isBreak() : Boolean {
+        val top = schedule.peek()
+        return  top is RealTypeFiller && top.attribute == "status._realtype"
+    }
 
     override fun kernelStep(): List<Action> {
         // system-driven process
