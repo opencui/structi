@@ -1,4 +1,4 @@
-# OpenCUI | Core 
+# OpenCUI | structi
 
 
 OpenCUI is a declarative and component-based framework for conversational user interface (CUI), designed to make it easy to build conversational frontend for your backend services.
