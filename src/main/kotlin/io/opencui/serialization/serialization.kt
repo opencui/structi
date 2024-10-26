@@ -162,7 +162,7 @@ object Json {
         return input.replace("\"", "\\\"")
     }
 
-    fun encodeToString(o: Any) : String {
+    fun encodeToString(o: Any?) : String {
         return when(o) {
             else -> mapper.writeValueAsString(o)
         }
