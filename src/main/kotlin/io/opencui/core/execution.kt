@@ -9,6 +9,9 @@ import io.opencui.du.*
 import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
@@ -100,11 +103,96 @@ class DialogManager {
         return Pair(turn, dialogActs)
     }
 
+    fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> = runBlocking {
+        responseAsync(pinput, session).toList()
+    }
+
+    
+    fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
+        session.turnId += 1
+        session.addUserMessage(pinput.query)
+
+        val frameEvents = pinput.frames
+
+        // Handle empty events case
+        if (frameEvents.isEmpty()) {
+            session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)
+                ?.searchResponse()
+                ?.wrappedRun(session)
+                ?.let {
+                    emit(it)
+                    return@flow
+                }
+        }
+
+        session.addEvents(frameEvents)
+        val actionResults = mutableListOf<ActionResult>()
+        logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
+        var botOwn = session.botOwn
+
+        var maxRound = 100 // prevent one session from taking too many resources
+        do {
+            var schedulerChanged = false
+            while (session.schedulers.size > 1) {
+                val top = session.schedulers.last()
+                if (top.isEmpty()) {
+                    session.schedulers.removeLast()
+                    schedulerChanged = true
+                } else {
+                    break
+                }
+            }
+
+            var currentTurnWorks = session.userStep()
+            if (schedulerChanged && currentTurnWorks.isEmpty()) {
+                session.schedule.state = Scheduler.State.RESCHEDULE
+                currentTurnWorks = session.userStep()
+            }
+
+            check(currentTurnWorks.isEmpty() || currentTurnWorks.size == 1)
+
+            if (currentTurnWorks.isNotEmpty()) {
+                try {
+                    val result = currentTurnWorks[0].wrappedRun(session).apply {
+                        this.botOwn = botOwn
+                    }
+                    actionResults += result
+                    emit(result)
+                } catch (e: Exception) {
+                    session.schedule.state = Scheduler.State.RECOVER
+                    throw e
+                }
+            }
+
+            botOwn = session.botOwn
+            if (--maxRound <= 0) break
+        } while (currentTurnWorks.isNotEmpty())
+
+        if (!validEndState.contains(session.schedule.state)) {
+            val currentState = session.schedule.state
+            session.schedule.state = Scheduler.State.RECOVER
+            throw Exception("END STATE of scheduler is invalid STATE : $currentState")
+        }
+
+        logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
+
+        val system1 = session.chatbot?.getExtension<ISystem1>()
+        val system1Response = getSystem1Response(session, system1, frameEvents)
+        logger.info("found system1 response size: ${system1Response.size}")
+
+        if (actionResults.isEmpty() && session.schedule.isNotEmpty() && session.lastTurnRes.isNotEmpty()) {
+            session.lastTurnRes.forEach { emit(it) }
+            system1Response.forEach { emit(it) }
+        } else {
+            session.lastTurnRes = actionResults
+            system1Response.forEach { emit(it) }
+        }
+    }
 
     /**
      * Low level response, after DU is done.
      */
-    fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
+    fun responseSync(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
         session.turnId += 1
 
         session.addUserMessage(pinput.query)
