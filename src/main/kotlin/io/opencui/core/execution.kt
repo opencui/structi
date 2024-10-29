@@ -11,6 +11,7 @@ import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
@@ -107,7 +108,6 @@ class DialogManager {
         responseAsync(pinput, session).toList()
     }
 
-    
     fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
         session.turnId += 1
         session.addUserMessage(pinput.query)
