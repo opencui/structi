@@ -159,7 +159,9 @@ object Dispatcher {
             val userSession = createUserSession(userInfo, botInfo)
             // start the conversation from the Main.
             logger.info("notifyy: There is no existing user session, so create one and process the events right away.")
-            getReply(userSession, null, events)
+            val mainEvent = FrameEvent("OutMain", emptyList(), emptyList(), "${botInfo.fullName}")
+            // We make sure that we always have some Main as context.
+            getReply(userSession, null, listOf(mainEvent) + events)
         }else {
             val userSession = getUserSession(userInfo, botInfo)!!
             // We add the event to user session, and let it run.
