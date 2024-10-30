@@ -93,6 +93,9 @@ data class EventFrameBuilder(
     }
 
     override fun init(session: UserSession, filler: FrameFiller<*>) {
+        //  remember to use jsonValue.
+        filler.initFromJsonValue(frameEvent)
+
         for ((k, vg) in frameEvent.slotAssignments) {
             val f = filler.fillers[k] ?: continue
             val v = vg() ?: continue

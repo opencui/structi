@@ -735,20 +735,7 @@ data class UserSession(
     }
 
     fun findKClass(className: String): KClass<*>? {
-        return try {
-            when (className) {
-                "kotlin.Int" -> Int::class
-                "kotlin.Float" -> Float::class
-                "kotlin.String" -> String::class
-                "kotlin.Boolean" -> Boolean::class
-                else -> {
-                    val kClass = Class.forName(className, true, chatbot!!.getLoader()).kotlin
-                    kClass
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
+        return chatbot?.findKClass(className)
     }
 
     // refocus here means refocus on both filled slots and unfilled slots; depends on conditions

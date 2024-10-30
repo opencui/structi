@@ -12,6 +12,7 @@ import java.io.Serializable
 import kotlin.collections.LinkedHashMap
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
+import kotlin.reflect.KProperty1
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 
@@ -391,7 +392,8 @@ class RealTypeFiller(
     override val target: KMutableProperty0<String?>,
     val inferFun: ((FrameEvent) -> FrameEvent?)? = null,
     val checker: (String) -> Boolean,
-    val callback: () -> Unit): AEntityFiller(), TypedFiller<String>, Infer {
+    val callback: (FrameEvent) -> Unit
+): AEntityFiller(), TypedFiller<String>, Infer {
     var value: String? = null
     var origValue: String? = null
     var valueGood: ((String, String?) -> Boolean)? = null
@@ -422,7 +424,7 @@ class RealTypeFiller(
         origValue = type
         event = frameEvent
         done = true
-        callback()
+        callback(frameEvent)
         return true
     }
 
@@ -1208,6 +1210,24 @@ class FrameFiller<T: IFrame>(
         return fillers[s]
     }
 
+    fun initFromJsonValue(frameEvent: FrameEvent) {
+        val classLoader = target.get()!!.javaClass.classLoader
+        val className = frameEvent.qualifiedName
+        val kClass = classLoader.findKClass(className)
+        if (kClass != null) {
+            val jsonObject = frameEvent.jsonValue
+            if (jsonObject != null) {
+                val frame: IFrame = Json.decodeFromJsonElement(jsonObject, kClass) as IFrame
+                for (k in jsonObject.fieldNames()) {
+                    val f = this.fillers[k] ?: continue
+                    val property = kClass.memberProperties.firstOrNull { it.name == k } as? KProperty1<Any, Any> ?: continue
+                    val v = property.get(frame)
+                    f.directlyFill(v)
+                }
+            }
+        }
+    }
+
     override fun commit(frameEvent: FrameEvent): Boolean {
         frameEvent.typeUsed = true
         committed = true
@@ -1319,7 +1339,7 @@ class InterfaceFiller<T>(
 
     var realtype: String? = null
     val askFiller: AnnotatedWrapperFiller by lazy {
-        val entityFiller = RealTypeFiller(::realtype, inferFun = typeConverter, checker = { s -> factory.invoke(s) != null }) { buildVFiller() }
+        val entityFiller = RealTypeFiller(::realtype, inferFun = typeConverter, checker = { s -> factory.invoke(s) != null }, ) { event -> buildVFiller(event) }
         entityFiller.path = this.path!!.join("$attribute._realtype")
         val af = AnnotatedWrapperFiller(entityFiller, false)
         af.parent = this
@@ -1355,10 +1375,14 @@ class InterfaceFiller<T>(
     }
 
     // If we already know the realtype (for whatever reason), we just make it ready for grow.
-    private fun buildVFiller() {
+    private fun buildVFiller(frameEvent: FrameEvent) {
         checkNotNull(realtype)
         val f = factory.invoke(realtype!!)!!
         val frameFiller = f.createBuilder().invoke(path!!.join("$attribute._realfiller", f)) as FrameFiller<*>
+
+        // if there are jsonValue, use it to init.
+        frameFiller.initFromJsonValue(frameEvent)
+
         // Make sure that we assign the empty value so any update will show
         // up for matching. for now, we do not support the casting in the condition.
         vfiller = AnnotatedWrapperFiller(frameFiller)

@@ -187,6 +187,23 @@ interface Component {
     val timezone: String
 }
 
+fun ClassLoader.findKClass(className: String) : KClass<*>? {
+    return try {
+        when (className) {
+            "kotlin.Int" -> Int::class
+            "kotlin.Float" -> Float::class
+            "kotlin.String" -> String::class
+            "kotlin.Boolean" -> Boolean::class
+            else -> {
+                val kClass = Class.forName(className, true, this).kotlin
+                kClass
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
 /**
  * The chatbot implementation will be used to hold the data/filler together.
  * TODO: why this is NOT implement AgentMeta?
@@ -200,6 +217,10 @@ abstract class IChatbot : Component {
     override val agentVersion: String = duMeta.getVersion()
     override val agentLang: String = duMeta.getLang()
     override val timezone: String = duMeta.getTimezone()
+
+    fun findKClass(className: String): KClass<*>? {
+        return getLoader().findKClass(className)
+    }
 
     // Do we have support connected behind bot?
     abstract val stateTracker: IStateTracker
