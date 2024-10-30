@@ -6,6 +6,7 @@ import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
 import io.opencui.logger.ILogger
+import kotlinx.coroutines.flow.Flow
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.*
@@ -198,7 +199,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
         return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
-
 
     private fun isDonotUnderstand(it: DialogAct): Boolean {
         return it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt"

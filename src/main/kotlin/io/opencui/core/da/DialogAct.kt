@@ -17,6 +17,14 @@ interface DialogAct: Serializable, SchemaAction {
             success
         )
     }
+
+    fun genGroupKey(): String {
+        return when (this) {
+            is SlotDialogAct -> """${if (context.isNotEmpty()) context.first()::class.qualifiedName else "null"}_${slotName}_${slotType}"""
+            is FrameDialogAct -> this.frameType
+            else -> this::class.qualifiedName!!
+        }
+    }
 }
 
 interface SlotDialogAct: DialogAct {
@@ -209,4 +217,10 @@ class DumbDialogAct : DialogAct {
 // This might be useful to capture the system1 response.
 data class ForwardDialogAct(val msg: String): DialogAct {
      override var templates: Templates = templateOf(msg)
+}
+
+// Let's use this to separate the dialog acts into two parts. So that we can hint user with the
+// potential delay that will come up.
+data class RequestForDelayDialogAct(val msg: String): DialogAct {
+    override var templates: Templates = templateOf(msg)
 }

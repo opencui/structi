@@ -9,9 +9,7 @@ import io.opencui.du.*
 import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
@@ -96,7 +94,6 @@ class DialogManager {
             query,
             Json.encodeToJsonElement(expectations?.activeFrames ?: emptyList()),
             Json.encodeToJsonElement(duReturnedFrameEvent),
-            Json.encodeToJsonElement(dialogActs),
             convertToFrameEvent.first,
             session.chatbot?.agentLang ?: "en"
         )
@@ -104,6 +101,52 @@ class DialogManager {
         return Pair(turn, dialogActs)
     }
 
+    fun processResults2(resultsFlow: Flow<ActionResult>): Flow<DialogAct> {
+        return resultsFlow
+            .filter { it.botUtterance != null && it.botOwn } // Ensure botUtterance is not null and botOwn is true
+            .flatMapConcat { actionResult ->
+                // Flatten the list of DialogAct into the flow
+                actionResult.botUtterance!!.asFlow()
+            }
+            .distinctUntilChanged()// Keep only distinct DialogActs based on utterance
+    }
+
+    fun responseAsync(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, Flow<DialogAct>> {
+        val timeStamp = LocalDateTime.now()
+        val expectations = findDialogExpectation(session)
+
+        val convertToFrameEvent = measureTimeMillisWithResult {
+            session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+        }
+        val duReturnedFrameEvent = convertToFrameEvent.second
+
+        duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
+        logger.debug("Du returned frame events : $duReturnedFrameEvent")
+        logger.debug("Extra frame events : $frameEvents")
+        // If the event is created in the user role, we respect that.
+        frameEvents.forEach { if (it.source == null ) { it.source = EventSource.API } }
+        val convertedFrameEventList = convertSpecialFrameEvent(session, duReturnedFrameEvent + frameEvents)
+        logger.debug("Converted frame events : $convertedFrameEventList")
+
+        val results = responseAsync(ParsedQuery(query, convertedFrameEventList), session)
+
+        val dialogActs = processResults2(results)
+
+        val turn = Turn(
+            query,
+            Json.encodeToJsonElement(expectations?.activeFrames ?: emptyList()),
+            Json.encodeToJsonElement(duReturnedFrameEvent),
+            convertToFrameEvent.first,
+            session.chatbot?.agentLang ?: "en"
+        )
+
+        return Pair(turn, dialogActs)
+    }
+
+
+    /**
+     * Low level response, after DU is done. Currently we have two versions.
+     */
     fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> = runBlocking {
         responseAsync(pinput, session).toList()
     }
@@ -189,9 +232,6 @@ class DialogManager {
         }
     }
 
-    /**
-     * Low level response, after DU is done.
-     */
     fun responseSync(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
         session.turnId += 1
 
@@ -202,8 +242,7 @@ class DialogManager {
         // Sometime, there are empty events.
         if (frameEvents.isEmpty()) {
             // if we do not have system1 for backup.
-            val delegateActionResult =
-                session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
+            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
             if (delegateActionResult != null) {
                 return listOf(delegateActionResult)
             }
