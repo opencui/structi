@@ -6,7 +6,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.support.ISupport
 import java.time.Duration
 import java.time.LocalDateTime
@@ -30,17 +29,22 @@ interface IManaged {
 }
 
 interface Sink {
+    val targetChannel: String
     fun markSeen(msgId: String?) {}
     fun typing() {}
     fun send(msg: String)
-
     fun send(session: UserSession, msg: String) {
         session.addBotMessage(msg)
         send(msg)
     }
 }
 
-data class ChannelSink(val channel: IChannel, val uid: String, val botInfo: BotInfo): Sink {
+data class ChannelSink(
+    val channel: IChannel,
+    val uid: String,
+    val botInfo: BotInfo,
+    override val targetChannel: String = "*"
+): Sink {
     override fun markSeen(msgId: String?) {
         if (channel is IMessageChannel) {
             channel.markSeen(uid, botInfo, msgId)
@@ -56,7 +60,10 @@ data class ChannelSink(val channel: IChannel, val uid: String, val botInfo: BotI
     }
 }
 
-data class SimpleSink(val sink: MutableList<String>): Sink {
+data class SimpleSink(
+    val sink: MutableList<String>,
+    override val targetChannel: String = "*"
+): Sink {
     override fun send(msg: String) {
         sink.add(msg)
     }
@@ -289,6 +296,17 @@ object Dispatcher {
         val msgMap = sessionManager.getReply(session, query, listOf(targetChannel, SideEffect.RESTFUL), events)
         val msg = if (!msgMap[targetChannel].isNullOrEmpty()) msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
         logger.info("get $msg for channel $targetChannel")
+        return msg!!
+    }
+
+    private fun getReplyForChannel(
+        session: UserSession,
+        query: String,
+        sink: Sink,
+        events: List<FrameEvent> = emptyList()): List<String> {
+        val msgMap = sessionManager.getReply(session, query, listOf(sink.targetChannel, SideEffect.RESTFUL), events)
+        val msg = if (!msgMap[sink.targetChannel].isNullOrEmpty()) msgMap[sink.targetChannel] else msgMap[SideEffect.RESTFUL]
+        logger.info("get $msg for channel $sink.targetChannel")
         return msg!!
     }
 

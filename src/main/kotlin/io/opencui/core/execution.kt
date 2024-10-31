@@ -44,6 +44,26 @@ inline fun<T> List<T>.removeDuplicate(test: (T) -> Boolean): List<T> {
     return res
 }
 
+fun <T> processFirstThenCollect(
+    inputFlow: Flow<T>,
+    predicate: suspend (T) -> Boolean
+): Pair<Flow<T>, List<T>> = runBlocking {
+    // Separate flow for the first M elements that match the predicate
+    val initialFlow = inputFlow
+        .takeWhile { predicate(it) } // Process elements until predicate fails
+
+    // Collect the remaining elements after M into a list
+    val remainingList = inputFlow.dropWhile { predicate(it) }.toList()
+
+    Pair(initialFlow, remainingList)
+}
+
+fun <T> Flow<T>.takeUntil(predicate: suspend (T) -> Boolean): Flow<T> = flow {
+    collect { item ->
+        emit(item)
+        if (predicate(item)) return@collect // Stop after emitting the first item that meets the predicate
+    }
+}
 
 /**
  * DialogManager is used to drive a statechart configured by builder using input event created by end user.
@@ -53,6 +73,8 @@ inline fun<T> List<T>.removeDuplicate(test: (T) -> Boolean): List<T> {
  *
  * The invocation chain is as follows:
  * DM -> UserSession.{useStep/kernelStep}:List<Action> -> Scheduler.{wait/grow} -> filler.{wait/grow}
+ *
+ * DialogManager inside SessionManager inside Dispatcher.
  */
 class DialogManager {
 
@@ -100,6 +122,7 @@ class DialogManager {
 
         return Pair(turn, dialogActs)
     }
+
 
     fun processResults2(resultsFlow: Flow<ActionResult>): Flow<DialogAct> {
         return resultsFlow

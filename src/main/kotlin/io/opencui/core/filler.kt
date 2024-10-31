@@ -8,6 +8,7 @@ import io.opencui.core.hasMore.No
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
+import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
 import kotlin.reflect.KMutableProperty
@@ -1216,6 +1217,7 @@ class FrameFiller<T: IFrame>(
         val kClass = classLoader.findKClass(className)
         if (kClass != null) {
             val jsonObject = frameEvent.jsonValue
+            logger.info("initFromJsonValue with $jsonObject")
             if (jsonObject != null) {
                 val frame: IFrame = Json.decodeFromJsonElement(jsonObject, kClass) as IFrame
                 for (k in jsonObject.fieldNames()) {
@@ -1309,6 +1311,10 @@ class FrameFiller<T: IFrame>(
             return true
         }
         return false
+    }
+
+    companion object {
+       val logger = LoggerFactory.getLogger(FrameFiller::class.java)
     }
 }
 
