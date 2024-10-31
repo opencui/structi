@@ -9,6 +9,8 @@ import io.opencui.du.*
 import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
@@ -42,6 +44,26 @@ inline fun<T> List<T>.removeDuplicate(test: (T) -> Boolean): List<T> {
     return res
 }
 
+fun <T> processFirstThenCollect(
+    inputFlow: Flow<T>,
+    predicate: suspend (T) -> Boolean
+): Pair<Flow<T>, List<T>> = runBlocking {
+    // Separate flow for the first M elements that match the predicate
+    val initialFlow = inputFlow
+        .takeWhile { predicate(it) } // Process elements until predicate fails
+
+    // Collect the remaining elements after M into a list
+    val remainingList = inputFlow.dropWhile { predicate(it) }.toList()
+
+    Pair(initialFlow, remainingList)
+}
+
+fun <T> Flow<T>.takeUntil(predicate: suspend (T) -> Boolean): Flow<T> = flow {
+    collect { item ->
+        emit(item)
+        if (predicate(item)) return@collect // Stop after emitting the first item that meets the predicate
+    }
+}
 
 /**
  * DialogManager is used to drive a statechart configured by builder using input event created by end user.
@@ -51,6 +73,8 @@ inline fun<T> List<T>.removeDuplicate(test: (T) -> Boolean): List<T> {
  *
  * The invocation chain is as follows:
  * DM -> UserSession.{useStep/kernelStep}:List<Action> -> Scheduler.{wait/grow} -> filler.{wait/grow}
+ *
+ * DialogManager inside SessionManager inside Dispatcher.
  */
 class DialogManager {
 
@@ -92,7 +116,49 @@ class DialogManager {
             query,
             Json.encodeToJsonElement(expectations?.activeFrames ?: emptyList()),
             Json.encodeToJsonElement(duReturnedFrameEvent),
-            Json.encodeToJsonElement(dialogActs),
+            convertToFrameEvent.first,
+            session.chatbot?.agentLang ?: "en"
+        )
+
+        return Pair(turn, dialogActs)
+    }
+
+
+    fun processResults2(resultsFlow: Flow<ActionResult>): Flow<DialogAct> {
+        return resultsFlow
+            .filter { it.botUtterance != null && it.botOwn } // Ensure botUtterance is not null and botOwn is true
+            .flatMapConcat { actionResult ->
+                // Flatten the list of DialogAct into the flow
+                actionResult.botUtterance!!.asFlow()
+            }
+            .distinctUntilChanged()// Keep only distinct DialogActs based on utterance
+    }
+
+    fun responseAsync(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, Flow<DialogAct>> {
+        val timeStamp = LocalDateTime.now()
+        val expectations = findDialogExpectation(session)
+
+        val convertToFrameEvent = measureTimeMillisWithResult {
+            session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+        }
+        val duReturnedFrameEvent = convertToFrameEvent.second
+
+        duReturnedFrameEvent.forEach{ it.source = EventSource.USER }
+        logger.debug("Du returned frame events : $duReturnedFrameEvent")
+        logger.debug("Extra frame events : $frameEvents")
+        // If the event is created in the user role, we respect that.
+        frameEvents.forEach { if (it.source == null ) { it.source = EventSource.API } }
+        val convertedFrameEventList = convertSpecialFrameEvent(session, duReturnedFrameEvent + frameEvents)
+        logger.debug("Converted frame events : $convertedFrameEventList")
+
+        val results = responseAsync(ParsedQuery(query, convertedFrameEventList), session)
+
+        val dialogActs = processResults2(results)
+
+        val turn = Turn(
+            query,
+            Json.encodeToJsonElement(expectations?.activeFrames ?: emptyList()),
+            Json.encodeToJsonElement(duReturnedFrameEvent),
             convertToFrameEvent.first,
             session.chatbot?.agentLang ?: "en"
         )
@@ -102,9 +168,94 @@ class DialogManager {
 
 
     /**
-     * Low level response, after DU is done.
+     * Low level response, after DU is done. Currently we have two versions.
      */
-    fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
+    fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> = runBlocking {
+        responseAsync(pinput, session).toList()
+    }
+
+    fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
+        session.turnId += 1
+        session.addUserMessage(pinput.query)
+
+        val frameEvents = pinput.frames
+
+        // Handle empty events case
+        if (frameEvents.isEmpty()) {
+            session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)
+                ?.searchResponse()
+                ?.wrappedRun(session)
+                ?.let {
+                    emit(it)
+                    return@flow
+                }
+        }
+
+        session.addEvents(frameEvents)
+        val actionResults = mutableListOf<ActionResult>()
+        logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
+        var botOwn = session.botOwn
+
+        var maxRound = 100 // prevent one session from taking too many resources
+        do {
+            var schedulerChanged = false
+            while (session.schedulers.size > 1) {
+                val top = session.schedulers.last()
+                if (top.isEmpty()) {
+                    session.schedulers.removeLast()
+                    schedulerChanged = true
+                } else {
+                    break
+                }
+            }
+
+            var currentTurnWorks = session.userStep()
+            if (schedulerChanged && currentTurnWorks.isEmpty()) {
+                session.schedule.state = Scheduler.State.RESCHEDULE
+                currentTurnWorks = session.userStep()
+            }
+
+            check(currentTurnWorks.isEmpty() || currentTurnWorks.size == 1)
+
+            if (currentTurnWorks.isNotEmpty()) {
+                try {
+                    val result = currentTurnWorks[0].wrappedRun(session).apply {
+                        this.botOwn = botOwn
+                    }
+                    actionResults += result
+                    emit(result)
+                } catch (e: Exception) {
+                    session.schedule.state = Scheduler.State.RECOVER
+                    throw e
+                }
+            }
+
+            botOwn = session.botOwn
+            if (--maxRound <= 0) break
+        } while (currentTurnWorks.isNotEmpty())
+
+        if (!validEndState.contains(session.schedule.state)) {
+            val currentState = session.schedule.state
+            session.schedule.state = Scheduler.State.RECOVER
+            throw Exception("END STATE of scheduler is invalid STATE : $currentState")
+        }
+
+        logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
+
+        val system1 = session.chatbot?.getExtension<ISystem1>()
+        val system1Response = getSystem1Response(session, system1, frameEvents)
+        logger.info("found system1 response size: ${system1Response.size}")
+
+        if (actionResults.isEmpty() && session.schedule.isNotEmpty() && session.lastTurnRes.isNotEmpty()) {
+            session.lastTurnRes.forEach { emit(it) }
+            system1Response.forEach { emit(it) }
+        } else {
+            session.lastTurnRes = actionResults
+            system1Response.forEach { emit(it) }
+        }
+    }
+
+    fun responseSync(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
         session.turnId += 1
 
         session.addUserMessage(pinput.query)
@@ -114,8 +265,7 @@ class DialogManager {
         // Sometime, there are empty events.
         if (frameEvents.isEmpty()) {
             // if we do not have system1 for backup.
-            val delegateActionResult =
-                session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
+            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
             if (delegateActionResult != null) {
                 return listOf(delegateActionResult)
             }

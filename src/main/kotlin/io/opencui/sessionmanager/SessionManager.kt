@@ -2,10 +2,15 @@ package io.opencui.sessionmanager
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.RequestForDelayDialogAct
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
 import io.opencui.logger.ILogger
+import io.opencui.serialization.Json
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.*
@@ -70,6 +75,8 @@ interface IBotStore: IKVStore {
         return "agent:${botInfo.fullName}|$key"
     }
 }
+
+
 
 /**
  * The conversion state need to be saved in UserSession so that the same customer can be served
@@ -163,14 +170,49 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         session: UserSession,
         query: String,
         targetChannels: List<String>,
-        events: List<FrameEvent> = emptyList()
+        events: List<FrameEvent> = emptyList(),
+        sink: Sink? = null
     ): Map<String, List<String>> {
         assert(targetChannels.isNotEmpty())
         session.targetChannel = targetChannels
-        val turnAndActs = dm.response(query, events, session)
+
+        val res = dm.responseAsync(query, events, session)
+
+        val dialogActs = if (sink == null) {
+            // Do we need to runBlocking here?
+            runBlocking {
+                res.second.toList()
+            }
+        } else {
+            // When sink is presented, we want to find the first RequestForDelay.
+            val firstPartFlow = res.second.takeUntil { it is RequestForDelayDialogAct }
+            val firstPart = runBlocking {
+                firstPartFlow.toList()
+            }
+
+            if (firstPart.isNotEmpty()) {
+                // We send only the RequestForDelay here, it should be the last one.
+
+            }
+
+            val secondPart = runBlocking {
+                res.second.filterNot { it is RequestForDelayDialogAct }.toList()
+            }
+
+            if (secondPart.isNotEmpty()) {
+                secondPart
+            } else {
+                firstPart
+            }
+        }
+
+
+        val turn = res.first
+        turn.dialogActs = Json.encodeToJsonElement(dialogActs)
+        val turnAndActs = Pair(turn, dialogActs)
         val responses = turnAndActs.second
 
-        val turnLogger =  session.chatbot!!.getExtension<ILogger>()
+        val turnLogger = session.chatbot!!.getExtension<ILogger>()
         if (turnLogger != null) {
             logger.info("record turns using turn Logger.")
             // first update the turn so that we know who this user is talking too
@@ -199,7 +241,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
 
-
     private fun isDonotUnderstand(it: DialogAct): Boolean {
         return it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt"
     }
@@ -217,7 +258,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             }
         }
         return res
-
     }
 
     /**

@@ -836,13 +836,7 @@ data class UserSession(
         return construct(packageName, className, this, *args) as? IIntent
     }
 
-    private fun genGroupKey(dialogAct: DialogAct): String {
-        return when (dialogAct) {
-            is SlotDialogAct -> """${if (dialogAct.context.isNotEmpty()) dialogAct.context.first()::class.qualifiedName else "null"}_${dialogAct.slotName}_${dialogAct.slotType}"""
-            is FrameDialogAct -> dialogAct.frameType
-            else -> dialogAct::class.qualifiedName!!
-        }
-    }
+
 
     private fun areParametersCompatible(formalParams: List<KParameter>, actualParams: List<DialogAct>): Boolean {
         check(formalParams.size == actualParams.size)
@@ -896,7 +890,7 @@ data class UserSession(
     fun rewriteDialogAct(dialogActList: List<DialogAct>): List<DialogAct> {
         val groups: MutableList<Pair<String, MutableList<DialogAct>>> = mutableListOf()
         for (dialogAct in dialogActList) {
-            val  key = genGroupKey(dialogAct)
+            val  key = dialogAct.genGroupKey()
             if (groups.isEmpty() || groups.last().first != key) {
                 groups += Pair(key, mutableListOf(dialogAct))
             } else {

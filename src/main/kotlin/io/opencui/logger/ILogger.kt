@@ -14,10 +14,11 @@ data class Turn(
     val utterance: String,
     val expectations: JsonElement,  // this should be an array of expectation, each is an object.
     val predictedFrameEvents: JsonElement,   // again an array of events.
-    val dialogActs: JsonElement,    // an array of dialog acts.
     val duTime: Long,
     val lang: String
 )  {
+    // an array of dialog acts.
+    var dialogActs: JsonElement?= null
     var trueFrameEvents: JsonElement? = null  // this is provided manually when there are mistakes
     var dmTime: Long? = null // We might need this.
     var nluVersion: String? = null
