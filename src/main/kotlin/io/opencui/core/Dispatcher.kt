@@ -29,7 +29,7 @@ interface IManaged {
 }
 
 interface Sink {
-    val targetChannel: String
+    val targetChannel: String?
     fun markSeen(msgId: String?) {}
     fun typing() {}
     fun send(msg: String)
@@ -43,7 +43,7 @@ data class ChannelSink(
     val channel: IChannel,
     val uid: String,
     val botInfo: BotInfo,
-    override val targetChannel: String = "*"
+    override val targetChannel: String? = null
 ): Sink {
     override fun markSeen(msgId: String?) {
         if (channel is IMessageChannel) {
@@ -60,12 +60,19 @@ data class ChannelSink(
     }
 }
 
-data class SimpleSink(
-    val sink: MutableList<String>,
-    override val targetChannel: String = "*"
-): Sink {
+data class SimpleSink(override val targetChannel: String? = null): Sink {
+    val messages: MutableList<String> = mutableListOf()
     override fun send(msg: String) {
-        sink.add(msg)
+        messages.add(msg)
+    }
+}
+
+data class CombinedSink(val sinks: List<Sink>, override val targetChannel: String? = null): Sink {
+    constructor(vararg  sink: Sink) : this(sink.asList())
+    override fun send(msg: String) {
+        for (sink in sinks) {
+            sink.send(msg)
+        }
     }
 }
 
@@ -254,7 +261,9 @@ object Dispatcher {
             }
 
             // always add the RESTFUL just in case.
-            val msgs = getReplyForChannel(userSession, query, userInfo.channelType!!, events)
+            val sink1 = CombinedSink(sink, SimpleSink(userInfo.channelType!!))
+            sessionManager.getReplySink(userSession, query, sink1, events)
+            val msgs = (sink1.sinks[1] as SimpleSink).messages
 
             for (msg in msgs) {
                 support?.postBotMessage(userSession, TextPayload(msg))
@@ -271,34 +280,15 @@ object Dispatcher {
         } else {
             if (support == null || !support.info.assist) return
             // assist mode, not need to divide into two parts.
-            val msgs = getReplyForChannel(userSession, query, userInfo.channelType!!, events)
+            val sink1 = SimpleSink(userInfo.channelType!!)
+            sessionManager.getReplySink(userSession, query, sink1, events)
+            val msgs = sink1.messages
             for (msg in msgs) {
                 support.postBotMessage(userSession, msg as TextPayload)
             }
         }
     }
 
-    private fun getReplyForChannel(
-        session: UserSession,
-        query: String,
-        targetChannel: String,
-        events: List<FrameEvent> = emptyList()): List<String> {
-        val msgMap = sessionManager.getReplySync(session, query, targetChannel, events)
-        val msg = if (!msgMap[targetChannel].isNullOrEmpty()) msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
-        logger.info("get $msg for channel $targetChannel")
-        return msg!!
-    }
-
-    private fun getReplyForChannel(
-        session: UserSession,
-        query: String,
-        sink: Sink,
-        events: List<FrameEvent> = emptyList()): List<String> {
-        val msgMap = sessionManager.getReplySync(session, query, sink.targetChannel, events)
-        val msg = if (!msgMap[sink.targetChannel].isNullOrEmpty()) msgMap[sink.targetChannel] else msgMap[SideEffect.RESTFUL]
-        logger.info("get $msg for channel $sink.targetChannel")
-        return msg!!
-    }
 
     // This is called to trigger handoff.
     fun handOffSession(target: IUserIdentifier, botInfo: BotInfo, department:String) {
