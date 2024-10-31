@@ -7,6 +7,7 @@ import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
 import io.opencui.logger.ILogger
+import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.toList
@@ -166,15 +167,51 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
      *
      * channel: the format that is expected.
      */
-    fun getReply(
+    fun logTurns(session: UserSession, turn: Turn) {
+        val turnLogger = session.chatbot!!.getExtension<ILogger>()
+        if (turnLogger != null) {
+            logger.info("record turns using turn Logger.")
+            // first update the turn so that we know who this user is talking too
+            turn.channelType = session.channelType!!
+            turn.channelLabel = session.channelLabel ?: "default"
+            turn.userId = session.userId!!
+
+            // we then log the turn
+            turnLogger.log(turn)
+        } else {
+            logger.info("Could not find the provider for ILogger")
+        }
+    }
+
+    fun getReplySync(
         session: UserSession,
         query: String,
-        targetChannels: List<String>,
-        events: List<FrameEvent> = emptyList(),
-        sink: Sink? = null
+        targetChannel: String,
+        events: List<FrameEvent> = emptyList()
     ): Map<String, List<String>> {
-        assert(targetChannels.isNotEmpty())
-        session.targetChannel = targetChannels
+        assert(targetChannel.isNotEmpty())
+        session.targetChannel = listOf(targetChannel, SideEffect.RESTFUL)
+
+        val res = dm.responseAsync(query, events, session)
+
+        val dialogActs = runBlocking { res.second.toList() }
+
+        val turn = res.first
+        turn.dialogActs = Json.encodeToJsonElement(dialogActs)
+
+        logTurns(session, turn)
+
+        updateUserSession(session.userIdentifier, session.botInfo, session)
+        return convertDialogActsToText(session, dialogActs, session.targetChannel)
+    }
+
+    fun getReplySink(
+        session: UserSession,
+        query: String,
+        events: List<FrameEvent> = emptyList(),
+        sink: Sink
+    ): Map<String, List<String>> {
+        session.targetChannel = listOf(sink.targetChannel, SideEffect.RESTFUL)
 
         val res = dm.responseAsync(query, events, session)
 
@@ -206,30 +243,13 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             }
         }
 
-
         val turn = res.first
         turn.dialogActs = Json.encodeToJsonElement(dialogActs)
-        val turnAndActs = Pair(turn, dialogActs)
-        val responses = turnAndActs.second
-
-        val turnLogger = session.chatbot!!.getExtension<ILogger>()
-        if (turnLogger != null) {
-            logger.info("record turns using turn Logger.")
-            // first update the turn so that we know who this user is talking too
-            val turn = turnAndActs.first
-            turn.channelType = session.channelType!!
-            turn.channelLabel = session.channelLabel ?: "default"
-            turn.userId = session.userId!!
-
-            // we then log the turn
-            turnLogger.log(turn)
-        } else {
-            logger.info("Could not find the provider for ILogger")
-        }
-
+        logTurns(session, turn)
         updateUserSession(session.userIdentifier, session.botInfo, session)
-        return convertDialogActsToText(session, responses, session.targetChannel)
+        return convertDialogActsToText(session, dialogActs, session.targetChannel)
     }
+
 
     /**
      * This the place where we can remove extra prompt if we need to.

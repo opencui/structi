@@ -146,21 +146,22 @@ object Dispatcher {
         return session
     }
 
-
-    fun process(userInfo: IUserIdentifier, botInfo: BotInfo, message: TextPayload) {
+    // This is used to process the inbound messages, thus use Main as context. In a sync fashion.
+    fun processInbound(userInfo: IUserIdentifier, botInfo: BotInfo, message: TextPayload) {
         logger.info("process $userInfo: $botInfo with message: $message")
         if (getUserSession(userInfo, botInfo) == null) {
             val userSession = createUserSession(userInfo, botInfo)
             // start the conversation from the Main.
             val events = listOf(FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}"))
-            getReply(userSession, message, events)
+            buildSinkThenGetReply(userSession, message, events)
         }else{
             val userSession = getUserSession(userInfo, botInfo)!!
-            getReply(userSession, message)
+            buildSinkThenGetReply(userSession, message)
         }
     }
 
-    fun notify(userInfo: IUserIdentifier, botInfo: BotInfo, events: List<FrameEvent>) {
+    // This is used for outbound message.
+    fun processOutbound(userInfo: IUserIdentifier, botInfo: BotInfo, events: List<FrameEvent>) {
         // Notify should be handled as async.
         if (getUserSession(userInfo, botInfo) == null) {
             val userSession = createUserSession(userInfo, botInfo)
@@ -168,7 +169,7 @@ object Dispatcher {
             logger.info("notifyy: There is no existing user session, so create one and process the events right away.")
             val mainEvent = FrameEvent("OutMain", emptyList(), emptyList(), "${botInfo.fullName}")
             // We make sure that we always have some Main as context.
-            getReply(userSession, null, listOf(mainEvent) + events)
+            buildSinkThenGetReply(userSession, null, listOf(mainEvent) + events)
         }else {
             val userSession = getUserSession(userInfo, botInfo)!!
             // We add the event to user session, and let it run.
@@ -176,7 +177,7 @@ object Dispatcher {
             val lastTouch = userSession.lastTouch
             if (lastTouch == null) {
                 logger.info("notifyy: There is no last touch, so create one and process the events right away.")
-                getReply(userSession, null, events)
+                buildSinkThenGetReply(userSession, null, events)
                 return
             }
 
@@ -184,11 +185,11 @@ object Dispatcher {
             val duration = Duration.between(lastTouch, LocalDateTime.now())
             if (duration.toMinutes() > idleTimeInMinutes) {
                 logger.info("notifyy: Last touch is a while, so create one and process the events right away.")
-                getReply(userSession, null, events)
+                buildSinkThenGetReply(userSession, null, events)
             } else {
                 if (userSession.isBreak()) {
                     logger.info("notifyy: On break, so create one and process the events right away.")
-                    getReply(userSession, null, events)
+                    buildSinkThenGetReply(userSession, null, events)
                 } else {
                     logger.info("notifyy: Last touch is too soon, not on break, so add to queue right away.")
                     userSession.addEvents(events)
@@ -197,18 +198,7 @@ object Dispatcher {
         }
     }
 
-    fun process(userInfo: IUserIdentifier, botInfo: BotInfo, events: List<FrameEvent>) {
-        val userSession  = if (getUserSession(userInfo, botInfo) == null) {
-            createUserSession(userInfo, botInfo)
-        }else {
-            getUserSession(userInfo, botInfo)!!
-        }
-        // start the conversation from the Main.
-        getReply(userSession, null, events)
-    }
-
-
-    fun getReply(userSession: UserSession, message: TextPayload? = null, events: List<FrameEvent> = emptyList()) {
+    fun buildSinkThenGetReply(userSession: UserSession, message: TextPayload? = null, events: List<FrameEvent> = emptyList()) {
         val userInfo = userSession.userIdentifier
         val botInfo = userSession.botInfo
 
@@ -217,13 +207,13 @@ object Dispatcher {
             logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
             val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
 
-            getReply(userSession, message, sink, events)
+            getReplySink(userSession, message, sink, events)
         } else {
             logger.error("could not find ${userInfo.channelLabel}")
         }
     }
 
-    fun getReply(userSession: UserSession, message: TextPayload? = null, sink: Sink, events: List<FrameEvent> = emptyList()) {
+    fun getReplySink(userSession: UserSession, message: TextPayload? = null, sink: Sink, events: List<FrameEvent> = emptyList()) {
         val msgId = message?.msgId
 
         // if there is no msgId, or msgId is not repeated, we handle message.
@@ -280,7 +270,7 @@ object Dispatcher {
             }
         } else {
             if (support == null || !support.info.assist) return
-            // assist mode.
+            // assist mode, not need to divide into two parts.
             val msgs = getReplyForChannel(userSession, query, userInfo.channelType!!, events)
             for (msg in msgs) {
                 support.postBotMessage(userSession, msg as TextPayload)
@@ -293,7 +283,7 @@ object Dispatcher {
         query: String,
         targetChannel: String,
         events: List<FrameEvent> = emptyList()): List<String> {
-        val msgMap = sessionManager.getReply(session, query, listOf(targetChannel, SideEffect.RESTFUL), events)
+        val msgMap = sessionManager.getReplySync(session, query, targetChannel, events)
         val msg = if (!msgMap[targetChannel].isNullOrEmpty()) msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
         logger.info("get $msg for channel $targetChannel")
         return msg!!
@@ -304,7 +294,7 @@ object Dispatcher {
         query: String,
         sink: Sink,
         events: List<FrameEvent> = emptyList()): List<String> {
-        val msgMap = sessionManager.getReply(session, query, listOf(sink.targetChannel, SideEffect.RESTFUL), events)
+        val msgMap = sessionManager.getReplySync(session, query, sink.targetChannel, events)
         val msg = if (!msgMap[sink.targetChannel].isNullOrEmpty()) msgMap[sink.targetChannel] else msgMap[SideEffect.RESTFUL]
         logger.info("get $msg for channel $sink.targetChannel")
         return msg!!

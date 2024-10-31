@@ -216,24 +216,6 @@ interface IMessageChannel : IChannel {
  */
 interface IService: Serializable, IExtension
 
-// After received the call from the third party, we create the corresponding event, and send to listener.
-interface EventListener: Serializable {
-    fun accept(botInfo: BotInfo, userInfo: UserInfo, event: FrameEvent)
-}
-
-class DispatcherEventListener : EventListener {
-    override fun accept(botInfo: BotInfo, userInfo: UserInfo, event: FrameEvent) {
-        Dispatcher.process(userInfo, botInfo, listOf(event))
-    }
-}
-
-// This is for hosting endpoints, so that we can compose things.
-interface IListener {
-    fun addListener(listener: EventListener)
-}
-
-
-
 // All IProvider are the base for implementation. We need two separate type hierarchy
 // The object should
 interface IProvider : IService, IExtension {
