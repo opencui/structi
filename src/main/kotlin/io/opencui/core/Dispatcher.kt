@@ -61,9 +61,9 @@ data class ChannelSink(
 }
 
 data class SimpleSink(override val targetChannel: String? = null): Sink {
-    val sink: MutableList<String> = mutableListOf()
+    val messages: MutableList<String> = mutableListOf()
     override fun send(msg: String) {
-        sink.add(msg)
+        messages.add(msg)
     }
 }
 
@@ -263,7 +263,7 @@ object Dispatcher {
             // always add the RESTFUL just in case.
             val sink1 = CombinedSink(sink, SimpleSink(userInfo.channelType!!))
             sessionManager.getReplySink(userSession, query, sink1, events)
-            val msgs = (sink1.sinks[1] as SimpleSink).sink
+            val msgs = (sink1.sinks[1] as SimpleSink).messages
 
             for (msg in msgs) {
                 support?.postBotMessage(userSession, TextPayload(msg))
@@ -282,7 +282,7 @@ object Dispatcher {
             // assist mode, not need to divide into two parts.
             val sink1 = SimpleSink(userInfo.channelType!!)
             sessionManager.getReplySink(userSession, query, sink1, events)
-            val msgs = sink1.sink
+            val msgs = sink1.messages
             for (msg in msgs) {
                 support.postBotMessage(userSession, msg as TextPayload)
             }
