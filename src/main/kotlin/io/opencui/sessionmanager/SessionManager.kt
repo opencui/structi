@@ -186,11 +186,10 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     fun getReplySync(
         session: UserSession,
         query: String,
-        targetChannel: String,
+        targetChannel: String? = null,
         events: List<FrameEvent> = emptyList()
     ): Map<String, List<String>> {
-        assert(targetChannel.isNotEmpty())
-        session.targetChannel = listOf(targetChannel, SideEffect.RESTFUL)
+        session.targetChannel = if (targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(targetChannel, SideEffect.RESTFUL)
 
         val res = dm.responseAsync(query, events, session)
 
@@ -205,49 +204,57 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         return convertDialogActsToText(session, dialogActs, session.targetChannel)
     }
 
+    fun sendToSink(msgMap: Map<String, List<String>>, sink: Sink) {
+        val msg = if (sink.targetChannel != null && !msgMap[sink.targetChannel].isNullOrEmpty()) msgMap[sink.targetChannel] else msgMap[SideEffect.RESTFUL]
+        logger.info("get $msg for channel $sink.targetChannel")
+        if (!msg.isNullOrEmpty()) {
+            for (text in msg) {
+                sink.send(text)
+            }
+        }
+    }
+
     fun getReplySink(
         session: UserSession,
         query: String,
-        events: List<FrameEvent> = emptyList(),
-        sink: Sink
-    ): Map<String, List<String>> {
-        session.targetChannel = listOf(sink.targetChannel, SideEffect.RESTFUL)
+        sink: Sink,
+        events: List<FrameEvent> = emptyList()
+    ) {
+        session.targetChannel = if (sink.targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(sink.targetChannel!!, SideEffect.RESTFUL)
 
         val res = dm.responseAsync(query, events, session)
 
-        val dialogActs = if (sink == null) {
-            // Do we need to runBlocking here?
-            runBlocking {
-                res.second.toList()
-            }
+        // When sink is presented, we want to find the first RequestForDelay.
+        val firstPartFlow = res.second.takeUntil { it is RequestForDelayDialogAct }
+
+        val firstDialogActs = runBlocking {
+            firstPartFlow.toList()
+        }
+
+        if (firstDialogActs.isNotEmpty()) {
+            // We send only the RequestForDelay here, it should be the last one.
+            val msgMap = convertDialogActsToText(session, listOf(firstDialogActs.last()), session.targetChannel)
+            sendToSink(msgMap, sink)
+        }
+
+        val restDialogActs = runBlocking {
+            res.second.filterNot { it is RequestForDelayDialogAct }.toList()
+        }
+
+        val dialogActs = if (restDialogActs.isNotEmpty()) {
+            restDialogActs
         } else {
-            // When sink is presented, we want to find the first RequestForDelay.
-            val firstPartFlow = res.second.takeUntil { it is RequestForDelayDialogAct }
-            val firstPart = runBlocking {
-                firstPartFlow.toList()
-            }
-
-            if (firstPart.isNotEmpty()) {
-                // We send only the RequestForDelay here, it should be the last one.
-
-            }
-
-            val secondPart = runBlocking {
-                res.second.filterNot { it is RequestForDelayDialogAct }.toList()
-            }
-
-            if (secondPart.isNotEmpty()) {
-                secondPart
-            } else {
-                firstPart
-            }
+            firstDialogActs
         }
 
         val turn = res.first
         turn.dialogActs = Json.encodeToJsonElement(dialogActs)
         logTurns(session, turn)
+
         updateUserSession(session.userIdentifier, session.botInfo, session)
-        return convertDialogActsToText(session, dialogActs, session.targetChannel)
+
+        val msgMap = convertDialogActsToText(session, dialogActs, session.targetChannel)
+        sendToSink(msgMap, sink)
     }
 
 
