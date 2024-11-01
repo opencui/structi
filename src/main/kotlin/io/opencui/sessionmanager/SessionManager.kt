@@ -212,6 +212,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
                 sink.send(text)
             }
         }
+        sink.flush()
     }
 
     fun getReplySink(
@@ -231,19 +232,21 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
             firstPartFlow.toList()
         }
 
-        if (firstDialogActs.isNotEmpty()) {
+        if (firstDialogActs.isEmpty()) {
+            return
+        }
+
+        val dialogActs = if (firstDialogActs.last() is RequestForDelayDialogAct) {
             // We send only the RequestForDelay here, it should be the last one.
             val msgMap = convertDialogActsToText(session, listOf(firstDialogActs.last()), session.targetChannel)
             sendToSink(msgMap, sink)
-        }
 
-        val restDialogActs = runBlocking {
-            res.second.filterNot { it is RequestForDelayDialogAct }.toList()
-        }
-
-        val dialogActs = if (restDialogActs.isNotEmpty()) {
-            restDialogActs
+            // We return everything except the RequestForDelay
+            runBlocking {
+                res.second.filterNot { it is RequestForDelayDialogAct }.toList()
+            }
         } else {
+            // We did not find any Request for delay.
             firstDialogActs
         }
 

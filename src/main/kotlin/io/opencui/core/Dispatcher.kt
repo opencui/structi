@@ -37,6 +37,11 @@ interface Sink {
         session.addBotMessage(msg)
         send(msg)
     }
+
+    // This is used for supporting fake streaming response back to client.
+    // We assume the output from system2 chatbot is not super long, so we only
+    // use this method to trigger forced delivery.
+    fun flush() {}
 }
 
 data class ChannelSink(
