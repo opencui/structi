@@ -44,10 +44,12 @@ inline fun<T> List<T>.removeDuplicate(test: (T) -> Boolean): List<T> {
     return res
 }
 
-fun <T> Flow<T>.takeUntil(predicate: suspend (T) -> Boolean): Flow<T> = flow {
-    collect { item ->
-        emit(item)
-        if (predicate(item)) return@collect // Stop after emitting the first item that meets the predicate
+
+suspend fun <T> Flow<T>.takeFirst(predicate: suspend (T) -> Boolean): T? {
+    return try {
+        first { predicate(it) }
+    } catch (e: NoSuchElementException) {
+        null // Return null if no element meets the predicate
     }
 }
 

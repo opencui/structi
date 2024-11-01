@@ -11,6 +11,7 @@ import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -212,7 +213,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
                 sink.send(text)
             }
         }
-        sink.flush()
     }
 
     fun getReplySink(
@@ -220,44 +220,39 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         query: String,
         sink: Sink,
         events: List<FrameEvent> = emptyList()
-    ) {
+    ) = runBlocking{
         session.targetChannel = if (sink.targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(sink.targetChannel!!, SideEffect.RESTFUL)
 
         val res = dm.responseAsync(query, events, session)
 
-        // When sink is presented, we want to find the first RequestForDelay.
-        val firstPartFlow = res.second.takeUntil { it is RequestForDelayDialogAct }
-
-        val firstDialogActs = runBlocking {
-            firstPartFlow.toList()
-        }
-
-        if (firstDialogActs.isEmpty()) {
-            return
-        }
-
-        val dialogActs = if (firstDialogActs.last() is RequestForDelayDialogAct) {
-            // We send only the RequestForDelay here, it should be the last one.
-            val msgMap = convertDialogActsToText(session, listOf(firstDialogActs.last()), session.targetChannel)
-            sendToSink(msgMap, sink)
-
-            // We return everything except the RequestForDelay
-            runBlocking {
-                res.second.filterNot { it is RequestForDelayDialogAct }.toList()
+        // find the first RequestForDelay and immediately send out.
+        val firstPartTask = launch {
+            val askDelay = res.second.takeFirst { it is RequestForDelayDialogAct }
+            if (askDelay != null) {
+                val msgMap = convertDialogActsToText(session, listOf(askDelay), session.targetChannel)
+                sendToSink(msgMap, sink)
+                sink.flush()
             }
-        } else {
-            // We did not find any Request for delay.
-            firstDialogActs
         }
 
-        val turn = res.first
-        turn.dialogActs = Json.encodeToJsonElement(dialogActs)
-        logTurns(session, turn)
+        // Handle the rest of dialog acts at the same time.
+        val secondPartTask = launch {
+            val dialogActs = res.second.filterNot { it is RequestForDelayDialogAct }.toList()
 
-        updateUserSession(session.userIdentifier, session.botInfo, session)
+            val turn = res.first
+            turn.dialogActs = Json.encodeToJsonElement(dialogActs)
 
-        val msgMap = convertDialogActsToText(session, dialogActs, session.targetChannel)
-        sendToSink(msgMap, sink)
+            logTurns(session, turn)
+
+            updateUserSession(session.userIdentifier, session.botInfo, session)
+
+            val msgMap = convertDialogActsToText(session, dialogActs, session.targetChannel)
+            sendToSink(msgMap, sink)
+            sink.flush()
+        }
+
+        firstPartTask.join()
+        secondPartTask.join()
     }
 
 
@@ -302,4 +297,3 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         private val logger: Logger = LoggerFactory.getLogger(SessionManager::class.java)
     }
 }
-
