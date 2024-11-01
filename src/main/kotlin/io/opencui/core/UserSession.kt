@@ -475,6 +475,7 @@ data class UserSession(
     }
 
     fun generateFrameEvent(filler: IFiller, value: Any): List<FrameEvent> {
+        Dispatcher.logger.info("generateFrameEvent : ${value.toString()}")
         val fullyQualifiedType: String = filler.qualifiedEventType() ?: if (value is ObjectNode) value.get("@class").asText() else value::class.qualifiedName!!
         val typeString = fullyQualifiedType.substringAfterLast(".")
         val packageName = fullyQualifiedType.substringBeforeLast(".")
