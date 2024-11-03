@@ -3,16 +3,12 @@ package io.opencui.sessionmanager
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.RequestForDelayDialogAct
-import io.opencui.core.da.UserDefinedInform
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.kvstore.IKVStore
-import io.opencui.logger.ILogger
 import io.opencui.logger.Turn
 import io.opencui.serialization.Json
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.*
@@ -78,6 +74,24 @@ interface IBotStore: IKVStore {
     }
 }
 
+//  We need to return some part asap,
+fun <T> batchFirstRest(source: Flow<T>, predicate: (T) -> Boolean) : Flow<List<T>> = flow {
+    var foundItem: T? = null
+    val rest = mutableListOf<T>()
+    source.collect { item ->
+        if (predicate(item)) {
+            if (foundItem == null) {
+                foundItem = item
+                emit(listOf(foundItem!!))
+            }
+        } else {
+            rest.add(item)
+        }
+    }
+
+    // we will always emit something, even an empty list.
+    emit(rest)
+}
 
 
 /**
@@ -157,6 +171,12 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         sessionStore.updateSession(channel.channelId(), channel.userId!!, botInfo, session)
     }
 
+    fun updateTurn(turn: Turn, dialogActs: List<DialogAct>, session: UserSession) {
+        turn.dialogActs = Json.encodeToJsonElement(dialogActs)
+        Dispatcher.logTurns(session, turn)
+        updateUserSession(session.userIdentifier, session.botInfo, session)
+    }
+
     /**
      * This method will be called when contact submit an query along with events (should we allow this?)
      * And we need to come up with reply to move the conversation forward.
@@ -168,21 +188,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
      *
      * channel: the format that is expected.
      */
-    fun logTurns(session: UserSession, turn: Turn) {
-        val turnLogger = session.chatbot!!.getExtension<ILogger>()
-        if (turnLogger != null) {
-            logger.info("record turns using turn Logger.")
-            // first update the turn so that we know who this user is talking too
-            turn.channelType = session.channelType!!
-            turn.channelLabel = session.channelLabel ?: "default"
-            turn.userId = session.userId!!
-
-            // we then log the turn
-            turnLogger.log(turn)
-        } else {
-            logger.info("Could not find the provider for ILogger")
-        }
-    }
 
     fun getReplySync(
         session: UserSession,
@@ -197,22 +202,9 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         val dialogActs = runBlocking { res.second.toList() }
 
         val turn = res.first
-        turn.dialogActs = Json.encodeToJsonElement(dialogActs)
+        updateTurn(turn, dialogActs, session)
 
-        logTurns(session, turn)
-
-        updateUserSession(session.userIdentifier, session.botInfo, session)
-        return convertDialogActsToText(session, dialogActs, session.targetChannel)
-    }
-
-    fun sendToSink(msgMap: Map<String, List<String>>, sink: Sink) {
-        val msg = if (sink.targetChannel != null && !msgMap[sink.targetChannel].isNullOrEmpty()) msgMap[sink.targetChannel] else msgMap[SideEffect.RESTFUL]
-        logger.info("get $msg for channel $sink.targetChannel")
-        if (!msg.isNullOrEmpty()) {
-            for (text in msg) {
-                sink.send(text)
-            }
-        }
+        return Dispatcher.convertDialogActsToText(session, dialogActs, session.targetChannel)
     }
 
     fun getReplySink(
@@ -220,70 +212,52 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         query: String,
         sink: Sink,
         events: List<FrameEvent> = emptyList()
-    ) = runBlocking{
-        session.targetChannel = if (sink.targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(sink.targetChannel!!, SideEffect.RESTFUL)
-
-        val res = dm.responseAsync(query, events, session)
-
-        // find the first RequestForDelay and immediately send out.
-        val firstPartTask = launch {
-            val askDelay = res.second.takeFirst { it is RequestForDelayDialogAct }
-            if (askDelay != null) {
-                val msgMap = convertDialogActsToText(session, listOf(askDelay), session.targetChannel)
-                sendToSink(msgMap, sink)
+    ) {
+        val batched = getReplyFlow(session, query, sink, events)
+        runBlocking {
+            batched.collect { item ->
+                sink.send(item)
                 sink.flush()
             }
         }
+    }
 
-        // Handle the rest of dialog acts at the same time.
-        val secondPartTask = launch {
-            val dialogActs = res.second.filterNot { it is RequestForDelayDialogAct }.toList()
+    fun getReplyFlow(
+        session: UserSession,
+        query: String,
+        sink: Sink,
+        events: List<FrameEvent> = emptyList()
+    ) : Flow<Map<String, List<String>>> = flow {
 
-            val turn = res.first
-            turn.dialogActs = Json.encodeToJsonElement(dialogActs)
+        session.targetChannel = if (sink.targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(sink.targetChannel!!, SideEffect.RESTFUL)
 
-            logTurns(session, turn)
+        val batched = getReplyFlowInside(session, query, sink.targetChannel, events)
 
-            updateUserSession(session.userIdentifier, session.botInfo, session)
+        var dialogActs : List<DialogAct>? =  null
 
-            val msgMap = convertDialogActsToText(session, dialogActs, session.targetChannel)
-            sendToSink(msgMap, sink)
-            sink.flush()
+        batched.second.collect { item ->
+            dialogActs = item
+            emit(Dispatcher.convertDialogActsToText(session, dialogActs!!, session.targetChannel))
         }
 
-        firstPartTask.join()
-        secondPartTask.join()
+        val turn = batched.first
+        updateTurn(turn, dialogActs!!, session)
     }
 
 
-    /**
-     * This the place where we can remove extra prompt if we need to.
-     */
-    private fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
-        val rewrittenResponses = session.rewriteDialogAct(responses)
-        val dialogActPairs = rewrittenResponses.partition { it is UserDefinedInform<*> && it.frameType == "io.opencui.core.System1"}
-        val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
-        return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
+    private fun getReplyFlowInside(
+        session: UserSession,
+        query: String,
+        targetChannel: String? = null,
+        events: List<FrameEvent> = emptyList()
+    ) : Pair<Turn, Flow<List<DialogAct>>> {
+        session.targetChannel = if (targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(targetChannel, SideEffect.RESTFUL)
+        val res = dm.responseAsync(query, events, session)
+        val predicate : (DialogAct) -> Boolean = { item -> item is RequestForDelayDialogAct }
+        val batched = batchFirstRest(res.second, predicate)
+        return Pair(res.first, batched)
     }
 
-    private fun isDonotUnderstand(it: DialogAct): Boolean {
-        return it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt"
-    }
-
-    private fun replaceWithSystem1(orig: List<DialogAct>, system1: List<DialogAct>) : List<DialogAct> {
-        if (system1.isEmpty()) return orig
-        val deduped = orig.removeDuplicate { isDonotUnderstand(it) }
-
-        val res = mutableListOf<DialogAct>()
-        for (it in deduped) {
-            if (isDonotUnderstand(it)) {
-                res.addAll(system1)
-            } else {
-                res.add(it)
-            }
-        }
-        return res
-    }
 
     /**
      * Return the best implementation for given agentId.

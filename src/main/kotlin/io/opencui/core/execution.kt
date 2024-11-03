@@ -182,7 +182,7 @@ class DialogManager {
         session.addEvents(frameEvents)
         val actionResults = mutableListOf<ActionResult>()
         logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
-        var botOwn = session.botOwn
+        var botOwn = session.autopilotMode
 
         var maxRound = 100 // prevent one session from taking too many resources
         do {
@@ -218,7 +218,7 @@ class DialogManager {
                 }
             }
 
-            botOwn = session.botOwn
+            botOwn = session.autopilotMode
             if (--maxRound <= 0) break
         } while (currentTurnWorks.isNotEmpty())
 
@@ -266,7 +266,7 @@ class DialogManager {
 
         logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
 
-        var botOwn = session.botOwn
+        var botOwn = session.autopilotMode
         // In each round, we either consume an event, or switch the state, until no rule can be fired
         // we need to make sure there is no infinite loop (each round changes the state)
         var maxRound = 100 // prevent one session from taking too many resources
@@ -300,7 +300,7 @@ class DialogManager {
                 }
             }
 
-            botOwn = session.botOwn
+            botOwn = session.autopilotMode
             if (--maxRound <= 0) break
         } while (currentTurnWorks.isNotEmpty())
 

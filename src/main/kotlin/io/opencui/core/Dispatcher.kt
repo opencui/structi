@@ -1,15 +1,21 @@
 package io.opencui.core
 
 import io.opencui.channel.IChannel
+import io.opencui.core.da.DialogAct
+import io.opencui.core.da.UserDefinedInform
 import io.opencui.sessionmanager.SessionManager
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.support.ISupport
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.time.Duration
 import java.time.LocalDateTime
-
+import io.opencui.logger.ILogger
+import io.opencui.logger.Turn
+import kotlinx.coroutines.flow.collect
 
 /**
  * For receiving purpose, we do not need to implement this, as it is simply a rest controller
@@ -28,15 +34,15 @@ interface IManaged {
     fun handOffSession(id:String, botInfo: BotInfo, department: String) {}
 }
 
-interface Sink {
-    val targetChannel: String?
+
+interface ControlSink {
     fun markSeen(msgId: String?) {}
     fun typing() {}
+}
+
+interface Sink : ControlSink{
+    val targetChannel: String?
     fun send(msg: String)
-    fun send(session: UserSession, msg: String) {
-        session.addBotMessage(msg)
-        send(msg)
-    }
 
     // This is used for supporting fake streaming response back to client.
     // We assume the output from system2 chatbot is not super long, so we only
@@ -65,6 +71,16 @@ data class ChannelSink(
     }
 }
 
+// An extension function.
+fun Sink.send(msgMap: Map<String, List<String>>) {
+    val msg = if (targetChannel != null && !msgMap[targetChannel].isNullOrEmpty()) msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
+    if (!msg.isNullOrEmpty()) {
+        for (text in msg) {
+            send(text)
+        }
+    }
+}
+
 data class SimpleSink(override val targetChannel: String? = null): Sink {
     val messages: MutableList<String> = mutableListOf()
     override fun send(msg: String) {
@@ -72,12 +88,21 @@ data class SimpleSink(override val targetChannel: String? = null): Sink {
     }
 }
 
-data class CombinedSink(val sinks: List<Sink>, override val targetChannel: String? = null): Sink {
-    constructor(vararg  sink: Sink) : this(sink.asList())
+
+data class BatchedSink(val sink: Sink, override val targetChannel: String? = null): Sink {
+    val messages: MutableList<String> = mutableListOf()
+    var index: Int = 0
+
     override fun send(msg: String) {
-        for (sink in sinks) {
+        messages.add(msg)
+    }
+
+    // We need to batch it up,
+    override fun flush() {
+        for (msg in messages.subList(index, messages.size)) {
             sink.send(msg)
         }
+        index = messages.size
     }
 }
 
@@ -109,6 +134,52 @@ object Dispatcher {
 
     fun getSupport(botInfo: BotInfo): ISupport? {
         return getChatbot(botInfo).getExtension<ISupport>()
+    }
+
+    /**
+     * This the place where we can remove extra prompt if we need to.
+     */
+    fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
+        val rewrittenResponses = session.rewriteDialogAct(responses)
+        val dialogActPairs = rewrittenResponses.partition { it is UserDefinedInform<*> && it.frameType == "io.opencui.core.System1"}
+        val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
+        return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
+    }
+
+    private fun isDonotUnderstand(it: DialogAct): Boolean {
+        return it is UserDefinedInform<*> && it.frameType == "io.opencui.core.IDonotGetIt"
+    }
+
+    private fun replaceWithSystem1(orig: List<DialogAct>, system1: List<DialogAct>) : List<DialogAct> {
+        if (system1.isEmpty()) return orig
+        val deduped = orig.removeDuplicate { isDonotUnderstand(it) }
+
+        val res = mutableListOf<DialogAct>()
+        for (it in deduped) {
+            if (isDonotUnderstand(it)) {
+                res.addAll(system1)
+            } else {
+                res.add(it)
+            }
+        }
+        return res
+    }
+
+
+    fun logTurns(session: UserSession, turn: Turn) {
+        val turnLogger = session.chatbot!!.getExtension<ILogger>()
+        if (turnLogger != null) {
+            logger.info("record turns using turn Logger.")
+            // first update the turn so that we know who this user is talking too
+            turn.channelType = session.channelType!!
+            turn.channelLabel = session.channelLabel ?: "default"
+            turn.userId = session.userId!!
+
+            // we then log the turn
+            turnLogger.log(turn)
+        } else {
+            logger.info("Could not find the provider for ILogger")
+        }
     }
 
     fun closeSession(target: IUserIdentifier, botInfo: BotInfo) {
@@ -216,7 +287,7 @@ object Dispatcher {
 
         val channel = getChatbot(botInfo).getChannel(userInfo.channelLabel!!)
         if (channel != null) {
-            logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.botOwn}")
+            logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.autopilotMode}")
             val sink = ChannelSink(channel, userInfo.userId!!, botInfo)
 
             getReplySink(userSession, message, sink, events)
@@ -225,7 +296,7 @@ object Dispatcher {
         }
     }
 
-    fun getReplySink(userSession: UserSession, message: TextPayload? = null, sink: Sink, events: List<FrameEvent> = emptyList()) {
+    fun getReplySink(userSession: UserSession, message: TextPayload? = null, sink: Sink? = null, events: List<FrameEvent> = emptyList()) {
         val msgId = message?.msgId
 
         // if there is no msgId, or msgId is not repeated, we handle message.
@@ -243,43 +314,43 @@ object Dispatcher {
 
         val support = getSupport(botInfo)
 
-        logger.info("Support $support with hand off is based on:${userSession.botOwn}")
+        logger.info("Support $support with hand off is based on:${userSession.autopilotMode}")
 
-        if (!userSession.botOwn && support == null) {
+        if (!userSession.autopilotMode && support == null) {
             logger.info("No one own this message!!!")
             throw BadRequestException("No one own this message!!!")
         }
 
         // always try to send to support
         if (textPaylaod != null) support?.postVisitorMessage(userSession, textPaylaod)
-        if(!userSession.botOwn){
+        if(!userSession.autopilotMode){
             logger.info("$support already handed off")
             return
         }
         val query = textPaylaod?.text ?: ""
-        if (userSession.botOwn) {
+        if (userSession.autopilotMode) {
             // Let other side know that you are working on it
             logger.info("send hint...")
-            if (message?.msgId != null) {
+            if (message?.msgId != null && sink != null) {
                 sink.markSeen(message.msgId)
                 sink.typing()
             }
 
             // always add the RESTFUL just in case.
-            val sink1 = CombinedSink(sink, SimpleSink(userInfo.channelType!!))
+            val sink1 = BatchedSink(sink!!)
             sessionManager.getReplySink(userSession, query, sink1, events)
-            val msgs = (sink1.sinks[1] as SimpleSink).messages
 
-            for (msg in msgs) {
+            for (msg in sink1.messages) {
                 support?.postBotMessage(userSession, TextPayload(msg))
             }
 
-            logger.info("send $msgs to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
-            for (msg in msgs) {
+            logger.info("send ${sink1.messages} to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
+            for (msg in sink1.messages) {
                 // Channel like messenger can not take empty message.
                 val msgTrimmed = msg.trim()
-                if (!msgTrimmed.isNullOrEmpty()) {
-                    sink.send(userSession, msg)
+                if (msgTrimmed.isNotEmpty()) {
+                    userSession.addBotMessage(msg)
+                    sink.send(msg)
                 }
             }
         } else {
@@ -287,8 +358,88 @@ object Dispatcher {
             // assist mode, not need to divide into two parts.
             val sink1 = SimpleSink(userInfo.channelType!!)
             sessionManager.getReplySink(userSession, query, sink1, events)
-            val msgs = sink1.messages
-            for (msg in msgs) {
+            for (msg in sink1.messages) {
+                support.postBotMessage(userSession, msg as TextPayload)
+            }
+        }
+    }
+
+    // This is useful for phones line, maybe
+    fun getReplyFlow(
+        userSession: UserSession,
+        message: TextPayload? = null,
+        sink: ControlSink? = null,  // Only useful for markSeen
+        events: List<FrameEvent> = emptyList()): Flow<Map<String, List<String>>> = flow {
+        val msgId = message?.msgId
+
+        // if there is no msgId, or msgId is not repeated, we handle message.
+        if (msgId != null && !userSession.isFirstMessage(msgId)) {
+            logger.info("Not the first time see: $msgId")
+            return@flow
+        }
+
+        val userInfo = userSession.userIdentifier
+        val botInfo = userSession.botInfo
+        // For now, we only handle text payload, but we can add other capabilities down the road.
+        val textPaylaod = message
+
+        logger.info("Got $textPaylaod from ${userInfo.channelType}:${userInfo.channelLabel}/${userInfo.userId} for ${botInfo}")
+
+        val support = getSupport(botInfo)
+
+        logger.info("Support $support with hand off is based on:${userSession.autopilotMode}")
+
+        if (!userSession.autopilotMode && support == null) {
+            logger.info("No one own this message!!!")
+            throw BadRequestException("No one own this message!!!")
+        }
+
+        // always try to send to support
+        if (textPaylaod != null) support?.postVisitorMessage(userSession, textPaylaod)
+        if(!userSession.autopilotMode){
+            logger.info("$support already handed off")
+            return@flow
+        }
+        val query = textPaylaod?.text ?: ""
+
+        if (userSession.autopilotMode) {
+            // Let other side know that you are working on it
+
+            if (message?.msgId != null && sink != null) {
+                logger.info("send hint...")
+                sink.markSeen(message.msgId)
+                sink.typing()
+            }
+
+            // always add the RESTFUL just in case.
+            val sink1 = SimpleSink(userInfo.channelType!!)
+            val batched1 = sessionManager.getReplyFlow(userSession, query, sink1, events)
+
+            // Need to copy the messages for system1, and then emit the messages.
+            batched1.collect { item ->
+                sink1.send(item)
+                sink1.flush()
+                emit(item)
+            }
+
+            for (msg in sink1.messages) {
+                support?.postBotMessage(userSession, TextPayload(msg))
+            }
+
+            logger.info("send ${sink1.messages} to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
+            for (msg in sink1.messages) {
+                // Channel like messenger can not take empty message.
+                val msgTrimmed = msg.trim()
+                if (msgTrimmed.isNotEmpty()) {
+                    userSession.addBotMessage(msg)
+                }
+            }
+        } else {
+            if (support == null || !support.info.assist) return@flow
+            // assist mode, not need to divide into two parts.
+            val sink1 = SimpleSink(userInfo.channelType!!)
+            sessionManager.getReplySink(userSession, query, sink1, events)
+            for (msg in sink1.messages) {
                 support.postBotMessage(userSession, msg as TextPayload)
             }
         }
@@ -307,7 +458,7 @@ object Dispatcher {
 
         // remember to change botOwn to false.
         val userSession = sessionManager.getUserSession(target, botInfo)!!
-        userSession.botOwn = false
+        userSession.autopilotMode = false
 
         if (channel != null && channel is IManaged) {
             (channel as IManaged).handOffSession(target.userId!!, botInfo, department)
