@@ -17,7 +17,6 @@ import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
-import org.jetbrains.kotlin.backend.common.peek
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -415,8 +414,9 @@ data class UserSession(
     @JsonIgnore
     override val finishedIntentFiller = mutableListOf<AnnotatedWrapperFiller>()
 
-    // for support only.
-    var botOwn: Boolean = true
+    // for support only, when false, it is for copilot use case, and reply does not go to end user directly
+    // instead generated for the support to look at.
+    var autopilotMode: Boolean = true
 
     fun searchContext(candidateClass: List<String>): List<Any> {
         val result = mutableListOf<Any>()
