@@ -94,25 +94,6 @@ data class SimpleSink(override val targetChannel: String? = null): Sink {
     }
 }
 
-
-data class BatchedSink(val sink: Sink, override val targetChannel: String? = null): Sink {
-    val messages: MutableList<String> = mutableListOf()
-    var index: Int = 0
-
-    override fun send(msg: String) {
-        messages.add(msg)
-    }
-
-    // We need to batch it up,
-    override fun flush() {
-        for (msg in messages.subList(index, messages.size)) {
-            sink.send(msg)
-        }
-        index = messages.size
-    }
-}
-
-
 //
 // Dispatcher can be used to different restful controller to provide conversational
 // interface for various channel.
@@ -342,7 +323,7 @@ object Dispatcher {
             }
 
             // always add the RESTFUL just in case.
-            val sink1 = BatchedSink(sink!!)
+            val sink1 = SimpleSink(sink!!.targetChannel)
             sessionManager.getReplySink(userSession, query, sink1, events)
 
             for (msg in sink1.messages) {
