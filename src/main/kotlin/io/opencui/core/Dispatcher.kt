@@ -36,12 +36,18 @@ interface IManaged {
 
 
 interface ControlSink {
+    val targetChannel: String?
     fun markSeen(msgId: String?) {}
     fun typing() {}
 }
 
+
+// This is useful to create type sink.
+data class TypeSink(
+    override val targetChannel: String) : ControlSink
+
+
 interface Sink : ControlSink{
-    val targetChannel: String?
     fun send(msg: String)
 
     // This is used for supporting fake streaming response back to client.
@@ -361,6 +367,27 @@ object Dispatcher {
             for (msg in sink1.messages) {
                 support.postBotMessage(userSession, msg as TextPayload)
             }
+        }
+    }
+
+    fun convert(msgMapFlow: Flow<Map<String, List<String>>>, targetChannel: String): Flow<String> = flow {
+        msgMapFlow.collect { msgMap ->
+            val msgs =  if (msgMap.containsKey(targetChannel))  msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
+            emit(msgs?.joinToString(" ") ?: "")
+        }
+    }
+
+    // This is used to process the inbound messages, thus use Main as context. In a sync fashion.
+    fun processInboundFlow(userInfo: IUserIdentifier, botInfo: BotInfo, message: TextPayload, sink: ControlSink? = null) : Flow<String> {
+        logger.info("process $userInfo: $botInfo with message: $message")
+        if (getUserSession(userInfo, botInfo) == null) {
+            val userSession = createUserSession(userInfo, botInfo)
+            // start the conversation from the Main.
+            val events = listOf(FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}"))
+            return convert(getReplyFlow(userSession, message, sink, events), sink!!.targetChannel!!)
+        }else{
+            val userSession = getUserSession(userInfo, botInfo)!!
+            return convert(getReplyFlow(userSession, message, sink), sink!!.targetChannel!!)
         }
     }
 
