@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.memberProperties
+import kotlin.time.Duration
 
 
 inline fun<T> timing(msg: String, function: () -> T): T {
@@ -52,6 +53,35 @@ suspend fun <T> Flow<T>.takeFirst(predicate: suspend (T) -> Boolean): T? {
         null // Return null if no element meets the predicate
     }
 }
+
+
+fun <T> Flow<T>.bufferUntilOrTimeout(
+    timeout: Duration,
+    predicate: (T) -> Boolean
+): Flow<List<T>> = flow {
+    val buffer = mutableListOf<T>()
+    val startTime = System.currentTimeMillis()
+
+    this@bufferUntilOrTimeout.collect { item ->
+        buffer.add(item)
+
+        // Check predicate and emit buffered items if met
+        if (predicate(item)) {
+            emit(buffer.toList())
+            buffer.clear()
+        }
+
+        // Check timeout
+        if ((System.currentTimeMillis() - startTime) >= timeout.inWholeMilliseconds) {
+            if (buffer.isNotEmpty()) emit(buffer.toList())
+            buffer.clear()
+        }
+    }
+
+    // Emit remaining items at the end of the flow
+    if (buffer.isNotEmpty()) emit(buffer.toList())
+}
+
 
 /**
  * DialogManager is used to drive a statechart configured by builder using input event created by end user.

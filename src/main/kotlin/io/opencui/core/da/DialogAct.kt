@@ -33,6 +33,10 @@ interface SlotDialogAct: DialogAct {
     val context: List<IFrame>
 }
 
+// Let's use this to separate the dialog acts into two parts. So that we can hint user with the
+// potential delay that will come up.
+interface RequestForDelayDialogAct: DialogAct {}
+
 interface FrameDialogAct: DialogAct {
     val frameType: String
 }
@@ -219,8 +223,17 @@ data class ForwardDialogAct(val msg: String): DialogAct {
      override var templates: Templates = templateOf(msg)
 }
 
-// Let's use this to separate the dialog acts into two parts. So that we can hint user with the
-// potential delay that will come up.
-data class RequestForDelayDialogAct(val msg: String): DialogAct {
+// This is used during the slot asking,
+data class AskRequestForDelayDialogAct(val msg: String): RequestForDelayDialogAct {
+    override var templates: Templates = templateOf(msg)
+}
+
+// This is used after the slot asking, when we need to check the user response.
+data class FillRequestForDelayDialogAct(val msg: String): RequestForDelayDialogAct {
+    override var templates: Templates = templateOf(msg)
+}
+
+// This is used if we need before we execute the response, that might take a bit of time.
+data class ResponseRequestForDelayDialogAct(val msg: String): RequestForDelayDialogAct {
     override var templates: Templates = templateOf(msg)
 }
