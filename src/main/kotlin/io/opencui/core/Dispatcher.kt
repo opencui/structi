@@ -16,6 +16,7 @@ import java.time.LocalDateTime
 import io.opencui.logger.ILogger
 import io.opencui.logger.Turn
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.runBlocking
 
 /**
  * For receiving purpose, we do not need to implement this, as it is simply a rest controller
@@ -324,8 +325,15 @@ object Dispatcher {
 
             // always add the RESTFUL just in case.
             val sink1 = SimpleSink(sink!!.targetChannel)
-            sessionManager.getReplySink(userSession, query, sink1, events)
+            val batched = sessionManager.getReplyFlow(userSession, query, sink1, events)
+            runBlocking {
+                batched.collect { item ->
+                    sink1.send(item)
+                    sink1.flush()
+                }
+            }
 
+            // Replicate to support  if we have it.
             for (msg in sink1.messages) {
                 support?.postBotMessage(userSession, TextPayload(msg))
             }
@@ -343,7 +351,13 @@ object Dispatcher {
             if (support == null || !support.info.assist) return
             // assist mode, not need to divide into two parts.
             val sink1 = SimpleSink(userInfo.channelType!!)
-            sessionManager.getReplySink(userSession, query, sink1, events)
+            val batched = sessionManager.getReplyFlow(userSession, query, sink1, events)
+            runBlocking {
+                batched.collect { item ->
+                    sink1.send(item)
+                    sink1.flush()
+                }
+            }
             for (msg in sink1.messages) {
                 support.postBotMessage(userSession, msg as TextPayload)
             }
@@ -445,7 +459,13 @@ object Dispatcher {
             if (support == null || !support.info.assist) return@flow
             // assist mode, not need to divide into two parts.
             val sink1 = SimpleSink(userInfo.channelType!!)
-            sessionManager.getReplySink(userSession, query, sink1, events)
+            val batched = sessionManager.getReplyFlow(userSession, query, sink1, events)
+            runBlocking {
+                batched.collect { item ->
+                    sink1.send(item)
+                    sink1.flush()
+                }
+            }
             for (msg in sink1.messages) {
                 support.postBotMessage(userSession, msg as TextPayload)
             }
