@@ -277,89 +277,19 @@ object Dispatcher {
         if (channel != null) {
             logger.info("Get channel: ${channel.info.toString()} with botOwn=${userSession.autopilotMode}")
             val sink = ChannelSink(channel, userInfo.userId!!, botInfo, userInfo.channelType)
-            getReplySink(userSession, message, sink, events)
+            getReplySink(userSession, sink, message, events)
         } else {
             logger.error("could not find ${userInfo.channelLabel}")
         }
     }
 
-    fun getReplySink(userSession: UserSession, message: TextPayload? = null, sink: Sink? = null, events: List<FrameEvent> = emptyList()) {
-        val msgId = message?.msgId
-
-        // if there is no msgId, or msgId is not repeated, we handle message.
-        if (msgId != null && !userSession.isFirstMessage(msgId)) {
-            logger.info("Not the first time see: $msgId")
-            return
-        }
-
-        val userInfo = userSession.userIdentifier
-        val botInfo = userSession.botInfo
-        // For now, we only handle text payload, but we can add other capabilities down the road.
-        val textPaylaod = message
-
-        logger.info("Got $textPaylaod from ${userInfo.channelType}:${userInfo.channelLabel}/${userInfo.userId} for ${botInfo}")
-
-        val support = getSupport(botInfo)
-
-        logger.info("Support $support with hand off is based on:${userSession.autopilotMode}")
-
-        if (!userSession.autopilotMode && support == null) {
-            logger.info("No one own this message!!!")
-            throw BadRequestException("No one own this message!!!")
-        }
-
-        // always try to send to support
-        if (textPaylaod != null) support?.postVisitorMessage(userSession, textPaylaod)
-        if(!userSession.autopilotMode){
-            logger.info("$support already handed off")
-            return
-        }
-        val query = textPaylaod?.text ?: ""
-        if (userSession.autopilotMode) {
-            // Let other side know that you are working on it
-            logger.info("send hint...")
-            if (message?.msgId != null && sink != null) {
-                sink.markSeen(message.msgId)
-                sink.typing()
-            }
-
-            // always add the RESTFUL just in case.
-            val sink1 = SimpleSink(sink!!.targetChannel)
-            val batched = sessionManager.getReplyFlow(userSession, query, sink1, events)
-            runBlocking {
-                batched.collect { item ->
-                    sink1.send(item)
-                    sink1.flush()
-                }
-            }
-
-            // Replicate to support  if we have it.
-            for (msg in sink1.messages) {
-                support?.postBotMessage(userSession, TextPayload(msg))
-            }
-
-            logger.info("send ${sink1.messages} to ${userInfo.channelType}/${userInfo.userId} from ${botInfo}")
-            for (msg in sink1.messages) {
-                // Channel like messenger can not take empty message.
-                val msgTrimmed = msg.trim()
-                if (msgTrimmed.isNotEmpty()) {
-                    userSession.addBotMessage(msg)
-                    sink.send(msg)
-                }
-            }
-        } else {
-            if (support == null || !support.info.assist) return
-            // assist mode, not need to divide into two parts.
-            val sink1 = SimpleSink(userInfo.channelType!!)
-            val batched = sessionManager.getReplyFlow(userSession, query, sink1, events)
-            runBlocking {
-                batched.collect { item ->
-                    sink1.send(item)
-                    sink1.flush()
-                }
-            }
-            for (msg in sink1.messages) {
-                support.postBotMessage(userSession, msg as TextPayload)
+    fun getReplySink(userSession: UserSession, sink: Sink, message: TextPayload? = null,  events: List<FrameEvent> = emptyList()) {
+        val targetChannel = sink.targetChannel!!
+        val msgMapFlow = getReplyFlow(userSession, message, sink, events)
+        runBlocking {
+            msgMapFlow.collect { msgMap ->
+                val msgs =  if (msgMap.containsKey(targetChannel))  msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
+                sink.send(msgs?.joinToString(" ") ?: "")
             }
         }
     }
