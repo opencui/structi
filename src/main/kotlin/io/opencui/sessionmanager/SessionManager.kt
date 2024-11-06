@@ -207,21 +207,6 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         return Dispatcher.convertDialogActsToText(session, dialogActs, session.targetChannel)
     }
 
-    fun getReplySink(
-        session: UserSession,
-        query: String,
-        sink: Sink,
-        events: List<FrameEvent> = emptyList()
-    ) {
-        val batched = getReplyFlow(session, query, sink, events)
-        runBlocking {
-            batched.collect { item ->
-                sink.send(item)
-                sink.flush()
-            }
-        }
-    }
-
     fun getReplyFlow(
         session: UserSession,
         query: String,
