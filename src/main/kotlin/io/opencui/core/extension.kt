@@ -2,7 +2,6 @@ package io.opencui.core
 
 import io.opencui.channel.IChannel
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.core.user.UserInfo
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlin.reflect.KClass
@@ -12,10 +11,12 @@ import kotlin.reflect.KClass
  * Section for configuration.
  */
 interface IExtension {
+    fun getConfiguration(): Configuration?  = null
     fun cloneForSession(userSession: UserSession): IExtension {
         return this
     }
 }
+
 
 // The configurable should be able to used in old way, and property way.
 open class Configuration(val label: String): Serializable, HashMap<String, Any>() {
@@ -35,6 +36,8 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     val assist: Boolean
         get() = this["assist"] == true
 
+    val _public_keys: Set<String> = (this["_public_keys"] as String?)?.split(",")?.toSet() ?: emptySet()
+
     // For templated provider.
     val conn: String
         get() = this["conn"]!! as String
@@ -44,6 +47,14 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
 
     override fun toString(): String {
         return """$label:${super.toString()}"""
+    }
+
+    fun getSetting(key: String): Any? {
+        return if (key in _public_keys) {
+            return super.get(key)
+        } else {
+            null
+        }
     }
 
     fun id() : String = "$label"
