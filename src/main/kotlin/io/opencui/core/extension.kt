@@ -2,7 +2,6 @@ package io.opencui.core
 
 import io.opencui.channel.IChannel
 import io.opencui.core.user.IUserIdentifier
-import io.opencui.core.user.UserInfo
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlin.reflect.KClass
@@ -37,7 +36,7 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     val assist: Boolean
         get() = this["assist"] == true
 
-    val public_keys: Set<String> = (this["public_keys"] as String).split(",").toSet()
+    val _public_keys: Set<String> = (this["_public_keys"] as String?)?.split(",")?.toSet() ?: emptySet()
 
     // For templated provider.
     val conn: String
@@ -51,7 +50,7 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     }
 
     fun getSetting(key: String): Any? {
-        return if (key in public_keys) {
+        return if (key in _public_keys) {
             return super.get(key)
         } else {
             null
