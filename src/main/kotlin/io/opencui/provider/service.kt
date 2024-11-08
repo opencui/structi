@@ -13,6 +13,7 @@ interface Closable {
 }
 
 interface IConnection: Closable, IExtension {
+    val cfg: Configuration
     fun <T> svInvoke(
         providerMeta: Map<String, String>,
         functionMeta: Map<String, Any?>,
@@ -31,12 +32,15 @@ interface IConnection: Closable, IExtension {
 // Templated provider will have connection.
 interface ITemplatedProvider : IProvider {
     var provider : IConnection?
+    override fun getConfiguration(): Configuration? {
+        return provider?.cfg
+    }
 }
 
 class ProviderInvokeException(msg: String): Exception(msg)
 
 // This connection is mainly used for make writing testing easy.
-data class SqlConnection(val cfg: Configuration) : IConnection {
+data class SqlConnection(override val cfg: Configuration) : IConnection {
 
     val url = cfg.url
     val user = cfg["user"]!! as String
