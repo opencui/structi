@@ -1,49 +1,89 @@
 package io.opencui.core
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.du.*
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
+import java.time.LocalDateTime
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
 
 
-data class BadConfiguration(val error: String) : Exception() {}
-
+// We often need to handle
 enum class RelationType {
     EQUAL, NOTEQUAL, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
 }
 
 
 // This is the serialized condition.
-data class Criterion<T>(val relation: RelationType, val reference: T)
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
+@JsonDeserialize(using = CriterionDeserializer::class)
+data class Criterion<T>(val relation: RelationType, val reference: T) {
+    constructor(condition: String, ref: T) : this(RelationType.valueOf(condition), ref)
+}
 
-//  This is used to save the condition
-fun <T: Comparable<T>> Criterion<T>.compatible(value: T) : Boolean {
-    return when (this.relation) {
-        RelationType.EQUAL -> value == reference
-        RelationType.NOTEQUAL -> value != reference
-        RelationType.LESSTHAN -> value < reference
-        RelationType.LESSTHANEQUALTO -> value <= reference
-        RelationType.GREATERTHAN -> value > reference
-        RelationType.GREATERTHANQUALTO -> value >= reference
+object CriterionDeserializer : JsonDeserializer<Criterion<*>>() {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Criterion<*> {
+        val node: ObjectNode = p.codec.readTree(p)
+
+        // Extract the type parameter information
+        val paramType = node.get("@param").asText()
+        val condition = node.get("relation").asText()
+        val reference = node.get("reference")
+        val referenceParser = reference.traverse()
+        referenceParser.codec = p.codec
+
+        // Determine the class type for `value` based on `@param_type`
+        val value = when (paramType) {
+            "Int" -> reference.asInt()
+            "String" -> reference.asText()
+            "Float" -> reference.floatValue()
+            "Double" -> reference.doubleValue()
+            "Boolean" -> reference.booleanValue()
+            "LocalDateTime" -> ctxt.readValue(referenceParser, LocalDateTime::class.java)
+            else -> throw IllegalArgumentException("Unsupported type: $paramType")
+        }
+
+        return Criterion(condition, value)
     }
 }
 
-
-fun <T: Any> Criterion<T>.match(value: T) : Boolean {
-    return when (this.relation) {
-        RelationType.EQUAL -> value == reference
-        RelationType.NOTEQUAL -> value != reference
-        RelationType.LESSTHAN -> TODO()
-        RelationType.LESSTHANEQUALTO -> TODO()
-        RelationType.GREATERTHAN -> TODO()
-        RelationType.GREATERTHANQUALTO -> TODO()
+fun Criterion<*>.compatible(value: Any) : Boolean {
+    return if (value is Comparable<*> && reference is Comparable<*>) {
+        val comparableValue = value as Comparable<Any>
+        val comparableReference = reference as Comparable<Any>
+        when (this.relation) {
+            RelationType.EQUAL -> value == reference
+            RelationType.NOTEQUAL -> value != reference
+            RelationType.LESSTHAN -> value < reference
+            RelationType.LESSTHANEQUALTO -> value <= reference
+            RelationType.GREATERTHAN -> value > reference
+            RelationType.GREATERTHANQUALTO -> value >= reference
+        }
+    } else {
+        when (this.relation) {
+            RelationType.EQUAL -> value == reference
+            RelationType.NOTEQUAL -> value != reference
+            else -> throw IllegalArgumentException("Unsupported type: $value")
+        }
     }
+}
+
+fun List<Criterion<*>>.compatible(value: Any) : Boolean {
+    for (criterion in this) {
+        if (!criterion.compatible(value)) return false
+    }
+    return true
 }
 
 
