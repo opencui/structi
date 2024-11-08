@@ -14,6 +14,38 @@ import kotlin.reflect.jvm.isAccessible
 
 data class BadConfiguration(val error: String) : Exception() {}
 
+enum class RelationType {
+    EQUAL, NOTEQUAL, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
+}
+
+
+// This is the serialized condition.
+data class Criterion<T>(val relation: RelationType, val reference: T)
+
+//  This is used to save the condition
+fun <T: Comparable<T>> Criterion<T>.compatible(value: T) : Boolean {
+    return when (this.relation) {
+        RelationType.EQUAL -> value == reference
+        RelationType.NOTEQUAL -> value != reference
+        RelationType.LESSTHAN -> value < reference
+        RelationType.LESSTHANEQUALTO -> value <= reference
+        RelationType.GREATERTHAN -> value > reference
+        RelationType.GREATERTHANQUALTO -> value >= reference
+    }
+}
+
+
+fun <T: Any> Criterion<T>.match(value: T) : Boolean {
+    return when (this.relation) {
+        RelationType.EQUAL -> value == reference
+        RelationType.NOTEQUAL -> value != reference
+        RelationType.LESSTHAN -> TODO()
+        RelationType.LESSTHANEQUALTO -> TODO()
+        RelationType.GREATERTHAN -> TODO()
+        RelationType.GREATERTHANQUALTO -> TODO()
+    }
+}
+
 
 /**
  *

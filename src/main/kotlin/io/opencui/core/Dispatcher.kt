@@ -289,7 +289,11 @@ object Dispatcher {
         runBlocking {
             msgMapFlow.collect { msgMap ->
                 val msgs =  if (msgMap.containsKey(targetChannel))  msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
-                sink.send(msgs?.joinToString(" ") ?: "")
+                if (msgs != null) {
+                    for (msg in msgs) {
+                        sink.send(msg)
+                    }
+                }
             }
         }
     }
@@ -297,7 +301,11 @@ object Dispatcher {
     fun convert(msgMapFlow: Flow<Map<String, List<String>>>, targetChannel: String): Flow<String> = flow {
         msgMapFlow.collect { msgMap ->
             val msgs =  if (msgMap.containsKey(targetChannel))  msgMap[targetChannel] else msgMap[SideEffect.RESTFUL]
-            emit(msgs?.joinToString(" ") ?: "")
+            if (msgs != null) {
+                for (msg in msgs) {
+                    emit(msg)
+                }
+            }
         }
     }
 
