@@ -9,10 +9,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import io.opencui.core.IFrame
-import io.opencui.core.IEntity
-import io.opencui.core.UserSession
-import io.opencui.core.useClassLoader
+import io.opencui.core.*
 import java.io.*
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -140,6 +137,10 @@ object Json {
             }
         )
 
+        // For now, we only handles the deserialization of Criterion<T>.
+        module.addDeserializer(Criterion::class.java, CriterionDeserializer)
+
+
         module.addSerializer(
             OffsetDateTime::class.java,
             object: JsonSerializer<OffsetDateTime>() {
@@ -180,6 +181,11 @@ object Json {
     fun <T: Any> decodeFromString(s: String, kClass: KClass<T>): T {
         return mapper.readValue(s, kClass.java) as T
     }
+
+    fun <T: Any> decodeFromStringJava(s: String, kClass: Class<T>): T {
+        return mapper.readValue(s, kClass) as T
+    }
+
 
     fun <T: Any> decodeFromString(s: String, kClass: KClass<T>, classLoader: ClassLoader): T {
          return useClassLoader(classLoader) { mapper.readValue(s, kClass.java) as T }

@@ -1,9 +1,10 @@
 package io.opencui.serialization
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.node.TextNode
+import io.opencui.core.Criterion
+import io.opencui.core.compatible
 import io.opencui.test.MoreBasics
 import io.opencui.test.PayMethod
 
@@ -215,5 +216,26 @@ class SerializationTest {
         val tableInJson = """{"@class":"io.opencui.serialization.Table", "name":"Chang", "size":6}"""
         val table = Json.decodeFromString<Resource>(tableInJson)
         assertEquals(table.toString(), """{"@class":"Table", "size":6, "name":"Chang"}""")
+    }
+
+    @Test
+    fun testCriterion1() {
+        val valJson = """{"@class": "io.opencui.core.Criterion", "@param":"Int", "reference": 2, "relation": "LESSTHAN"}"""
+        val criterion = Json.decodeFromString<Criterion<*>>(valJson)
+
+        assert(!criterion.compatible(5))
+        assert(!criterion.compatible(2))
+        assert(criterion.compatible(1))
+        println(criterion)
+    }
+
+    @Test
+    fun testCriterion2() {
+        val valJson = """[{"@class": "io.opencui.core.Criterion", "@param":"Int", "reference": 8, "relation": "LESSTHAN"},{"@class": "io.opencui.core.Criterion", "@param":"Int", "reference": 2, "relation": "GREATERTHAN"}]"""
+        val criteria = Json.decodeFromString<List<Criterion<*>>>(valJson)
+        assert(!criteria.compatible(9))
+        assert(criteria.compatible(5))
+        assert(!criteria.compatible(2))
+        println(criteria)
     }
 }
