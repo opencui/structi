@@ -39,6 +39,11 @@ interface IChannel : IExtension {
     fun sendWhitePayload(id: String, rawMessage: IWhitePayload, botInfo: BotInfo, source: IUserIdentifier? = null): IChannel.Status
     fun sendRawPayload(uid: String, rawMessage: JsonObject, botInfo: BotInfo, source: IUserIdentifier? = null): IChannel.Status
 
+    // Channel is the runtime facing abstraction. We also need to connect, this is typically
+    // triggered externally in an operational environment, outside the agent life cycle, for outbound purpose.
+    // After this is triggered, the third party will connect to companion controllers as usual.
+    fun connect(id: String, botInfo: BotInfo? = null) {}
+
     // this is used to let client know that bot/agent decide to close the session.
-    fun close(id: String, botInfo: BotInfo) {}
+    fun close(id: String, botInfo: BotInfo? = null) {}
 }
