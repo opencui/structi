@@ -10,6 +10,7 @@ import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.du.*
+import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
 import java.time.LocalDateTime
@@ -21,15 +22,29 @@ import kotlin.reflect.jvm.isAccessible
 
 // We often need to handle
 enum class RelationType {
-    EQUAL, NOTEQUAL, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO
+    EQUAL, NOTEQUAL, LESSTHAN, LESSTHANEQUALTO, GREATERTHAN, GREATERTHANQUALTO;
+
+    companion object {
+        private val listRelations = setOf(RelationType.EQUAL, RelationType.NOTEQUAL)
+        fun isListCompatible(relationType: RelationType) = relationType in listRelations
+    }
 }
 
 
 // This is the serialized condition.
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 @JsonDeserialize(using = CriterionDeserializer::class)
-data class Criterion<T>(val relation: RelationType, val reference: T) {
-    constructor(condition: String, ref: T) : this(RelationType.valueOf(condition), ref)
+data class Criterion<T>(val relation: RelationType, val reference: T?, val references: List<T>?) {
+    constructor(condition: String, ref: T) : this(RelationType.valueOf(condition), ref, null)
+    constructor(condition: String, refs: List<T>) : this(RelationType.valueOf(condition), null, refs)
+    init {
+        if (RelationType.isListCompatible(relation)) {
+            check(references != null && reference == null)
+        } else {
+            check(references == null && reference != null)
+        }
+    }
+
 }
 
 object CriterionDeserializer : JsonDeserializer<Criterion<*>>() {
@@ -39,41 +54,52 @@ object CriterionDeserializer : JsonDeserializer<Criterion<*>>() {
         // Extract the type parameter information
         val paramType = node.get("@param").asText()
         val condition = node.get("relation").asText()
-        val reference = node.get("reference")
-        val referenceParser = reference.traverse()
-        referenceParser.codec = p.codec
+        val relation = RelationType.valueOf(condition)
 
         // Determine the class type for `value` based on `@param_type`
-        val value = when (paramType) {
-            "Int" -> reference.asInt()
-            "String" -> reference.asText()
-            "Float" -> reference.floatValue()
-            "Double" -> reference.doubleValue()
-            "Boolean" -> reference.booleanValue()
-            "LocalDateTime" -> ctxt.readValue(referenceParser, LocalDateTime::class.java)
-            else -> throw IllegalArgumentException("Unsupported type: $paramType")
+        if (!RelationType.isListCompatible(relation)) {
+            val reference = node.get("reference")
+            val value = when (paramType) {
+                "Int" -> Json.decodeFromJsonElement<Int>(reference)
+                "String" -> Json.decodeFromJsonElement<String>(reference)
+                "Float" -> Json.decodeFromJsonElement<Float>(reference)
+                "Double" -> Json.decodeFromJsonElement<Double>(reference)
+                "Boolean" -> Json.decodeFromJsonElement<Boolean>(reference)
+                "LocalDateTime" -> Json.decodeFromJsonElement<LocalDateTime>(reference)
+                else -> throw IllegalArgumentException("Unsupported type: $paramType")
+            }
+            return Criterion(condition, value)
+        } else {
+            val references = node.get("references")
+            val values = when (paramType) {
+                "Int" -> Json.decodeFromJsonElement<List<Int>>(references)
+                "String" -> Json.decodeFromJsonElement<List<String>>(references)
+                "Float" -> Json.decodeFromJsonElement<List<Float>>(references)
+                "Double" -> Json.decodeFromJsonElement<List<Double>>(references)
+                "Boolean" -> Json.decodeFromJsonElement<List<Boolean>>(references)
+                "LocalDateTime" -> Json.decodeFromJsonElement<List<LocalDateTime>>(references)
+                else -> throw IllegalArgumentException("Unsupported type: $paramType")
+            }
+            return Criterion(condition, values)
         }
-
-        return Criterion(condition, value)
     }
 }
 
 fun Criterion<*>.compatible(value: Any) : Boolean {
-    return if (value is Comparable<*> && reference is Comparable<*>) {
-        val comparableValue = value as Comparable<Any>
-        val comparableReference = reference as Comparable<Any>
+    return if (!RelationType.isListCompatible(relation)) {
+        value as Comparable<Any>
+        reference!! as Comparable<Any>
         when (this.relation) {
-            RelationType.EQUAL -> value == reference
-            RelationType.NOTEQUAL -> value != reference
             RelationType.LESSTHAN -> value < reference
             RelationType.LESSTHANEQUALTO -> value <= reference
             RelationType.GREATERTHAN -> value > reference
             RelationType.GREATERTHANQUALTO -> value >= reference
+            else -> throw IllegalArgumentException("Unsupported type: $value")
         }
     } else {
         when (this.relation) {
-            RelationType.EQUAL -> value == reference
-            RelationType.NOTEQUAL -> value != reference
+            RelationType.EQUAL -> references!!.find { it == value } != null
+            RelationType.NOTEQUAL -> references!!.find { it == value } == null
             else -> throw IllegalArgumentException("Unsupported type: $value")
         }
     }

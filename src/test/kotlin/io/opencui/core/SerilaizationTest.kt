@@ -238,4 +238,22 @@ class SerializationTest {
         assert(!criteria.compatible(2))
         println(criteria)
     }
+
+    @Test
+    fun testCriterion3() {
+        val valJson = """[{"@class": "io.opencui.core.Criterion", "@param":"Int", "references": [8, 9], "relation": "EQUAL"}]"""
+        val criteria = Json.decodeFromString<List<Criterion<*>>>(valJson)
+        assert(criteria.compatible(9))
+        assert(!criteria.compatible(2))
+        println(criteria)
+    }
+
+    @Test
+    fun testCriterion4() {
+        val valJson = """[{"@class": "io.opencui.core.Criterion", "@param":"Int", "references": [8, 9], "relation": "NOTEQUAL"}]"""
+        val criteria = Json.decodeFromString<List<Criterion<*>>>(valJson)
+        assert(!criteria.compatible(9))
+        assert(criteria.compatible(2))
+        println(criteria)
+    }
 }
