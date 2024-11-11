@@ -112,7 +112,7 @@ object Dispatcher {
     // This is used to make sure that we have a singleton to start the task.
     val timer = Timer()
 
-    var botPrefix: String? = null
+
     // this is deployment wide parameter.
     var memoryBased: Boolean = true
 
@@ -122,6 +122,22 @@ object Dispatcher {
 
     fun getSupport(botInfo: BotInfo): ISupport? {
         return getChatbot(botInfo).getExtension<ISupport>()
+    }
+
+    // This is the part we make each instance only serve one bot.
+    // We also only serve one version for now, so a/b test need to be handled by knative.
+    private var botPrefix: String? = null
+
+    fun getBotPrefix(): String? = botPrefix
+    fun setBotPrefix(pBotPrefix: String) {
+        this.botPrefix = pBotPrefix
+    }
+
+    fun master(lang: String = "*") : BotInfo {
+        return object : BotInfo {
+            override val fullName =  botPrefix!!
+            override val lang = lang
+            override val branch = "master" }
     }
 
     /**

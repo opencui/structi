@@ -245,30 +245,27 @@ interface BotInfo: Serializable {
     val branch: String
 }
 
-fun master(lang: String = "*") : BotInfo {
-    return object : BotInfo {
-        override val fullName =  Dispatcher.botPrefix!!
-        override val lang = lang
-        override val branch = "master" }
-}
 fun botInfo(fullName: String) : BotInfo {
     return object : BotInfo {
         override val fullName =  fullName
         override val lang = "*"
         override val branch = "master" }
 }
+
 fun botInfo(org: String, bot: String) : BotInfo {
     return object : BotInfo {
         override val fullName =  "${org}.${bot}"
         override val lang = "*"
         override val branch = "master" }
 }
+
 fun botInfo(fullName: String, lang: String, branch: String) : BotInfo {
     return object : BotInfo {
         override val fullName =  fullName
         override val lang = lang
         override val branch = branch }
 }
+
 fun botInfo(org: String, bot: String, lang: String, branch: String) : BotInfo {
     return object : BotInfo {
         override val fullName =  "${org}.${bot}"
