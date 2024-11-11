@@ -126,16 +126,16 @@ object Dispatcher {
 
     // This is the part we make each instance only serve one bot.
     // We also only serve one version for now, so a/b test need to be handled by knative.
-    private var botPrefix: String? = null
+    private var _botPrefix: String? = null
 
-    fun getBotPrefix(): String? = botPrefix
+    fun getBotPrefix(): String? = _botPrefix
     fun setBotPrefix(pBotPrefix: String) {
-        this.botPrefix = pBotPrefix
+        this._botPrefix = pBotPrefix
     }
 
     fun master(lang: String = "*") : BotInfo {
         return object : BotInfo {
-            override val fullName =  botPrefix!!
+            override val fullName =  _botPrefix!!
             override val lang = lang
             override val branch = "master" }
     }
