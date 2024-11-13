@@ -12,6 +12,11 @@ import kotlin.reflect.KClass
  */
 interface IExtension {
     fun getConfiguration(): Configuration?  = null
+
+    fun getSetting(key: String): Any?  {
+        return getConfiguration()?.get(key)
+    }
+
     fun cloneForSession(userSession: UserSession): IExtension {
         return this
     }
