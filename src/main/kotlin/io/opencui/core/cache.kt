@@ -134,17 +134,16 @@ interface Recyclable {
 /**
  * Add support for the common function cache.
  */
-class CachedMethod1<A, out R>(val f: (A) -> List<R>, expireTimeInSeconds: Int = 60) : (A) -> List<R> {
+class CachedMethod1<A, out R>(val f: (A) -> List<R>, val expireTimeInSeconds: Int = 60) : (A) -> List<R> {
     val values: MutableMap<A, Pair<List<@UnsafeVariance R>, LocalDateTime>> = mutableMapOf()
-    private val seconds = expireTimeInSeconds
 
     override fun invoke(a: A): List<R> {
         val input = a
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a")
-        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
+        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
-            values.put(input, Pair(f(a), LocalDateTime.now()))
+            values[input] = Pair(f(a), LocalDateTime.now())
         }
         return values[input]!!.first
     }
@@ -156,16 +155,15 @@ class CachedMethod1<A, out R>(val f: (A) -> List<R>, expireTimeInSeconds: Int = 
 
 
 class CachedMethod2<A, B, out R>(
-    val f: (A, B) -> List<R>, expireTimeInSeconds: Int = 60) : (A, B) -> List<R> {
+    val f: (A, B) -> List<R>, val expireTimeInSeconds: Int = 60) : (A, B) -> List<R> {
     val values: MutableMap<Pair<A, B>, Pair<List<@UnsafeVariance R>, LocalDateTime>> = mutableMapOf()
-    private val seconds = expireTimeInSeconds
     override fun invoke(a: A, b: B): List<R> {
         val input = Pair(a, b)
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a, $b")
-        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
+        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
-            values.put(input, Pair(f(a, b), LocalDateTime.now()))
+            values[input] = Pair(f(a, b), LocalDateTime.now())
         }
         return values[input]!!.first
     }
@@ -177,17 +175,16 @@ class CachedMethod2<A, B, out R>(
 }
 
 
-class CachedMethod3<A, B, C, out R>(
-    val f: (A, B, C) -> List<R>, expireTimeInSeconds: Int = 60) : (A, B, C) -> List<R> {
+data class CachedMethod3<A, B, C, out R>(
+    val f: (A, B, C) -> List<R>, val expireTimeInSeconds: Int = 60) : (A, B, C) -> List<R> {
     val values: MutableMap<Triple<A, B, C>, Pair<List<@UnsafeVariance R>, LocalDateTime>> = mutableMapOf()
-    private val seconds = expireTimeInSeconds
     override fun invoke(a: A, b: B, c: C): List<R> {
         val input = Triple(a, b, c)
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a, $b, $c")
-        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
+        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
-            values.put(input, Pair(f(a, b, c), LocalDateTime.now()))
+            values[input] = Pair(f(a, b, c), LocalDateTime.now())
         }
         return values[input]!!.first
     }

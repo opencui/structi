@@ -833,6 +833,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         needResponse = false
     }
 
+    var startedFill = false
+
     fun directlyFill(a: Any) {
         val ltarget = (targetFiller as TypedFiller<in Any>).target
         val vtarget = ltarget.get()
@@ -973,12 +975,16 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     val confirmDone: Boolean
         get() {
-            val confirmFrame = path!!.findAll<ConfirmationAnnotation>().firstOrNull()?.confirmFrameGetter?.invoke()
-            val decorativeConfirm = targetFiller
-                .decorativeAnnotations
-                .firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
             val confirmFrameList = mutableListOf<IFrame>()
-            if (confirmFrame != null) confirmFrameList += confirmFrame
+            if (startedFill) {
+                val confirmFrame = path!!.findAll<ConfirmationAnnotation>().firstOrNull()?.confirmFrameGetter?.invoke()
+                if (confirmFrame != null) confirmFrameList += confirmFrame
+            }
+            val decorativeConfirm =
+                targetFiller
+                    .decorativeAnnotations
+                    .firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
+
             if (decorativeConfirm != null) confirmFrameList += decorativeConfirm
             val currentFrames = confirmationFillers.mapNotNull { (it.targetFiller as? FrameFiller<*>)?.frame() }.toSet()
             return confirmFrameList.isEmpty() ||
@@ -1029,6 +1035,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         }
 
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {
+        startedFill = true
         val schedule = session.schedule
         if (boolGateFiller?.done(flatEvents) == false) {
             schedule.push(boolGateFiller!!)
@@ -1171,6 +1178,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         needResponse = true
         markedDone = false
         markedFilled = false
+        startedFill = false
         super.clear()
     }
 

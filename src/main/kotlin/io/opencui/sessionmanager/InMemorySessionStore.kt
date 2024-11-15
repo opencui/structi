@@ -13,25 +13,42 @@ import java.util.concurrent.TimeUnit
 
 class InMemorySessionStore: ISessionStore {
     val cache = ExpirableCache<String, String>(PerpetualCache(), TimeUnit.MINUTES.toNanos(30))
+    val cacheRaw = ExpirableCache<String, UserSession>(PerpetualCache(), TimeUnit.MINUTES.toNanos(30))
+    val encoded = true
 
     override fun getSession(channel: String, id:String, botInfo: BotInfo): UserSession? {
-        val encodedSession= cache[ISessionStore.key(channel, id, botInfo)] ?: return null
-        val customClassLoader = ChatbotLoader.findClassLoader(botInfo)
-        return decodeSession(encodedSession, customClassLoader)
+        if (encoded) {
+            val encodedSession = cache[ISessionStore.key(channel, id, botInfo)] ?: return null
+            val customClassLoader = ChatbotLoader.findClassLoader(botInfo)
+            return decodeSession(encodedSession, customClassLoader)
+        } else {
+            return cacheRaw[ISessionStore.key(channel, id, botInfo)]
+        }
     }
 
     override fun deleteSession(channel: String, id:String, botInfo: BotInfo) {
-        cache.remove(ISessionStore.key(channel, id, botInfo)) != null
+        cache.remove(ISessionStore.key(channel, id, botInfo))
+        cacheRaw.remove(ISessionStore.key(channel, id, botInfo))
     }
 
     override fun updateSession(channel: String, id: String, botInfo: BotInfo, session: UserSession) {
         val key = ISessionStore.key(channel, id, botInfo)
-        if (cache[key] != null) {
-            cache[key] = encodeSession(session)
+        if (encoded) {
+            if (cache[key] != null) {
+                cache[key] = encodeSession(session)
+            }
+        } else {
+            if (cacheRaw[key] != null) {
+                cacheRaw[key] = session
+            }
         }
     }
 
     override fun saveSession(channel: String, id: String, botInfo: BotInfo, session: UserSession) {
-        cache[ISessionStore.key(channel, id, botInfo)] = encodeSession(session)
+        if (encoded) {
+            cache[ISessionStore.key(channel, id, botInfo)] = encodeSession(session)
+        } else {
+            cacheRaw[ISessionStore.key(channel, id, botInfo)] = session
+        }
     }
 }
