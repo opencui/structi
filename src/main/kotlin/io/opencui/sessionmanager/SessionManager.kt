@@ -43,15 +43,19 @@ interface ISessionStore {
                     return super.resolveClass(desc)
                 }
             }
-            objectIn.use {
-                return it.readObject() as? UserSession
+            val session = objectIn.use {
+                it.readObject() as? UserSession
             }
+
+            session?.holder = mutableMapOf()
+            return session
         }
 
         fun encodeSession(session: UserSession) : String {
             // Always keep record of the last touch, so that we can decide whether we want to wake
             // up the conversation.
             session.lastTouch = LocalDateTime.now()
+            session.holder == null
             val byteArrayOut = ByteArrayOutputStream()
             val objectOut = ObjectOutputStream(byteArrayOut)
             objectOut.use {
