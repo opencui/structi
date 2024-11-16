@@ -17,18 +17,23 @@ class InMemorySessionStore: ISessionStore {
     val encoded = true
 
     override fun getSession(channel: String, id:String, botInfo: BotInfo): UserSession? {
+        val key = ISessionStore.key(channel, id, botInfo)
         if (encoded) {
-            val encodedSession = cache[ISessionStore.key(channel, id, botInfo)] ?: return null
+            val encodedSession = cache[key] ?: return null
             val customClassLoader = ChatbotLoader.findClassLoader(botInfo)
             return decodeSession(encodedSession, customClassLoader)
         } else {
-            return cacheRaw[ISessionStore.key(channel, id, botInfo)]
+            return cacheRaw[key]
         }
     }
 
     override fun deleteSession(channel: String, id:String, botInfo: BotInfo) {
-        cache.remove(ISessionStore.key(channel, id, botInfo))
-        cacheRaw.remove(ISessionStore.key(channel, id, botInfo))
+        val key = ISessionStore.key(channel, id, botInfo)
+        if (encoded) {
+            cache.remove(key)
+        } else {
+            cacheRaw.remove(key)
+        }
     }
 
     override fun updateSession(channel: String, id: String, botInfo: BotInfo, session: UserSession) {
@@ -45,10 +50,11 @@ class InMemorySessionStore: ISessionStore {
     }
 
     override fun saveSession(channel: String, id: String, botInfo: BotInfo, session: UserSession) {
+        val key = ISessionStore.key(channel, id, botInfo)
         if (encoded) {
-            cache[ISessionStore.key(channel, id, botInfo)] = encodeSession(session)
+            cache[key] = encodeSession(session)
         } else {
-            cacheRaw[ISessionStore.key(channel, id, botInfo)] = session
+            cacheRaw[key] = session
         }
     }
 }
