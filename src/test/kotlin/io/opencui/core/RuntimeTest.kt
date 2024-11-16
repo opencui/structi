@@ -9,10 +9,8 @@ import io.opencui.sessionmanager.*
 import io.opencui.test.HelloWorldService
 import io.opencui.test.IComponent_0915
 import org.junit.Test
-import java.io.*
 import java.sql.DriverManager
 import java.sql.SQLException
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -1644,13 +1642,6 @@ class RuntimeTest {
         val result = action!!.run(session)
     }
 
-    fun serializeSession(session: UserSession) : String {
-        val byteArrayOut = ByteArrayOutputStream()
-        val objectOut = ObjectOutputStream(byteArrayOut)
-        objectOut.writeObject(session)
-        return String(Base64.getEncoder().encode(byteArrayOut.toByteArray()))
-    }
-
     fun process(lines: List<String>) {
         // the first line is agent name.
         // the second line is the rules file.
@@ -1666,8 +1657,8 @@ class RuntimeTest {
             var qsession: UserSession? = sessionManager.getUserSession(userInfo, botInfo)
             qsession = if (qsession != null) {
                 // serialize this out and back if we need to test.
-                val encodedSession = serializeSession(qsession)
-                deserialize(encodedSession, chatbot.getLoader())
+                val encodedSession = ISessionStore.encodeSession(qsession)
+                ISessionStore.decodeSession(encodedSession, chatbot.getLoader())
             } else {
                 sessionManager.createUserSession(userInfo, botInfo)
             }

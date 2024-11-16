@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 class InMemorySessionStore: ISessionStore {
     val cache = ExpirableCache<String, String>(PerpetualCache(), TimeUnit.MINUTES.toNanos(30))
     val cacheRaw = ExpirableCache<String, UserSession>(PerpetualCache(), TimeUnit.MINUTES.toNanos(30))
-    val encoded = true
+    val encoded = false
 
     override fun getSession(channel: String, id:String, botInfo: BotInfo): UserSession? {
         val key = ISessionStore.key(channel, id, botInfo)

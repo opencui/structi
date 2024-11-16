@@ -459,6 +459,11 @@ data class UserSession(
         return s.any { it is FrameFiller<*> && it.frame() is IKernelIntent }
     }
 
+    // This is not cached into disk.
+    @JsonIgnore
+    @Transient
+    var holder: MutableMap<KClass<*>, IExtension>? = mutableMapOf()
+
     inline fun <reified T : IExtension> getExtension() : T? {
         val kClass = T::class.java
         // What does this do?
@@ -466,12 +471,29 @@ data class UserSession(
             return Dispatcher.sessionManager.botStore as T
         }
 
-        // We always try to clone for session, but default implementation does nothing.
-        val res = chatbot!!.extensions.get<T>()?.cloneForSession(this) ?: return null
-        if (res is IProvider) {
-            res.session = this
+        val cached = holder?.get(T::class) as? T
+        // We need to cache a copy for the session, instead of create a new one everytime.
+        return if (cached == null) {
+            // We always try to clone for session, but default implementation does nothing.
+            val resRaw = chatbot!!.extensions.get<T>() ?: return null
+
+            val res = resRaw.cloneForSession(this@UserSession)
+            if (res is IProvider) {
+                res.session = this
+            }
+            // when cloneForSession is in effect, let's cache it in session, but
+            // only for im memory part.
+            if (res != resRaw) {
+                holder!![T::class] = res
+            }
+            res as T
+        }  else {
+            val res = holder!![T::class] as? T
+            if (res is IProvider) {
+                res.session = this
+            }
+            res
         }
-        return res as T
     }
 
     fun generateFrameEvent(filler: IFiller, value: Any): List<FrameEvent> {
