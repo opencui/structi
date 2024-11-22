@@ -41,8 +41,7 @@ class ProviderInvokeException(msg: String): Exception(msg)
 
 // This connection is mainly used for make writing testing easy.
 data class SqlConnection(override val cfg: Configuration) : IConnection {
-
-    val url = cfg.url
+    val url = cfg.url!!
     val user = cfg["user"]!! as String
     val password = cfg["password"]!! as String
 
