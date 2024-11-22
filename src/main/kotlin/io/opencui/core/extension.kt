@@ -47,8 +47,8 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     val conn: String
         get() = this["conn"]!! as String
 
-    val url: String
-        get() = this["url"]!! as String
+    val url: String?
+        get() = this["url"] as String?
 
     override fun toString(): String {
         return """$label:${super.toString()}"""
