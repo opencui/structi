@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.TextNode
 import com.fasterxml.jackson.databind.node.ValueNode
 import io.opencui.serialization.*
+import org.slf4j.LoggerFactory
 import java.io.Serializable
 
 
@@ -213,8 +214,10 @@ data class FrameEvent(
     var source: EventSource? = null
 
     companion object {
+        val logger = LoggerFactory.getLogger(this::class.java)
         // TODO(xiaobo): is this frameName simple or qualified?
         fun fromJson(frameName: String, jsonElement: JsonElement): FrameEvent {
+            logger.info("Converting ${jsonElement} to event")
             val slotEvents = mutableListOf<EntityEvent>()
             if (jsonElement is JsonObject) {
                 for ((k, v) in jsonElement.fields()) {
