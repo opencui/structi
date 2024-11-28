@@ -226,8 +226,12 @@ data class FrameEvent(
                         slotEvents += EntityEvent(v.toString(), k)
                     } else if (v is ArrayNode) {
                         assert(v.size() == 2)
-                        slotEvents += EntityEvent((v[1] as ValueNode).toString(), k).apply {
-                            type = (v[0] as TextNode).textValue()
+                        if (v.size() > 1 && v[1] != null) {
+                            slotEvents += EntityEvent((v[1] as ValueNode).toString(), k).apply {
+                                type = (v[0] as TextNode).textValue()
+                            }
+                        } else {
+                            logger.warn("Key: $k missing value in $v")
                         }
                     }
                 }
