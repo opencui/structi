@@ -591,7 +591,6 @@ data class UserSession(
 
     fun findWrapperFillerWithFrame(frame: IFrame): AnnotatedWrapperFiller? {
         for (s in schedulers) {
-
             // search in all builder defined slots first
             val first = s.firstOrNull() ?: continue
             val path = findFillerPath(first) { f -> f is AnnotatedWrapperFiller && f.targetFiller is FrameFiller<*> && f.targetFiller.frame() === frame }

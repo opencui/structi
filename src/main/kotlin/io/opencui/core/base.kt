@@ -160,6 +160,11 @@ interface IEntity : Serializable{
 }
 
 /**
+ * Some frames are used at the struct level, so there is no cui really.
+ */
+interface CuiDisabled : Serializable
+
+/**
  * For value disambiguation, we need to expose some information for the generic implementation
  * for the slot that we bind dynamically.
  * Builder can also do slotNames.random() and typeNames.random().
