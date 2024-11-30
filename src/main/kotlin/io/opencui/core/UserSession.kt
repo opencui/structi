@@ -17,6 +17,7 @@ import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.CoreMessage
+import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -545,6 +546,18 @@ data class UserSession(
             // We go from object to json back to event, can we not go this indirect?
             val jsonElement = Json.encodeToJsonElement(value)
             when {
+                value is CuiDisabled -> {
+                    jsonElement as JsonObject
+                    jsonElement.put("@class", value::class.qualifiedName!!)
+                    val declaredType = (filler as OpaqueFiller<*>).declaredType
+                    val simpleName = declaredType.substringAfterLast(".")
+                    val packageName = declaredType.substringBeforeLast(".")
+                    val frameEvent = FrameEvent(simpleName).apply {
+                        this.packageName = packageName
+                        this.jsonValue = jsonElement
+                    }
+                    listOf(frameEvent)
+                }
                 filler is OpaqueFiller<*> -> {
                     val declaredType = filler.declaredType
                     val nestedTypeString = declaredType.substringAfterLast(".")
