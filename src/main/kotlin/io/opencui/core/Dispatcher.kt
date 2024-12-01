@@ -134,10 +134,7 @@ object Dispatcher {
     }
 
     fun master(lang: String = "*") : BotInfo {
-        return object : BotInfo {
-            override val fullName =  _botPrefix!!
-            override val lang = lang
-            override val branch = "master" }
+        return BotInfo(_botPrefix!!, lang, "master")
     }
 
     /**

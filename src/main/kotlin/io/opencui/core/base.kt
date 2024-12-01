@@ -244,38 +244,30 @@ object RuntimeConfig {
 data class RoutingInfo(val id: String, val intentsDesc: List<String>)
 
 
-interface BotInfo: Serializable {
-    val fullName: String
-    val lang: String
+data class BotInfo(
+    val fullName: String,
+    val lang: String,
     val branch: String
-}
+): Serializable
 
 fun botInfo(fullName: String) : BotInfo {
-    return object : BotInfo {
-        override val fullName =  fullName
-        override val lang = "*"
-        override val branch = "master" }
+    return BotInfo(fullName, "*", "master")
 }
 
 fun botInfo(org: String, bot: String) : BotInfo {
-    return object : BotInfo {
-        override val fullName =  "${org}.${bot}"
-        override val lang = "*"
-        override val branch = "master" }
+    return BotInfo("${org}.${bot}", "*", "master")
 }
 
 fun botInfo(fullName: String, lang: String, branch: String) : BotInfo {
-    return object : BotInfo {
-        override val fullName =  fullName
-        override val lang = lang
-        override val branch = branch }
+    return BotInfo(fullName, lang, branch)
 }
 
 fun botInfo(org: String, bot: String, lang: String, branch: String) : BotInfo {
-    return object : BotInfo {
-        override val fullName =  "${org}.${bot}"
-        override val lang = lang
-        override val branch = branch }
+    return BotInfo("${org}.${bot}", lang, branch)
+}
+
+fun botInfo(chatbot: IChatbot) : BotInfo {
+    return botInfo(chatbot.orgName, chatbot.agentName, chatbot.agentLang, chatbot.agentBranch)
 }
 
 interface Component {
