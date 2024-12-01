@@ -185,7 +185,6 @@ data class UserSession(
     override var channelType: String? = null,
     override var channelLabel: String? = null,
     @Transient @JsonIgnore var chatbot: IChatbot? = null,
-
 ): LinkedHashMap<String, Any>(), Serializable, StateChart, IUserIdentifier {
 
     override var isVerfied: Boolean = false
@@ -196,9 +195,11 @@ data class UserSession(
     constructor(u: IUserIdentifier, c: IChatbot?): this(u.userId, u.channelType, u.channelLabel, c)
 
     // Default botInfo, need to be changed.
-    val botInfo : BotInfo by lazy { botInfo(chatbot!!.orgName, chatbot!!.agentName, chatbot!!.agentLang, chatbot!!.agentBranch) }
 
     override val events = mutableListOf<FrameEvent>()
+
+    // when we create session without chatbot, it is only for du.
+    val botInfo : BotInfo = chatbot?.let { botInfo(it) } ?: botInfo("agent")
 
     val userIdentifier: IUserIdentifier
         get() = this

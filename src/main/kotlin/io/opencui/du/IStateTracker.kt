@@ -785,6 +785,7 @@ interface IStateTracker : IExtension {
         return convert(userSession, putterance, expectations)
     }
 
+
     fun isSystemFrame(frame: String?): Boolean {
         return frame?.startsWith("io.opencui.core") ?: false
     }

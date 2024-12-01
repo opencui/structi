@@ -47,6 +47,9 @@ interface ISessionStore {
                 it.readObject() as? UserSession
             }
 
+
+
+            session?.chatbot =  ChatbotLoader.findChatbot(session?.botInfo!!)
             session?.holder = mutableMapOf()
             return session
         }
