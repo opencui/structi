@@ -355,14 +355,6 @@ object Dispatcher {
         // For now, we only handle text payload, but we can add other capabilities down the road.
         val textPaylaod = message
 
-        if (textPaylaod?.text.isNullOrEmpty() && textPaylaod?.msgId.isNullOrEmpty()) {
-            if (events.isEmpty()) {
-                logger.info("Got empty message, do nothing.")
-                return@flow
-            }
-            logger.info("Got empty message, but ${events}")
-        }
-
         logger.info("Got $textPaylaod from ${userInfo.channelType}:${userInfo.channelLabel}/${userInfo.userId} for ${botInfo}")
 
         val support = getSupport(botInfo)
@@ -384,7 +376,6 @@ object Dispatcher {
 
         if (userSession.autopilotMode) {
             // Let other side know that you are working on it
-
             if (message?.msgId != null && sink != null) {
                 logger.info("send hint...")
                 sink.markSeen(message.msgId)
