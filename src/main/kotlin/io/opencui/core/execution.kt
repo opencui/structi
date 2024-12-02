@@ -141,7 +141,6 @@ class DialogManager {
         return Pair(turn, dialogActs)
     }
 
-
     fun processResults2(resultsFlow: Flow<ActionResult>): Flow<DialogAct> {
         return resultsFlow
             .filter { it.botUtterance != null && it.botOwn } // Ensure botUtterance is not null and botOwn is true
@@ -196,6 +195,7 @@ class DialogManager {
         session.turnId += 1
         session.addUserMessage(pinput.query)
 
+        logger.info("session state before turn ${session.turnId} : ${pinput}")
         val frameEvents = pinput.frames
 
         // Handle empty events case
@@ -211,9 +211,7 @@ class DialogManager {
 
         session.addEvents(frameEvents)
         val actionResults = mutableListOf<ActionResult>()
-        logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
         var botOwn = session.autopilotMode
-
         var maxRound = 100 // prevent one session from taking too many resources
         do {
             var schedulerChanged = false
