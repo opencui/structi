@@ -356,9 +356,13 @@ object Dispatcher {
         val textPaylaod = message
 
         if (textPaylaod?.text.isNullOrEmpty() && textPaylaod?.msgId.isNullOrEmpty()) {
-            logger.info("Got empty message, do nothing.")
-            return@flow
+            if (events.isEmpty()) {
+                logger.info("Got empty message, do nothing.")
+                return@flow
+            }
+            logger.info("Got empty message, but ${events}")
         }
+
         logger.info("Got $textPaylaod from ${userInfo.channelType}:${userInfo.channelLabel}/${userInfo.userId} for ${botInfo}")
 
         val support = getSupport(botInfo)
