@@ -355,6 +355,10 @@ object Dispatcher {
         // For now, we only handle text payload, but we can add other capabilities down the road.
         val textPaylaod = message
 
+        if (textPaylaod?.text.isNullOrEmpty() && textPaylaod?.msgId.isNullOrEmpty()) {
+            logger.info("Got empty message, do nothing.")
+            return@flow
+        }
         logger.info("Got $textPaylaod from ${userInfo.channelType}:${userInfo.channelLabel}/${userInfo.userId} for ${botInfo}")
 
         val support = getSupport(botInfo)
