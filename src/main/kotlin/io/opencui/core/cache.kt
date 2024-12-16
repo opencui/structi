@@ -195,6 +195,28 @@ data class CachedMethod3<A, B, C, out R>(
     }
 }
 
+data class CachedMethod3Raw<A, B, C, out R>(
+    val f: (A, B, C) -> R, val expireTimeInSeconds: Int = 60) : (A, B, C) -> R {
+    val values: MutableMap<Triple<A, B, C>, Pair<@UnsafeVariance R, LocalDateTime>> = mutableMapOf()
+    override fun invoke(a: A, b: B, c: C): R {
+        val input = Triple(a, b, c)
+        val cache = values[input]
+        Dispatcher.logger.debug("Enter cached function... for $a, $b, $c")
+        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
+            Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
+            values[input] = Pair(f(a, b, c), LocalDateTime.now())
+        }
+        return values[input]!!.first
+    }
+
+    fun invalidate(a: A, b: B, c: C) {
+        val input = Triple(a, b, c)
+        values.remove(input)
+    }
+}
+
+
+
 
 data class CachedFunction<T>(
     val values: MutableMap<String, Pair<List<@UnsafeVariance T>, LocalDateTime>> = mutableMapOf()) {
