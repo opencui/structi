@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.6.10'
+    ext.kotlin_version = '1.9.25'
     ext.protobuf_version = '0.8.10'
     ext.grpc_version = '1.26.0'
     ext.jackson_version = '2.13.1'

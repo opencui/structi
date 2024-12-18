@@ -201,7 +201,7 @@ data class CachedMethod3Raw<A, B, C, out R>(
     override fun invoke(a: A, b: B, c: C): R {
         val input = Triple(a, b, c)
         val cache = values[input]
-        Dispatcher.logger.debug("Enter cached function... for $a, $b, $c")
+        Dispatcher.logger.info("Enter cached function... for $a, $b, $c: $input")
         if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
             values[input] = Pair(f(a, b, c), LocalDateTime.now())
