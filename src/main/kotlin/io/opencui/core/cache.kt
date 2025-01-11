@@ -84,7 +84,7 @@ class LRUCache<Key, Value>(
     }
 
     companion object {
-        private const val DEFAULT_SIZE = 100
+        private const val DEFAULT_SIZE = 128
         private const val PRESENT = true
     }
 }
@@ -126,6 +126,62 @@ class ExpirableCache<Key, Value>(
         delegate.remove(key)?.first?.apply { if (this is Recyclable) this.recycle() }
     }
 }
+
+
+// This is useful for remind us that we have some issues.
+class TimedLRUCache<Key, Value>(
+    private val delegate: Cache<Key, Pair<Value, Long>>,
+    private val minimalSize: Int = DEFAULT_SIZE
+) : Cache<Key, Value> {
+
+    private val keyMap = object : LinkedHashMap<Key, Boolean>(
+            minimalSize, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Boolean>): Boolean {
+            val tooManyCachedItems = size > minimalSize
+             eldestKeyToRemove = if (tooManyCachedItems) eldest.key else null
+            return tooManyCachedItems
+        }
+    }
+
+    private var eldestKeyToRemove: Key? = null
+
+    override val size: Int
+        get() = delegate.size
+
+    override fun set(key: Key, value: Value) {
+        keyMap[key] = PRESENT
+        delegate[key] = Pair(value, System.nanoTime())
+        cycleKeyMap(key)
+    }
+
+    override fun remove(key: Key): Value? {
+        keyMap.remove(key)
+        return delegate.remove(key)?.first
+    }
+
+    override fun get(key: Key): Value? {
+        keyMap[key]
+        return delegate[key]?.first
+    }
+
+    override fun clear() {
+        keyMap.clear()
+        delegate.clear()
+    }
+
+    private fun cycleKeyMap(key: Key) {
+        eldestKeyToRemove?.let {
+            (delegate.remove(it) as? Recyclable)?.recycle()
+        }
+        eldestKeyToRemove = null
+    }
+
+    companion object {
+        private const val DEFAULT_SIZE = 100
+        private const val PRESENT = true
+    }
+}
+
 
 interface Recyclable {
     fun recycle()
