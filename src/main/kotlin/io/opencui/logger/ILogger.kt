@@ -158,7 +158,7 @@ class KafkaLogger(val info: Configuration): ILogger, Closeable{
 
     companion object : ExtensionBuilder {
         val logger: Logger = LoggerFactory.getLogger(KafkaLogger::class.java)
-        val KAFKA_BROKER = "KAFKA_BROKER"
+        val KAFKA_BROKER = "kafkaBroker"
         val ORG_ID = "orgId"
         const val topic = "bill"
 
