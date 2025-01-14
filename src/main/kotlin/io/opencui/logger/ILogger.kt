@@ -5,8 +5,6 @@ import io.opencui.core.ExtensionBuilder
 import io.opencui.core.IExtension
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonElement
-import io.opencui.serialization.JsonObject
-import org.apache.kafka.clients.producer.Callback
 import java.sql.*
 import java.time.LocalDateTime
 import org.postgresql.util.PGobject
@@ -15,11 +13,7 @@ import org.slf4j.LoggerFactory
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.clients.producer.RecordMetadata
 import java.util.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import org.apache.kafka.common.serialization.StringSerializer
 import java.io.Closeable
 
@@ -124,8 +118,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
 // Eventually, we should move the KafkaLogger as it support async operation.
 class KafkaLogger(val info: Configuration): ILogger, Closeable{
     val conn : KafkaProducer<String, String> = KafkaProducer<String, String>(getProducerProperties(info))
-    val topic: String = info[KAFKA_TOPIC]!! as String
-    val key: String = info[KAFKA_KEY]!! as String
+    val key = info[ORG_ID]!! as String
 
     fun getProducerProperties(info: Configuration): Properties {
         val broker = info[KAFKA_BROKER]!! as String
@@ -143,21 +136,22 @@ class KafkaLogger(val info: Configuration): ILogger, Closeable{
 
     override fun log(turn: Turn): Boolean {
         val jsonValue = Json.encodeToString(turn)
-
         try {
             val record = ProducerRecord(topic, key, jsonValue)
-            conn.send(record, Callback { metadata, exception ->
+            conn.send(record) { metadata, exception ->
                 if (exception != null) {
                     // Handle the exception
-                    println("Error sending record(key=$key): ${exception.message}")
+                    logger.error("Error sending record(key=$key): ${exception.message}")
                 } else {
                     // Log success
-                    println("Sent record(key=$key value=$jsonValue) " +
-                        "to partition=${metadata.partition()} offset=${metadata.offset()}")
+                    logger.debug(
+                        "Sent record(key=$key value=$jsonValue) to partition=${metadata.partition()} offset=${metadata.offset()}"
+                    )
                 }
-            })
+            }
         } catch (e: Exception) {
-            logger.info("Insert $turn got ${e.toString()}")
+            logger.error("Error producing messages: ${e.message}")
+            e.printStackTrace()
         }
         return true
     }
@@ -165,12 +159,11 @@ class KafkaLogger(val info: Configuration): ILogger, Closeable{
     companion object : ExtensionBuilder {
         val logger: Logger = LoggerFactory.getLogger(KafkaLogger::class.java)
         val KAFKA_BROKER = "KAFKA_BROKER"
-        val KAFKA_TOPIC = "KAFKA_TOPIC"
-        val KAFKA_KEY = "KAFKA_KEY"
+        val ORG_ID = "orgId"
+        const val topic = "bill"
 
         override fun invoke(p1: Configuration): ILogger {
-            return JdbcLogger(p1)
+            return KafkaLogger(p1)
         }
-
     }
 }
