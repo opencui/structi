@@ -11,6 +11,7 @@ import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.kotlin.cli.common.Usage
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
@@ -83,6 +84,16 @@ fun <T> Flow<T>.bufferUntilOrTimeout(
 }
 
 
+class UsageCollector {
+    val usages = mutableMapOf<String, Int>()
+
+    fun collect(key: String, value: Int) {
+        usages[key] = value
+    }
+}
+
+
+
 /**
  * DialogManager is used to drive a statechart configured by builder using input event created by end user.
  *
@@ -137,7 +148,11 @@ class DialogManager {
             convertToFrameEvent.first,
             session.chatbot?.agentLang ?: "en"
         )
-
+        turn.timeStamp = timeStamp
+        turn.usage = mapOf(
+            "input_tokens" to 1,
+            "output_tokens" to 1,
+            )
         return Pair(turn, dialogActs)
     }
 
@@ -180,6 +195,12 @@ class DialogManager {
             session.chatbot?.agentLang ?: "en"
         )
 
+        turn.timeStamp = timeStamp
+        turn.usage = mapOf(
+            "input_tokens" to 1,
+            "output_tokens" to 1,
+            )
+        
         return Pair(turn, dialogActs)
     }
 
@@ -269,87 +290,6 @@ class DialogManager {
             session.lastTurnRes = actionResults
             system1Response.forEach { emit(it) }
         }
-    }
-
-    fun responseSync(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
-        session.turnId += 1
-
-        session.addUserMessage(pinput.query)
-        // When we did not understand what user said.
-        // TODO: figure out different ways that we do not get it, so that we reply smarter.
-        val frameEvents = pinput.frames
-        // Sometime, there are empty events.
-        if (frameEvents.isEmpty()) {
-            // if we do not have system1 for backup.
-            val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
-            if (delegateActionResult != null) {
-                return listOf(delegateActionResult)
-            }
-        }
-
-        session.addEvents(frameEvents)
-
-        val actionResults = mutableListOf<ActionResult>()
-        var currentTurnWorks: List<Action>
-
-        logger.debug("session state before turn ${session.turnId} : ${session.toSessionString()}")
-
-        var botOwn = session.autopilotMode
-        // In each round, we either consume an event, or switch the state, until no rule can be fired
-        // we need to make sure there is no infinite loop (each round changes the state)
-        var maxRound = 100 // prevent one session from taking too many resources
-        do {
-            var schedulerChanged = false
-            while (session.schedulers.size > 1) {
-                val top = session.schedulers.last()
-                if (top.isEmpty()) {
-                    session.schedulers.removeLast()
-                    schedulerChanged = true
-                } else {
-                    break
-                }
-            }
-
-            currentTurnWorks = session.userStep()
-            if (schedulerChanged && currentTurnWorks.isEmpty()) {
-                session.schedule.state = Scheduler.State.RESCHEDULE
-                currentTurnWorks = session.userStep()
-            }
-
-            check(currentTurnWorks.isEmpty() || currentTurnWorks.size == 1)
-            if (currentTurnWorks.isNotEmpty()) {
-                try {
-                    currentTurnWorks[0]
-                        .wrappedRun(session)
-                        .let { actionResults += it.apply { this.botOwn = botOwn } }
-                } catch (e: Exception) {
-                    session.schedule.state = Scheduler.State.RECOVER
-                    throw e
-                }
-            }
-
-            botOwn = session.autopilotMode
-            if (--maxRound <= 0) break
-        } while (currentTurnWorks.isNotEmpty())
-
-        if (!validEndState.contains(session.schedule.state)) {
-            val currentState = session.schedule.state
-            session.schedule.state = Scheduler.State.RECOVER
-            throw Exception("END STATE of scheduler is invalid STATE : $currentState")
-        }
-
-        logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
-
-        val system1 = session.chatbot?.getExtension<ISystem1>()
-        val system1Response = getSystem1Response(session, system1, frameEvents)
-        logger.info("found system1 response size: ${system1Response.size}")
-
-        if (actionResults.isEmpty() && session.schedule.isNotEmpty()) {
-            if (session.lastTurnRes.isNotEmpty()) return session.lastTurnRes + system1Response
-        }
-
-        session.lastTurnRes = actionResults
-        return actionResults + system1Response
     }
 
     fun getSystem1Response(session: UserSession, system1: ISystem1?, frameEvents: List<FrameEvent>): List<ActionResult> {

@@ -175,9 +175,9 @@ object Dispatcher {
             turn.channelType = session.channelType!!
             turn.channelLabel = session.channelLabel ?: "default"
             turn.userId = session.userId!!
-
             // we then log the turn
-            turnLogger.log(turn)
+
+            turnLogger.log(turn, session)
         } else {
             logger.info("Could not find the provider for ILogger")
         }
