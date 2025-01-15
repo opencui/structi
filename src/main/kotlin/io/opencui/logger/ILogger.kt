@@ -1,8 +1,11 @@
 package io.opencui.logger
 
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.sun.jna.platform.win32.Netapi32Util.User
 import io.opencui.core.Configuration
 import io.opencui.core.ExtensionBuilder
 import io.opencui.core.IExtension
+import io.opencui.core.UserSession
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonElement
 import java.sql.*
@@ -27,9 +30,19 @@ data class Turn(
     // an array of dialog acts.
     var dialogActs: JsonElement?= null
     var trueFrameEvents: JsonElement? = null  // this is provided manually when there are mistakes
+    @JsonProperty("timestamp")
     var timeStamp: LocalDateTime? = null
     var dmTime: Long? = null // We might need this.
     var nluVersion: String? = null
+
+    @JsonProperty("agent_id")
+    var agentId: String? = null
+
+    @JsonProperty("org_id")
+    var orgId: String? = null
+
+    var type: String? = null
+    var source: String? = null
     var duVersion: String? = null
     var channelType: String? = null
     var channelLabel: String? = null
@@ -37,11 +50,13 @@ data class Turn(
     // along with channelType and channel label, this uniquely identify a
     var messageId: String? = null
     var userId: String? = null
-    var usage: JsonElement? = null
+    var input: Map<String, Any>? = null
+    var output: Map<String, Any>? = null
+    var usage: Map<String, Any>? = null
 }
 
 interface ILogger: IExtension {
-    fun log(turn: Turn): Boolean
+    fun log(turn: Turn, session: UserSession): Boolean
 }
 
 data class Inserter(val stmt: PreparedStatement) {
@@ -75,7 +90,7 @@ data class JdbcLogger(val info: Configuration): ILogger {
         DriverManager.getConnection(info[URL] as String)
     }
 
-    override fun log(turn: Turn): Boolean {
+    override fun log(turn: Turn, session: UserSession): Boolean {
         val builder = Inserter(conn.prepareStatement(sqlStatement));
         builder.add(turn.channelType)
         builder.add(turn.channelLabel)
@@ -118,7 +133,8 @@ data class JdbcLogger(val info: Configuration): ILogger {
 // Eventually, we should move the KafkaLogger as it support async operation.
 class KafkaLogger(val info: Configuration): ILogger, Closeable{
     val conn : KafkaProducer<String, String> = KafkaProducer<String, String>(getProducerProperties(info))
-    val key = info[ORG_ID]!! as String
+    val botId = info[BotId]!! as String
+    val orgId = info[OrgId]!! as String
 
     fun getProducerProperties(info: Configuration): Properties {
         val broker = info[KAFKA_BROKER]!! as String
@@ -134,8 +150,11 @@ class KafkaLogger(val info: Configuration): ILogger, Closeable{
         conn.close()
     }
 
-    override fun log(turn: Turn): Boolean {
+    override fun log(turn: Turn, session: UserSession): Boolean {
+        turn.orgId = orgId
+        turn.agentId = botId
         val jsonValue = Json.encodeToString(turn)
+        val key = session.botInfo.fullName
         try {
             val record = ProducerRecord(topic, key, jsonValue)
             conn.send(record) { metadata, exception ->
@@ -159,7 +178,8 @@ class KafkaLogger(val info: Configuration): ILogger, Closeable{
     companion object : ExtensionBuilder {
         val logger: Logger = LoggerFactory.getLogger(KafkaLogger::class.java)
         val KAFKA_BROKER = "kafkaBroker"
-        val ORG_ID = "orgId"
+        val BotId = "botId"
+        val OrgId = "orgId"
         const val topic = "bill"
 
         override fun invoke(p1: Configuration): ILogger {
