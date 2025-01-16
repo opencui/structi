@@ -163,7 +163,7 @@ class KafkaLogger(val info: Configuration): ILogger, Closeable{
                     logger.error("Error sending record(key=$key): ${exception.message}")
                 } else {
                     // Log success
-                    logger.debug(
+                    logger.info(
                         "Sent record(key=$key value=$jsonValue) to partition=${metadata.partition()} offset=${metadata.offset()}"
                     )
                 }
