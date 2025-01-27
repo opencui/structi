@@ -3,7 +3,8 @@ buildscript {
     ext.protobuf_version = '0.8.10'
     ext.grpc_version = '1.26.0'
     ext.jackson_version = '2.13.1'
-
+    ext.boot_version = "2.7.18"
+    
     repositories {
         mavenCentral()
     }
