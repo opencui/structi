@@ -209,6 +209,8 @@ data class UserSession(
         return Locale(botInfo.lang)
     }
 
+    var hasSystem1: Boolean =  false
+
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
         if (frameEvent.source == EventSource.API) {

@@ -9,7 +9,10 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.LoggerContext
 import java.util.*
+
 
 enum class DugMode {
     SKILL,
@@ -27,7 +30,10 @@ enum class YesNoResult {
     Irrelevant
 }
 
-
+fun setLogLevel(loggerName: String, level: String) {
+    val loggerContext = LoggerFactory.getILoggerFactory() as? LoggerContext
+    loggerContext?.getLogger(loggerName)?.level = Level.valueOf(level.toUpperCase())
+}
 
 fun YesNoResult.toJsonAsBoolean() : String? {
     return when (this) {
@@ -108,7 +114,6 @@ data class RestNluService(val url: String) {
             .POST(HttpRequest.BodyPublishers.ofString(text))
             .build()
     }
-
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
     fun detectTriggerables(
@@ -205,10 +210,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        setLogLevel(DecoderStateTracker::class.java.toString(), "DEBUG")
         // if it is empty, we can return immediately.
         if (putterance.trim().isEmpty()) {
             return emptyList()
         }
+
         // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
 
@@ -289,7 +296,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     // This is an opportunity for filtering the events again.
                     // if event agrees with one of expectation
                     // remember to update event for corresponding NOT
-
                     results.addAll(events.map { it.toCompanion(CompanionType.NEGATE) })
                 }
             } else if (isUpdateSlot(triggerable.owner)) {
@@ -328,8 +334,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             } else {
                 results.add(FrameEvent.build(triggerable.owner!!, emptyList()))
             }
-
-
 
             val frameSlots = duMeta
                 .getSlotMetas(triggerable.owner!!)

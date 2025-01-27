@@ -46,8 +46,10 @@ repositories {
 dependencies {
     implementation 'org.jetbrains:annotations:20.1.0'
     compileOnly "javax.annotation:javax.annotation-api:1.2"
-    compileOnly "org.slf4j:slf4j-api:2.0.3"
-    implementation "org.slf4j:slf4j-simple:2.0.3"
+    compileOnly "org.slf4j:slf4j-api:2.0.16"
+    implementation "org.slf4j:slf4j-simple:2.0.16"
+    implementation 'ch.qos.logback:logback-classic:1.2.9'  // Logback Classic
+    implementation 'ch.qos.logback:logback-core:1.2.9'
     implementation "org.clojure:clojure:1.12.0"
     implementation "org.springframework.boot:spring-boot-starter-webflux:${boot_version}"
     implementation "org.clojure:data.json:2.5.0"
