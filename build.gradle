@@ -3,7 +3,8 @@ buildscript {
     ext.protobuf_version = '0.8.10'
     ext.grpc_version = '1.26.0'
     ext.jackson_version = '2.13.1'
-
+    ext.boot_version = "2.7.18"
+    
     repositories {
         mavenCentral()
     }
@@ -48,6 +49,7 @@ dependencies {
     compileOnly "org.slf4j:slf4j-api:2.0.3"
     implementation "org.slf4j:slf4j-simple:2.0.3"
     implementation "org.clojure:clojure:1.12.0"
+    implementation "org.springframework.boot:spring-boot-starter-webflux:${boot_version}"
     implementation "org.clojure:data.json:2.5.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" // Required for Kotlin integration
     implementation "org.apache.lucene:lucene-core:8.4.1"
