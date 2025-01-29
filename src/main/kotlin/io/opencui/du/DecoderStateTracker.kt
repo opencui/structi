@@ -55,6 +55,8 @@ data class TriggerDecision(
 
     lateinit  var duContext: DuContext
 
+    val hasNegative = evidence.find { it.label == "Negative" } != null
+
     // We use this to keep track of the nested frames
     val matchedSlots = mutableListOf<DUSlotMeta>()
 
@@ -255,7 +257,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     // This layer is handling the
     fun convertImpl(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
-        val triggerables = detectTriggerables(putterance, expectations)
+        // if there is negative example, skip.
+        val triggerables = detectTriggerables(putterance, expectations).filter { !it.hasNegative }
         logger.debug("getting $triggerables for utterance: $putterance expectations $expectations")
 
         // Now we apply recognizers on every triggerable.
@@ -394,7 +397,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
     }
 
-
     fun handleGenericSlotWithSlotType(duContext: DuContext, valueInfos: List<ValueInfo>, triggerable: TriggerDecision) : List<FrameEvent>? {
         val activeFrames = expandActiveFrames(duContext)
         for (activeFrame in activeFrames) {
@@ -450,7 +452,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         return null
     }
 
-
     private fun expandActiveFrames(duContext: DuContext) : List<ExpectedFrame> {
         val result = mutableListOf<ExpectedFrame>()
         for (activeFrame in duContext.expectations.activeFrames) {
@@ -459,7 +460,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
         return result
     }
-
 
     /**
      * This is used to get new slot meta for slot skills,
@@ -516,7 +516,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // We might need to consider return multiple possibilities if there is no exact match.
         return candidates.map {it as TriggerDecision }
     }
-
 
     // When there is expectation presented.
     // For each active expectation, we do the following:
