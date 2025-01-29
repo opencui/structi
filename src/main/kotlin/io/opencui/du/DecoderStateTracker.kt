@@ -210,7 +210,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
-        setLogLevel(DecoderStateTracker::class.java.toString(), "DEBUG")
+        setLogLevel(DecoderStateTracker::class.java.name, "DEBUG")
+
         // if it is empty, we can return immediately.
         if (putterance.trim().isEmpty()) {
             return emptyList()
@@ -569,9 +570,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             } else if (slot != null && duMeta.getSlotType(frame, slot) == IStateTracker.KotlinString) {
                 // Now w handle the string slot, this is really low priority.
                 // only where owner == null
-                if (triggerable.owner == null) {
-                    lowResults.add(FrameEvent.build(frame, listOf(EntityEvent(duContext.utterance, slot))))
-                }
+                // TODO(sean): remove this if we have a better solution for string slot.
+                // if (triggerable.owner == null) {
+                // lowResults.add(FrameEvent.build(frame, listOf(EntityEvent(duContext.utterance, slot))))
+                // }
             } else {
 
                 val slotValueDecider = EntityEventExtractor(duContext)
