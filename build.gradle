@@ -43,15 +43,31 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    all {
+        exclude group: "org.slf4j", module: "slf4j-simple"
+        exclude group: "org.apache.logging.log4j", module: "log4j-to-slf4j"
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+
+    // Add this to enforce logback as your only logging implementation
+    all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    all*.exclude group: 'log4j', module: 'log4j'
+}
+
 dependencies {
     implementation 'org.jetbrains:annotations:20.1.0'
     compileOnly "javax.annotation:javax.annotation-api:1.2"
     compileOnly "org.slf4j:slf4j-api:2.0.16"
-    implementation "org.slf4j:slf4j-simple:2.0.16"
-    implementation 'ch.qos.logback:logback-classic:1.2.9'  // Logback Classic
-    implementation 'ch.qos.logback:logback-core:1.2.9'
+    implementation 'ch.qos.logback:logback-core:1.5.16'
+    implementation("ch.qos.logback:logback-classic:1.5.16"){
+        exclude(group: 'org.slf4j', module: 'slf4j-simple')
+        exclude(group: "org.apache.logging.log4j", module: "log4j-to-slf4j")
+    }
     implementation "org.clojure:clojure:1.12.0"
-    implementation "org.springframework.boot:spring-boot-starter-webflux:${boot_version}"
+    implementation("org.springframework.boot:spring-boot-starter-webflux:${boot_version}"){
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
     implementation "org.clojure:data.json:2.5.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" // Required for Kotlin integration
     implementation "org.apache.lucene:lucene-core:8.4.1"
@@ -67,6 +83,14 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-compiler"
     implementation 'org.apache.kafka:kafka-clients:3.8.1'
 
+     constraints {
+        implementation("org.slf4j:slf4j-api:2.0.16") {
+            because("Ensure SLF4J version consistency")
+        }
+        implementation("ch.qos.logback:logback-classic:1.5.16") {
+            because("Ensure Logback is the only SLF4J binding")
+        }
+    }
 
     // We need to stick to older version of h2 so that test can be done faster enough.
     // New h2 requires tcp connection, much slower. That is why we can NOT enforcePlatform
