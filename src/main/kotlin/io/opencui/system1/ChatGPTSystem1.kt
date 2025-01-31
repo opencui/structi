@@ -18,7 +18,6 @@ fun extractAfterXMLTag(input: String, tag: String): String {
 
     return when (count) {
         1 -> input.substring(input.indexOf(tag) + tag.length) // Return substring after </think>
-        0 -> input // No occurrence, return entire string
         else -> "" // More than one occurrence, return empty string
     }
 }
@@ -27,7 +26,7 @@ fun extractAfterXMLTag(input: String, tag: String): String {
 // Feedback is only useful when turns is empty.
 data class System1Request(val turns: List<OpenAIMessage>, val feedback: Map<String, Any>? = null)
 
-data class System1Reply(val reply: String) 
+data class System1Reply(val reply: String)
 
 data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
     val url = config[urlKey]!! as String
