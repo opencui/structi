@@ -426,7 +426,6 @@ data class SlotPostAskAction(
                     }
                 }
             }
-
             // commit is responsible for marking the part of FrameEvent that it used
             val success = filler.commit(finalMatch)
             if (!success) return goback(session)
@@ -478,19 +477,21 @@ class RespondAction : CompositeAction {
     }
 }
 
+// This go through the filler stack.
 class RescheduleAction : StateAction {
     override fun run(session: UserSession): ActionResult {
         val schedule = session.schedule
-        logger.debug("Reschedule start...")
+        logger.debug("Reschedule start with ${schedule.size}...")
         while (schedule.size > 0) {
             val top = schedule.peek()
             if (top !is AnnotatedWrapperFiller) {
-                logger.debug("   ${top::class.java} with ${top.path?.last()}")
+                logger.debug("   ${top::class.java} with ${top.path?.last()} at ${schedule.size}")
             } else {
-                logger.debug("   ${top.targetFiller::class.java} with Annotated ${top.targetFiller.path?.last()}")
+                logger.debug("   ${top.targetFiller::class.java} with Annotated ${top.targetFiller.path?.last()} at ${schedule.size}")
             }
             // if ancestor is marked done, consider the ICompositeFiller done
             val topDone = top.done(session.activeEvents)
+            println("                                      between topDone and topParentDone")
             val topParentDone = (top.parent as? AnnotatedWrapperFiller)?.done(session.activeEvents) == true
             val parentGrandAnnotated = schedule.parentGrandparentBothAnnotated()
             if (topDone || (top.isForInterfaceOrMultiValue() && topParentDone)) {
@@ -503,10 +504,9 @@ class RescheduleAction : StateAction {
                 }
                 if (doneFiller is AnnotatedWrapperFiller && doneFiller.isSlot) {
                     val result = SlotDoneAction(doneFiller).wrappedRun(session)
-                    logger.debug("Get result: ${result}")
+                    logger.debug("Reschedule ends with result: ${result}")
                     return result
                 }
-
             } else {
                 break
             }
@@ -518,9 +518,9 @@ class RescheduleAction : StateAction {
         } else {
             session.schedule.state = Scheduler.State.INIT
         }
-
         return ActionResult(emptyLog())
     }
+
     companion object {
         val logger = LoggerFactory.getLogger(RescheduleAction::class.java)
     }

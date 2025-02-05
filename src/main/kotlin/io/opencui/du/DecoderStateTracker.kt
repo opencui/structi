@@ -214,7 +214,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         // We should try to get this log level from session so that it is easy to change log info.
-        setLogLevel(DecoderStateTracker::class.java.name, "DEBUG")
+        // setLogLevel(DecoderStateTracker::class.java.name, "DEBUG")
+
+        logger.info(putterance)
+        logger.info(expectations.toString())
 
         // if it is empty, we can return immediately.
         if (putterance.trim().isEmpty()) {
@@ -231,7 +234,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
-        setLogLevel(DecoderStateTracker::class.java.name, "INFO")
+        // setLogLevel(DecoderStateTracker::class.java.name, "INFO")
         return res.map { postProcess(it) }
     }
 

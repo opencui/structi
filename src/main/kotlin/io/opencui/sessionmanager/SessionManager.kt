@@ -202,6 +202,9 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         targetChannel: String? = null,
         events: List<FrameEvent> = emptyList()
     ): Map<String, List<String>> {
+        println("Got events:")
+        println(Json.encodeToString(events))
+
         session.targetChannel = if (targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(targetChannel, SideEffect.RESTFUL)
 
         val res = dm.responseAsync(query, events, session)
