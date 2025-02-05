@@ -252,11 +252,12 @@ class DialogManager {
                 session.schedule.state = Scheduler.State.RESCHEDULE
                 currentTurnWorks = session.userStep()
             }
-
+            // Make sure it is empty or just one action.
             check(currentTurnWorks.isEmpty() || currentTurnWorks.size == 1)
 
             if (currentTurnWorks.isNotEmpty()) {
                 try {
+                    assert(currentTurnWorks.size == 1)
                     val result = currentTurnWorks[0].wrappedRun(session).apply {
                         this.botOwn = botOwn
                     }
@@ -433,12 +434,15 @@ class DialogManager {
                 val index = session.schedule.indexOf(frameFiller)
                 val focusFiller = if (index != -1 && session.schedule.size > index+1) session.schedule[index+1] as? AnnotatedWrapperFiller else null
                 val focus = focusFiller?.attribute
+
                 if (frameFiller.qualifiedTypeStr() != Confirmation::class.qualifiedName!!
                     && (focusFiller?.targetFiller as? InterfaceFiller<*>)?.qualifiedTypeStr() == CONFIRMATIONSTATUS) {
                     val dialogActs = getDialogActs(session, frameFiller)
                     res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTATUS, dialogActs)
                 }
+                // TODO (sean), why we only care about the top of stack?
                 res += ExpectedFrame(frameFiller.qualifiedEventType()!!, focus, (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr())
+
                 // Now we check whether it is a frame with head.
                 val slotMetas = session.chatbot!!.duMeta.getSlotMetas(frameFiller.qualifiedTypeStr())
                 if (slotMetas.any { it.isHead }) {

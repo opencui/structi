@@ -1137,17 +1137,24 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         (askStrategy() as? RecoverOnly)?.enable()
     }
 
+    private fun lastClauseInDone(frameEvents: List<FrameEvent>) : Boolean {
+        val filledFlag  = filled(frameEvents)
+        val postFilledDoneFlag = postFillDone()
+        return filledFlag && postFilledDoneFlag && (!needResponse || responseDone)
+    }
+
+
     override fun done(frameEvents: List<FrameEvent>): Boolean {
         val canNotEnter = !canEnter(frameEvents)
         val res = markedDone
                 || canNotEnter
-                || (filled(frameEvents) && postFillDone() && (!needResponse || responseDone))
+                || lastClauseInDone(frameEvents)
         // if (slotUpdateFlag) println("done: $res with canNotEnter: $canNotEnter")
         return res
     }
 
     fun canEnter(frameEvents: List<FrameEvent>): Boolean {
-        var askStrategy =  askStrategy()
+        val askStrategy =  askStrategy()
         val askStrategyNotMet = (askStrategy is ConditionalAsk && !askStrategy.canEnter())
                 || (askStrategy is NeverAsk && stateUpdateDone && frameEvents.firstOrNull { isCompatible(it) } == null)
                 || (askStrategy is RecoverOnly && stateUpdateDone && !askStrategy.canEnter() && frameEvents.firstOrNull { isCompatible(it) } == null)
@@ -1160,6 +1167,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     }
 
     fun postFillDone(): Boolean {
+        println("                                              checkDone : ${checkDone} && confirmDone : ${confirmDone} && resultDone ${resultDone}")
         return checkDone && confirmDone && resultDone
     }
 

@@ -121,7 +121,7 @@ class Scheduler(val session: UserSession): ArrayList<IFiller>(), Serializable {
  * At session level, we only need to do a couple of things:
  * a. when there is no active skill.
  *    1. where there is skill event.
- *    2. where there si no meaningful event.
+ *    2. where there is no meaningful event.
  *    3. where there is slot events that can be fixed by constrained intent suggestions.
  * b. where there is active skill:
  *    1. where there is new skill event:
@@ -357,8 +357,8 @@ data class UserSession(
         if (refocusPair != null && (!inKernelMode(schedule) || inKernelMode(refocusPair.first))) {
             val refocusFiller = refocusPair.first.last() as AnnotatedWrapperFiller
             return if (
-                !refocusFiller.targetFiller.done(emptyList()) &&
-                (refocusFiller.targetFiller is EntityFiller<*> || refocusFiller.targetFiller is OpaqueFiller<*>)
+                !refocusFiller.targetFiller.done(emptyList())
+                && (refocusFiller.targetFiller is EntityFiller<*> || refocusFiller.targetFiller is OpaqueFiller<*>)
                 ) {
                 listOf(SimpleFillAction(refocusFiller.targetFiller as AEntityFiller, refocusPair.second))
             } else {
@@ -792,12 +792,15 @@ data class UserSession(
                 stack.pollLast()
                 continue
             }
+
+            // See if this filler can be filled.
             searchForRefocusChild(top.targetFiller, frameEvents, 0)?.let {
                 stack.offerLast(top.targetFiller)
                 stack.offerLast(it.first)
                 return Pair(stack, it.second)
             }
 
+            // this if the sibling fillers can be filled.
             for (c in top.targetFiller.fillers.values.filter { it.targetFiller is FrameFiller<*> && it != last }) {
                 searchForRefocusChild(c.targetFiller as FrameFiller<*>, frameEvents, 1)?.let {
                     stack.offerLast(top.targetFiller)
@@ -812,16 +815,17 @@ data class UserSession(
         return null
     }
 
+    // Try to find the filler that can be filled by one of the frame event.
     private fun searchForRefocusChild(
         parent: FrameFiller<*>,
         frameEvents: List<FrameEvent>,
         level: Int
     ): Pair<AnnotatedWrapperFiller, FrameEvent>? {
-        // conditions on which we allow refocus;
+        // conditions on which we allow to refocus;
         // 1. filled slots of all candidate frames
         // 2. unfinished mv filler with HasMore FrameEvent (especially for the case in which we focus on PagedSelectable and user wants to say no to mv slot)
         // 3. unfilled slots of active frames (level == 0)
-        //  (1) prevent the expression "to shanghai" from triggering new Intent
+        //  (1) prevent the expression "to Shanghai" from triggering new Intent
         //  (2) refocus to skill: IIntent (Intent Suggestion) excluding partially filled Interface type
         //  (3) refocus to entry filler of MultiValueFiller after we infer a hasMore.Yes. Excluding refocus to MultiValueFiller if there is entry filler not done
         val matcher: (AnnotatedWrapperFiller) -> Boolean = {
@@ -998,6 +1002,9 @@ data class UserSession(
         val objNode = ObjectNode(JsonNodeFactory.instance)
         objNode.replace("schedulers_count", IntNode(schedulers.size))
         objNode.replace("main", mainSchedule.toObjectNode())
+        for((i, scheduler) in schedulers.slice(1 until schedulers.size).withIndex()) {
+            objNode.replace("{i+1}", scheduler.toObjectNode())
+        }
         return Json.encodeToString(objNode)
     }
 

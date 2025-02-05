@@ -44,7 +44,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             .retrieve()
             .bodyToMono(System1Reply::class.java)
 
-        val reply = response.block()!!.reply
+        val reply = response.block()!!.reply.trim()
 
         // handle the think.
         return if (reply.startsWith(THINKSTART))
