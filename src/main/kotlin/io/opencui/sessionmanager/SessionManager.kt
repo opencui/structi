@@ -223,6 +223,8 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         sink: Sink,
         events: List<FrameEvent> = emptyList()
     ) : Flow<Map<String, List<String>>> = flow {
+        logger.info("Got events:")
+        logger.info(Json.encodeToString(events))
 
         session.targetChannel = if (sink.targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(sink.targetChannel!!, SideEffect.RESTFUL)
 
