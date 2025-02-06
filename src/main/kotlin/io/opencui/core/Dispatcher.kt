@@ -42,11 +42,8 @@ interface ControlSink {
     fun typing() {}
 }
 
-
 // This is useful to create type sink.
-data class TypeSink(
-    override val targetChannel: String) : ControlSink
-
+data class TypeSink(override val targetChannel: String) : ControlSink
 
 interface Sink : ControlSink{
     fun send(msg: String)
@@ -165,7 +162,6 @@ object Dispatcher {
         }
         return res
     }
-
 
     fun logTurns(session: UserSession, turn: Turn) {
         val turnLogger = session.chatbot!!.getExtension<ILogger>()

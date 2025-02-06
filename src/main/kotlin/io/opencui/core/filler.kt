@@ -926,22 +926,28 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     }
 
     var recommendationFiller: AnnotatedWrapperFiller? = null
+    private var _stateUpdateFiller: AnnotatedWrapperFiller? = null
+    var stateUpdateFiller: AnnotatedWrapperFiller?
+    get() {
+        if (_stateUpdateFiller == null) {
+            val slotInitAnnotation =
+                path!!.findAll<SlotInitAnnotation>().firstOrNull<SlotInitAnnotation>() ?: return null
 
-    val stateUpdateFiller: AnnotatedWrapperFiller? by lazy {
-        val slotInitAnnotation =
-            path!!.findAll<SlotInitAnnotation>().firstOrNull<SlotInitAnnotation>() ?: return@lazy null
+            val updateIntent = ActionWrapperIntent(path!!.root().session, slotInitAnnotation.action)
+            val updateFiller =
+                updateIntent.createBuilder().invoke(path!!.join("$attribute._update", updateIntent)) as FrameFiller<*>
 
-        println("create stateUpdateFiller: $path")
-
-        val updateIntent = ActionWrapperIntent(path!!.root().session, slotInitAnnotation.action)
-        val updateFiller =
-            updateIntent.createBuilder().invoke(path!!.join("$attribute._update", updateIntent)) as FrameFiller<*>
-        // We need to create slot updater.
-        val res = AnnotatedWrapperFiller(updateFiller, false)
-        res.slotUpdateFlag = true
-        res.parent = this@AnnotatedWrapperFiller
-        updateFiller.parent = res
-        res
+            // We need to create slot updater.
+            val res = AnnotatedWrapperFiller(updateFiller, false)
+            res.slotUpdateFlag = true
+            res.parent = this@AnnotatedWrapperFiller
+            updateFiller.parent = res
+            _stateUpdateFiller = res
+        }
+        return _stateUpdateFiller
+    }
+    set(value) {
+        _stateUpdateFiller = value
     }
 
     val stateUpdateDone: Boolean
@@ -1182,6 +1188,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         confirmationFillers = listOf()
         checkFiller = null
         targetFiller.clear()
+        stateUpdateFiller = null
+        _stateUpdateFiller = null
         responseDone = false
         needResponse = true
         markedDone = false
@@ -1279,6 +1287,7 @@ class FrameFiller<T: IFrame>(
     }
 
     fun findNextChildFiller(frameEvents: List<FrameEvent>): AnnotatedWrapperFiller? {
+        // result is for output.
         val results0 =  fillers.filterNot { it.key == "result" }.values
         val results1 = results0.filter { !it.done(frameEvents) }
         return results1.firstOrNull()

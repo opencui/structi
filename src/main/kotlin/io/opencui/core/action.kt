@@ -232,6 +232,8 @@ data class SimpleFillAction(
     }
 }
 
+
+// Move the focus on the specific slot.
 data class RefocusActionBySlot(
     val frame: IFrame,
     val slot: String?
@@ -491,7 +493,7 @@ class RescheduleAction : StateAction {
             }
             // if ancestor is marked done, consider the ICompositeFiller done
             val topDone = top.done(session.activeEvents)
-            println("                                      between topDone and topParentDone")
+            // println("                                      between topDone and topParentDone")
             val topParentDone = (top.parent as? AnnotatedWrapperFiller)?.done(session.activeEvents) == true
             val parentGrandAnnotated = schedule.parentGrandparentBothAnnotated()
             if (topDone || (top.isForInterfaceOrMultiValue() && topParentDone)) {
