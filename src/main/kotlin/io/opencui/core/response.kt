@@ -48,7 +48,7 @@ sealed interface RGBase: Serializable {
 
     fun <T: Any> T.typeExpression() : String? {
         val typeName = this::class.qualifiedName
-        return duMeta.getTriggers(typeName!!).firstOrNull()?: typeName
+        return duMeta.getTriggers(typeName!!).firstOrNull{it.isNotBlank()}?: typeName
     }
 
     // TODO(sean): remove this when we have new code gen example.

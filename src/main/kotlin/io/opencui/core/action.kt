@@ -51,9 +51,7 @@ interface SideEffect {
 interface Action: Serializable {
     fun run(session: UserSession): ActionResult
     fun wrappedRun(session: UserSession) : ActionResult {
-        if (this !is RescheduleAction) {
-            Dispatcher.logger.debug("Executing ${this::class.java}")
-        }
+        Dispatcher.logger.debug("Executing ${this::class.java}")
         return run(session)
     }
 }
@@ -367,7 +365,11 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         val flatActions = actions.flatten()
 
         session.schedule.state = Scheduler.State.POST_ASK
-        val res = if (flatActions.size == 1) flatActions[0].wrappedRun(session) else SeqAction(flatActions).wrappedRun(session)
+        val res = if (flatActions.size == 1)
+            flatActions[0].wrappedRun(session)
+        else
+            SeqAction(flatActions).wrappedRun(session)
+
         val actionLog = if (res.actionLog != null) {
             if (res.actionLog.payload is ArrayNode) {
                 createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() })
@@ -467,7 +469,7 @@ class RespondAction : CompositeAction {
             val tmp = response.wrappedRun(session)
             tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
         } else {
-            logger.debug("RespondAction topFiller is ${topFiller}")
+            logger.debug("RespondAction topFiller is ${topFiller?.path}")
             ActionResult(emptyLog())
         }
         wrapperFiller!!.responseDone = true
