@@ -51,6 +51,8 @@ sealed interface RGBase: Serializable {
         return duMeta.getTriggers(typeName!!).firstOrNull{it.isNotBlank()}?: typeName
     }
 
+
+
     // TODO(sean): remove this when we have new code gen example.
     @Deprecated("Use expression.")
     fun <T: Any> T.name(): String? {

@@ -172,6 +172,7 @@ interface StateChart {
 }
 
 
+
 /**
  * UserSession is used to keep the history of the conversation with user. It will
  * only keep for certain amount of time.
