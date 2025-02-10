@@ -113,6 +113,7 @@ fun List<Criterion<*>>.compatible(value: Any) : Boolean {
 }
 
 
+
 /**
  *
  * There are two aspects of type systems: one is on type sides, and another is on the
@@ -150,11 +151,28 @@ fun <T: Any> useClassLoader(classLoader: ClassLoader, block: () -> T): T {
     }
 }
 
+interface ICui: Serializable {
+
+    fun <T: Any> fromTypeNameList(vararg typeName: String) : List<T> {
+        val classLoader = this.javaClass.classLoader
+        val typeNames = typeName.toList()
+        return typeNames.map {
+            val kClass = Class.forName(it, true, classLoader).kotlin
+            val constructor = kClass.constructors.firstOrNull { constructor ->
+                constructor.parameters.size == 1 &&
+                constructor.parameters[0].type.classifier == UserSession::class &&
+                constructor.parameters[0].type.isMarkedNullable
+            }
+            constructor?.callBy(constructor.parameters.associateWith { null }) as T
+        }
+    }
+}
+
 /**
  * One should be able to access connection, and even session. The IService contains a set of functions.
  * Service is also attached to session, just like frame.
  */
-interface IEntity : Serializable{
+interface IEntity : ICui {
     var value: String
     var origValue: String?
 }
@@ -169,7 +187,7 @@ interface CuiDisabled : Serializable
  * for the slot that we bind dynamically.
  * Builder can also do slotNames.random() and typeNames.random().
  */
-interface IFrame : Serializable {
+interface IFrame : ICui {
     var session: UserSession?
 
     fun getUserIdentifier(): IUserIdentifier? {
