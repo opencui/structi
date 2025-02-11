@@ -2,11 +2,13 @@ package io.opencui.system1
 
 import io.opencui.core.Configuration
 import io.opencui.core.ExtensionBuilder
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.util.logging.Logger
 
 data class OpenAIMessage(val role: String, val content: String)
 fun List<CoreMessage>.convert(): List<OpenAIMessage> {
@@ -45,6 +47,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             .bodyToMono(System1Reply::class.java)
 
         val reply = response.block()!!.reply.trim()
+        logger.info("system1 response: $reply")
 
         // handle the think.
         return if (reply.startsWith(THINKSTART))
@@ -54,6 +57,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
     }
 
     companion object : ExtensionBuilder {
+         private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)
         override fun invoke(p1: Configuration): ISystem1 {
             return ChatGPTSystem1(p1)
         }
