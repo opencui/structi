@@ -296,15 +296,14 @@ class DialogManager {
 
     fun getSystem1Response(session: UserSession, system1: ISystem1?, frameEvents: List<FrameEvent>): List<ActionResult> {
         if (system1 == null) return emptyList()
-        logger.info("${frameEvents.map{it.source}}")
         val actionResults = mutableListOf<ActionResult>()
         val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
-        logger.info("${userFrameEvents.map{it.source}}")
-        logger.info("inside system1 with ${userFrameEvents}")
+
         // If we do not understand, we fall back to system1
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
-            logger.info("IDonotGetIt present.")
+            logger.info("inside system1 with ${userFrameEvents}")
             val response = system1?.response(session.history)!!
+            logger.info("system1 response: $response")
             // For now, we just use the reflection to system1 reply.
             val system1Skill = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
             val reply = system1Skill::class.memberProperties.find { it.name == "reply" }

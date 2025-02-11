@@ -423,7 +423,6 @@ object Dispatcher {
     fun handOffSession(target: IUserIdentifier, botInfo: BotInfo, department:String) {
         logger.info("handoff ${target.userId} at ${target.channelType} on ${botInfo} with depatment ${department}")
 
-
         val channel = getChatbot(botInfo).getChannel(target.channelLabel!!)
         if (channel == null) {
             logger.info("Channel ${target.channelType} not found.")
