@@ -1596,7 +1596,7 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val tp = ::frame
             val filler = FrameFiller({ tp }, path)
-            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotUpdate.session } }
             filler.addWithPath(originalSlotFiller)
             val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
             filler.addWithPath(oFiller)
@@ -1656,7 +1656,7 @@ abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = n
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val tp = ::frame
             val filler = FrameFiller({ tp }, path)
-            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotDelete.session } }
             filler.addWithPath(originalSlotFiller)
             val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
             filler.addWithPath(oFiller)
@@ -1715,7 +1715,7 @@ abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = n
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val tp = ::frame
             val filler = FrameFiller({ tp }, path)
-            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotAppend.session } }
             filler.addWithPath(originalSlotFiller)
             val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
             filler.addWithPath(oFiller)
