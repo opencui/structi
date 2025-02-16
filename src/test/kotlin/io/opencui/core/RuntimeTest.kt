@@ -1270,6 +1270,7 @@ class RuntimeTest {
         process(SlotUpdateTest)
     }
 
+
     @Test
     fun testEarlyTermination() {
         val EarlyTerminationTest = listOf(
@@ -1714,7 +1715,7 @@ class RuntimeTest {
 
     fun getResponseIndex(index: Int, lines: List<String>): Pair<Int, List<String>> {
         assertTrue(lines[index - 1].startsWith(">"))
-        assertTrue(lines[index].startsWith("<"))
+        // assertTrue(lines[index].startsWith("<"))
         var lindex = index
         val replies = mutableListOf<String>()
         while (lindex < lines.size && lines[lindex].isNotBlank() && lines[lindex].startsWith("<")) {

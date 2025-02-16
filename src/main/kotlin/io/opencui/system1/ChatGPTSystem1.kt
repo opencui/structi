@@ -16,14 +16,9 @@ fun List<CoreMessage>.convert(): List<OpenAIMessage> {
 }
 
 fun extractAfterXMLTag(input: String, tag: String): String {
-    val count = input.windowed(tag.length, 1).count { it == tag }
-
-    return when (count) {
-        1 -> input.substring(input.indexOf(tag) + tag.length) // Return substring after </think>
-        else -> "" // More than one occurrence, return empty string
-    }
+    val index = input.lastIndexOf(tag)
+    return if (index != -1) input.substring(index + tag.length) else ""
 }
-
 
 // Feedback is only useful when turns is empty.
 data class System1Request(val turns: List<OpenAIMessage>, val feedback: Map<String, Any>? = null)

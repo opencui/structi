@@ -1131,6 +1131,77 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
 }
 
 
+// We need to get the
+data class SlotInsert<T: Any>(override var session: UserSession? = null): AbstractSlotAppend<T>(session) {
+    override val informNewValuePrompt = {
+        SlotInform(newValue, "newValue", "T",
+            templateOf(with(session!!.rgLang) { """we have updated ${if (!isMV()) originalSlot!!.expression() else "the ${index!!.name()} ${originalSlot!!.expression()}"} form ${originalValue()!!.expression()} to ${newValue!!.expression()} for you""" })
+        ) }
+    override val askNewValuePrompt = {
+        SlotRequest("newValue", "",
+            templateOf(with(session!!.rgLang) { """What do you want for ${if (!isMV()) originalSlot!!.expression() else "${index!!.name()} ${originalSlot!!.expression()}"}?""" })
+        ) }
+    override val oldValueDisagreePrompt = {
+        SlotConfirm(oldValue, "oldValue", "T",
+            templateOf(with(session!!.rgLang) { "You just said ${oldValue!!.expression()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.expression()} from ${originalValue()!!.expression()}?" })
+        ) }
+    override val doNothingPrompt = {
+        SlotOfferZepInform(
+            "originalSlot", "",
+            templateOf("We have no clue what you are talking about.")
+        ) }
+    override val askIndexPrompt = {
+        SlotRequest("index", "",
+            templateOf(with(session!!.rgLang) { "There are multiple values in ${originalSlot!!.expression()}. Which one do you want to change?" })
+        ) }
+    override val wrongIndexPrompt = {
+        SlotNotifyFailure(index, "index", "", FailType.VC,
+            templateOf(with(session!!.rgLang) { """There's no ${index!!.name()} value in ${originalSlot!!.expression()}""" })
+        ) }
+    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers ->
+        SlotOffer(
+            offers, "index", "", templateOf(offers.withIndex()
+                .joinToString("\n") {
+                    with(session!!.rgLang) { "${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.expression()}" }
+                })
+        ) }
+}
+
+data class SlotDelete<T: Any>(override var session: UserSession? = null): AbstractSlotDelete<T>(session) {
+    override val informNewValuePrompt = {
+        SlotInform(newValue, "newValue", "T",
+            templateOf(with(session!!.rgLang) { """we have updated ${if (!isMV()) originalSlot!!.expression() else "the ${index!!.name()} ${originalSlot!!.expression()}"} form ${originalValue()!!.expression()} to ${newValue!!.expression()} for you""" })
+        ) }
+    override val askNewValuePrompt = {
+        SlotRequest("newValue", "",
+            templateOf(with(session!!.rgLang) { """What do you want for ${if (!isMV()) originalSlot!!.expression() else "${index!!.name()} ${originalSlot!!.expression()}"}?""" })
+        ) }
+    override val oldValueDisagreePrompt = {
+        SlotConfirm(oldValue, "oldValue", "T",
+            templateOf(with(session!!.rgLang) { "You just said ${oldValue!!.expression()}, do you mean you want to change ${if (isMV()) "${index!!.name()} " else ""}${originalSlot!!.expression()} from ${originalValue()!!.expression()}?" })
+        ) }
+    override val doNothingPrompt = {
+        SlotOfferZepInform(
+            "originalSlot", "",
+            templateOf("We have no clue what you are talking about.")
+        ) }
+    override val askIndexPrompt = {
+        SlotRequest("index", "",
+            templateOf(with(session!!.rgLang) { "There are multiple values in ${originalSlot!!.expression()}. Which one do you want to change?" })
+        ) }
+    override val wrongIndexPrompt = {
+        SlotNotifyFailure(index, "index", "", FailType.VC,
+            templateOf(with(session!!.rgLang) { """There's no ${index!!.name()} value in ${originalSlot!!.expression()}""" })
+        ) }
+    override val indexRecPrompt: (List<Ordinal>) -> DialogAct = { offers ->
+        SlotOffer(
+            offers, "index", "", templateOf(offers.withIndex()
+                .joinToString("\n") {
+                    with(session!!.rgLang) { "${it.index + 1}. ${it.value.name()} value: ${getValueByIndex(it.value)?.expression()}" }
+                })
+        ) }
+}
+
 data class SlotUpdateTestIntent(override var session: UserSession? = null): IIntent {
     var cityFrom: City? = null
 
@@ -1256,6 +1327,121 @@ data class SlotUpdateTestIntent_0(
                                             |citiesFrom = ${citiesFrom?.joinToString { it.value }} 
                                             |citiesTo = ${citiesTo?.joinToString { it.value }}""".trimMargin()
 }))
+
+data class SlotCrudTestIntent(override var session: UserSession? = null): IIntent {
+    var citiesFrom: MutableList<City>? = null
+
+    var citiesTo: MutableList<City>? = null
+
+    @JsonIgnore
+    fun recs(candidate: City?): List<City> {
+        return if (candidate != null) listOf(candidate) else listOf(City("Beijing"), City("Shanghai"))
+    }
+
+    @JsonIgnore
+    val _rec_cityFrom = {it: City? -> PagedSelectable<City>(
+        session, {recs(it)}, { City::class },
+            {offers ->
+                SlotOffer(offers, "cityFrom", "io.opencui.test.City",
+                    templateOf(with(session!!.rgLang) {
+                        """We have following ${offers.size} choices: ${
+                            offers.joinToString(", ") {
+                                "(${it.expression()})"
+                            }
+                        }."""
+                    })
+                )
+            },
+        pageSize = 5, target = this, slot = "cityFrom", hard = true)}
+
+    override fun annotations(path: String): List<Annotation> = when(path) {
+        "citiesFrom" -> listOf(
+            SlotConditionalPromptAnnotation {
+                if (citiesFrom!!.isEmpty()) templateOf("citiesFrom?") else templateOf("any citiesFrom else?")
+            },
+            MinMaxAnnotation(0,
+                {
+                    SlotNotifyFailure(
+                        citiesFrom,
+                        "citiesFrom",
+                        "kotlin.collections.List<io.opencui.test.City>",
+                        FailType.MIN,
+                        templateOf("size = ${citiesFrom!!.size} less than 0")
+                    )
+                },
+                2,
+                {
+                    SlotNotifyFailure(
+                        citiesFrom,
+                        "citiesFrom",
+                        "kotlin.collections.List<io.opencui.test.City>",
+                        FailType.MAX,
+                        templateOf("size = ${citiesFrom!!.size} greater than 2")
+                    )
+                })
+        )
+
+        "citiesTo" -> listOf(
+            SlotConditionalPromptAnnotation {
+                if (citiesTo!!.isEmpty()) templateOf("citiesTo?") else templateOf("any citiesTo else?")
+            },
+            MinMaxAnnotation(0,
+                {
+                    SlotNotifyFailure(
+                        citiesTo,
+                        "citiesTo",
+                        "kotlin.collections.List<io.opencui.test.City>",
+                        FailType.MIN,
+                        templateOf("size = ${citiesTo!!.size} less than 0")
+                    )
+                },
+                3,
+                {
+                    SlotNotifyFailure(
+                        citiesTo,
+                        "citiesTo",
+                        "kotlin.collections.List<io.opencui.test.City>",
+                        FailType.MAX,
+                        templateOf("size = ${citiesTo!!.size} greater than 2")
+                    )
+                })
+        )
+
+        else -> listOf()
+    }
+
+    override fun createBuilder() = object : FillBuilder {
+        var frame:SlotCrudTestIntent? = this@SlotCrudTestIntent
+        override fun invoke(path: ParamPath): FrameFiller<*> {
+            val filler = FrameFiller({ ::frame }, path)
+            with(filler) {
+                addWithPath(MultiValueFiller(
+                    { frame!!::citiesFrom },
+                    fun(p: KMutableProperty0<City?>): AEntityFiller { return EntityFiller({p}) { s -> Json.decodeFromString(s) } }))
+                addWithPath(MultiValueFiller(
+                    { frame!!::citiesTo },
+                    fun(p: KMutableProperty0<City?>): AEntityFiller { return EntityFiller({p}) { s -> Json.decodeFromString(s) } }))
+            }
+            return filler
+        }
+    }
+
+    override fun searchResponse(): Action? {
+        return when {
+            else -> SlotCrudTestIntent_0(this)
+        }
+    }
+}
+
+data class SlotCrudTestIntent_0(
+        val frame: SlotCrudTestIntent
+) : UserDefinedInform<SlotCrudTestIntent>(frame, templateOf(with(frame) {
+    """Hi, 
+                                            |citiesFrom = ${citiesFrom?.joinToString { it.value }} 
+                                            |citiesTo = ${citiesTo?.joinToString { it.value }}""".trimMargin()
+}))
+
+
 
 
 data class EarlyTerminationFrame(override var session: UserSession? = null): IFrame {
