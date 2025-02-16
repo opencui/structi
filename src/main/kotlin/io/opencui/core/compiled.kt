@@ -1455,7 +1455,9 @@ data class SlotType(@get:JsonIgnore override var value: String) : IEntity, Seria
     override fun toString() : String = value
 }
 
-abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): IIntent {
+
+// This is currently used for both single value and multi value slots.
+abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): IIntent {
     var originalSlot: SlotType? = null
     var oldValue: T? = null
     var newValue: T? = null
@@ -1585,11 +1587,11 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
     }
 
     override fun createBuilder() = object : FillBuilder {
-        var frame: AbstractSlotUpdate<T>? = this@AbstractSlotUpdate
+        var frame: SlotCrudBase<T>? = this@SlotCrudBase
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val tp = ::frame
             val filler = FrameFiller({ tp }, path)
-            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotUpdate.session } }
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
             filler.addWithPath(originalSlotFiller)
             val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
             filler.addWithPath(oFiller)
@@ -1604,7 +1606,10 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
             return filler
         }
     }
+}
 
+
+abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
@@ -1638,6 +1643,82 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
         else -> null
     }
 }
+
+// For single valued slot, do we allow them to delete? (Maybe change from choice A to doesn't care?, only in
+// rare condition, typically, if user want to change, they will change to another choice, so it will be slotupdate)
+// this is used to delete item in the multivalued slot.
+abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
+    override fun searchResponse(): Action? = when {
+        confirm !is io.opencui.core.confirmation.No -> {
+            val filler = findTargetFiller()
+            if (filler == null) {
+                doNothingPrompt()
+            } else {
+                var path: List<IFiller> = listOf()
+                for (s in session!!.schedulers) {
+                    path = session!!.findFillerPath(s.firstOrNull(), { it == filler })
+                    if (path.isNotEmpty()) break
+                }
+                if (newValue == null) {
+                    val promptAnnotation = genPromptAnnotation()
+                    SeqAction(
+                        CleanupAction(listOf(filler)),
+                        UpdatePromptAction(filler, promptAnnotation),
+                        RefocusAction(path as List<ICompositeFiller>)
+                    )
+                } else {
+                    val newValueConfirmFrameAnnotation = genNewValueConfirmAnnotation()
+                    SeqAction(
+                        FillAction({ TextNode(newValue.toString()) },
+                            filler.targetFiller,
+                            listOf(newValueConfirmFrameAnnotation)),
+                        CleanupAction(listOf(filler)),
+                        RefocusAction(path as List<ICompositeFiller>)
+                    )
+                }
+            }
+        }
+        else -> null
+    }
+}
+
+
+// This is used for append new item to multi value slot.
+abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
+    override fun searchResponse(): Action? = when {
+        confirm !is io.opencui.core.confirmation.No -> {
+            val filler = findTargetFiller()
+            if (filler == null) {
+                doNothingPrompt()
+            } else {
+                var path: List<IFiller> = listOf()
+                for (s in session!!.schedulers) {
+                    path = session!!.findFillerPath(s.firstOrNull(), { it == filler })
+                    if (path.isNotEmpty()) break
+                }
+                if (newValue == null) {
+                    val promptAnnotation = genPromptAnnotation()
+                    SeqAction(
+                        CleanupAction(listOf(filler)),
+                        UpdatePromptAction(filler, promptAnnotation),
+                        RefocusAction(path as List<ICompositeFiller>)
+                    )
+                } else {
+                    val newValueConfirmFrameAnnotation = genNewValueConfirmAnnotation()
+                    SeqAction(
+                        FillAction({ TextNode(newValue.toString()) },
+                            filler.targetFiller,
+                            listOf(newValueConfirmFrameAnnotation)),
+                        CleanupAction(listOf(filler)),
+                        RefocusAction(path as List<ICompositeFiller>)
+                    )
+                }
+            }
+        }
+        else -> null
+    }
+}
+
 
 data class UpdatePromptAction(
     val wrapperTarget: AnnotatedWrapperFiller?,
