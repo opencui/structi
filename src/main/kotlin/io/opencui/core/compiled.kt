@@ -1586,8 +1586,13 @@ abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): 
         else -> listOf()
     }
 
+
+}
+
+
+abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
     override fun createBuilder() = object : FillBuilder {
-        var frame: SlotCrudBase<T>? = this@SlotCrudBase
+        var frame: AbstractSlotUpdate<T>? = this@AbstractSlotUpdate
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val tp = ::frame
             val filler = FrameFiller({ tp }, path)
@@ -1606,10 +1611,8 @@ abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): 
             return filler
         }
     }
-}
 
 
-abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
@@ -1648,6 +1651,28 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
 // rare condition, typically, if user want to change, they will change to another choice, so it will be slotupdate)
 // this is used to delete item in the multivalued slot.
 abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
+    override fun createBuilder() = object : FillBuilder {
+        var frame: AbstractSlotDelete<T>? = this@AbstractSlotDelete
+        override fun invoke(path: ParamPath): FrameFiller<*> {
+            val tp = ::frame
+            val filler = FrameFiller({ tp }, path)
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
+            filler.addWithPath(originalSlotFiller)
+            val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
+            filler.addWithPath(oFiller)
+            val nFiller = EntityFiller({tp.get()!!::newValue}) { s -> buildT(s)}
+            filler.addWithPath(nFiller)
+            val iFiller = EntityFiller({tp.get()!!::index}) { s -> Json.decodeFromString(s)}
+            filler.addWithPath(iFiller)
+            val originalValueFiller = EntityFiller({tp.get()!!::originalValue}) { s -> buildT(s)}
+            filler.addWithPath(originalValueFiller)
+            filler.addWithPath(
+                InterfaceFiller({ tp.get()!!::confirm }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
+            return filler
+        }
+    }
+
+
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
@@ -1685,6 +1710,28 @@ abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = n
 
 // This is used for append new item to multi value slot.
 abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
+    override fun createBuilder() = object : FillBuilder {
+        var frame: AbstractSlotAppend<T>? = this@AbstractSlotAppend
+        override fun invoke(path: ParamPath): FrameFiller<*> {
+            val tp = ::frame
+            val filler = FrameFiller({ tp }, path)
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
+            filler.addWithPath(originalSlotFiller)
+            val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
+            filler.addWithPath(oFiller)
+            val nFiller = EntityFiller({tp.get()!!::newValue}) { s -> buildT(s)}
+            filler.addWithPath(nFiller)
+            val iFiller = EntityFiller({tp.get()!!::index}) { s -> Json.decodeFromString(s)}
+            filler.addWithPath(iFiller)
+            val originalValueFiller = EntityFiller({tp.get()!!::originalValue}) { s -> buildT(s)}
+            filler.addWithPath(originalValueFiller)
+            filler.addWithPath(
+                InterfaceFiller({ tp.get()!!::confirm }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
+            return filler
+        }
+    }
+
+
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
