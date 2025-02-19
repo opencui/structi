@@ -9,8 +9,10 @@ import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.security.SecurityProperties.User
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
+import kotlin.math.max
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty1
@@ -316,7 +318,11 @@ class EntityFiller<T>(
     override fun done(frameEvents: List<FrameEvent>): Boolean {
         // If we find value with alternative value, we handle it.
         for (frameEvent in frameEvents) {
-            val related = frameEvent.slots.find { it.attribute == attribute && !it.isUsed && it.semantic != CompanionType.AND }
+            val related = frameEvent.slots.find {
+                    it.attribute == attribute
+                            && !it.isUsed
+                            && it.semantic != CompanionType.AND
+            }
             if (related != null) return false
         }
         return done
@@ -827,7 +833,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         return if (targetFiller.isCompatible(frameEvent)) FrameEvent("Yes", packageName = boolGatePackage ) else null
     }
 
-    var slotUpdateFlag = false
+    var slotCrudFlag = false
 
     fun disableResponse() {
         needResponse = false
@@ -851,8 +857,9 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         markedFilled = true
     }
 
-    fun markDone() {
-        markedDone = true
+    // We change this so that we can also un mark done on this.
+    fun markDone(flag: Boolean = true) {
+        markedDone = flag
     }
 
     fun recheck() {
@@ -927,6 +934,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     var recommendationFiller: AnnotatedWrapperFiller? = null
     private var _stateUpdateFiller: AnnotatedWrapperFiller? = null
+
     var stateUpdateFiller: AnnotatedWrapperFiller?
     get() {
         if (_stateUpdateFiller == null) {
@@ -939,7 +947,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
             // We need to create slot updater.
             val res = AnnotatedWrapperFiller(updateFiller, false)
-            res.slotUpdateFlag = true
+            res.slotCrudFlag = true
             res.parent = this@AnnotatedWrapperFiller
             updateFiller.parent = res
             _stateUpdateFiller = res
@@ -1155,7 +1163,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         val res = markedDone
                 || canNotEnter
                 || lastClauseInDone(frameEvents)
-        // if (slotUpdateFlag) println("done: $res with canNotEnter: $canNotEnter")
+        if (slotCrudFlag) println("done: $res with canNotEnter: $canNotEnter")
         return res
     }
 
@@ -1503,6 +1511,7 @@ class MultiValueFiller<T>(
     private val hasMoreAttribute = "_hast"
     var hasMore: HasMore? = null
     var hasMoreFiller: AnnotatedWrapperFiller? = null
+
     fun buildHasMore() {
         hasMore = HasMore(
             path!!.root().session, slotAskAnnotation()!!.actions, ::infer,
@@ -1513,6 +1522,7 @@ class MultiValueFiller<T>(
         hasMoreFrameFiller.parent = hasMoreFiller
         hasMoreFiller!!.parent = this
     }
+
     fun clearHasMore() {
         hasMoreFiller?.clear()
         hasMoreFiller = null
@@ -1557,10 +1567,11 @@ class MultiValueFiller<T>(
     override fun done(frameEvents: List<FrameEvent>): Boolean {
         // We need to first make sure we got started.
         val currentFiller = findCurrentFiller()
-        return target.get() != null && currentFiller == null &&
+        val maxCount = minMaxAnnotation?.max ?: Int.MAX_VALUE
+        return target.get() != null &&
+                currentFiller == null &&
                 (hasMore?.status is No ||
-                        (target.get()!!.size >= (minMaxAnnotation?.max ?: Int.MAX_VALUE) &&
-                                frameEvents.firstOrNull { isCompatible(it) } == null))
+                        (target.get()!!.size >= maxCount && frameEvents.firstOrNull { isCompatible(it) } == null))
     }
 
     override fun clear() {
@@ -1571,6 +1582,19 @@ class MultiValueFiller<T>(
         target.get()?.clear()
         target.set(null)
         super.clear()
+    }
+
+    fun append(session: UserSession) {
+        val maxCount = minMaxAnnotation?.max ?: Int.MAX_VALUE
+        if (target.get()!!.size < maxCount) {
+            clearHasMore()
+            val ffiller = createTFiller(fillers.size)
+            val wrapper = AnnotatedWrapperFiller(ffiller)
+            ffiller.parent = wrapper
+            wrapper.parent = this
+            addFiller(wrapper)
+            session.schedule.push(wrapper)
+        }
     }
 
     override fun grow(session: UserSession, flatEvents: List<FrameEvent>): Boolean {

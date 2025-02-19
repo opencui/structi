@@ -293,6 +293,56 @@ data class RefocusAction(
     }
 }
 
+
+data class ReactiveMVAction(
+    val refocusPath: List<IFiller>
+) : StateAction {
+    override fun run(session: UserSession): ActionResult {
+        var scheduler: Scheduler? = null
+        for (s in session.schedulers) {
+            if (refocusPath.isNotEmpty() && refocusPath.first() == s.firstOrNull()) {
+                scheduler = s
+                break
+            }
+        }
+
+        if (scheduler == null) return ActionResult(emptyLog())
+
+        val startList = refocusPath.filterIsInstance<AnnotatedWrapperFiller>()
+        val start = startList.withIndex().first { it.value.isSlot && (it.index == startList.size-1 || !startList[it.index+1].isSlot) }.value
+        val endList = scheduler.filterIsInstance<AnnotatedWrapperFiller>()
+        val end = endList.withIndex().first { it.value.isSlot && (it.index == endList.size-1 || !endList[it.index+1].isSlot) }.value
+
+        var divergeIndex = 0
+        for (i in 0 until min(scheduler.size, refocusPath.size)) {
+            if (scheduler[i] != refocusPath[i]) {
+                divergeIndex = i
+                break
+            }
+        }
+
+        for (i in scheduler.size - 1 downTo divergeIndex) {
+            scheduler.pop()
+        }
+
+        for (i in divergeIndex until refocusPath.size) {
+            scheduler.push(refocusPath[i])
+        }
+
+        // set slots in between to recheck state; in post order
+        session.postOrderManipulation(scheduler, start, end) { it.recheck() }
+
+        // assume we have a candidate value for the refocused slot, or we want to ask for the refocused slot
+        if (scheduler == session.schedule) {
+            RescheduleAction().wrappedRun(session)
+        } else {
+            scheduler.state = Scheduler.State.RESCHEDULE
+        }
+        return ActionResult(emptyLog())
+    }
+}
+
+
 data class RecoverAction(val tag: String = "") : StateAction {
     override fun run(session: UserSession): ActionResult {
         session.schedule.state = Scheduler.State.RESCHEDULE

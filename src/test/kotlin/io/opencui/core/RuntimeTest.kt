@@ -1270,7 +1270,66 @@ class RuntimeTest {
         process(SlotUpdateTest)
     }
 
+    @Test
+    fun testSlotDelete() {
+        val SlotCrudTest = listOf(
+            """>{"query": "1", "frames": [{"type": "SlotCrudTestIntent", "slots": [{"value" : "\"Beijing\"", "attribute" : "citiesFrom"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SlotAskAction","payload":"any citiesFrom else?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesFrom"}]}""",
+            """>{"query": "2", "frames": [{"type": "SlotCrudTestIntent", "slots": [{"value" : "\"Shanghai\"", "attribute" : "citiesFrom"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SlotAskAction","payload":"citiesTo?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesTo"}]}""",
+            """>{"query": "3", "frames": [{"type": "SlotDelete", "slots": [{"value" : "\"Chengdu\"", "attribute" : "oldValue"}, {"value" : "\"io.opencui.test.SlotCrudTestIntent.citiesFrom\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"MarkFillerDone","payload":"end filler for: index"}]}""",
+            """<{"type":"DirectlyFillAction","payload":"FILL SLOT value is null for target : io.opencui.test.SlotDelete, slot : originalValue"}""",
+            """<{"type":"SlotOfferZepInform","payload":"We have no clue what you are talking about."}""",
+            """<{"type":"SlotAskAction","payload":"citiesTo?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesTo"}]}""",
+            """>{"query": "4", "frames": [{"type": "SlotDelete", "slots": [{"value" : "\"Beijing\"", "attribute" : "oldValue"}, {"value" : "\"io.opencui.test.SlotCrudTestIntent.citiesFrom\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.core.PagedSelectable, slot : index"}""",
+            """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotDelete, slot : index"}]}""",
+            """<{"type":"DirectlyFillAction","payload":"FILL SLOT for target : io.opencui.test.SlotDelete, slot : originalValue"}""",
+            """<{"type":"SeqAction","payload":[{"type":"CleanupAction","payload":"CLEANUP SLOT : target=io.opencui.test.SlotCrudTestIntent&slot=citiesFrom._item"},{"type":"RefocusAction","payload":""}]}""",
+            """<{"type":"SlotAskAction","payload":"any citiesFrom else?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesFrom"}]}"""
+        )
+        process(SlotCrudTest)
+    }
 
+    @Test
+    fun testSlotAppend0() {
+        val SlotCrudTest = listOf(
+            """>{"query": "1", "frames": [{"type": "SlotCrudTestIntent", "slots": [{"value" : "\"Beijing\"", "attribute" : "citiesFrom"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SlotAskAction","payload":"any citiesFrom else?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesFrom"}]}""",
+            """>{"query": "2", "frames": [{"type": "No", "slots": [], "packageName": "io.opencui.core.hasMore"}]}""",
+            """<{"type":"SlotAskAction","payload":"citiesTo?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesTo"}]}""",
+            """>{"query": "3", "frames": [{"type": "SlotAppend", "slots": [{"value" : "\"Chengdu\"", "attribute" : "newValue"}, {"value" : "\"io.opencui.test.SlotCrudTestIntent.citiesFrom\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"FillAction","payload":"FILL SLOT for target : io.opencui.test.SlotCrudTestIntent, slot : citiesFrom"},{"type":"RefocusAction","payload":""}]}""",
+            """<{"type":"SlotAskAction","payload":"citiesTo?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesTo"}]}"""
+        )
+        process(SlotCrudTest)
+    }
+
+    @Test
+    fun testSlotAppend1() {
+        val SlotCrudTest = listOf(
+            """>{"query": "1", "frames": [{"type": "SlotCrudTestIntent", "slots": [{"value" : "\"Beijing\"", "attribute" : "citiesFrom"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SlotAskAction","payload":"any citiesFrom else?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesFrom"}]}""",
+            """>{"query": "2", "frames": [{"type": "No", "slots": [], "packageName": "io.opencui.core.hasMore"}]}""",
+            """<{"type":"SlotAskAction","payload":"citiesTo?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.core.HasMore","slot":"status"},{"frame":"io.opencui.test.SlotCrudTestIntent","slot":"citiesTo"}]}""",
+            """>{"query": "3", "frames": [{"type": "SlotAppend", "slots": [{"value" : "\"io.opencui.test.SlotCrudTestIntent.citiesFrom\"", "attribute" : "originalSlot"}], "packageName": "io.opencui.test"}]}""",
+            """<{"type":"SeqAction","payload":[{"type":"UnMarkFillerDone","payload":"end filler for: citiesFrom"},{"type":"RefocusAction","payload":""}]}""",
+            """<{"type":"SlotAskAction","payload":"any citiesFrom else?"}""",
+            """<{"activeFrames":[{"frame":"io.opencui.test.SlotAppend"}]}"""
+        )
+        process(SlotCrudTest)
+    }
+    
     @Test
     fun testEarlyTermination() {
         val EarlyTerminationTest = listOf(
