@@ -1132,14 +1132,14 @@ data class SlotUpdate<T: Any>(override var session: UserSession? = null): Abstra
 
 
 // We need to get the
-data class SlotInsert<T: Any>(override var session: UserSession? = null): AbstractSlotAppend<T>(session) {
+data class SlotAppend<T: Any>(override var session: UserSession? = null): AbstractSlotAppend<T>(session) {
     override val informNewValuePrompt = {
         SlotInform(newValue, "newValue", "T",
             templateOf(with(session!!.rgLang) { """we have updated ${if (!isMV()) originalSlot!!.expression() else "the ${index!!.name()} ${originalSlot!!.expression()}"} form ${originalValue()!!.expression()} to ${newValue!!.expression()} for you""" })
         ) }
     override val askNewValuePrompt = {
         SlotRequest("newValue", "",
-            templateOf(with(session!!.rgLang) { """What do you want for ${if (!isMV()) originalSlot!!.expression() else "${index!!.name()} ${originalSlot!!.expression()}"}?""" })
+            templateOf(with(session!!.rgLang) { """What do you want for ${originalSlot!!.expression()}?""" })
         ) }
     override val oldValueDisagreePrompt = {
         SlotConfirm(oldValue, "oldValue", "T",
@@ -1327,6 +1327,7 @@ data class SlotUpdateTestIntent_0(
                                             |citiesFrom = ${citiesFrom?.joinToString { it.value }} 
                                             |citiesTo = ${citiesTo?.joinToString { it.value }}""".trimMargin()
 }))
+
 
 data class SlotCrudTestIntent(override var session: UserSession? = null): IIntent {
     var citiesFrom: MutableList<City>? = null

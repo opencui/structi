@@ -14,6 +14,7 @@ import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
+import org.jetbrains.kotlin.psi.parameterVisitor
 import java.io.Serializable
 import java.lang.RuntimeException
 import java.util.*
@@ -293,6 +294,7 @@ data class CleanupAction(
     }
 }
 
+
 data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val fillersToBeCleaned = mutableListOf<IFiller>()
@@ -433,6 +435,14 @@ data class FillActionBySlot<T>(
 data class MarkFillerDone(val filler: AnnotatedWrapperFiller): StateAction {
     override fun run(session: UserSession): ActionResult {
         filler.markDone()
+        return ActionResult(createLog("end filler for: ${filler.targetFiller.attribute}"))
+    }
+}
+
+data class UnMarkFillerDone(val filler: AnnotatedWrapperFiller): StateAction {
+    override fun run(session: UserSession): ActionResult {
+        filler.markDone(false)
+        (filler.targetFiller as MultiValueFiller<*>).append(session)
         return ActionResult(createLog("end filler for: ${filler.targetFiller.attribute}"))
     }
 }
@@ -1509,9 +1519,11 @@ abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): 
         return (targetFiller.fillers[index.value.toInt()-1].targetFiller as TypedFiller<T>).target.get()
     }
 
-    fun findTargetFiller(): AnnotatedWrapperFiller? {
+    fun findTargetFiller(append: Boolean = false): AnnotatedWrapperFiller? {
         val f = findOriginalSlotFiller()
         if (f?.targetFiller !is MultiValueFiller<*>) return f
+        // For append, we just need to return the multivalued container filler.
+        if (append) return f
         val mvf = f.targetFiller as MultiValueFiller<*>
         if (index == null || index!!.value.toInt() <= 0 || mvf.fillers.size < index!!.value.toInt()) return null
         return mvf.fillers.get(index!!.value.toInt() - 1)
@@ -1525,8 +1537,10 @@ abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): 
             f is AnnotatedWrapperFiller && originalSlot?.value == slotName
         }
         var topFiller = session!!.mainSchedule.firstOrNull() as? AnnotatedWrapperFiller
-        if (((topFiller?.targetFiller as? FrameFiller<*>)?.fillers?.get("skills")?.targetFiller as? MultiValueFiller<*>)?.findCurrentFiller() != null) {
-            topFiller = ((topFiller.targetFiller as FrameFiller<*>).fillers["skills"]!!.targetFiller as MultiValueFiller<*>).findCurrentFiller()
+        // TODO (sean): this is not exactly right. unless we do not allow to touch these two mains.
+        // this find the active filler from the main stack?
+        if (((topFiller?.targetFiller as? FrameFiller<*>)?.fillers?.get(SKILLS)?.targetFiller as? MultiValueFiller<*>)?.findCurrentFiller() != null) {
+            topFiller = ((topFiller.targetFiller as FrameFiller<*>).fillers[SKILLS]!!.targetFiller as MultiValueFiller<*>).findCurrentFiller()
         }
         val candidate = session!!.findFillerPath(topFiller, filter)
         return candidate.lastOrNull() as? AnnotatedWrapperFiller
@@ -1571,28 +1585,39 @@ abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): 
     }
 
     override fun annotations(path: String): List<Annotation> = when(path) {
-        "originalSlot" -> listOf(NeverAsk())
-        "oldValue" -> listOf(NeverAsk())
-        "newValue" -> listOf(NeverAsk())
+        "originalSlot" -> listOf(RecoverOnly())
+        "oldValue" -> listOf(RecoverOnly())
+        "newValue" -> listOf(RecoverOnly())
         "index" -> listOf(
             ConditionalAsk(Condition { isMV() }),
             ValueCheckAnnotation({_check_index}),
             TypedValueRecAnnotation<Ordinal>({_rec_index(this)}),
             SlotPromptAnnotation(listOf(LazyAction(askIndexPrompt))))
-        "originalValue" -> listOf(NeverAsk(), SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue")))
+        "originalValue" -> listOf(
+            NeverAsk(),
+            SlotInitAnnotation(DirectlyFillActionBySlot({originalValueInit()},  this, "originalValue")))
         "confirm" -> listOf(
             ConditionalAsk(Condition { needConfirm() }),
             SlotPromptAnnotation(listOf(LazyAction(oldValueDisagreePrompt))))
         else -> listOf()
     }
 
+    companion object {
+        // We assume only main can have skills
+        const val SKILLS = "skills"
+    }
+}
+
+
+abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
     override fun createBuilder() = object : FillBuilder {
-        var frame: SlotCrudBase<T>? = this@SlotCrudBase
+        var frame: AbstractSlotUpdate<T>? = this@AbstractSlotUpdate
         override fun invoke(path: ParamPath): FrameFiller<*> {
             val tp = ::frame
             val filler = FrameFiller({ tp }, path)
-            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@SlotCrudBase.session } }
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotUpdate.session } }
             filler.addWithPath(originalSlotFiller)
+            // We need to improve this so that we can support both entity/frame.
             val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
             filler.addWithPath(oFiller)
             val nFiller = EntityFiller({tp.get()!!::newValue}) { s -> buildT(s)}
@@ -1606,10 +1631,8 @@ abstract class SlotCrudBase<T: Any>(override var session: UserSession? = null): 
             return filler
         }
     }
-}
 
 
-abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
@@ -1647,7 +1670,31 @@ abstract class AbstractSlotUpdate<T: Any>(override var session: UserSession? = n
 // For single valued slot, do we allow them to delete? (Maybe change from choice A to doesn't care?, only in
 // rare condition, typically, if user want to change, they will change to another choice, so it will be slotupdate)
 // this is used to delete item in the multivalued slot.
+// This for entity, we need to create one for frame later as well.
 abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
+    override fun createBuilder() = object : FillBuilder {
+        var frame: AbstractSlotDelete<T>? = this@AbstractSlotDelete
+        override fun invoke(path: ParamPath): FrameFiller<*> {
+            val tp = ::frame
+            val filler = FrameFiller({ tp }, path)
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) {
+                s -> Json.decodeFromString<SlotType>(s)
+                    .apply { this.session = this@AbstractSlotDelete.session }
+            }
+            filler.addWithPath(originalSlotFiller)
+            val oFiller = EntityFiller({tp.get()!!::oldValue}) { s -> buildT(s)}
+            filler.addWithPath(oFiller)
+            val iFiller = EntityFiller({tp.get()!!::index}) { s -> Json.decodeFromString(s)}
+            filler.addWithPath(iFiller)
+            val originalValueFiller = EntityFiller({tp.get()!!::originalValue}) { s -> buildT(s)}
+            filler.addWithPath(originalValueFiller)
+            filler.addWithPath(
+                InterfaceFiller({ tp.get()!!::confirm }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
+            return filler
+        }
+    }
+
+
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
             val filler = findTargetFiller()
@@ -1659,23 +1706,13 @@ abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = n
                     path = session!!.findFillerPath(s.firstOrNull(), { it == filler })
                     if (path.isNotEmpty()) break
                 }
-                if (newValue == null) {
-                    val promptAnnotation = genPromptAnnotation()
-                    SeqAction(
-                        CleanupAction(listOf(filler)),
-                        UpdatePromptAction(filler, promptAnnotation),
-                        RefocusAction(path as List<ICompositeFiller>)
-                    )
-                } else {
-                    val newValueConfirmFrameAnnotation = genNewValueConfirmAnnotation()
-                    SeqAction(
-                        FillAction({ TextNode(newValue.toString()) },
-                            filler.targetFiller,
-                            listOf(newValueConfirmFrameAnnotation)),
-                        CleanupAction(listOf(filler)),
-                        RefocusAction(path as List<ICompositeFiller>)
-                    )
-                }
+
+                // how do we remove the i-th item in the array.
+                SeqAction(
+                    CleanupAction(listOf(filler)),
+                    RefocusAction(path as List<ICompositeFiller>)
+                )
+
             }
         }
         else -> null
@@ -1685,9 +1722,25 @@ abstract class AbstractSlotDelete<T: Any>(override var session: UserSession? = n
 
 // This is used for append new item to multi value slot.
 abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = null): SlotCrudBase<T>(session) {
+    override fun createBuilder() = object : FillBuilder {
+        var frame: AbstractSlotAppend<T>? = this@AbstractSlotAppend
+        override fun invoke(path: ParamPath): FrameFiller<*> {
+            val tp = ::frame
+            val filler = FrameFiller({ tp }, path)
+            val originalSlotFiller = EntityFiller({tp.get()!!::originalSlot}) { s -> Json.decodeFromString<SlotType>(s).apply { this.session = this@AbstractSlotAppend.session } }
+            filler.addWithPath(originalSlotFiller)
+            val nFiller = EntityFiller({tp.get()!!::newValue}) { s -> buildT(s)}
+            filler.addWithPath(nFiller)
+            filler.addWithPath(
+                InterfaceFiller({ tp.get()!!::confirm }, createFrameGenerator(tp.get()!!.session!!, io.opencui.core.confirmation.IStatus::class.qualifiedName!!)))
+            return filler
+        }
+    }
+
+
     override fun searchResponse(): Action? = when {
         confirm !is io.opencui.core.confirmation.No -> {
-            val filler = findTargetFiller()
+            val filler = findTargetFiller(true)
             if (filler == null) {
                 doNothingPrompt()
             } else {
@@ -1697,19 +1750,15 @@ abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = n
                     if (path.isNotEmpty()) break
                 }
                 if (newValue == null) {
-                    val promptAnnotation = genPromptAnnotation()
+                    // Let's find the frame and slot, and refocus there.
+                    // This should only work on MV slot.
                     SeqAction(
-                        CleanupAction(listOf(filler)),
-                        UpdatePromptAction(filler, promptAnnotation),
+                        UnMarkFillerDone(filler),
                         RefocusAction(path as List<ICompositeFiller>)
                     )
                 } else {
-                    val newValueConfirmFrameAnnotation = genNewValueConfirmAnnotation()
                     SeqAction(
-                        FillAction({ TextNode(newValue.toString()) },
-                            filler.targetFiller,
-                            listOf(newValueConfirmFrameAnnotation)),
-                        CleanupAction(listOf(filler)),
+                        FillAction({ TextNode(newValue.toString()) }, filler.targetFiller),
                         RefocusAction(path as List<ICompositeFiller>)
                     )
                 }
