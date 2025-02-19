@@ -307,43 +307,6 @@ data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : S
     }
 }
 
-
-// Let's try to
-data class MvReactivateAction(
-    val fillerToBeCleaned: MultiValueFiller<*>
-) : StateAction {
-    override fun run(session: UserSession): ActionResult {
-
-        // (TODO: verify whether this indeed is not needed)
-        for (currentScheduler in session.schedulers.reversed()) {
-            var index = currentScheduler.size
-            for ((i, f) in currentScheduler.withIndex().reversed()) {
-                if (f == fillerToBeCleaned) {
-                    index = i
-                    break
-                }
-            }
-            // pop fillers that have gone back to initial state but never pop the root filler in a CleanupAction
-            if (index < currentScheduler.size) {
-                var count = currentScheduler.size - index
-                while (count-- > 0 && currentScheduler.size > 1) {
-                    currentScheduler.pop()
-                }
-                break
-            }
-        }
-        (fillerToBeCleaned as MultiValueFiller<*>).grow(session, listOf())
-
-        return ActionResult(
-            createLog("""Reactive MV SLOT : { "target=${fillerToBeCleaned.javaClass.name}&slot=${fillerToBeCleaned.attribute}" }"""),
-            true
-        )
-    }
-}
-
-
-
-
 data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
     override fun run(session: UserSession): ActionResult {
         for (fillerToBeRechecked in toBeRechecked) {
