@@ -274,6 +274,13 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // Now we apply recognizers on every triggerable.
         for (triggerable in triggerables) {
             triggerable.duContext = buildDuContext(session, triggerable.utterance, expectations)
+            if (triggerable.owner == null) {
+                val exactOwner = triggerable.exactMatch(triggerable.duContext)
+                if (exactOwner != null) {
+                    logger.debug("The exactOwner $exactOwner different from guessed owner null.")
+                    triggerable.owner = exactOwner
+                }
+            }
         }
 
         // Partition the triggeralbe to payload and need to be handled under context.
