@@ -11,7 +11,6 @@ import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.kotlin.cli.common.Usage
 import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
 import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
@@ -304,14 +303,15 @@ class DialogManager {
             logger.info("inside system1 with ${userFrameEvents}")
             val response = system1?.response(session.history)!!
             logger.info("system1 response: $response")
-            // For now, we just use the reflection to system1 reply.
-            val system1Skill = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
-            val reply = system1Skill::class.memberProperties.find { it.name == "reply" }
+
+            // We use the reflection to system1 reply wrapper's reply, to wrap system 1 response.
+            val system1SkillReplyWrapper = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
+            val reply = system1SkillReplyWrapper::class.memberProperties.find { it.name == "reply" }
 
             check(reply is KMutableProperty<*>)
-            reply.setter.call(system1Skill, response)
+            reply.setter.call(system1SkillReplyWrapper, response)
 
-            val system1ActionResults = system1Skill?.searchResponse()?.wrappedRun(session)
+            val system1ActionResults = system1SkillReplyWrapper?.searchResponse()?.wrappedRun(session)
             // We add system1 response to the last one.
             if (system1ActionResults != null) {
                 actionResults += system1ActionResults
