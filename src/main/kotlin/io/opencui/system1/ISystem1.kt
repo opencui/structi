@@ -1,6 +1,7 @@
 package io.opencui.system1
 
 import io.opencui.core.Augmentation
+import io.opencui.core.CoreMessage
 import io.opencui.core.IExtension
 import io.opencui.core.UserSession
 import java.io.Serializable
