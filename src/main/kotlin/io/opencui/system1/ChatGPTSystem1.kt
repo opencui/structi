@@ -34,8 +34,8 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
       .build()
 
-    override fun response(msgs: List<CoreMessage>, feedback: Map<String, Any>?): String {
-        val request = System1Request(msgs.convert(), feedback)
+    override fun response(msgs: List<CoreMessage>): String {
+        val request = System1Request(msgs.convert())
         val response = client.post()
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()

@@ -21,6 +21,6 @@ data class CoreMessage(val user: Boolean, val message: String): Serializable
 
 interface ISystem1 : IExtension {
     //  msgs and feedback are mutually exclusive.
-    fun response(msgs: List<CoreMessage>, feedback: Map<String, Any>? = null): String
+    fun response(msgs: List<CoreMessage>): String
 }
 
