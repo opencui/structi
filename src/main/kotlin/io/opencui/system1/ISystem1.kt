@@ -1,5 +1,6 @@
 package io.opencui.system1
 
+import io.opencui.core.Augmentation
 import io.opencui.core.IExtension
 import io.opencui.core.UserSession
 import java.io.Serializable
@@ -17,33 +18,20 @@ import java.io.Serializable
  * Dumb system will always return something.
  * For now, we assume the system1 are dumb.
  */
-data class CoreMessage(val user: Boolean, val message: String): Serializable
 
 
-data class InferenceConfig(
-    val temperature: Float,
-    val topk: Int,
-    val max_input_length: Int)
 
-
-data class RemoteKnowledge(
-    val knowledgeLabel: String,
-    val tags: Map<String, String>)
-
-
-// This is all the information we need for LLM to perform.
-data class Augmentation(
-    val prompt: String, // This should be a jinja2 template so that system1 can follow.
-    val local_knowledge: List<String>,
-    val remote_knowledge: List<RemoteKnowledge>
-)
 
 
 interface ISystem1 : IExtension {
     //  msgs and feedback are mutually exclusive.
     fun response(msgs: List<CoreMessage>): String
 
+    fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String
+
     fun response(userSession: UserSession): String? {
+        // we go through the main scheduler and try to find the first one with no empty augmentation.
+
         return response(userSession.history)
     }
 }

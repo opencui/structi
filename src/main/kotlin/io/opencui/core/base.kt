@@ -182,6 +182,26 @@ interface IEntity : ICui {
  */
 interface CuiDisabled : Serializable
 
+// For system1, or prompt engineered component.
+data class InferenceConfig(
+    val temperature: Float,
+    val topk: Int,
+    val max_input_length: Int)
+
+
+data class RemoteKnowledge(
+    val knowledgeLabel: String,
+    val tags: Map<String, String>)
+
+
+// This is all the information we need for LLM to perform.
+data class Augmentation(
+    val prompt: String, // This should be a jinja2 template so that system1 can follow.
+    val local_knowledge: List<String>,
+    val remote_knowledge: List<RemoteKnowledge>,
+    val inference_config: InferenceConfig
+)
+
 /**
  * For value disambiguation, we need to expose some information for the generic implementation
  * for the slot that we bind dynamically.
@@ -198,6 +218,9 @@ interface IFrame : ICui {
 
     fun createBuilder(): FillBuilder
 
+    fun getFallbackAugmentation(): Augmentation? {
+        return null
+    }
 
     // slot "this" is a special slot which indicates searching for frame confirmation
     fun searchConfirmation(path: String): IFrame? {
@@ -215,6 +238,10 @@ inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
 interface IIntent : IFrame {
     // TODO(xiaobo, xiaoyun): all the filling related property should be in filler instead of frame, ideally.
     fun searchResponse(): Action? {
+        return null
+    }
+
+    fun getResponseAugmentation(): Augmentation? {
         return null
     }
 }
