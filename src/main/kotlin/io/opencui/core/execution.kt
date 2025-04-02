@@ -301,7 +301,7 @@ class DialogManager {
         // If we do not understand, we fall back to system1
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("inside system1 with ${userFrameEvents}")
-            val response = system1?.response(session.history)!!
+            val response = system1?.response(session)!!
             logger.info("system1 response: $response")
 
             // We use the reflection to system1 reply wrapper's reply, to wrap system 1 response.
