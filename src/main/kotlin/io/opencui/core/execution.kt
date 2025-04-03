@@ -280,8 +280,7 @@ class DialogManager {
 
         logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
 
-        val system1 = session.chatbot?.getExtension<ISystem1>()
-        val system1Response = getSystem1Response(session, system1, frameEvents)
+        val system1Response = getSystem1Response(session, frameEvents)
         logger.info("found system1 response size: ${system1Response.size}")
 
         if (actionResults.isEmpty() && session.schedule.isNotEmpty() && session.lastTurnRes.isNotEmpty()) {
@@ -293,28 +292,29 @@ class DialogManager {
         }
     }
 
-    fun getSystem1Response(session: UserSession, system1: ISystem1?, frameEvents: List<FrameEvent>): List<ActionResult> {
-        if (system1 == null) return emptyList()
+    fun getSystem1Response(session: UserSession, frameEvents: List<FrameEvent>): List<ActionResult> {
         val actionResults = mutableListOf<ActionResult>()
         val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
 
         // If we do not understand, we fall back to system1
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("inside system1 with ${userFrameEvents}")
-            val response = system1?.response(session.history)!!
-            logger.info("system1 response: $response")
+            val response = ISystem1.response(session)
+            if (response != null) {
+                logger.info("system1 response: $response")
 
-            // We use the reflection to system1 reply wrapper's reply, to wrap system 1 response.
-            val system1SkillReplyWrapper = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
-            val reply = system1SkillReplyWrapper::class.memberProperties.find { it.name == "reply" }
+                // We use the reflection to system1 reply wrapper's reply, to wrap system 1 response.
+                val system1SkillReplyWrapper = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
+                val reply = system1SkillReplyWrapper::class.memberProperties.find { it.name == "reply" }
 
-            check(reply is KMutableProperty<*>)
-            reply.setter.call(system1SkillReplyWrapper, response)
+                check(reply is KMutableProperty<*>)
+                reply.setter.call(system1SkillReplyWrapper, response)
 
-            val system1ActionResults = system1SkillReplyWrapper?.searchResponse()?.wrappedRun(session)
-            // We add system1 response to the last one.
-            if (system1ActionResults != null) {
-                actionResults += system1ActionResults
+                val system1ActionResults = system1SkillReplyWrapper?.searchResponse()?.wrappedRun(session)
+                // We add system1 response to the last one.
+                if (system1ActionResults != null) {
+                    actionResults += system1ActionResults
+                }
             }
         }
         return actionResults
