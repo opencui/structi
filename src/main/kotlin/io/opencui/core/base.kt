@@ -189,17 +189,17 @@ data class InferenceConfig(
     val topK: Int,
     val maxInputLength: Int)
 
+data class KnowledgeTag(val key: String, val value: String)
 
-data class RemoteKnowledge(
-    val knowledgeLabel: String,
-    val tags: Map<String, String>)
+
+data class FilteredKnowledge(val knowledgeLabel: String, val tags: List<KnowledgeTag>)
 
 
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val prompt: String, // This should be a jinja2 template so that system1 can follow.
     val localKnowledge: List<String>,
-    val remoteKnowledge: List<RemoteKnowledge>,
+    val remoteKnowledge: List<FilteredKnowledge>,
     val inferenceConfig: InferenceConfig
 )
 

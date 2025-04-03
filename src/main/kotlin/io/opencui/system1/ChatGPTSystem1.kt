@@ -28,7 +28,7 @@ data class System1Request(
     val contexts: List<String>,
     val turns: List<OpenAIMessage>,
     val inferenceConfig: InferenceConfig,
-    val collections: List<RemoteKnowledge>? = null
+    val collections: List<FilteredKnowledge>? = null
 )
 
 data class System1Reply(val reply: String)
