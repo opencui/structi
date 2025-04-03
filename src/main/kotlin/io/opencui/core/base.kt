@@ -184,9 +184,10 @@ interface CuiDisabled : Serializable
 
 // For system1, or prompt engineered component.
 data class InferenceConfig(
+    val model: String,  // the label for the system #1.
     val temperature: Float,
-    val topk: Int,
-    val max_input_length: Int)
+    val topK: Int,
+    val maxInputLength: Int)
 
 
 data class RemoteKnowledge(
@@ -197,9 +198,9 @@ data class RemoteKnowledge(
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val prompt: String, // This should be a jinja2 template so that system1 can follow.
-    val local_knowledge: List<String>,
-    val remote_knowledge: List<RemoteKnowledge>,
-    val inference_config: InferenceConfig
+    val localKnowledge: List<String>,
+    val remoteKnowledge: List<RemoteKnowledge>,
+    val inferenceConfig: InferenceConfig
 )
 
 /**

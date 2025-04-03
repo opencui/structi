@@ -471,7 +471,7 @@ data class UserSession(
 
     inline fun <reified T : IExtension> getExtension() : T? {
         val kClass = T::class.java
-        // What does this do?
+        // This fakes the IKVStore as provider, although the implementation.
         if (kClass.isAssignableFrom(IKVStore::class.java)) {
             return Dispatcher.sessionManager.botStore as T
         }

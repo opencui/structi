@@ -1,14 +1,12 @@
 package io.opencui.system1
 
-import io.opencui.core.Configuration
-import io.opencui.core.ExtensionBuilder
+import io.opencui.core.*
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
-import java.util.logging.Logger
 
 data class OpenAIMessage(val role: String, val content: String)
 fun List<CoreMessage>.convert(): List<OpenAIMessage> {
@@ -21,21 +19,45 @@ fun extractAfterXMLTag(input: String, tag: String): String {
 }
 
 // Feedback is only useful when turns is empty.
-data class System1Request(val turns: List<OpenAIMessage>, val feedback: Map<String, Any>? = null)
+data class System1Request(
+    val prompt: String,
+    val modelUrl: String,
+    val modelFamily: String,
+    val modelName: String,
+    val modelKey: String,
+    val contexts: List<String>,
+    val turns: List<OpenAIMessage>,
+    val inferenceConfig: InferenceConfig,
+    val collections: List<RemoteKnowledge>? = null
+)
 
 data class System1Reply(val reply: String)
 
+
+// the chatGPTSystem1 is rag capable system 1, means it is located with indexing/retrieval capabilities.
 data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
-    val url = config[urlKey]!! as String
-    val thinkFlag: Boolean = config[THINK] as Boolean? ?: false
+    private val url = config[URL]!! as String
+    private val apikey = config[APIKEY]!! as String
+    private val family = config[FAMILY]!! as String
+    private val label = config[LABEL]!! as String
 
     val client = WebClient.builder()
-      .baseUrl(url)
+      .baseUrl(config[SYSTEM1URL]!! as String)
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
       .build()
 
-    override fun response(msgs: List<CoreMessage>): String {
-        val request = System1Request(msgs.convert())
+    override fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String {
+        val request = System1Request(
+            prompt = augmentation.prompt,
+            modelUrl = url,
+            modelFamily = family,
+            modelName = label,
+            modelKey = apikey,
+            contexts = augmentation.localKnowledge,
+            inferenceConfig = augmentation.inferenceConfig,
+            turns = msgs.convert()
+        )
+
         val response = client.post()
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()
@@ -52,12 +74,16 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
     }
 
     companion object : ExtensionBuilder {
-         private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)
+        private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)
         override fun invoke(p1: Configuration): ISystem1 {
             return ChatGPTSystem1(p1)
         }
-        const val urlKey = "url"
-        const val THINK = "THINK"
+
+        const val SYSTEM1URL = "url"
+        const val URL = "model_url"
+        const val APIKEY = "model_apikey"
+        const val FAMILY = "model_family"
+        const val LABEL = "model_label"
         const val THINKSTART = "<think>"
         const val THINKEND = "</think>"
     }
