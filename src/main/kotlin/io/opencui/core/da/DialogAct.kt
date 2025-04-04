@@ -1,13 +1,32 @@
 package io.opencui.core.da
 
 import io.opencui.core.*
+import io.opencui.system1.ISystem1
 import java.io.Serializable
+
+
+// This is soft generation.
+open class AugmentedGeneration(private val augmentation: Augmentation): EmissionAction {
+    override fun run(userSession: UserSession): ActionResult {
+        val modelName = augmentation.inferenceConfig.model
+        val system1 = userSession.chatbot!!.getExtension<ISystem1>(modelName)
+        val result = system1?.response(userSession.history, augmentation)
+        val response = mutableListOf<DialogAct>()
+        if (result.isNullOrEmpty()) {
+            response.add(RawInform(templateOf(result!!)))
+        }
+        return ActionResult(
+            response,
+            createLog("AugmentedGeneration"),
+            true
+        )
+    }
+}
 
 // This interface represents the dialog act that bot about to take. We start from the list from schema guided
 // dialog. Notice the dialog act from user side is absorbed by dialog understanding, so we do not have model
 // these explicitly. These represent what bot want to express, not how they express it.
-
-interface DialogAct: Serializable, SchemaAction {
+interface DialogAct: EmissionAction {
     var templates: Templates
     override fun run(session: UserSession): ActionResult {
         val success = true

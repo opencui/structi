@@ -14,7 +14,6 @@ import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
-import org.jetbrains.kotlin.psi.parameterVisitor
 import java.io.Serializable
 import java.lang.RuntimeException
 import java.util.*
@@ -762,7 +761,7 @@ data class OldValueCheck(
 
 data class MaxDiscardAction(
     val targetSlot: MutableList<*>, val maxEntry: Int
-) : SchemaAction {
+) : EmissionAction {
     override fun run(session: UserSession): ActionResult {
         val size = targetSlot.size
         if (size > maxEntry) {
@@ -1771,7 +1770,7 @@ abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = n
 
 data class UpdatePromptAction(
     val wrapperTarget: AnnotatedWrapperFiller?,
-    val prompt: SlotPromptAnnotation): SchemaAction {
+    val prompt: SlotPromptAnnotation): EmissionAction {
     override fun run(session: UserSession): ActionResult {
         wrapperTarget?.targetFiller?.decorativeAnnotations?.clear()
         wrapperTarget?.targetFiller?.decorativeAnnotations?.add(prompt)
