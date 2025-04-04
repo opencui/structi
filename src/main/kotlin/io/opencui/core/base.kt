@@ -241,10 +241,6 @@ interface IIntent : IFrame {
     fun searchResponse(): Action? {
         return null
     }
-
-    fun getResponseAugmentation(): Augmentation? {
-        return null
-    }
 }
 
 // This is used to make sure
