@@ -4,13 +4,28 @@ import io.opencui.core.*
 import io.opencui.system1.ISystem1
 import java.io.Serializable
 
+// Generation are indirectly produced by LLMs.
+interface Generation: EmissionAction
 
-// This is soft generation.
-open class AugmentedGeneration(private val augmentation: Augmentation): EmissionAction {
-    override fun run(userSession: UserSession): ActionResult {
-        val modelName = augmentation.inferenceConfig.model
-        val system1 = userSession.chatbot!!.getExtension<ISystem1>(modelName)
-        val result = system1?.response(userSession.history, augmentation)
+// This is this generation does the soft generate the response.
+open class System1Generation(
+    val templates: Templates, // This should be a jinja2 template so that system1 can follow.
+    val localKnowledge: List<String>,
+    val remoteKnowledge: List<FilteredKnowledge>,
+    val inferenceConfig: InferenceConfig): Generation {
+
+    override fun run(session: UserSession): ActionResult {
+        val modelName = inferenceConfig.model
+        val system1 = session.chatbot!!.getExtension<ISystem1>(modelName)
+
+        val augmentation = Augmentation(
+            templates.pick(),
+            localKnowledge,
+            remoteKnowledge,
+            inferenceConfig
+        )
+
+        val result = system1?.response(session.history, augmentation)
         val response = mutableListOf<DialogAct>()
         if (result.isNullOrEmpty()) {
             response.add(RawInform(templateOf(result!!)))

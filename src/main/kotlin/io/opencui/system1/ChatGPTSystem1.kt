@@ -48,7 +48,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
 
     override fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String {
         val request = System1Request(
-            prompt = augmentation.prompt,
+            prompt = augmentation.instruction,
             modelUrl = url,
             modelFamily = family,
             modelName = label,
