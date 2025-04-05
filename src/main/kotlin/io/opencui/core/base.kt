@@ -219,7 +219,7 @@ interface IFrame : ICui {
 
     fun createBuilder(): FillBuilder
 
-    fun getFallbackAugmentation(): Augmentation? {
+    fun getFallback(): Augmentation? {
         return null
     }
 
