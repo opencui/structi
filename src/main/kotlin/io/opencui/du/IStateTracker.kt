@@ -524,6 +524,9 @@ open class DuContext(
         return entityTypeToValueInfoMap[typeName]?.filter{ !it.partialMatch }?: emptyList()
     }
 
+    fun getCandidates() : Map<String, List<String>> {
+        return entityTypeToValueInfoMap.mapValues { entry -> entry.value.map { it.original(utterance) } }
+    }
 
     fun convert(): Map<Int, List<Pair<String, Int>>> {
         // create the char end to token end.
@@ -790,8 +793,8 @@ interface IStateTracker : IExtension {
         return frame?.startsWith("io.opencui.core") ?: false
     }
 
-    fun isUpdateSlot(frame: String?): Boolean {
-        return frame == SlotUpdate
+    fun isSlotCrud(frame: String?): Boolean {
+        return frame == SlotUpdate || frame == SlotAppend || frame == SlotDelete
     }
 
     fun isPickValue(frame: String?) : Boolean {
@@ -845,6 +848,8 @@ interface IStateTracker : IExtension {
         const val FullIDonotKnow = "io.opencui.core.IDonotGetIt"
         const val FullDontCare = "io.opencui.core.DontCare"
         const val SlotUpdate = "io.opencui.core.SlotUpdate"
+        const val SlotAppend = "io.opencui.core.SlotAppend"
+        const val SlotDelete = "io.opencui.core.SlotDelete"
         const val SlotType = "io.opencui.core.SlotType"
         const val DontCareLabel = "_DontCare"
         const val FullThat = "io.opencui.core.That"
