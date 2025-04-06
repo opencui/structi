@@ -16,8 +16,6 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
-import io.opencui.system1.CoreMessage
-import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -26,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+data class CoreMessage(val user: Boolean, val message: String): Serializable
+
 
 //
 // Scheduler holds fillers in the single tree.
@@ -471,7 +471,7 @@ data class UserSession(
 
     inline fun <reified T : IExtension> getExtension() : T? {
         val kClass = T::class.java
-        // What does this do?
+        // This fakes the IKVStore as provider, although the implementation.
         if (kClass.isAssignableFrom(IKVStore::class.java)) {
             return Dispatcher.sessionManager.botStore as T
         }

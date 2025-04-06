@@ -17,6 +17,7 @@ interface IExtension {
         return getConfiguration()?.get(key)
     }
 
+    // If the implementation is session dependent, one should clone one for that session.
     fun cloneForSession(userSession: UserSession): IExtension {
         return this
     }

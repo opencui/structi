@@ -50,6 +50,7 @@ interface SideEffect {
  */
 interface Action: Serializable {
     fun run(session: UserSession): ActionResult
+
     fun wrappedRun(session: UserSession) : ActionResult {
         Dispatcher.logger.debug("Executing ${this::class.java}")
         return run(session)
@@ -66,7 +67,7 @@ interface ChartAction : AtomAction
 // Ideally we should enter and exit state declared in the interface so that it is easy to check.
 interface StateAction : AtomAction
 
-interface SchemaAction: AtomAction
+interface EmissionAction: AtomAction
 
 // There are different composite actions, easy ones are list.
 interface CompositeAction : Action
@@ -661,13 +662,13 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
     }
 }
 
-open class LazyAction(private val actionGenerator: ()->Action): SchemaAction {
+open class LazyAction(private val actionGenerator: ()->Action): EmissionAction {
     override fun run(session: UserSession): ActionResult {
         return actionGenerator.invoke().wrappedRun(session)
     }
 }
 
-class Handoff: SchemaAction {
+class Handoff: EmissionAction {
     fun matchSize(intentStr: String, routingInfo:RoutingInfo) : Int {
         var maxSize = 0
         for (partial in routingInfo.intentsDesc) {

@@ -1,13 +1,47 @@
 package io.opencui.core.da
 
 import io.opencui.core.*
+import io.opencui.system1.ISystem1
 import java.io.Serializable
+
+// Generation are indirectly produced by LLMs.
+interface Generation: EmissionAction
+
+// This is this generation does the soft generate the response.
+open class System1Generation(
+    val templates: Templates, // This should be a jinja2 template so that system1 can follow.
+    val localKnowledge: List<String>,
+    val remoteKnowledge: List<FilteredKnowledge>,
+    val inferenceConfig: InferenceConfig): Generation {
+
+    override fun run(session: UserSession): ActionResult {
+        val modelName = inferenceConfig.model
+        val system1 = session.chatbot!!.getExtension<ISystem1>(modelName)
+
+        val augmentation = Augmentation(
+            templates.pick(),
+            localKnowledge,
+            remoteKnowledge,
+            inferenceConfig
+        )
+
+        val result = system1?.response(session.history, augmentation)
+        val response = mutableListOf<DialogAct>()
+        if (result.isNullOrEmpty()) {
+            response.add(RawInform(templateOf(result!!)))
+        }
+        return ActionResult(
+            response,
+            createLog("AugmentedGeneration"),
+            true
+        )
+    }
+}
 
 // This interface represents the dialog act that bot about to take. We start from the list from schema guided
 // dialog. Notice the dialog act from user side is absorbed by dialog understanding, so we do not have model
 // these explicitly. These represent what bot want to express, not how they express it.
-
-interface DialogAct: Serializable, SchemaAction {
+interface DialogAct: EmissionAction {
     var templates: Templates
     override fun run(session: UserSession): ActionResult {
         val success = true

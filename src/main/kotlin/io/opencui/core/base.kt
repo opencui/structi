@@ -182,6 +182,27 @@ interface IEntity : ICui {
  */
 interface CuiDisabled : Serializable
 
+// For system1, or prompt engineered component.
+data class InferenceConfig(
+    val model: String,  // the label for the system #1.
+    val temperature: Float,
+    val topK: Int,
+    val maxInputLength: Int)
+
+data class KnowledgeTag(val key: String, val value: String)
+
+
+data class FilteredKnowledge(val knowledgeLabel: String, val tags: List<KnowledgeTag>)
+
+
+// This is all the information we need for LLM to perform.
+data class Augmentation(
+    val instruction: String, // This should be a jinja2 template so that system1 can follow.
+    val localKnowledge: List<String>,
+    val remoteKnowledge: List<FilteredKnowledge>,
+    val inferenceConfig: InferenceConfig
+)
+
 /**
  * For value disambiguation, we need to expose some information for the generic implementation
  * for the slot that we bind dynamically.
@@ -198,6 +219,9 @@ interface IFrame : ICui {
 
     fun createBuilder(): FillBuilder
 
+    fun getFallback(): Augmentation? {
+        return null
+    }
 
     // slot "this" is a special slot which indicates searching for frame confirmation
     fun searchConfirmation(path: String): IFrame? {
