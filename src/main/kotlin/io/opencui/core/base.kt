@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogActRewriter
-import io.opencui.core.da.RawInform
 import io.opencui.core.da.System1Generation
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.du.*
