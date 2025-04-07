@@ -16,15 +16,16 @@ data class FilteredKnowledge(val knowledgeLabel: String, val tags: List<Knowledg
 // This is this generation does the soft generate the response.
 open class System1Generation(
     val system1Id: String,
-    val templates: Templates, // This should be a jinja2 template so that system1 can follow.
+    val templates: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
     val localKnowledge: List<String>,
     val remoteKnowledge: List<FilteredKnowledge>): Generation {
 
     override fun run(session: UserSession): ActionResult {
         val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)
 
+        val dialogAct = templates.invoke()
         val augmentation = Augmentation(
-            templates.pick(),
+            dialogAct.templates.pick(),
             localKnowledge,
             remoteKnowledge,
         )
