@@ -1,6 +1,8 @@
 package io.opencui.system1
 
 import io.opencui.core.*
+import io.opencui.core.da.FilteredKnowledge
+import io.opencui.core.da.System1Generation
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
@@ -120,10 +122,10 @@ object TypeSystem {
         return sortedResult
     }
 
-    fun getAugmentation(obj: IFrame, kClass: KClass<*>): Augmentation? {
+    fun getAugmentation(obj: IFrame, kClass: KClass<*>): System1Generation? {
         if (kClass.isInstance(obj)) {
             val method = kClass.java.getMethod(methodName) // Get the method using Java reflection
-            return method.invoke(obj) as? Augmentation // Invoke the method and cast the result
+            return method.invoke(obj) as? System1Generation // Invoke the method and cast the result
         }
         return null
     }
@@ -164,12 +166,19 @@ object TypeSystem {
  * For now, we assume the system1 are dumb.
  */
 
+// This is all the information we need for LLM to perform.
+data class Augmentation(
+    val instruction: String, // This should be a jinja2 template so that system1 can follow.
+    val localKnowledge: List<String>,
+    val remoteKnowledge: List<FilteredKnowledge>
+)
+
 interface ISystem1 : IExtension {
     //  msgs and feedback are mutually exclusive.
     fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String
 
     companion object {
-        fun response(userSession: UserSession): String? {
+        fun response(userSession: UserSession): ActionResult? {
             // We go through the main scheduler and try to find the first one with no empty augmentation.
             for (filler in userSession.schedule.asReversed()) {
                 if (filler !is FrameFiller<*>) continue
@@ -177,11 +186,9 @@ interface ISystem1 : IExtension {
                 val frame = filler.frame()
                 val fallbackTypes = TypeSystem.getFallbackTypes(frame)
                 for (fallbackType in fallbackTypes) {
-                    val augmentation: Augmentation = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
-                    val modelName = augmentation.inferenceConfig.model
-                    val system1 = userSession.chatbot!!.getExtension<ISystem1>(modelName) ?: continue
-                    val result = system1.response(userSession.history, augmentation)
-                    if (result.isEmpty()) continue
+                    val system1: System1Generation? = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
+                    val result = system1!!.wrappedRun(userSession)
+                    if (result.botUtterance.isNullOrEmpty()) continue
                     return result
                 }
             }

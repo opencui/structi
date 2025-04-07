@@ -1,6 +1,8 @@
 package io.opencui.system1
 
 import io.opencui.core.*
+import io.opencui.core.da.FilteredKnowledge
+import io.opencui.core.da.System1Generation
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -17,6 +19,12 @@ fun extractAfterXMLTag(input: String, tag: String): String {
     val index = input.lastIndexOf(tag)
     return if (index != -1) input.substring(index + tag.length) else ""
 }
+
+data class InferenceConfig(
+    val temperature: Float,
+    val topK: Int,
+    val maxInputLength: Int)
+
 
 // Feedback is only useful when turns is empty.
 data class System1Request(
@@ -40,6 +48,9 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
     private val apikey = config[APIKEY]!! as String
     private val family = config[FAMILY]!! as String
     private val label = config[LABEL]!! as String
+    private val temperature: Float = 0.0f
+    private val topk: Int = 1
+    private val maxLength: Int = 1024
 
     val client = WebClient.builder()
       .baseUrl(config[SYSTEM1URL]!! as String)
@@ -54,7 +65,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             modelName = label,
             modelKey = apikey,
             contexts = augmentation.localKnowledge,
-            inferenceConfig = augmentation.inferenceConfig,
+            inferenceConfig = InferenceConfig(temperature, topk, maxLength),
             turns = msgs.convert()
         )
 

@@ -302,19 +302,8 @@ class DialogManager {
             val response = ISystem1.response(session)
             if (response != null) {
                 logger.info("system1 response: $response")
-
-                // We use the reflection to system1 reply wrapper's reply, to wrap system 1 response.
-                val system1SkillReplyWrapper = session.findSystemAnnotation(SystemAnnotationType.System1Skill)!!
-                val reply = system1SkillReplyWrapper::class.memberProperties.find { it.name == "reply" }
-
-                check(reply is KMutableProperty<*>)
-                reply.setter.call(system1SkillReplyWrapper, response)
-
-                val system1ActionResults = system1SkillReplyWrapper?.searchResponse()?.wrappedRun(session)
-                // We add system1 response to the last one.
-                if (system1ActionResults != null) {
-                    actionResults += system1ActionResults
-                }
+                // No need to add system-wide reminder, it is builder's decision.
+                actionResults += response
             }
         }
         return actionResults
