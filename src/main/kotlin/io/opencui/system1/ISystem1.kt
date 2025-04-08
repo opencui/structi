@@ -184,11 +184,15 @@ interface ISystem1 : IExtension {
                 if (filler !is FrameFiller<*>) continue
                 // what happens for frame, interface, and value, and what happens for the supertypes.
                 val frame = filler.frame()
+                Dispatcher.logger.info("inside system1 response with frame $frame")
                 val fallbackTypes = TypeSystem.getFallbackTypes(frame)
                 for (fallbackType in fallbackTypes) {
-                    val system1: System1Generation? = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
-                    val result = system1!!.wrappedRun(userSession)
+                    Dispatcher.logger.info("inside system1 response with fallback type: $fallbackType")
+                    val system1: System1Generation = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
+                    val result = system1.wrappedRun(userSession)
+                    Dispatcher.logger.info("inside system1 response with result: $result")
                     if (result.botUtterance.isNullOrEmpty()) continue
+                    Dispatcher.logger.info("inside system1 response with bot utterance: ${result.botUtterance}")
                     return result
                 }
             }
