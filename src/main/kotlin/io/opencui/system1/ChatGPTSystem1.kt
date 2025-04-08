@@ -20,12 +20,6 @@ fun extractAfterXMLTag(input: String, tag: String): String {
     return if (index != -1) input.substring(index + tag.length) else ""
 }
 
-data class InferenceConfig(
-    val temperature: Float,
-    val topK: Int,
-    val maxLength: Int = 1)
-
-
 // Feedback is only useful when turns is empty.
 data class System1Request(
     val prompt: String,
