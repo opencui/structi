@@ -23,7 +23,7 @@ fun extractAfterXMLTag(input: String, tag: String): String {
 data class InferenceConfig(
     val temperature: Float,
     val topK: Int,
-    val maxInputLength: Int)
+    val maxLength: Int = 1)
 
 
 // Feedback is only useful when turns is empty.
@@ -35,8 +35,9 @@ data class System1Request(
     val modelKey: String,
     val contexts: List<String>,
     val turns: List<OpenAIMessage>,
-    val inferenceConfig: InferenceConfig,
-    val collections: List<FilteredKnowledge>? = null
+    val collections: List<FilteredKnowledge>? = null,
+    val temperature: Float = 0.0f,
+    val topK: Int =  1
 )
 
 data class System1Reply(val reply: String)
@@ -65,11 +66,14 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             modelName = label,
             modelKey = apikey,
             contexts = augmentation.localKnowledge,
-            inferenceConfig = InferenceConfig(temperature, topk, maxLength),
-            turns = msgs.convert()
+            turns = msgs.convert(),
+            collections = augmentation.remoteKnowledge,
+            temperature = temperature,
+            topK = topk
         )
 
         val response = client.post()
+            .uri("/generate")
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()
             .bodyToMono(System1Reply::class.java)
