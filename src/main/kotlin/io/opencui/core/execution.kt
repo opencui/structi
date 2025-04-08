@@ -296,6 +296,8 @@ class DialogManager {
         val actionResults = mutableListOf<ActionResult>()
         val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
 
+        logger.info("Inside system1...")
+        logger.info(userFrameEvents.toString())
         // If we do not understand, we fall back to system1
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("inside system1 with ${userFrameEvents}")
