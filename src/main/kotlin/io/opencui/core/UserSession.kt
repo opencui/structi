@@ -24,8 +24,9 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-data class CoreMessage(val user: Boolean, val message: String): Serializable
 
+
+data class CoreMessage(val user: Boolean, val message: String): Serializable
 
 //
 // Scheduler holds fillers in the single tree.

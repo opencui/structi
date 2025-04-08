@@ -20,12 +20,6 @@ fun extractAfterXMLTag(input: String, tag: String): String {
     return if (index != -1) input.substring(index + tag.length) else ""
 }
 
-data class InferenceConfig(
-    val temperature: Float,
-    val topK: Int,
-    val maxInputLength: Int)
-
-
 // Feedback is only useful when turns is empty.
 data class System1Request(
     val prompt: String,
@@ -35,8 +29,9 @@ data class System1Request(
     val modelKey: String,
     val contexts: List<String>,
     val turns: List<OpenAIMessage>,
-    val inferenceConfig: InferenceConfig,
-    val collections: List<FilteredKnowledge>? = null
+    val collections: List<FilteredKnowledge>? = null,
+    val temperature: Float = 0.0f,
+    val topK: Int =  1
 )
 
 data class System1Reply(val reply: String)
@@ -48,8 +43,8 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
     private val apikey = config[APIKEY]!! as String
     private val family = config[FAMILY]!! as String
     private val label = config[LABEL]!! as String
-    private val temperature: Float = 0.0f
-    private val topk: Int = 1
+    private val temperature: Float = (config["temperature"]!! as String).toFloat()
+    private val topk: Int = (config["topk"]!! as String).toInt()
     private val maxLength: Int = 1024
 
     val client = WebClient.builder()
@@ -65,11 +60,14 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             modelName = label,
             modelKey = apikey,
             contexts = augmentation.localKnowledge,
-            inferenceConfig = InferenceConfig(temperature, topk, maxLength),
-            turns = msgs.convert()
+            turns = msgs.convert(),
+            collections = augmentation.remoteKnowledge,
+            temperature = temperature,
+            topK = topk
         )
 
         val response = client.post()
+            .uri("/generate")
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()
             .bodyToMono(System1Reply::class.java)
