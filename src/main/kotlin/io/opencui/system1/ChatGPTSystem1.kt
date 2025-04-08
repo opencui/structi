@@ -43,8 +43,8 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
     private val apikey = config[APIKEY]!! as String
     private val family = config[FAMILY]!! as String
     private val label = config[LABEL]!! as String
-    private val temperature: Float = 0.0f
-    private val topk: Int = 1
+    private val temperature: Float = (config["temperature"]!! as String).toFloat()
+    private val topk: Int = (config["topk"]!! as String).toInt()
     private val maxLength: Int = 1024
 
     val client = WebClient.builder()
