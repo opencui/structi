@@ -194,6 +194,7 @@ interface ISystem1 : IExtension {
                 val frame = filler.frame()
                 logger.info("inside system1 response with frame $frame")
                 val fallbackTypes = TypeSystem.getTypesWithMethod(frame, methodName)
+                logger.info("inside system1 response with fallback types $fallbackTypes with ${fallbackTypes.size}")
                 for (fallbackType in fallbackTypes) {
                     logger.info("inside system1 response with fallback type: $fallbackType")
                     val system1: System1Generation = TypeSystem.executeScopedMethod(frame, fallbackType, methodName) ?: continue
