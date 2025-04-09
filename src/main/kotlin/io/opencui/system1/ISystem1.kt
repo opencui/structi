@@ -131,7 +131,7 @@ object TypeSystem {
         return null
     }
 
-    const val methodName = "getFallbackAugmentation"
+    const val methodName = "getFallback"
         //  the parents do not change, so we can cache them.
     val cache = mutableMapOf<KClass<*>, List<KClass<*>>>()
 
@@ -193,6 +193,7 @@ interface ISystem1 : IExtension {
                 val frame = filler.frame()
                 logger.info("inside system1 response with frame $frame")
                 val fallbackTypes = TypeSystem.getFallbackTypes(frame)
+                logger.info("inside system1 response with fallback types: $fallbackTypes")
                 for (fallbackType in fallbackTypes) {
                     logger.info("inside system1 response with fallback type: $fallbackType")
                     val system1: System1Generation = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
