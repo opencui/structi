@@ -6,7 +6,8 @@ import io.opencui.core.da.System1Generation
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
-
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 // The goal of the type system is to figure out
 object TypeSystem {
@@ -178,21 +179,27 @@ interface ISystem1 : IExtension {
     fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String
 
     companion object {
+        val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
         fun response(userSession: UserSession): ActionResult? {
             // We go through the main scheduler and try to find the first one with no empty augmentation.
+            logger.info("inside system1 response with ${userSession.schedule.size} filters.")
             for (filler in userSession.schedule.asReversed()) {
-                if (filler !is FrameFiller<*>) continue
+                if (filler !is FrameFiller<*>) {
+                    continue
+                } else {
+                    logger.info("inside system1 response with filler $filler")
+                }
                 // what happens for frame, interface, and value, and what happens for the supertypes.
                 val frame = filler.frame()
-                Dispatcher.logger.info("inside system1 response with frame $frame")
+                logger.info("inside system1 response with frame $frame")
                 val fallbackTypes = TypeSystem.getFallbackTypes(frame)
                 for (fallbackType in fallbackTypes) {
-                    Dispatcher.logger.info("inside system1 response with fallback type: $fallbackType")
+                    logger.info("inside system1 response with fallback type: $fallbackType")
                     val system1: System1Generation = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
                     val result = system1.wrappedRun(userSession)
-                    Dispatcher.logger.info("inside system1 response with result: $result")
+                    logger.info("inside system1 response with result: $result")
                     if (result.botUtterance.isNullOrEmpty()) continue
-                    Dispatcher.logger.info("inside system1 response with bot utterance: ${result.botUtterance}")
+                    logger.info("inside system1 response with bot utterance: ${result.botUtterance}")
                     return result
                 }
             }
