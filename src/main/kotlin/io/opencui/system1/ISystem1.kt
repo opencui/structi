@@ -123,7 +123,7 @@ object TypeSystem {
         return sortedResult
     }
 
-    fun getAugmentation(obj: IFrame, kClass: KClass<*>): System1Generation? {
+    fun executeScopedMethod(obj: IFrame, kClass: KClass<*>, methodName: String): System1Generation? {
         if (kClass.isInstance(obj)) {
             val method = kClass.java.getMethod(methodName) // Get the method using Java reflection
             return method.invoke(obj) as? System1Generation // Invoke the method and cast the result
@@ -131,7 +131,6 @@ object TypeSystem {
         return null
     }
 
-    const val methodName = "getFallbackAugmentation"
         //  the parents do not change, so we can cache them.
     val cache = mutableMapOf<KClass<*>, List<KClass<*>>>()
 
@@ -139,7 +138,7 @@ object TypeSystem {
         return kClass.memberFunctions.any { it.name == methodName }
     }
 
-    fun getFallbackTypes(obj: IFrame): List<KClass<*>> {
+    fun getTypesWithMethod(obj: IFrame, methodName: String): List<KClass<*>> {
         val trueType = obj::class
         if (cache.containsKey(trueType)) {
             return cache[trueType]!!
@@ -180,6 +179,8 @@ interface ISystem1 : IExtension {
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
+
+        const val methodName = "getFallback"
         fun response(userSession: UserSession): ActionResult? {
             // We go through the main scheduler and try to find the first one with no empty augmentation.
             logger.info("inside system1 response with ${userSession.schedule.size} filters.")
@@ -192,10 +193,10 @@ interface ISystem1 : IExtension {
                 // what happens for frame, interface, and value, and what happens for the supertypes.
                 val frame = filler.frame()
                 logger.info("inside system1 response with frame $frame")
-                val fallbackTypes = TypeSystem.getFallbackTypes(frame)
+                val fallbackTypes = TypeSystem.getTypesWithMethod(frame, methodName)
                 for (fallbackType in fallbackTypes) {
                     logger.info("inside system1 response with fallback type: $fallbackType")
-                    val system1: System1Generation = TypeSystem.getAugmentation(frame, fallbackType) ?: continue
+                    val system1: System1Generation = TypeSystem.executeScopedMethod(frame, fallbackType, methodName) ?: continue
                     val result = system1.wrappedRun(userSession)
                     logger.info("inside system1 response with result: $result")
                     if (result.botUtterance.isNullOrEmpty()) continue
