@@ -8,6 +8,7 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.reflect.full.declaredFunctions
 
 // The goal of the type system is to figure out
 object TypeSystem {
@@ -131,11 +132,37 @@ object TypeSystem {
         return null
     }
 
-        //  the parents do not change, so we can cache them.
+    //  the parents do not change, so we can cache them.
     val cache = mutableMapOf<KClass<*>, List<KClass<*>>>()
 
-    fun hasMethodImplementation(kClass: KClass<*>, methodName: String): Boolean {
-        return kClass.memberFunctions.any { it.name == methodName }
+    fun implementsOrOverridesInheritedSignature(kClass: KClass<*>, methodName: String): Boolean {
+        // 1. Find the CONCRETE method declared in the target class
+        val concreteMethodInClass = kClass.declaredFunctions.find {
+            it.name == methodName && !it.isAbstract
+        } ?: return false // No concrete implementation declared here
+
+        // 2. Get the parameter signature of the concrete method
+        val parameterTypes = concreteMethodInClass.parameters.drop(1).map { it.type }
+
+        // 3. Check if ANY direct supertype has a member with the same signature
+        var signatureFoundInSupertype = false
+        for (supertype in kClass.supertypes) {
+            val superClass = supertype.classifier as? KClass<*> ?: continue
+
+            // Look for a matching method signature among the parent's members (can be abstract or concrete)
+            val matchingSignatureInSuper = superClass.memberFunctions.find { superMethod ->
+                superMethod.name == methodName &&
+                superMethod.parameters.drop(1).map { it.type } == parameterTypes
+            }
+
+            if (matchingSignatureInSuper != null) {
+                signatureFoundInSupertype = true
+                break // Found a matching signature, no need to check other supertypes
+            }
+        }
+
+        // 4. Return true only if both conditions are met
+        return signatureFoundInSupertype
     }
 
     fun getTypesWithMethod(obj: IFrame, methodName: String): List<KClass<*>> {
@@ -145,7 +172,7 @@ object TypeSystem {
         } else {
             val rawSuperTypes = topologicalSortTypes(trueType)
             val fallbackableSuperTypes = rawSuperTypes
-                .filter { it.isSubclassOf(IFrame::class) && hasMethodImplementation(it, methodName) }
+                .filter { it != IFrame::class && it.isSubclassOf(IFrame::class) && implementsOrOverridesInheritedSignature(it, methodName) }
             cache[trueType] = fallbackableSuperTypes
             return fallbackableSuperTypes
         }
