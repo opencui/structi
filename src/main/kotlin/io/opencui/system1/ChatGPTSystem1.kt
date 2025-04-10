@@ -1,8 +1,7 @@
 package io.opencui.system1
 
 import io.opencui.core.*
-import io.opencui.core.da.FilteredKnowledge
-import io.opencui.core.da.System1Generation
+import io.opencui.core.da.KnowledgePart
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -27,9 +26,8 @@ data class System1Request(
     val modelFamily: String,
     val modelName: String,
     val modelKey: String,
-    val contexts: List<String>,
     val turns: List<OpenAIMessage>,
-    val collections: List<FilteredKnowledge>? = null,
+    val collections: List<KnowledgePart>? = null,
     val temperature: Float = 0.0f,
     val topK: Int =  1
 )
@@ -59,7 +57,6 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             modelFamily = family,
             modelName = label,
             modelKey = apikey,
-            contexts = augmentation.localKnowledge,
             turns = msgs.convert(),
             collections = augmentation.remoteKnowledge,
             temperature = temperature,
