@@ -11,13 +11,18 @@ interface Generation: EmissionAction
 
 // All system1 should be one of these.
 data class KnowledgeTag(val key: String, val value: String)
-data class FilteredKnowledge(val knowledgeLabel: String, val tags: List<KnowledgeTag>)
+
+data class FilteredKnowledge(
+    val content: String,
+    val fileNameForContent: String,
+    val knowledgeLabel: String,
+    val tags: List<KnowledgeTag>
+)
 
 // This is this generation does the soft generate the response.
 open class System1Generation(
     val system1Id: String,
     val templates: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
-    val localKnowledge: List<String>,
     val remoteKnowledge: List<FilteredKnowledge>): Generation {
 
     override fun run(session: UserSession): ActionResult {
@@ -26,7 +31,6 @@ open class System1Generation(
         val dialogAct = templates.invoke()
         val augmentation = Augmentation(
             dialogAct.templates.pick(),
-            localKnowledge,
             remoteKnowledge,
         )
 

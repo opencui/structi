@@ -196,8 +196,7 @@ object TypeSystem {
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val instruction: String, // This should be a jinja2 template so that system1 can follow.
-    val localKnowledge: List<String>,
-    val remoteKnowledge: List<FilteredKnowledge>
+    val remoteKnowledge: List<FilteredKnowledge>,
 )
 
 interface ISystem1 : IExtension {
