@@ -1,7 +1,7 @@
 package io.opencui.system1
 
 import io.opencui.core.*
-import io.opencui.core.da.FilteredKnowledge
+import io.opencui.core.da.KnowledgePart
 import io.opencui.core.da.System1Generation
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -196,7 +196,7 @@ object TypeSystem {
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val instruction: String, // This should be a jinja2 template so that system1 can follow.
-    val remoteKnowledge: List<FilteredKnowledge>,
+    val remoteKnowledge: List<KnowledgePart>,
 )
 
 interface ISystem1 : IExtension {

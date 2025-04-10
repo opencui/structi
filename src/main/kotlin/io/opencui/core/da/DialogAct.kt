@@ -1,5 +1,7 @@
 package io.opencui.core.da
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.ISystem1
@@ -10,28 +12,36 @@ interface Generation: EmissionAction
 
 
 // All system1 should be one of these.
-data class KnowledgeTag(val key: String, val value: String)
+data class KnowledgeTag(val key: String, val value: String?=null)
 
-data class FilteredKnowledge(
-    val content: String,
-    val fileNameForContent: String,
-    val knowledgeLabel: String,
-    val tags: List<KnowledgeTag>
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,             // use the type name
+    include = JsonTypeInfo.As.PROPERTY,     // include it as a property in JSON
+    property = "type"                       // the property name in JSON
 )
+@JsonSubTypes(
+    JsonSubTypes.Type(value = FilePart::class, name = "FilePart"),
+    JsonSubTypes.Type(value = RetrievablePart::class, name = "RetrievablePart")
+)
+interface KnowledgePart
+
+// FilePart will be used as anonymous knowledge.
+data class FilePart(val content: String, val type: String="txt") : KnowledgePart
+data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : KnowledgePart
 
 // This is this generation does the soft generate the response.
 open class System1Generation(
     val system1Id: String,
-    val templates: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
-    val remoteKnowledge: List<FilteredKnowledge>): Generation {
+    val prompt: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
+    val knowledgeParts: List<KnowledgePart>): Generation {
 
     override fun run(session: UserSession): ActionResult {
         val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)
 
-        val dialogAct = templates.invoke()
+        val dialogAct = prompt.invoke()
         val augmentation = Augmentation(
             dialogAct.templates.pick(),
-            remoteKnowledge,
+            knowledgeParts,
         )
 
         val result = system1?.response(session.history, augmentation)
