@@ -200,7 +200,7 @@ interface IFrame : ICui {
 
     fun createBuilder(): FillBuilder
 
-    fun getFallback(): System1Generation? {
+    fun getFallback(): CompositeAction? {
         return null
     }
 
