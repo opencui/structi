@@ -62,7 +62,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
             temperature = temperature,
             topK = topk
         )
-
+        logger.info("system1 request: $request")
         val response = client.post()
             .uri("/generate")
             .body(Mono.just(request), System1Request::class.java)

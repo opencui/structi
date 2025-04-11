@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.ISystem1
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.io.Serializable
 
 // Generation are indirectly produced by LLMs.
@@ -50,11 +52,17 @@ open class System1Generation(
             response.add(RawInform(templateOf(result!!)))
         }
 
-        return ActionResult(
+        val actionResult = ActionResult(
             response,
             createLog("AugmentedGeneration"),
             true
         )
+
+        logger.info("botUtterance ${actionResult.botUtterance}")
+        return actionResult
+    }
+    companion object {
+        val logger: Logger = LoggerFactory.getLogger(System1Generation::class.java)
     }
 }
 
