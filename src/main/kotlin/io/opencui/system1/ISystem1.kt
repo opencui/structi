@@ -124,10 +124,10 @@ object TypeSystem {
         return sortedResult
     }
 
-    fun executeScopedMethod(obj: IFrame, kClass: KClass<*>, methodName: String): System1Generation? {
+    fun executeScopedMethod(obj: IFrame, kClass: KClass<*>, methodName: String): CompositeAction? {
         if (kClass.isInstance(obj)) {
             val method = kClass.java.getMethod(methodName) // Get the method using Java reflection
-            return method.invoke(obj) as? System1Generation // Invoke the method and cast the result
+            return method.invoke(obj) as? CompositeAction // Invoke the method and cast the result
         }
         return null
     }
@@ -223,7 +223,7 @@ interface ISystem1 : IExtension {
                 logger.info("inside system1 response with fallback types $fallbackTypes with ${fallbackTypes.size}")
                 for (fallbackType in fallbackTypes) {
                     logger.info("inside system1 response with fallback type: $fallbackType")
-                    val system1: System1Generation = TypeSystem.executeScopedMethod(frame, fallbackType, methodName) ?: continue
+                    val system1: CompositeAction = TypeSystem.executeScopedMethod(frame, fallbackType, methodName) ?: continue
                     val result = system1.wrappedRun(userSession)
                     logger.info("inside system1 response with result: $result")
                     if (result.botUtterance.isNullOrEmpty()) continue
