@@ -654,7 +654,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
             }
             flag = flag && result.success
         }
-
+        Dispatcher.logger.info("got the following messages: ${messages.toString()}")
         return ActionResult(
             messages,
             createLog(Json.makeArray(logs.map { l -> Json.encodeToJsonElement(l) })),

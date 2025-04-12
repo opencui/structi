@@ -46,8 +46,9 @@ open class System1Generation(
             knowledgeParts,
         )
 
-        val result = system1?.response(session.history, augmentation)
         val response = mutableListOf<DialogAct>()
+        val result = system1?.response(session.history, augmentation)
+
         if (result.isNullOrEmpty()) {
             response.add(RawInform(templateOf(result!!)))
         }
