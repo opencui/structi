@@ -2,7 +2,6 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
-import io.opencui.core.da.System1Generation
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
@@ -226,6 +225,7 @@ interface ISystem1 : IExtension {
                     val system1: CompositeAction = TypeSystem.executeScopedMethod(frame, fallbackType, methodName) ?: continue
                     val result = system1.wrappedRun(userSession)
                     logger.info("inside system1 response with result: $result")
+
                     if (result.botUtterance.isNullOrEmpty()) continue
                     logger.info("inside system1 response with bot utterance: ${result.botUtterance}")
                     return result
