@@ -29,6 +29,11 @@ data class ActionResult(
     constructor(b: List<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
         botUtterance = b
     }
+
+    // Add this override
+    override fun toString(): String {
+        return "ActionResult(actionLog=$actionLog, success=$success, botUtterance=$botUtterance)"
+    }
 }
 
 /**
