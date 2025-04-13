@@ -141,9 +141,16 @@ object Dispatcher {
     fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
         val rewrittenResponses = session.rewriteDialogAct(responses)
 
-        // This is used to replace IDon'tGetIt with System1Inform
-        val dialogActPairs = rewrittenResponses.partition { it is System1Inform }
-        val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
+        // This is used to replace IDon'tGetIt with System1Inform, we only do this when both are present.
+        val hasDonotUnderstand = rewrittenResponses.find{ isDonotUnderstand(it) }  != null
+        val hasSystem1Inform = rewrittenResponses.find{ it is System1Inform } != null
+        val dialogActs = if (hasDonotUnderstand && hasSystem1Inform) {
+            val dialogActPairs = rewrittenResponses.partition { it is System1Inform }
+             replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
+        } else {
+            rewrittenResponses
+        }
+
         return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
 
