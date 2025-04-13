@@ -2,6 +2,7 @@ package io.opencui.core
 
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.System1Inform
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.sessionmanager.SessionManager
 import org.slf4j.Logger
@@ -139,7 +140,9 @@ object Dispatcher {
      */
     fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
         val rewrittenResponses = session.rewriteDialogAct(responses)
-        val dialogActPairs = rewrittenResponses.partition { it is UserDefinedInform<*> && it.frameType == "io.opencui.core.System1"}
+
+        // This is used to replace IDon'tGetIt with System1Inform
+        val dialogActPairs = rewrittenResponses.partition { it is System1Inform }
         val dialogActs = replaceWithSystem1(dialogActPairs.second, dialogActPairs.first)
         return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
     }
