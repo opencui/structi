@@ -283,9 +283,10 @@ class DialogManager {
         val system1Response = getSystem1Response(session, frameEvents)
         logger.info("found system1 response size: ${system1Response.size}")
 
+        // (TODO): why do we need this?
         if (actionResults.isEmpty() && session.schedule.isNotEmpty() && session.lastTurnRes.isNotEmpty()) {
-            session.lastTurnRes.forEach { emit(it) }
             system1Response.forEach { emit(it) }
+            session.lastTurnRes.forEach { emit(it) }
         } else {
             session.lastTurnRes = actionResults
             system1Response.forEach { emit(it) }

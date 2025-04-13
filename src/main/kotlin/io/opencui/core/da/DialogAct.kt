@@ -51,7 +51,7 @@ open class System1Generation(
         val result = system1?.response(session.history, augmentation)
 
         if (!result.isNullOrEmpty()) {
-            response.add(RawInform(templateOf(result)))
+            response.add(System1Inform(templateOf(result)))
         }
 
         val actionResult = ActionResult(
@@ -84,7 +84,7 @@ interface DialogAct: EmissionAction {
     fun genGroupKey(): String {
         return when (this) {
             is SlotDialogAct -> """${if (context.isNotEmpty()) context.first()::class.qualifiedName else "null"}_${slotName}_${slotType}"""
-            is FrameDialogAct -> this.frameType
+            is FrameDialogAct<*> -> this.frameType
             else -> this::class.qualifiedName!!
         }
     }
@@ -100,7 +100,7 @@ interface SlotDialogAct: DialogAct {
 // potential delay that will come up.
 interface RequestForDelayDialogAct: DialogAct {}
 
-interface FrameDialogAct: DialogAct {
+interface FrameDialogAct<T>: DialogAct {
     val frameType: String
 }
 
@@ -235,36 +235,36 @@ data class SlotOfferOutlier<T>(
 data class FrameConfirm<T>(
     val target: T?,
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()) : FrameDialogAct
+    override var templates: Templates = emptyTemplate()) : FrameDialogAct<T>
 
 data class FrameInform<T>(
     val target: T?,
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()) : FrameDialogAct
+    override var templates: Templates = emptyTemplate()) : FrameDialogAct<T>
 
 data class FrameOffer<T>(
     val value: List<T>,
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()): FrameDialogAct
+    override var templates: Templates = emptyTemplate()): FrameDialogAct<T>
 
 data class FrameOfferSepInform<T>(
     val value: T,
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()) : FrameDialogAct
+    override var templates: Templates = emptyTemplate()) : FrameDialogAct<T>
 
-data class FrameOfferZepInform(
+data class FrameOfferZepInform<T>(
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()) : FrameDialogAct
+    override var templates: Templates = emptyTemplate()) : FrameDialogAct<T>
 
 data class FrameOfferOutlier<T>(
     val value: T,
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()) : FrameDialogAct
+    override var templates: Templates = emptyTemplate()) : FrameDialogAct<T>
 
 open class UserDefinedInform<T>(
     val target: T,
     override val frameType: String,
-    override var templates: Templates = emptyTemplate()) : FrameDialogAct {
+    override var templates: Templates = emptyTemplate()) : FrameDialogAct<T> {
     constructor(target: T, templates: Templates): this(target, target!!::class.qualifiedName!!, templates)
 }
 
@@ -282,6 +282,8 @@ class DumbDialogAct : DialogAct {
 }
 
 data class RawInform(override var templates: Templates = emptyTemplate()) : DialogAct
+
+data class System1Inform(override var templates: Templates = emptyTemplate()) : DialogAct
 
 // This might be useful to capture the system1 response.
 data class ForwardDialogAct(val msg: String): DialogAct {

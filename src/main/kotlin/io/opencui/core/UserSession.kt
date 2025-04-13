@@ -894,7 +894,7 @@ data class UserSession(
         if (dialogAct is SlotDialogAct) {
             val annotations = dialogAct.context.firstOrNull()?.findAll<DialogActCustomizationAnnotation>(dialogAct.slotName) ?: listOf()
             return annotations.firstOrNull { it.dialogActName == dialogAct::class.qualifiedName }?.templateGen?.invoke(dialogAct)
-        } else if (dialogAct is FrameDialogAct) {
+        } else if (dialogAct is FrameDialogAct<*>) {
             val packageName = dialogAct.frameType.substringBeforeLast(".")
             val className = dialogAct.frameType.substringAfterLast(".")
             val annotations = construct(packageName, className, this)?.findAll<DialogActCustomizationAnnotation>("this") ?: listOf()
