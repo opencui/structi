@@ -47,11 +47,11 @@ open class System1Generation(
         )
 
         val response = mutableListOf<DialogAct>()
-        logger.info("got requestion: ${augmentation}")
+
         val result = system1?.response(session.history, augmentation)
-        logger.info("got result: ${result}")
-        if (result.isNullOrEmpty()) {
-            response.add(RawInform(templateOf(result!!)))
+
+        if (!result.isNullOrEmpty()) {
+            response.add(RawInform(templateOf(result)))
         }
 
         val actionResult = ActionResult(
@@ -59,8 +59,7 @@ open class System1Generation(
             createLog("AugmentedGeneration"),
             true
         )
-
-        logger.info("the action result ${actionResult}")
+        
         return actionResult
     }
     companion object {
