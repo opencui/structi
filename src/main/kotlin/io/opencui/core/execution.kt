@@ -309,10 +309,6 @@ class DialogManager {
                 actionResults += response
             }
         }
-        if (actionResults.isNotEmpty()) {
-
-            session.lastTurnRes = session.lastTurnRes.filter {  }
-        }
         return actionResults
     }
 
