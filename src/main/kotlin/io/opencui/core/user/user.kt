@@ -10,6 +10,7 @@ interface IUserIdentifier {
     var channelType: String?
     var channelLabel: String?
     var isVerfied: Boolean
+    var token: String?
 
     var sessionId: String?
     var messageId: String?
@@ -34,6 +35,7 @@ data class UserInfo(
     override var channelType: String?,
     override var userId: String?,
     override var channelLabel: String?,
+    override var token: String? = null,
     override var isVerfied: Boolean = false
 ) : IUserIdentifier, HashMap<String, Any>() {
     override var sessionId: String? = null
