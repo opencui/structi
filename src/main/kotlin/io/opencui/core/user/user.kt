@@ -2,7 +2,6 @@ package io.opencui.core.user
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
-import kotlin.reflect.KMutableProperty0
 
 interface IUserIdentifier {
     // TODO: should we make this val instead?
@@ -38,6 +37,9 @@ data class UserInfo(
     override var token: String? = null,
     override var isVerfied: Boolean = false
 ) : IUserIdentifier, HashMap<String, Any>() {
+
+    constructor(chnType: String?, userId: String, chnLabel: String, isVerified: Boolean):this(chnType, userId, chnLabel, null, isVerified)
+
     override var sessionId: String? = null
     override var messageId: String? = null
 
