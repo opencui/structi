@@ -38,7 +38,7 @@ data class UserInfo(
     override var isVerfied: Boolean = false
 ) : IUserIdentifier, HashMap<String, Any>() {
 
-    constructor(chnType: String?, userId: String, chnLabel: String, isVerified: Boolean):this(chnType, userId, chnLabel, null, isVerified)
+    constructor(chnType: String?, userId: String?, chnLabel: String?, isVerified: Boolean):this(chnType, userId, chnLabel, null, isVerified)
 
     override var sessionId: String? = null
     override var messageId: String? = null
