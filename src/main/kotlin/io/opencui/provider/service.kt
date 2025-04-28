@@ -7,6 +7,9 @@ import io.opencui.serialization.*
 import org.slf4j.LoggerFactory
 import java.sql.DriverManager
 import java.sql.SQLException
+import kotlin.reflect.KParameter
+import kotlin.reflect.full.declaredFunctions
+import kotlin.reflect.full.instanceParameter
 
 interface Closable {
     fun close()
@@ -29,11 +32,31 @@ interface IConnection: Closable, IExtension {
     ): List<T>
 }
 
+
+fun <T : ITemplatedProvider> T.cloneViaReflection(): T {
+    val kClass = this::class
+    val copyFunction = kClass.declaredFunctions.firstOrNull { it.name == "copy" }
+        ?: throw IllegalArgumentException("No copy() method found for ${kClass.simpleName}")
+
+    val instanceParam = copyFunction.instanceParameter!!
+    return copyFunction.callBy(mapOf(instanceParam to this)) as T
+}
+
+
+
+
 // Templated provider will have connection.
 interface ITemplatedProvider : IProvider {
     var provider : IConnection?
     override fun getConfiguration(): Configuration? {
         return provider?.cfg
+    }
+
+    // If the implementation is session dependent, one should clone one for that session.
+    override fun cloneForSession(userSession: UserSession): IExtension {
+        val another = this.cloneViaReflection() as IProvider
+        another.session = userSession
+        return another
     }
 }
 
