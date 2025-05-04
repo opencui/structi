@@ -109,7 +109,7 @@ interface ExtensionBuilder : (Configuration) -> IExtension
  */
 class ExtensionManager {
     val holder = mutableMapOf<String, IExtension>()
-    val builderByLabel: MutableMap<String, ExtensionBuilder> = mutableMapOf()
+    val builderByLabel = mutableMapOf<String, ExtensionBuilder>()
 
     // This is used to narrow
     val labelsByInterface = mutableMapOf<KClass<*>, MutableList<String>>()
@@ -129,7 +129,7 @@ class ExtensionManager {
 
     inline fun <reified T:IExtension> get(): T? {
         val labels = labelsByInterface[T::class] ?: return null
-        if (labels.size < 1) return null
+        if (labels.isEmpty()) return null
         return get(labels.first())
     }
 

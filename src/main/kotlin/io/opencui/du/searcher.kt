@@ -87,7 +87,7 @@ data class ScoredDocument(
         const val CONTEXTSLOT = "context_slot"
         const val EXPRESSION = "expression"
         const val PARTIALEXPRESSION = "partial_application"
-        val logger: Logger = LoggerFactory.getLogger(Exemplar::class.java)
+        val logger: Logger = LoggerFactory.getLogger(ScoredDocument::class.java)
     }
 }
 
