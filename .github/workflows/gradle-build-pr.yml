@@ -8,15 +8,28 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Clone with specific format
+      - name: Debug repository existence and access
+        shell: bash
+        run: |
+          echo "Checking if repository exists and token has access..."
+          curl -s -I -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+          https://api.github.com/repos/framely/actions-framely-init | grep "HTTP/"
+      
+      - name: Check and list private repos accessible to token
+        shell: bash
+        run: |
+          echo "Listing repositories accessible with this token..."
+          curl -s -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+          https://api.github.com/user/repos?visibility=private&per_page=5 | grep "full_name" | head -n 5
+      
+      - name: Clone with alternative format
         shell: bash
         run: |
           cd ../
           rm -rf actions-framely-init
-          echo "Cloning private repository..."
-          # Use a more explicit format for the token
-          GH_TOKEN="${{ secrets.PAT_TOKEN }}"
-          git clone https://${GH_TOKEN}:x-oauth-basic@github.com/framely/actions-framely-init.git -b v1
+          echo "Attempting to clone with alternative format..."
+          # Try a different format for the token URL
+          git clone https://oauth2:${{ secrets.PAT_TOKEN }}@github.com/framely/actions-framely-init.git -b v1
           echo "Cloned successfully. Contents:"
           ls -la actions-framely-init
             
