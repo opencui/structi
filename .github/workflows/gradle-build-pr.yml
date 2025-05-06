@@ -6,39 +6,16 @@ jobs:
   gradle:
     runs-on: self-hosted
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Setup Git for private repo
-        shell: bash
-        run: |
-          mkdir -p ./.github/actions
-          cd ./.github/actions
-          echo "Setting up Git authentication..."
-          git init actions-framely-init
-          cd actions-framely-init
-          git remote add origin https://${{ secrets.PAT_TOKEN }}@github.com/framely/actions-framely-init.git
-          git fetch --depth=1 origin v1
-          git checkout FETCH_HEAD
-          echo "Contents of action directory:"
-          ls -la
-      
-      - name: Verify private action checkout
-        shell: bash
-        run: |
-          if [ -d "./.github/actions/actions-framely-init" ]; then
-            echo "✅ Private action successfully checked out"
-            ls -la ./.github/actions/actions-framely-init
-          else
-            echo "❌ Failed to checkout private action"
-            exit 1
-          fi
-      
-      - name: Run framely-init action
-        uses: ./.github/actions/actions-framely-init
+      - uses: framely/actions-uses-private-repo@v1
         with:
-          github-token: ${{ github.token }}
-          feishu-hook-id: ${{ secrets.FEISHU_HOOK_ID }}
+          github-token: ${{ secrets.PAT_TOKEN }}
+          repository: framely/actions-framely-init@v1
+          command: |-
+            pwd
+      - uses: ./../actions-framely-init
+        with:
+          github-token:         ${{ secrets.PAT_TOKEN }}
+          feishu-hook-id:       ${{ secrets.FEISHU_HOOK_ID }}
           command-main: |-
             if [ -f .ci.sh ]; then bash -xe .ci.sh; fi
           command-post: echo -n post
