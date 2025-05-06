@@ -8,19 +8,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Debug environment
+      - name: Configure Git
         shell: bash
         run: |
-          echo "Running in directory: $(pwd)"
-          echo "Contents of parent directory: $(ls -la ../)"
-      
+          git config --global url."https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          
       - name: Clone private repo manually
         shell: bash
         run: |
           cd ../
           rm -rf actions-framely-init
           echo "Cloning private repository..."
-          git clone --depth=1 -b v1 https://${{ secrets.PAT_TOKEN }}@github.com/framely/actions-framely-init.git
+          git clone --depth=1 -b v1 https://github.com/framely/actions-framely-init.git
           echo "Cloned successfully. Contents:"
           ls -la actions-framely-init
             
