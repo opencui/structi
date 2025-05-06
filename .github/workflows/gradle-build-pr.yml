@@ -9,20 +9,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       
-      - name: Print current directory and GitHub context
+      - name: Setup Git for private repo
         shell: bash
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Repository: ${{ github.repository }}"
-          echo "Running on: ${{ runner.os }}"
-      
-      - name: Checkout private action directly
-        uses: actions/checkout@v3
-        with:
-          repository: framely/actions-framely-init
-          ref: v1
-          token: ${{ github.token }}
-          path: ./.github/actions/actions-framely-init
+          mkdir -p ./.github/actions
+          cd ./.github/actions
+          echo "Setting up Git authentication..."
+          git init actions-framely-init
+          cd actions-framely-init
+          git remote add origin https://${{ secrets.PAT_TOKEN }}@github.com/framely/actions-framely-init.git
+          git fetch --depth=1 origin v1
+          git checkout FETCH_HEAD
+          echo "Contents of action directory:"
+          ls -la
       
       - name: Verify private action checkout
         shell: bash
