@@ -321,6 +321,8 @@ object Json {
             for ((k, v) in sm) {
                 reverseMap[v] = k
             }
+            //TODO looks like return is missing here:
+            // return reverseMap
         }
         return mapOf()
     }

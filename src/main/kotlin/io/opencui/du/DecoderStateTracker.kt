@@ -32,7 +32,7 @@ enum class YesNoResult {
 
 fun setLogLevel(loggerName: String, level: String) {
     val loggerContext = LoggerFactory.getILoggerFactory() as? LoggerContext
-    loggerContext?.getLogger(loggerName)?.level = Level.valueOf(level.toUpperCase())
+    loggerContext?.getLogger(loggerName)?.level = Level.valueOf(level.uppercase())
     println("Changed logger level for ${loggerName} to ${loggerContext?.getLogger(loggerName)?.level}")
 }
 
