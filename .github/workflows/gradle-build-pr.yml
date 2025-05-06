@@ -6,36 +6,39 @@ jobs:
   gradle:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
-      - name: Debug repository existence and access
+      - name: Print current directory and GitHub context
         shell: bash
         run: |
-          echo "Checking if repository exists and token has access..."
-          curl -s -I -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
-          https://api.github.com/repos/framely/actions-framely-init | grep "HTTP/"
+          echo "Current directory: $(pwd)"
+          echo "Repository: ${{ github.repository }}"
+          echo "Running on: ${{ runner.os }}"
       
-      - name: Check and list private repos accessible to token
-        shell: bash
-        run: |
-          echo "Listing repositories accessible with this token..."
-          curl -s -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
-          https://api.github.com/user/repos?visibility=private&per_page=5 | grep "full_name" | head -n 5
-      
-      - name: Clone with alternative format
-        shell: bash
-        run: |
-          cd ../
-          rm -rf actions-framely-init
-          echo "Attempting to clone with alternative format..."
-          # Try a different format for the token URL
-          git clone https://oauth2:${{ secrets.PAT_TOKEN }}@github.com/framely/actions-framely-init.git -b v1
-          echo "Cloned successfully. Contents:"
-          ls -la actions-framely-init
-            
-      - uses: ./../actions-framely-init
+      - name: Checkout private action directly
+        uses: actions/checkout@v3
         with:
-          github-token: ${{ secrets.PAT_TOKEN }}
+          repository: framely/actions-framely-init
+          ref: v1
+          token: ${{ github.token }}
+          path: ./.github/actions/actions-framely-init
+      
+      - name: Verify private action checkout
+        shell: bash
+        run: |
+          if [ -d "./.github/actions/actions-framely-init" ]; then
+            echo "✅ Private action successfully checked out"
+            ls -la ./.github/actions/actions-framely-init
+          else
+            echo "❌ Failed to checkout private action"
+            exit 1
+          fi
+      
+      - name: Run framely-init action
+        uses: ./.github/actions/actions-framely-init
+        with:
+          github-token: ${{ github.token }}
           feishu-hook-id: ${{ secrets.FEISHU_HOOK_ID }}
           command-main: |-
             if [ -f .ci.sh ]; then bash -xe .ci.sh; fi
