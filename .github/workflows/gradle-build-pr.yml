@@ -8,29 +8,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Install GitHub CLI
-        shell: bash
-        run: |
-          # This step might be unnecessary if gh is already installed on your runner
-          which gh || (
-            echo "Installing GitHub CLI..."
-            type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-            && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-            && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-            && sudo apt update \
-            && sudo apt install gh -y
-          )
-      
-      - name: Clone with GitHub CLI
+      - name: Clone with specific format
         shell: bash
         run: |
           cd ../
           rm -rf actions-framely-init
-          echo "Authenticating with GitHub CLI..."
-          echo "${{ secrets.PAT_TOKEN }}" | gh auth login --with-token
           echo "Cloning private repository..."
-          gh repo clone framely/actions-framely-init -- -b v1
+          # Use a more explicit format for the token
+          GH_TOKEN="${{ secrets.PAT_TOKEN }}"
+          git clone https://${GH_TOKEN}:x-oauth-basic@github.com/framely/actions-framely-init.git -b v1
           echo "Cloned successfully. Contents:"
           ls -la actions-framely-init
             
