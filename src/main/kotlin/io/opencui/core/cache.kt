@@ -197,7 +197,7 @@ class CachedMethod1<A, out R>(val f: (A) -> List<R>, val expireTimeInSeconds: In
         val input = a
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a")
-        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
+        if (cache == null || Duration.between(cache.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
             values[input] = Pair(f(a), LocalDateTime.now())
         }
@@ -217,7 +217,7 @@ class CachedMethod2<A, B, out R>(
         val input = Pair(a, b)
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a, $b")
-        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
+        if (cache == null || Duration.between(cache.second, LocalDateTime.now()).seconds > expireTimeInSeconds) {
             Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
             values[input] = Pair(f(a, b), LocalDateTime.now())
         }

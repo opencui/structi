@@ -559,7 +559,7 @@ class RescheduleAction : StateAction {
                 if (schedule.isEmpty()) {
                     // TODO: the logic here is strange.
                     if (doneFiller is AnnotatedWrapperFiller) {
-                        session.finishedIntentFiller += doneFiller as AnnotatedWrapperFiller
+                        session.finishedIntentFiller += doneFiller
                     }
                 }
                 if (doneFiller is AnnotatedWrapperFiller && doneFiller.isSlot) {
