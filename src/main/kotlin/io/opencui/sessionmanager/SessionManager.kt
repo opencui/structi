@@ -220,15 +220,15 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     fun getReplyFlow(
         session: UserSession,
         query: String,
-        sink: Sink,
+        targetChannel: String,
         events: List<FrameEvent> = emptyList()
     ) : Flow<Map<String, List<String>>> = flow {
         logger.info("Got events:")
         logger.info(Json.encodeToString(events))
 
-        session.targetChannel = if (sink.targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(sink.targetChannel!!, SideEffect.RESTFUL)
+        session.targetChannel = if (targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(targetChannel, SideEffect.RESTFUL)
 
-        val batched = getReplyFlowInside(session, query, sink.targetChannel, events)
+        val batched = getReplyFlowInside(session, query, targetChannel, events)
 
         var dialogActs : List<DialogAct>? =  null
 

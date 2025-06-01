@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.ISystem1
+import kotlinx.coroutines.flow.map
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -46,16 +47,10 @@ open class System1Generation(
             knowledgeParts,
         )
 
-        val response = mutableListOf<DialogAct>()
-
-        val result = system1?.response(session.history, augmentation)
-
-        if (!result.isNullOrEmpty()) {
-            response.add(System1Inform(templateOf(result)))
-        }
-
+        val strFlow = system1?.response(session.history, augmentation)
+        val daFlow = strFlow?.map { it -> System1Inform(templateOf(it)) }
         val actionResult = ActionResult(
-            response,
+            daFlow,
             createLog("AugmentedGeneration"),
             true
         )
@@ -66,6 +61,7 @@ open class System1Generation(
         val logger: Logger = LoggerFactory.getLogger(System1Generation::class.java)
     }
 }
+
 
 // This interface represents the dialog act that bot about to take. We start from the list from schema guided
 // dialog. Notice the dialog act from user side is absorbed by dialog understanding, so we do not have model

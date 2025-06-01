@@ -2,6 +2,9 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
+import io.opencui.serialization.JsonElement
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
@@ -198,15 +201,23 @@ data class Augmentation(
     val remoteKnowledge: List<KnowledgePart>,
 )
 
+
+data class Chunk(
+    val from: String?,
+    val kind: String,  // payload kind, for example: text
+    val payload: JsonElement   // can be decided by type.
+)
+
+
 interface ISystem1 : IExtension {
     //  msgs and feedback are mutually exclusive.
-    fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String
+    fun response(msgs: List<CoreMessage>, augmentation: Augmentation): Flow<String>
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
 
         const val methodName = "getFallback"
-        fun response(userSession: UserSession): ActionResult? {
+        fun response(userSession: UserSession): Flow<ActionResult> = flow {
             // We go through the main scheduler and try to find the first one with no empty augmentation.
             logger.info("inside system1 response with ${userSession.schedule.size} filters.")
             for (filler in userSession.schedule.asReversed()) {
@@ -228,10 +239,9 @@ interface ISystem1 : IExtension {
 
                     if (result.botUtterance.isNullOrEmpty()) continue
                     logger.info("inside system1 response with bot utterance: ${result.botUtterance}")
-                    return result
+                    emit(result)
                 }
             }
-            return null
         }
     }
 }

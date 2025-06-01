@@ -16,7 +16,6 @@ import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.full.memberProperties
 import kotlin.time.Duration
 
@@ -281,19 +280,18 @@ class DialogManager {
         logger.info("session state after turn ${session.turnId} : ${session.toSessionString()}")
 
         val system1Response = getSystem1Response(session, frameEvents)
-        logger.info("found system1 response size: ${system1Response.size}")
 
         // (TODO): why do we need this?
         if (actionResults.isEmpty() && session.schedule.isNotEmpty() && session.lastTurnRes.isNotEmpty()) {
-            system1Response.forEach { emit(it) }
+            system1Response.collect{ it -> emit(it) }
             session.lastTurnRes.forEach { emit(it) }
         } else {
             session.lastTurnRes = actionResults
-            system1Response.forEach { emit(it) }
+            system1Response.collect { it -> emit(it) }
         }
     }
 
-    fun getSystem1Response(session: UserSession, frameEvents: List<FrameEvent>): List<ActionResult> {
+    fun getSystem1Response(session: UserSession, frameEvents: List<FrameEvent>): Flow<ActionResult> = flow {
         val actionResults = mutableListOf<ActionResult>()
         val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
 
@@ -302,14 +300,13 @@ class DialogManager {
         // If we do not understand, we fall back to system1
         if (userFrameEvents.size == 1 && userFrameEvents[0].type == "IDonotGetIt") {
             logger.info("inside system1 with ${userFrameEvents}")
-            val response = ISystem1.response(session)
-            if (response != null) {
-                logger.info("system1 response: $response")
-                // No need to add system-wide reminder, it is builder's decision.
-                actionResults += response
+            val responses = ISystem1.response(session)
+            // No need to add system-wide reminder, it is builder's decision.
+            responses.collect { item ->
+                // You can add logic here if needed, but for simple re-emission, just emit
+                emit(item)
             }
         }
-        return actionResults
     }
 
 
