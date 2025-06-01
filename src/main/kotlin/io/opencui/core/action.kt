@@ -5,11 +5,19 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import org.slf4j.LoggerFactory
 import java.io.Serializable
+import java.io.IOException
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import kotlin.math.min
 import kotlin.reflect.full.primaryConstructor
+
 
 /**
  * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
@@ -22,19 +30,53 @@ data class ActionLog(
     @JsonIgnore val isTestable: Boolean = false) : Serializable
 
 data class ActionResult(
-    val actionLog: ActionLog?, 
-    val success: Boolean = true) : Serializable {
-    var botOwn: Boolean  = true
-    var botUtterance: List<DialogAct>? = null
+    val actionLog: ActionLog?,
+    val success: Boolean = true
+) : Serializable {
+
+    var botOwn: Boolean = true
+
+    // Single Flow member
+    @Transient
+    private var botUtteranceFlow: Flow<DialogAct>? = null
+
+
+    // List access when needed
+    val botUtterance: List<DialogAct>?
+        get() = botUtteranceFlow?.let { runBlocking { it.toList() } }
+
+    // Constructor from List
     constructor(b: List<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
-        botUtterance = b
+        botUtteranceFlow = b?.asFlow()
     }
 
-    // Add this override
+    // Constructor from Flow
+    constructor(b: Flow<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
+        botUtteranceFlow = b
+    }
+
     override fun toString(): String {
-        return "ActionResult(actionLog=$actionLog, success=$success, botUtterance=$botUtterance)"
+        return "ActionResult(actionLog=$actionLog, success=$success, botUtterance=${botUtterance})"
+    }
+
+    // Custom serialization to handle the Flow
+    @Throws(IOException::class)
+    private fun writeObject(out: ObjectOutputStream) {
+        out.defaultWriteObject()
+        // Serialize the Flow as a List
+        val list = botUtteranceFlow?.let { runBlocking { it.toList() } }
+        out.writeObject(list)
+    }
+
+    @Throws(IOException::class, ClassNotFoundException::class)
+    private fun readObject(inp: ObjectInputStream) {
+        inp.defaultReadObject()
+        // Recreate Flow from the deserialized List
+        val list = inp.readObject() as List<DialogAct>?
+        botUtteranceFlow = list?.asFlow()
     }
 }
+
 
 /**
  * SideEffect means that action will render message to user, all the response will be doing that.
