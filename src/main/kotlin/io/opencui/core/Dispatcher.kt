@@ -389,10 +389,11 @@ object Dispatcher {
             }
 
             // always add the RESTFUL just in case.
-            val sink1 = SimpleSink(userInfo.channelType!!)
-            val batched1 = sessionManager.getReplyFlow(userSession, query, sink1, events)
+
+            val batched1 = sessionManager.getReplyFlow(userSession, query, userInfo.channelType!!, events)
 
             // Need to copy the messages for system1, and then emit the messages.
+            val sink1 = SimpleSink(userInfo.channelType!!)
             batched1.collect { item ->
                 sink1.send(item)
                 sink1.flush()
@@ -414,8 +415,9 @@ object Dispatcher {
         } else {
             if (support == null || !support.info.assist) return@flow
             // assist mode, not need to divide into two parts.
+
+            val batched = sessionManager.getReplyFlow(userSession, query, userInfo.channelType!!, events)
             val sink1 = SimpleSink(userInfo.channelType!!)
-            val batched = sessionManager.getReplyFlow(userSession, query, sink1, events)
             runBlocking {
                 batched.collect { item ->
                     sink1.send(item)

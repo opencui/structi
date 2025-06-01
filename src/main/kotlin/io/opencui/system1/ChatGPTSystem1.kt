@@ -2,6 +2,8 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -50,7 +52,7 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
       .build()
 
-    override fun response(msgs: List<CoreMessage>, augmentation: Augmentation): String {
+    override fun response(msgs: List<CoreMessage>, augmentation: Augmentation): Flow<String> = flow {
         val request = System1Request(
             prompt = augmentation.instruction,
             modelUrl = url,
@@ -73,10 +75,11 @@ data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
         logger.info("system1 response: $reply")
 
         // handle the think.
-        return if (reply.startsWith(THINKSTART))
+        emit(if (reply.startsWith(THINKSTART))
             extractAfterXMLTag(reply, THINKEND)
         else
             reply
+        )
     }
 
     companion object : ExtensionBuilder {
