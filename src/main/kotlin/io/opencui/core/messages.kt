@@ -46,11 +46,59 @@ interface IPayload : Serializable
         JsonSubTypes.Type(value = RichPayload::class, name = "rich"),
         JsonSubTypes.Type(value = ListTextPayload::class, name = "listText"),
         JsonSubTypes.Type(value = ListRichPayload::class, name = "listRich"),
+        JsonSubTypes.Type(value = FilePayload::class, name = "file"),
+        JsonSubTypes.Type(value = MultiPartPayload::class, name = "multiPart"),
     ]
 )
 sealed interface IWhitePayload: IPayload {
     val msgId: String?
 }
+
+
+// File payload for individual files
+@JsonTypeName("file")
+data class FilePayload(
+    val filename: String,
+    val content: ByteArray, // or Base64 string if you prefer JSON serialization
+    val contentType: String,
+    val size: Long = content.size.toLong(),
+    override val msgId: String? = null
+) : IWhitePayload {
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as FilePayload
+
+        if (filename != other.filename) return false
+        if (!content.contentEquals(other.content)) return false
+        if (contentType != other.contentType) return false
+        if (size != other.size) return false
+        if (msgId != other.msgId) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = filename.hashCode()
+        result = 31 * result + content.contentHashCode()
+        result = 31 * result + contentType.hashCode()
+        result = 31 * result + size.hashCode()
+        result = 31 * result + (msgId?.hashCode() ?: 0)
+        return result
+    }
+}
+
+// MultiPart payload for text + files combination
+@JsonTypeName("multiPart")
+data class MultiPartPayload(
+    val text: String,
+    val files: List<FilePayload>,
+    override val msgId: String? = null
+) : IWhitePayload
+
+
 
 @JsonTypeName("text")
 data class TextPayload(
