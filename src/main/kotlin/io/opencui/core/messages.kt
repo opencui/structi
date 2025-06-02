@@ -52,10 +52,25 @@ sealed interface IWhitePayload: IPayload {
     val msgId: String?
 }
 
+
+data class FilePayload(
+    val filename: String,
+    val contentInBase64: String, // or Base64 string if you prefer JSON serialization
+    val contentType: String
+) : Serializable
+
+
+interface InputPayload {
+    val text: String
+    val files: List<FilePayload>
+}
+
+// When this is used as input, it is multipart form data
 @JsonTypeName("text")
 data class TextPayload(
-    val text: String = "",
-    override val msgId: String?=null) : IWhitePayload {
+    override val text: String = "",
+    override val msgId: String?=null,
+    override val files: List<FilePayload> = emptyList()) : IWhitePayload, InputPayload {
 }
 
 fun textMessage(text: String, msgId: String?=null) : TextPayload {

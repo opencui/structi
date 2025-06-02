@@ -342,7 +342,7 @@ object Dispatcher {
         }
     }
 
-    // This is useful for phones line, maybe
+    // We assume the history is maintained by session, so this is only for the current input.
     fun getReplyFlow(
         userSession: UserSession,
         message: TextPayload? = null,
