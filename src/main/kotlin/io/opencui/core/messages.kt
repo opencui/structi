@@ -35,6 +35,12 @@ data class Call(val phoneNumber: String, val display: String, val payload: Strin
 
 interface IPayload : Serializable
 
+enum class EventKind(val label: String) {
+    THINK("think"),
+    RESPONSE("response"),
+    ARTIFACT("artifact")
+}
+
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,
@@ -50,6 +56,7 @@ interface IPayload : Serializable
 )
 sealed interface IWhitePayload: IPayload {
     val msgId: String?
+    val eventKind: EventKind? // For sse event kind.
 }
 
 
@@ -70,6 +77,7 @@ interface InputPayload {
 data class TextPayload(
     override val text: String = "",
     override val msgId: String?=null,
+    override val eventKind: EventKind? = EventKind.RESPONSE,
     override val files: List<FilePayload> = emptyList()) : IWhitePayload, InputPayload {
 }
 
@@ -85,6 +93,7 @@ data class ListTextPayload(
     val text: String = "",
     val body: List<String>?=null,
     val inputActions: List<ClientAction>?=null,
+    override val eventKind: EventKind? = EventKind.RESPONSE,
     override val msgId: String?=null): IWhitePayload {
 }
 
@@ -112,6 +121,7 @@ data class RichPayload(
     val description: String,
     val richMedia: RichMedia? = null,
     val insideActions: List<ClientAction>? = null,
+    override val eventKind: EventKind? = EventKind.RESPONSE,
     override val msgId: String?=null): IWhitePayload {
     val floatActions: List<Reply>? = null // NOT exposed yet.
 }
@@ -126,6 +136,7 @@ data class ListRichPayload(
     val fileUrls: List<String>?=null,
     val cardInputActions: List<List<ClientAction>>?=null,
     val mainInputActions: List<ClientAction>?=null,
+    override val eventKind: EventKind? = EventKind.RESPONSE,
     override val msgId: String?=null): IWhitePayload {
 }
 
