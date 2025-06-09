@@ -7,12 +7,9 @@ import io.opencui.core.da.DumbDialogAct
 import io.opencui.core.hasMore.No
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
-import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.security.SecurityProperties.User
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
-import kotlin.math.max
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty1
@@ -212,7 +209,7 @@ interface IFiller: Compatible, Serializable {
     }
 
     fun slotAskAnnotation(): PromptAnnotation? {
-        val decorativePrompt = decorativeAnnotations.firstIsInstanceOrNull<PromptAnnotation>()
+        val decorativePrompt = decorativeAnnotations.firstOrNull<Any?> { it is PromptAnnotation } as? PromptAnnotation
         if (decorativePrompt != null) return decorativePrompt
         return path?.let { it.findAll<PromptAnnotation>().firstOrNull() }
     }
@@ -995,9 +992,9 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                 if (confirmFrame != null) confirmFrameList += confirmFrame
             }
             val decorativeConfirm =
-                targetFiller
+                (targetFiller
                     .decorativeAnnotations
-                    .firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
+                    .firstOrNull<Any?> { it is ConfirmationAnnotation } as? ConfirmationAnnotation)?.confirmFrameGetter?.invoke()
 
             if (decorativeConfirm != null) confirmFrameList += decorativeConfirm
             val currentFrames = confirmationFillers.mapNotNull { (it.targetFiller as? FrameFiller<*>)?.frame() }.toSet()
@@ -1097,7 +1094,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             // value confirm
             val confirmFrame =
                 path?.let { it.findAll<ConfirmationAnnotation>().firstOrNull() }?.confirmFrameGetter?.invoke()
-            val decorativeConfirm = targetFiller.decorativeAnnotations.firstIsInstanceOrNull<ConfirmationAnnotation>()?.confirmFrameGetter?.invoke()
+            val decorativeConfirm =
+                (targetFiller.decorativeAnnotations.firstOrNull<Any?> { it is ConfirmationAnnotation } as? ConfirmationAnnotation)?.confirmFrameGetter?.invoke()
             val confirmFrameList = mutableListOf<IFrame>()
             if (confirmFrame != null) confirmFrameList += confirmFrame
             if (decorativeConfirm != null) confirmFrameList += decorativeConfirm

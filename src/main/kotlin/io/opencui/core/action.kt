@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import java.io.IOException
@@ -431,7 +430,8 @@ data class SlotAskAction(val tag: String = "") : StateAction {
 
         for (f in session.schedule) {
             if (f == (f.parent as? AnnotatedWrapperFiller)?.recommendationFiller) {
-                val vrTargetPromptAnnotation = f.decorativeAnnotations.firstIsInstanceOrNull<PromptAnnotation>()
+                val vrTargetPromptAnnotation =
+                    f.decorativeAnnotations.firstOrNull<Any?> { it is PromptAnnotation } as? PromptAnnotation
                 if (vrTargetPromptAnnotation != null) {
                     val ancestorVRTargetActions = vrTargetPromptAnnotation.actions
                     vrTargetPrompts += ancestorVRTargetActions

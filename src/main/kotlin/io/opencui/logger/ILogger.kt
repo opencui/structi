@@ -1,7 +1,6 @@
 package io.opencui.logger
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.sun.jna.platform.win32.Netapi32Util.User
 import io.opencui.core.Configuration
 import io.opencui.core.ExtensionBuilder
 import io.opencui.core.IExtension
