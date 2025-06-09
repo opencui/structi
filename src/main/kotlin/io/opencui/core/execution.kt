@@ -11,13 +11,12 @@ import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.kotlin.utils.addToStdlib.lastIsInstanceOrNull
-import org.jetbrains.kotlin.utils.addToStdlib.measureTimeMillisWithResult
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 import kotlin.reflect.full.memberProperties
 import kotlin.time.Duration
+
 
 
 inline fun<T> timing(msg: String, function: () -> T): T {
@@ -90,7 +89,12 @@ class UsageCollector {
     }
 }
 
-
+inline fun <T> measureTimeMillisWithResult(block: () -> T): Pair<Long, T> {
+    val startTime = System.currentTimeMillis()
+    val result = block()
+    val endTime = System.currentTimeMillis()
+    return Pair(endTime - startTime, result)
+}
 
 /**
  * DialogManager is used to drive a statechart configured by builder using input event created by end user.
@@ -518,7 +522,7 @@ class DialogManager {
                 }
             } else {
                 var pagedSelectableFiller: FrameFiller<*>? = null
-                val lastFrameFiller = session.schedule.lastIsInstanceOrNull<FrameFiller<*>>()
+                val lastFrameFiller = session.schedule.lastOrNull<Any?> { it is FrameFiller<*> } as? FrameFiller<*>
                 if (lastFrameFiller != null && lastFrameFiller.frame() is PagedSelectable<*> && events.firstOrNull { it.type == "PagedSelectable" } == null) {
                     pagedSelectableFiller = lastFrameFiller
                 } else if (lastFrameFiller != null && lastFrameFiller.frame() is Confirmation && events.firstOrNull { (it.type == "Yes" || it.type == "No") && it.packageName == CONFIRMATIONPACKAGE } == null) {
