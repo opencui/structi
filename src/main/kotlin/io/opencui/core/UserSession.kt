@@ -278,6 +278,10 @@ data class UserSession(
         history.add(CoreMessage(true, msg))
     }
 
+    fun currentUtterance() : String? {
+        return history.lastOrNull { it.user }?.message
+    }
+
     fun addBotMessage(msg: String) {
         history.add(CoreMessage(false, msg))
     }
