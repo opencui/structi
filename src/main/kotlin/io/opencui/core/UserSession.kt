@@ -16,6 +16,7 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
+import io.opencui.system1.ModelConfig
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -507,6 +508,10 @@ data class UserSession(
             }
             res
         }
+    }
+
+    fun getSystem1(label: String): ModelConfig? {
+        return null
     }
 
     fun generateFrameEvent(filler: IFiller, value: Any): List<FrameEvent> {

@@ -1,7 +1,6 @@
 package io.opencui.system1
 
 import io.opencui.core.*
-import io.opencui.core.da.KnowledgePart
 import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -182,6 +181,13 @@ object TypeSystem {
 }
 
 
+// Aside from the dialog understanding, builder can actually control the different mode that system1 can be used.
+enum class System1Mode {
+    FUNCTION,
+    ACTION,
+    FALLBACK
+}
+
 /**
  * It is likely that the users are actually served by two systems: fast and slow.
  * The fast system can take care of many intuitive, automatic thinking that operates quickly and effortlessly.
@@ -195,28 +201,66 @@ object TypeSystem {
  * For now, we assume the system1 are dumb.
  */
 
+//
+// The main responsibility for triggering system1 is to convert the context from opencui level
+// to system1 level (via json), and back.
+// Which fallback to be executed is decided dynamically, based on the type hierarchy of the context.
+//
+// Action does not deal with state, it generates flow<string>.
+// function are executed to return something.
+
+data class ToolReference(val context: KClass<*>, val instance: String, val method: String)
+data class ToolSetReference(val context: KClass<*>, val instance: String)
+
+
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val instruction: String, // This should be a jinja2 template so that system1 can follow.
-    val remoteKnowledge: List<KnowledgePart>,
+    val mode: System1Mode = System1Mode.FALLBACK
 )
 
 
-data class Chunk(
-    val from: String?,
-    val kind: String,  // payload kind, for example: text
-    val payload: JsonElement   // can be decided by type.
+// For now, we only support this, but we can potentially support other.
+enum class System1Type {
+    GooggleADK
+}
+
+
+// For now, we only SUPPORT Kotlin, but eventually, we can support other templates like Jinja2,
+enum class IntroductionType {
+    Kotlin
+}
+
+// Should we make this defined distributedly, or centrally defined like this.
+data class ModelConfig(
+    val family: String,
+    val label: String,
+    val providerType: System1Type = System1Type.GooggleADK,
+    val url: String? = null,
+    val apikey: String? = null,
+    val temperature: Float? = null,
+    val topK: Int? = null,
+    val maxOutputTokens: Int? = null,
+    val tags: List<String> = emptyList()
 )
 
 
+
+
+
+//
+// All system1 configure use the ChatGPTSystem1 provider config meta.
+// System1 will be used for two different things: returning structured output, and/or emitting responses.
+// System1 will be connection level,
 interface ISystem1 : IExtension {
-    //  msgs and feedback are mutually exclusive.
-    fun response(msgs: List<CoreMessage>, augmentation: Augmentation): Flow<String>
+    // All three modes are entered from here.
+    fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter?=null): JsonElement?
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
 
         const val methodName = "getFallback"
+        // This method is used to dynamically figure out what most relevant system1 to use.
         fun response(userSession: UserSession): Flow<ActionResult> = flow {
             // We go through the main scheduler and try to find the first one with no empty augmentation.
             logger.info("inside system1 response with ${userSession.schedule.size} filters.")

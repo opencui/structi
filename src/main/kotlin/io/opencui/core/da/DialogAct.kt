@@ -5,7 +5,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.ISystem1
+import io.opencui.system1.System1Mode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -36,19 +42,41 @@ data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : Kno
 open class System1Generation(
     val system1Id: String,
     val prompt: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
-    val knowledgeParts: List<KnowledgePart>): Generation {
+    val mode: System1Mode = System1Mode.FALLBACK): Generation {
 
     override fun run(session: UserSession): ActionResult {
-        val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)
+        val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)!!
 
         val dialogAct = prompt.invoke()
         val augmentation = Augmentation(
             dialogAct.templates.pick(),
-            knowledgeParts,
+            mode = mode
         )
 
-        val strFlow = system1?.response(session.history, augmentation)
-        val daFlow = strFlow?.map { it -> System1Inform(templateOf(it)) }
+        val channel = Channel<String>(Channel.UNLIMITED)
+        val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
+
+        val result = runBlocking {
+            // This entire block must complete before 'result' gets its value
+            // Producer: asyncJob emits to channel, then produces JsonElement?
+            val asyncJob = async(Dispatchers.Default) {
+                val emitter = object : Emitter {
+                    override fun invoke(x: String) {
+                        println("Emitter: Emitting '$x'") // Added for clarity
+                        channel.trySend(x) // trySend is non-suspending
+                    }
+                }
+                // this is used to process.
+                system1.response(session, augmentation, emitter)
+            }
+
+            val jsonResult = asyncJob.await() // Await the JsonElement? from the producer
+            channel.close() // Close the channel after producer is done
+            jsonResult // This is the value that 'result' will take on
+        }
+
+        // We can decide handle flow or result, here.
+        val daFlow = flow.map { it -> System1Inform(templateOf(it)) }
         val actionResult = ActionResult(
             daFlow,
             createLog("AugmentedGeneration"),

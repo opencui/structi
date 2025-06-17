@@ -1,0 +1,642 @@
+package io.opencui.system1
+
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.google.adk.JsonBaseModel
+import com.google.adk.SchemaUtils
+import com.google.genai.types.Schema
+import com.google.adk.agents.BaseAgent
+import com.google.adk.agents.LlmAgent
+import com.google.adk.agents.RunConfig
+import com.google.adk.events.Event
+import com.google.adk.runner.InMemoryRunner
+import com.google.adk.runner.Runner
+import com.google.adk.sessions.Session
+import com.google.adk.tools.Annotations
+import com.google.adk.tools.BaseTool
+import com.google.adk.tools.FunctionTool
+import com.google.adk.tools.ToolContext
+import com.google.genai.types.Content
+import com.google.genai.types.FunctionDeclaration
+import com.google.genai.types.Part
+import io.reactivex.rxjava3.core.Flowable
+import java.nio.charset.StandardCharsets
+import java.text.Normalizer
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Scanner
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import com.google.genai.types.GenerateContentConfig;
+import io.opencui.core.CachedMethod3Raw
+import io.opencui.core.Emitter
+import io.opencui.core.UserSession
+import io.opencui.serialization.*
+import io.opencui.provider.ProviderInvokeException
+import io.reactivex.rxjava3.core.Single
+import java.util.Optional
+import kotlinx.coroutines.reactive.asFlow
+import org.slf4j.LoggerFactory
+import java.io.Serializable
+import kotlinx.coroutines.runBlocking
+
+//
+// For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
+// Since the LLM execute the things from scratch every time, and then there are prefix based caching, so
+// for now, we assume that instruction are instantiated with slot value every time it is evaluated.
+// We will not be using {} from state for collaboration purpose. In other words, instruction capture slot values.
+//
+// There are two thing we need to do: create agent (create schema, prepare input, and then run it and handle output).
+// it will be used for two different use cases: action, and function.
+//
+// but we will really build Llm Agent.
+
+
+//
+// Question, for fallback, should we allow build to use slot value? if we do, should we keep
+// history? For now, we assume that they can, but the history is not useful. As we are use it
+// a single turn solution.
+//
+// The content for runner:
+// For Action, the content can be user said nothing.
+// For Fallback, the content can be user utterance.
+// For Function, the content is the json encode of input.
+//
+data class AdkConnection(val cfg: ModelConfig): Serializable {
+    fun invoke(providerMeta: Map<String, String>, context: Map<String, Any?>, body: String): JsonElement {
+        val functionMeta = providerMeta + context
+        val method = (functionMeta[METHOD] as String).lowercase()
+        return if (method == "get") {
+            cachedInvoke(providerMeta, context, body)
+        } else {
+            invokeImpl(providerMeta, functionMeta, body)
+        }
+    }
+
+
+    @Transient val cachedInvoke = CachedMethod3Raw(this::invokeImpl)
+
+
+    // If we find URL, we use it, other
+    @Throws(ProviderInvokeException::class)
+    fun invokeImpl(providerMeta: Map<String, String>, context: Map<String, Any?>, body: String): JsonElement {
+        val functionMeta = providerMeta + context
+        logger.info("all meta: $functionMeta with base url: ${cfg.url}")
+        val method = (functionMeta[METHOD] as String).lowercase()
+        val path = functionMeta[PATH]!! as String
+
+
+        return invokeImpl(providerMeta, functionMeta, body)
+    }
+
+
+
+
+    @Throws(ProviderInvokeException::class)
+    fun <T> svInvoke(providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, body: String, converter: Converter<T>): T {
+        val result = invoke(providerMeta, functionMeta, body)
+        assert(result is JsonObject)
+        return converter(result)
+    }
+
+    @Throws(ProviderInvokeException::class)
+    fun <T> mvInvoke(providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, body: String, converter: Converter<T>): List<T> {
+        val result = invoke(providerMeta, functionMeta, body)
+        assert(result is ArrayNode)
+        val results = mutableListOf<T>()
+        result.map { converter(it) }
+        return results
+    }
+
+    fun close() {
+        TODO("Not yet implemented")
+    }
+
+
+    companion object{
+        const val METHOD = "method"
+        const val PATH = "uri"
+        const val URL = "url"
+        const val CONNECTIONTIMEOUT = "connection_timeout"
+        const val RESPONSETIMEOUT = "response_timeout"
+        const val READIDLETIMEOUT = "read_idle_timeout"
+        val logger = LoggerFactory.getLogger(AdkConnection::class.java)
+    }
+
+}
+
+
+data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
+    override fun invoke(emitter: Emitter?): JsonElement? {
+        val userInput = session.currentUtterance() ?: ""
+
+        val userMsg = Content.fromParts(Part.fromText(userInput))
+        val label = "fall back agent"
+        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction)
+        val runner = InMemoryRunner(agent)
+
+        val userId = session.userId
+        val sessionId = session.sessionId
+
+        runBlocking {
+            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
+        }
+        return null
+    }
+
+}
+
+data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
+    override fun invoke(emitter: Emitter?): JsonElement? {
+        val label = "fall back agent"
+        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction)
+        val runner = InMemoryRunner(agent)
+
+        val userId = session.userId
+        val sessionId = session.sessionId
+        // For action, agent are supposedly only take structured input in the prompt, to generate the response.
+        val userMsg = Content.fromParts(Part.fromText(""))
+        runBlocking {
+            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
+        }
+        return null
+    }
+}
+
+// This need to be processed.
+data class AdkFunction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
+    override fun invoke(emitter: Emitter?): JsonElement? {
+        TODO("Not yet implemented")
+    }
+}
+
+
+data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
+
+    override fun build(
+        session: UserSession,
+        augmentation: Augmentation
+    ): ISystem1Executor {
+        return when (augmentation.mode) {
+            System1Mode.FALLBACK -> AdkFallback(session, model,augmentation)
+            System1Mode.ACTION -> AdkAction(session, model, augmentation)
+            System1Mode.FUNCTION -> AdkFunction(session, model, augmentation)
+        }
+    }
+
+
+    // These are like static method
+    companion object {
+        val logger = LoggerFactory.getLogger(AdkSystem1Builder::class.java)
+
+        private fun build(
+            label: String,
+            model: ModelConfig,
+            instruction: String,
+            inputSchema: Schema? = null,
+            outputSchema: Schema? = null,
+            tools: List<BaseTool>? = null
+        ): BaseAgent {
+            // This copy the configuration to adk agent.
+            val config = GenerateContentConfig.builder()
+                .apply {
+                    if (model.temperature != null) {
+                        this.temperature(model.temperature)
+                    }
+                    if (model.topK != null) {
+                        this.topK(model.topK.toFloat())
+                    }
+                    if (model.maxOutputTokens != null) {
+                        this.maxOutputTokens(model.maxOutputTokens)
+                    }
+                }
+                .build()
+
+            return LlmAgent.builder()
+                .name(label)
+                .model(model.label)  // for adk, we only use label, but we should make sure the family.
+                .instruction(instruction)
+                .apply {
+                    if (inputSchema != null) {
+                        this.inputSchema(inputSchema)
+                    }
+                    if (outputSchema != null) {
+                        this.outputSchema(outputSchema)
+                    }
+                    if (tools != null) {
+                        this.tools(tools)
+                    }
+                }
+                .generateContentConfig(config)
+                .build()
+        }
+
+
+        fun buildForFunc(
+            label: String,
+            model: ModelConfig,
+            instruction: String,
+            inputSchema: Schema?,
+            outputSchema: Schema?
+        ): BaseAgent {
+            return build(label, model, instruction, inputSchema, outputSchema)
+        }
+
+        fun buildForAction(label: String, model: ModelConfig, instruction: String, tools: List<BaseTool>): BaseAgent {
+            return build(label, model, instruction, tools = tools)
+        }
+
+        fun buildForFallback(label: String, model: ModelConfig, instruction: String): BaseAgent {
+            return build(label, model, instruction)
+        }
+
+
+        fun formatSSE(event: String, data: Map<String, Any>): String {
+            val json = Json.encodeToString(data)
+            return "event: $event\ndata: $json\n\n"
+        }
+
+        suspend fun callAgentAsync(
+            content: Content,  // for action, this should be empty, for
+            runner: Runner,
+            userId: String,
+            sessionId: String,
+            emitter: Emitter?,
+            bufferUp: Boolean = true
+        ) {
+            logger.info("User Query: $content")
+            // Not really useful, but keep it for now.
+            val serverSideTextBuffers = mutableMapOf<Pair<String, String>, String>()
+            try {
+                // We need to config the runner later.
+                val runConfig = RunConfig.builder().build()
+
+                emitter?.invoke(formatSSE("stream_start", mapOf("user_id" to userId, "session_id" to sessionId)))
+
+                // Use Google ADK Java async streaming
+                val eventFlow = runner.runAsync(userId, sessionId, content, runConfig).asFlow()
+
+                eventFlow.collect { event: Event ->
+                    if (event.author() == "user") return@collect
+
+                    val currentBufferKey = Pair(event.invocationId(), event.author())
+
+                    logger.info("Processing event: author=${event.author()}, partial=${event.partial()}")
+
+                    // Handle text content, only handle the first part?
+                    val parts = event.content().orElse(null)?.parts()?.orElse(null)
+                    parts?.firstOrNull()?.text()?.orElse(null)?.let { textPart ->
+                        val doNotBuffer = !event.partial().orElse(false) || bufferUp
+
+                        if (!doNotBuffer) {
+                            serverSideTextBuffers.merge(currentBufferKey, textPart) { old, new -> old + new }
+                        } else {
+                            val finalText = (serverSideTextBuffers.remove(currentBufferKey) ?: "") + textPart
+                            val trimmedText = finalText.trim()
+
+                            // Try to parse as JSON first
+                            if (trimmedText.startsWith("{") && trimmedText.endsWith("}")) {
+                                try {
+                                    val jsonData = Json.parseToJsonElement(trimmedText)
+                                    emitter?.invoke(
+                                        formatSSE(
+                                            "json_response", mapOf(
+                                                "author" to event.author(),
+                                                "data" to jsonData,
+                                                "invocation_id" to event.invocationId(),
+                                            )
+                                        )
+                                    )
+                                } catch (e: Exception) {
+                                    logger.warn("JSON parse error for final text from ${event.author()}: ${e.message}")
+                                    emitter?.invoke(
+                                        formatSSE(
+                                            "response", mapOf(
+                                                "author" to event.author(),
+                                                "source" to "${event.author()}|${event.invocationId()}",
+                                                "message" to trimmedText,
+                                                "invocation_id" to event.invocationId(),
+                                            )
+                                        )
+                                    )
+                                }
+                            } else {
+                                emitter?.invoke(
+                                    formatSSE(
+                                        "response", mapOf(
+                                            "author" to event.author(),
+                                            "source" to "${event.author()}|${event.invocationId()}",
+                                            "message" to trimmedText,
+                                            "invocation_id" to event.invocationId(),
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Handle artifacts
+                    event.actions()?.artifactDelta()?.forEach { (key, value) ->
+                        emitter?.invoke(
+                            formatSSE(
+                                "json", mapOf(
+                                    "type" to "artifact",
+                                    "source" to "${event.author()}|${event.invocationId()}",
+                                    "author" to event.author(),
+                                    "filename" to key,
+                                    "version" to value
+                                )
+                            )
+                        )
+                    }
+                }
+
+                emitter?.invoke(formatSSE("stream_end", mapOf("content" to "Invocation complete.")))
+
+            } catch (e: Exception) {
+                logger.error("Error processing ADK events: ${e.message}", e)
+                emitter?.invoke(formatSSE("stream_error", mapOf("content" to "Error: ${e.message}")))
+                emitter?.invoke(formatSSE("stream_end", mapOf("content" to "Error: ${e.message} during invocation.")))
+            }
+        }
+    }
+
+}
+
+
+
+
+/** AgentTool implements a tool that allows an agent to call another agent. */
+class AgentTool private constructor(
+    private val agent: BaseAgent,
+    private val skipSummarization: Boolean
+) : BaseTool(agent.name(), agent.description()) {
+
+    companion object {
+        fun create(agent: BaseAgent, skipSummarization: Boolean): AgentTool {
+            return AgentTool(agent, skipSummarization)
+        }
+
+        fun create(agent: BaseAgent): AgentTool {
+            return AgentTool(agent, false)
+        }
+    }
+
+    override fun declaration(): Optional<FunctionDeclaration> {
+        val builder = FunctionDeclaration.builder()
+            .description(this.description())
+            .name(this.name())
+
+        var agentInputSchema: Optional<Schema> = Optional.empty()
+        if (agent is LlmAgent) {
+            agentInputSchema = agent.inputSchema()
+        }
+
+        if (agentInputSchema.isPresent) {
+            builder.parameters(agentInputSchema.get())
+        } else {
+            builder.parameters(
+                Schema.builder()
+                    .type("OBJECT")
+                    .properties(mapOf("request" to Schema.builder().type("STRING").build()))
+                    .required(listOf("request"))
+                    .build()
+            )
+        }
+
+        return Optional.of(builder.build())
+    }
+
+
+    override fun runAsync(args: Map<String, Any>, toolContext: ToolContext): Single<Map<String, Any>> {
+        if (this.skipSummarization) {
+            toolContext.actions().setSkipSummarization(true)
+        }
+
+        var agentInputSchema: Optional<Schema> = Optional.empty()
+        if (agent is LlmAgent) {
+            agentInputSchema = agent.inputSchema()
+        }
+
+        val content: Content
+        if (agentInputSchema.isPresent) {
+            SchemaUtils.validateMapOnSchema(args, agentInputSchema.get(), true)
+            content = try {
+                Content.fromParts(Part.fromText(JsonBaseModel.getMapper().writeValueAsString(args)))
+            } catch (e: JsonProcessingException) {
+                return Single.error(
+                    RuntimeException("Error serializing tool arguments to JSON: $args", e)
+                )
+            }
+        } else {
+            val input = args["request"]
+            content = Content.fromParts(Part.fromText(input.toString()))
+        }
+
+        val runner = InMemoryRunner(this.agent, toolContext.agentName())
+
+        return runner
+            .sessionService()
+            .createSession(toolContext.agentName(), "tmp-user", toolContext.state(), null)
+            .flatMapPublisher { session ->
+                runner.runAsync(session.userId(), session.id(), content)
+            }
+            .lastElement()
+            .map { Optional.of(it) }
+            .defaultIfEmpty(Optional.empty())
+            .map { optionalLastEvent ->
+                if (optionalLastEvent.isEmpty) {
+                    return@map emptyMap<String, Any>()
+                }
+
+                val lastEvent = optionalLastEvent.get()
+                val outputText = lastEvent
+                    .content()
+                    .flatMap { it.parts() }
+                    .filter { it.isNotEmpty() }
+                    .flatMap { parts -> parts[0].text() }
+
+                if (outputText.isEmpty) {
+                    return@map emptyMap<String, Any>()
+                }
+
+                val output = outputText.get()
+                var agentOutputSchema: Optional<Schema> = Optional.empty()
+                if (agent is LlmAgent) {
+                    agentOutputSchema = agent.outputSchema()
+                }
+
+                if (agentOutputSchema.isPresent) {
+                    SchemaUtils.validateOutputSchema(output, agentOutputSchema.get())
+                } else {
+                    mapOf("result" to output)
+                }
+            }
+    }
+}
+
+
+
+data class LlmModuleReference(
+    val org_name: String,
+    val context: List<String>,
+    val method: String
+)
+
+
+
+//
+// There are three different ways that we can execute the system1
+// For fallback, we support dynamic behavior.
+// For action, it also returns flow<string> (SSE)
+// for function, we just need to handle it the right way.
+// So the key, we need to register how we create agent, for LlmModuleReference.
+//
+//
+
+
+
+//
+// Input should be handled as input, members should be handled as state.
+// Instead of using {} to refer to member data, build will user kotlin template ${}.
+// TODO(sean): For instruction specific: context, example, which will be retrieved, what do we do?
+data class LlmFunc<R>(
+    val target: KClass<*>,
+    val func: KFunction<R>,
+    val instruction: String
+) {
+    // One of the problem we have is that it might take a while for LlmFunc to finish, and if we treat
+    // and there are intermediate result that we can potentially return to user so they know agent
+    // are still working.
+    // There are three things:
+    // input to LlmFunc (per input schema)
+    // member data on the frame for instruct.
+    // instruction template parameter, which should be {}
+    // so in the instruction, you can use ${} to reference slot value, and {} ot reference template
+    // parameters.
+
+}
+
+object MultiToolAgent { // Changed to object for static-like behavior in Kotlin
+
+    private const val USER_ID = "student"
+    private const val NAME = "multi_tool_agent"
+
+    // The run your agent with Dev UI, the ROOT_AGENT should be a global public static variable.
+    @JvmField // Use @JvmField to expose as a static field in Java bytecode
+    val ROOT_AGENT: BaseAgent = initAgent()
+
+    private fun initAgent(): BaseAgent {
+
+        val CAPITAL_OUTPUT = Schema.builder()
+            .type("OBJECT")
+            .description("Schema for capital city information.")
+            .properties(
+                mapOf(
+                    "capital" to Schema.builder()
+                        .type("STRING")
+                        .description("The capital city of the country.")
+                        .build()
+                )
+            )
+            .build()
+
+        return LlmAgent.builder()
+            .name(NAME)
+            .model("gemini-2.0-flash")
+            .description("Agent to answer questions about the time and weather in a city.")
+            .instruction(
+                "You are a helpful agent who can answer user questions about the time and weather" +
+                    " in a city."
+            )
+            .tools(
+                FunctionTool.create(MultiToolAgent::class.java, "getCurrentTime"),
+                FunctionTool.create(MultiToolAgent::class.java, "getWeather")
+            )
+            .build()
+    }
+
+    @JvmStatic // Use @JvmStatic to make this function callable statically from Java
+    @Annotations.Schema(description = "")
+    fun getCurrentTime(
+        @Annotations.Schema(description = "The name of the city for which to retrieve the current time")
+        city: String
+    ): Map<String, String> {
+        val normalizedCity = Normalizer.normalize(city, Normalizer.Form.NFD)
+            .trim()
+            .lowercase()
+            .replace("(\\p{IsM}+|\\p{IsP}+)".toRegex(), "")
+            .replace("\\s+".toRegex(), "_")
+
+        return ZoneId.getAvailableZoneIds().stream()
+            .filter { zid: String -> zid.lowercase().endsWith("/$normalizedCity") }
+            .findFirst()
+            .map { zid: String ->
+                mapOf(
+                    "status" to "success",
+                    "report" to "The current time in " +
+                        city +
+                        " is " +
+                        ZonedDateTime.now(ZoneId.of(zid))
+                            .format(DateTimeFormatter.ofPattern("HH:mm")) +
+                        "."
+                )
+            }
+            .orElse(
+                mapOf(
+                    "status" to "error",
+                    "report" to "Sorry, I don't have timezone information for $city."
+                )
+            )
+    }
+
+    @JvmStatic // Use @JvmStatic to make this function callable statically from Java
+    fun getWeather(
+        @Annotations.Schema(description = "The name of the city for which to retrieve the weather report")
+        city: String
+    ): Map<String, String> {
+        return if (city.lowercase() == "new york") {
+            mapOf(
+                "status" to "success",
+                "report" to "The weather in New York is sunny with a temperature of 25 degrees Celsius (77 degrees Fahrenheit)."
+            )
+        } else {
+            mapOf(
+                "status" to "error",
+                "report" to "Weather information for $city is not available."
+            )
+        }
+    }
+
+
+    @JvmStatic // Use @JvmStatic to make the main function callable statically from Java
+    fun main(args: Array<String>) {
+
+        val runner = InMemoryRunner(ROOT_AGENT)
+
+        val session: Session = runner
+            .sessionService()
+            .createSession(NAME, USER_ID)
+            .blockingGet()
+
+        Scanner(System.`in`, StandardCharsets.UTF_8).use { scanner ->
+            while (true) {
+                print("\nYou > ")
+                val userInput = scanner.nextLine()
+
+                if ("quit".equals(userInput, ignoreCase = true)) {
+                    break
+                }
+
+                val userMsg = Content.fromParts(Part.fromText(userInput))
+                val events: Flowable<Event> = runner.runAsync(USER_ID, session.id(), userMsg)
+
+                print("\nAgent > ")
+                events.blockingForEach { event: Event -> println(event.stringifyContent()) }
+            }
+        }
+    }
+}
+
+
