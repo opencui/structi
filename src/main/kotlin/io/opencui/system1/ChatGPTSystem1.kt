@@ -2,14 +2,8 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import io.opencui.serialization.JsonElement
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-
-import org.springframework.web.reactive.function.client.WebClient
-import reactor.core.publisher.Mono
 
 data class OpenAIMessage(val role: String, val content: String)
 fun List<CoreMessage>.convert(): List<OpenAIMessage> {
@@ -37,58 +31,43 @@ data class System1Request(
 data class System1Reply(val reply: String)
 
 
+
+
+// augmentation might also change. We have another layer.
+interface ISystem1Executor {
+    operator fun invoke(emitter: Emitter? = null) : JsonElement?
+}
+
+interface ISystem1Builder {
+    fun build(session: UserSession, augmentation: Augmentation): ISystem1Executor
+}
+
+
 // the chatGPTSystem1 is rag capable system 1, means it is located with indexing/retrieval capabilities.
-data class ChatGPTSystem1(val config: Configuration) : ISystem1 {
-    private val url = config[URL]!! as String
-    private val apikey = config[APIKEY]!! as String
-    private val family = config[FAMILY]!! as String
-    private val label = config[LABEL]!! as String
-    private val temperature: Float = (config["temperature"]!! as String).toFloat()
-    private val topk: Int = (config["topk"]!! as String).toInt()
-    private val maxLength: Int = 1024
+data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
+    val builder: ISystem1Builder = AdkSystem1Builder(config)
 
-    val client = WebClient.builder()
-      .baseUrl(config[SYSTEM1URL]!! as String)
-      .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-      .build()
-
-    override fun response(msgs: List<CoreMessage>, augmentation: Augmentation): Flow<String> = flow {
-        val request = System1Request(
-            prompt = augmentation.instruction,
-            modelUrl = url,
-            modelFamily = family,
-            modelName = label,
-            modelKey = apikey,
-            turns = msgs.convert(),
-            collections = augmentation.remoteKnowledge,
-            temperature = temperature,
-            topK = topk
-        )
-        logger.info("system1 request: $request")
-        val response = client.post()
-            .uri("/generate")
-            .body(Mono.just(request), System1Request::class.java)
-            .retrieve()
-            .bodyToMono(System1Reply::class.java)
-
-        val reply = response.block()!!.reply.trim()
-        logger.info("system1 response: $reply")
-
-        // handle the think.
-        emit(if (reply.startsWith(THINKSTART))
-            extractAfterXMLTag(reply, THINKEND)
-        else
-            reply
-        )
+    override fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter?): JsonElement? {
+        // Now use an interface that can handle all three use cases.
+        val system1Executor = builder.build(session, augmentation)
+        return system1Executor.invoke(emitter)
     }
+
 
     companion object : ExtensionBuilder {
         private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)
-        override fun invoke(p1: Configuration): ISystem1 {
-            return ChatGPTSystem1(p1)
+        override fun invoke(config: Configuration): ISystem1 {
+            val url = config[URL]!! as String
+            val apikey = config[APIKEY]!! as String
+            val family = config[FAMILY]!! as String
+            val label = config[LABEL]!! as String
+            val temperature: Float = (config["temperature"]!! as String).toFloat()
+            val topk: Int = (config["topk"]!! as String).toInt()
+            val maxLength: Int = 1024
+            val model = ModelConfig(family, label, url = url, apikey = apikey, temperature = temperature, topK = topk, maxOutputTokens = maxLength)
+            return ChatGPTSystem1(model)
         }
 
-        const val SYSTEM1URL = "url"
         const val URL = "model_url"
         const val APIKEY = "model_apikey"
         const val FAMILY = "model_family"

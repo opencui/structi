@@ -237,6 +237,11 @@ interface IBotMode
 interface IKernelIntent: IBotMode, IIntent
 
 
+// This is useful for decouple the event generation and send to flow.
+interface Emitter {
+    operator fun invoke(x: String)
+}
+
 @Throws(NoSuchMethodException::class)
 fun invokeMethodByReflection(receiver: Any, funName: String, vararg params: Any?): Any? {
     val kClass = receiver::class

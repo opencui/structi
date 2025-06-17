@@ -392,6 +392,9 @@ data class FillAction<T>(
     val generator: () -> T?,
     val filler: IFiller,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
+
+
+
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
@@ -419,6 +422,9 @@ data class FillActionBySlot<T>(
     val frame: IFrame?,
     val slot: String?,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
+
+        constructor(generaotr: () -> T?, slot: String?, decorativeAnnotations: List<Annotation> = listOf()): this(generaotr, null, slot, decorativeAnnotations)
+
     override fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
