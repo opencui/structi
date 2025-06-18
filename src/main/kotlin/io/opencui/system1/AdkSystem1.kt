@@ -63,46 +63,52 @@ import kotlinx.coroutines.runBlocking
 // For Fallback, the content can be user utterance.
 // For Function, the content is the json encode of input.
 //
-data class AdkConnection(val cfg: ModelConfig): Serializable {
-    fun invoke(providerMeta: Map<String, String>, context: Map<String, Any?>, body: String): JsonElement {
-        val functionMeta = providerMeta + context
-        val method = (functionMeta[METHOD] as String).lowercase()
-        return if (method == "get") {
-            cachedInvoke(providerMeta, context, body)
-        } else {
-            invokeImpl(providerMeta, functionMeta, body)
-        }
-    }
+//
+// Input should be handled as input, members should be handled as state.
+// Instead of using {} to refer to member data, build will user kotlin template ${}.
 
 
-    @Transient val cachedInvoke = CachedMethod3Raw(this::invokeImpl)
-
+data class AdkConnection(val model: ModelConfig): Serializable {
+    // To make this work:
+    // create schema
+    // create agent,
+    // run it with emitter
+    // collect value.
+    // return value
+    // depends on where it is invoked, we do it in the right way.
 
     // If we find URL, we use it, other
     @Throws(ProviderInvokeException::class)
-    fun invokeImpl(providerMeta: Map<String, String>, context: Map<String, Any?>, body: String): JsonElement {
+    fun invoke(session: UserSession, providerMeta: Map<String, String>, context: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter? = null): JsonElement? {
         val functionMeta = providerMeta + context
-        logger.info("all meta: $functionMeta with base url: ${cfg.url}")
-        val method = (functionMeta[METHOD] as String).lowercase()
-        val path = functionMeta[PATH]!! as String
 
+        val userInput = session.currentUtterance() ?: ""
 
-        return invokeImpl(providerMeta, functionMeta, body)
+        val userMsg = Content.fromParts(Part.fromText(userInput))
+        val label = "fall back agent"
+        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction)
+        val runner = InMemoryRunner(agent)
+
+        val userId = session.userId
+        val sessionId = session.sessionId
+
+        runBlocking {
+            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
+        }
+
+        return null
     }
 
-
-
-
     @Throws(ProviderInvokeException::class)
-    fun <T> svInvoke(providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, body: String, converter: Converter<T>): T {
-        val result = invoke(providerMeta, functionMeta, body)
+    fun <T> svInvoke(session: UserSession, providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): T {
+        val result = invoke(session, providerMeta, functionMeta, augmentation)!!
         assert(result is JsonObject)
         return converter(result)
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> mvInvoke(providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, body: String, converter: Converter<T>): List<T> {
-        val result = invoke(providerMeta, functionMeta, body)
+    fun <T> mvInvoke(session: UserSession, providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): List<T> {
+        val result = invoke(session,providerMeta, functionMeta, augmentation)!!
         assert(result is ArrayNode)
         val results = mutableListOf<T>()
         result.map { converter(it) }
@@ -364,159 +370,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
 }
 
-
-
-
-/** AgentTool implements a tool that allows an agent to call another agent. */
-class AgentTool private constructor(
-    private val agent: BaseAgent,
-    private val skipSummarization: Boolean
-) : BaseTool(agent.name(), agent.description()) {
-
-    companion object {
-        fun create(agent: BaseAgent, skipSummarization: Boolean): AgentTool {
-            return AgentTool(agent, skipSummarization)
-        }
-
-        fun create(agent: BaseAgent): AgentTool {
-            return AgentTool(agent, false)
-        }
-    }
-
-    override fun declaration(): Optional<FunctionDeclaration> {
-        val builder = FunctionDeclaration.builder()
-            .description(this.description())
-            .name(this.name())
-
-        var agentInputSchema: Optional<Schema> = Optional.empty()
-        if (agent is LlmAgent) {
-            agentInputSchema = agent.inputSchema()
-        }
-
-        if (agentInputSchema.isPresent) {
-            builder.parameters(agentInputSchema.get())
-        } else {
-            builder.parameters(
-                Schema.builder()
-                    .type("OBJECT")
-                    .properties(mapOf("request" to Schema.builder().type("STRING").build()))
-                    .required(listOf("request"))
-                    .build()
-            )
-        }
-
-        return Optional.of(builder.build())
-    }
-
-
-    override fun runAsync(args: Map<String, Any>, toolContext: ToolContext): Single<Map<String, Any>> {
-        if (this.skipSummarization) {
-            toolContext.actions().setSkipSummarization(true)
-        }
-
-        var agentInputSchema: Optional<Schema> = Optional.empty()
-        if (agent is LlmAgent) {
-            agentInputSchema = agent.inputSchema()
-        }
-
-        val content: Content
-        if (agentInputSchema.isPresent) {
-            SchemaUtils.validateMapOnSchema(args, agentInputSchema.get(), true)
-            content = try {
-                Content.fromParts(Part.fromText(JsonBaseModel.getMapper().writeValueAsString(args)))
-            } catch (e: JsonProcessingException) {
-                return Single.error(
-                    RuntimeException("Error serializing tool arguments to JSON: $args", e)
-                )
-            }
-        } else {
-            val input = args["request"]
-            content = Content.fromParts(Part.fromText(input.toString()))
-        }
-
-        val runner = InMemoryRunner(this.agent, toolContext.agentName())
-
-        return runner
-            .sessionService()
-            .createSession(toolContext.agentName(), "tmp-user", toolContext.state(), null)
-            .flatMapPublisher { session ->
-                runner.runAsync(session.userId(), session.id(), content)
-            }
-            .lastElement()
-            .map { Optional.of(it) }
-            .defaultIfEmpty(Optional.empty())
-            .map { optionalLastEvent ->
-                if (optionalLastEvent.isEmpty) {
-                    return@map emptyMap<String, Any>()
-                }
-
-                val lastEvent = optionalLastEvent.get()
-                val outputText = lastEvent
-                    .content()
-                    .flatMap { it.parts() }
-                    .filter { it.isNotEmpty() }
-                    .flatMap { parts -> parts[0].text() }
-
-                if (outputText.isEmpty) {
-                    return@map emptyMap<String, Any>()
-                }
-
-                val output = outputText.get()
-                var agentOutputSchema: Optional<Schema> = Optional.empty()
-                if (agent is LlmAgent) {
-                    agentOutputSchema = agent.outputSchema()
-                }
-
-                if (agentOutputSchema.isPresent) {
-                    SchemaUtils.validateOutputSchema(output, agentOutputSchema.get())
-                } else {
-                    mapOf("result" to output)
-                }
-            }
-    }
-}
-
-
-
-data class LlmModuleReference(
-    val org_name: String,
-    val context: List<String>,
-    val method: String
-)
-
-
-
-//
-// There are three different ways that we can execute the system1
-// For fallback, we support dynamic behavior.
-// For action, it also returns flow<string> (SSE)
-// for function, we just need to handle it the right way.
-// So the key, we need to register how we create agent, for LlmModuleReference.
-//
-//
-
-
-
-//
-// Input should be handled as input, members should be handled as state.
-// Instead of using {} to refer to member data, build will user kotlin template ${}.
-// TODO(sean): For instruction specific: context, example, which will be retrieved, what do we do?
-data class LlmFunc<R>(
-    val target: KClass<*>,
-    val func: KFunction<R>,
-    val instruction: String
-) {
-    // One of the problem we have is that it might take a while for LlmFunc to finish, and if we treat
-    // and there are intermediate result that we can potentially return to user so they know agent
-    // are still working.
-    // There are three things:
-    // input to LlmFunc (per input schema)
-    // member data on the frame for instruct.
-    // instruction template parameter, which should be {}
-    // so in the instruction, you can use ${} to reference slot value, and {} ot reference template
-    // parameters.
-
-}
 
 object MultiToolAgent { // Changed to object for static-like behavior in Kotlin
 
