@@ -357,11 +357,11 @@ data class ReinitActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : 
 }
 
 data class DirectlyFillAction<T>(
-    val generator: () -> T?,
+    val generator: (Emitter?) -> T?,
     val filler: AnnotatedWrapperFiller, val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
-        val value = generator() ?: return ActionResult(
+        val value = generator(null) ?: return ActionResult(
             createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
             true
         )
@@ -375,7 +375,7 @@ data class DirectlyFillAction<T>(
 }
 
 data class DirectlyFillActionBySlot<T>(
-    val generator: () -> T?,
+    val generator: (Emitter?) -> T?,
     val frame: IFrame?,
     val slot: String?,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
@@ -389,15 +389,12 @@ data class DirectlyFillActionBySlot<T>(
 }
 
 data class FillAction<T>(
-    val generator: () -> T?,
+    val generator: (Emitter?) -> T?,
     val filler: IFiller,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
-
-
-
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
-        val value = generator() ?: return ActionResult(
+        val value = generator(null) ?: return ActionResult(
             createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
             true
         )
@@ -418,12 +415,13 @@ data class FillAction<T>(
 }
 
 data class FillActionBySlot<T>(
-    val generator: () -> T?,
+    val generator: (Emitter?) -> T?,
     val frame: IFrame?,
     val slot: String?,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
 
-        constructor(generaotr: () -> T?, slot: String?, decorativeAnnotations: List<Annotation> = listOf()): this(generaotr, null, slot, decorativeAnnotations)
+    constructor(generaotr: (Emitter?) -> T?, slot: String?, decorativeAnnotations: List<Annotation> = listOf()):
+            this(generaotr, null, slot, decorativeAnnotations)
 
     override fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
