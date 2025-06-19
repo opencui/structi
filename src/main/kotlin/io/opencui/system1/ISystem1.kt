@@ -1,5 +1,6 @@
 package io.opencui.system1
 
+import com.google.adk.tools.Annotations
 import io.opencui.core.*
 import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.flow.Flow
@@ -216,8 +217,10 @@ data class ToolSetReference(val context: KClass<*>, val instance: String)
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val instruction: String, // This should be a jinja2 template so that system1 can follow.
-    val mode: System1Mode = System1Mode.FALLBACK
-)
+    val mode: System1Mode = System1Mode.FALLBACK) {
+    var inputSchema: Annotations.Schema? = null
+    var outputScheam: Annotations.Schema? = null
+}
 
 
 // For now, we only support this, but we can potentially support other.
