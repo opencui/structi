@@ -238,8 +238,9 @@ interface IKernelIntent: IBotMode, IIntent
 
 
 // This is useful for decouple the event generation and send to flow.
-interface Emitter {
-    operator fun invoke(x: String)
+// Emitter always assume to be String? Or should we make this templated?
+interface Emitter<T> {
+    operator fun invoke(x: T)
 }
 
 @Throws(NoSuchMethodException::class)

@@ -60,7 +60,7 @@ open class System1Generation(
             // This entire block must complete before 'result' gets its value
             // Producer: asyncJob emits to channel, then produces JsonElement?
             val asyncJob = async(Dispatchers.Default) {
-                val emitter = object : Emitter {
+                val emitter = object : Emitter<String> {
                     override fun invoke(x: String) {
                         println("Emitter: Emitting '$x'") // Added for clarity
                         channel.trySend(x) // trySend is non-suspending
