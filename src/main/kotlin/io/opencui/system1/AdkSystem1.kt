@@ -80,7 +80,7 @@ data class AdkConnection(val model: ModelConfig): Serializable {
 
     // If we find URL, we use it, other
     @Throws(ProviderInvokeException::class)
-    fun invoke(session: UserSession, inputs: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter? = null): JsonElement? {
+    fun invoke(session: UserSession, inputs: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter<System1Event>? = null): JsonElement? {
         val inputStr = Json.encodeToString(inputs)
         val userMsg = Content.fromParts(Part.fromText(inputStr))
 
@@ -135,7 +135,7 @@ data class AdkConnection(val model: ModelConfig): Serializable {
 
 
 data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter?): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Event>?): JsonElement? {
         val userInput = session.currentUtterance() ?: ""
 
         val userMsg = Content.fromParts(Part.fromText(userInput))
@@ -155,7 +155,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 }
 
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter?): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Event>?): JsonElement? {
         val label = "fall back agent"
         val agent = AdkSystem1Builder.buildForAction(label, model, augmentation.instruction, emptyList())
         val runner = InMemoryRunner(agent)
@@ -173,7 +173,7 @@ data class AdkAction(val session: UserSession, val model: ModelConfig, val augme
 
 // This need to be processed.
 data class AdkFunction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter?): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Event>?): JsonElement? {
         TODO("Not yet implemented")
     }
 }
@@ -240,7 +240,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 .build()
         }
 
-
         fun buildForFunc(
             label: String,
             model: ModelConfig,
@@ -259,18 +258,12 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             return build(label, model, instruction)
         }
 
-
-        fun formatSSE(event: String, data: Map<String, Any>): String {
-            val json = Json.encodeToString(data)
-            return "event: $event\ndata: $json\n\n"
-        }
-
         suspend fun callAgentAsync(
             content: Content,  // for action, this should be empty, for
             runner: Runner,
             userId: String,
             sessionId: String,
-            emitter: Emitter?,
+            emitter: Emitter<System1Event>?,
             bufferUp: Boolean = true
         ) {
             logger.info("User Query: $content")
@@ -280,7 +273,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 // We need to config the runner later.
                 val runConfig = RunConfig.builder().build()
 
-                emitter?.invoke(formatSSE("stream_start", mapOf("user_id" to userId, "session_id" to sessionId)))
 
                 // Use Google ADK Java async streaming
                 val eventFlow = runner.runAsync(userId, sessionId, content, runConfig).asFlow()
@@ -308,7 +300,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 try {
                                     val jsonData = Json.parseToJsonElement(trimmedText)
                                     emitter?.invoke(
-                                        formatSSE(
+                                        System1Event(
                                             "json_response", mapOf(
                                                 "author" to event.author(),
                                                 "data" to jsonData,
@@ -319,7 +311,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${event.author()}: ${e.message}")
                                     emitter?.invoke(
-                                        formatSSE(
+                                        System1Event(
                                             "response", mapOf(
                                                 "author" to event.author(),
                                                 "source" to "${event.author()}|${event.invocationId()}",
@@ -331,7 +323,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 }
                             } else {
                                 emitter?.invoke(
-                                    formatSSE(
+                                    System1Event(
                                         "response", mapOf(
                                             "author" to event.author(),
                                             "source" to "${event.author()}|${event.invocationId()}",
@@ -347,7 +339,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     // Handle artifacts
                     event.actions()?.artifactDelta()?.forEach { (key, value) ->
                         emitter?.invoke(
-                            formatSSE(
+                            System1Event(
                                 "json", mapOf(
                                     "type" to "artifact",
                                     "source" to "${event.author()}|${event.invocationId()}",
@@ -359,13 +351,9 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                         )
                     }
                 }
-
-                emitter?.invoke(formatSSE("stream_end", mapOf("content" to "Invocation complete.")))
-
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emitter?.invoke(formatSSE("stream_error", mapOf("content" to "Error: ${e.message}")))
-                emitter?.invoke(formatSSE("stream_end", mapOf("content" to "Error: ${e.message} during invocation.")))
+                emitter?.invoke(System1Event("stream_error", mapOf("content" to "Error: ${e.message}")))
             }
         }
     }

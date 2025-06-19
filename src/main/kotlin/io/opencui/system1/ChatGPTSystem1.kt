@@ -31,11 +31,12 @@ data class System1Request(
 data class System1Reply(val reply: String)
 
 
+data class System1Event(val type: String, val payload: Map<String, Any>)
 
 
 // augmentation might also change. We have another layer.
 interface ISystem1Executor {
-    operator fun invoke(emitter: Emitter? = null) : JsonElement?
+    operator fun invoke(emitter: Emitter<System1Event>? = null) : JsonElement?
 }
 
 interface ISystem1Builder {
@@ -44,13 +45,14 @@ interface ISystem1Builder {
 
 
 // the chatGPTSystem1 is rag capable system 1, means it is located with indexing/retrieval capabilities.
+// This is mother of all LLM based system 1
 data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
     val builder: ISystem1Builder = AdkSystem1Builder(config)
 
-    override fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter?): JsonElement? {
+    override fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?): JsonElement? {
         // Now use an interface that can handle all three use cases.
         val system1Executor = builder.build(session, augmentation)
-        return system1Executor.invoke(emitter)
+        return system1Executor.invoke(emitter as? Emitter<System1Event>)
     }
 
 
