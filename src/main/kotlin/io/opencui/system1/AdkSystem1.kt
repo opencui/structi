@@ -1,6 +1,5 @@
 package io.opencui.system1
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.google.adk.JsonBaseModel
 import com.google.adk.SchemaUtils
@@ -17,7 +16,6 @@ import com.google.adk.tools.BaseTool
 import com.google.adk.tools.FunctionTool
 import com.google.adk.tools.ToolContext
 import com.google.genai.types.Content
-import com.google.genai.types.FunctionDeclaration
 import com.google.genai.types.Part
 import io.reactivex.rxjava3.core.Flowable
 import java.nio.charset.StandardCharsets
@@ -40,6 +38,8 @@ import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 
 //
 // For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
@@ -66,8 +66,6 @@ import kotlinx.coroutines.runBlocking
 //
 // Input should be handled as input, members should be handled as state.
 // Instead of using {} to refer to member data, build will user kotlin template ${}.
-
-
 data class AdkConnection(val model: ModelConfig): Serializable {
     // To make this work:
     // create schema
@@ -76,39 +74,47 @@ data class AdkConnection(val model: ModelConfig): Serializable {
     // collect value.
     // return value
     // depends on where it is invoked, we do it in the right way.
+    var inputSchema: Schema? = null
+    var outputSchema: Schema? = null
+
 
     // If we find URL, we use it, other
     @Throws(ProviderInvokeException::class)
-    fun invoke(session: UserSession, providerMeta: Map<String, String>, context: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter? = null): JsonElement? {
-        val functionMeta = providerMeta + context
+    fun invoke(session: UserSession, inputs: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter? = null): JsonElement? {
+        val inputStr = Json.encodeToString(inputs)
+        val userMsg = Content.fromParts(Part.fromText(inputStr))
 
-        val userInput = session.currentUtterance() ?: ""
-
-        val userMsg = Content.fromParts(Part.fromText(userInput))
         val label = "fall back agent"
-        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction)
+
+        // First we need to set up schema for input and output.
+        val agent = AdkSystem1Builder.buildForFunc(label, model, augmentation.instruction, inputSchema, outputSchema)
+
+        // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
         val runner = InMemoryRunner(agent)
 
-        val userId = session.userId
-        val sessionId = session.sessionId
+        val userId = session.userId!!
+        val sessionId = session.sessionId!!
 
         runBlocking {
-            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
+            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId, sessionId, emitter)
         }
 
-        return null
+        // now we need to get result from agent.
+        val sessionService = runner.sessionService()
+        val sessionInRunner = sessionService.getSession(label, userId, sessionId, Optional.empty()).blockingGet()
+        return sessionInRunner?.state()?.get("result") as JsonElement?
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> svInvoke(session: UserSession, providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): T {
-        val result = invoke(session, providerMeta, functionMeta, augmentation)!!
+    fun <T> svInvoke(session: UserSession, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): T {
+        val result = invoke(session, functionMeta, augmentation)!!
         assert(result is JsonObject)
         return converter(result)
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> mvInvoke(session: UserSession, providerMeta: Map<String, String>, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): List<T> {
-        val result = invoke(session,providerMeta, functionMeta, augmentation)!!
+    fun <T> mvInvoke(session: UserSession, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): List<T> {
+        val result = invoke(session, functionMeta, augmentation)!!
         assert(result is ArrayNode)
         val results = mutableListOf<T>()
         result.map { converter(it) }
@@ -121,12 +127,7 @@ data class AdkConnection(val model: ModelConfig): Serializable {
 
 
     companion object{
-        const val METHOD = "method"
-        const val PATH = "uri"
         const val URL = "url"
-        const val CONNECTIONTIMEOUT = "connection_timeout"
-        const val RESPONSETIMEOUT = "response_timeout"
-        const val READIDLETIMEOUT = "read_idle_timeout"
         val logger = LoggerFactory.getLogger(AdkConnection::class.java)
     }
 
@@ -139,7 +140,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 
         val userMsg = Content.fromParts(Part.fromText(userInput))
         val label = "fall back agent"
-        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction)
+        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction, emptyList())
         val runner = InMemoryRunner(agent)
 
         val userId = session.userId
@@ -156,7 +157,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
     override fun invoke(emitter: Emitter?): JsonElement? {
         val label = "fall back agent"
-        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction)
+        val agent = AdkSystem1Builder.buildForAction(label, model, augmentation.instruction, emptyList())
         val runner = InMemoryRunner(agent)
 
         val userId = session.userId
@@ -229,6 +230,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     }
                     if (outputSchema != null) {
                         this.outputSchema(outputSchema)
+                        this.outputKey("result")
                     }
                     if (tools != null) {
                         this.tools(tools)
@@ -253,7 +255,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             return build(label, model, instruction, tools = tools)
         }
 
-        fun buildForFallback(label: String, model: ModelConfig, instruction: String): BaseAgent {
+        fun buildForFallback(label: String, model: ModelConfig, instruction: String, tools:List<BaseTool>): BaseAgent {
             return build(label, model, instruction)
         }
 

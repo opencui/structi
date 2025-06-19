@@ -742,6 +742,14 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
             else -> BookFlightAction_0(this)
         }
     }
+
+    fun testPromptFunction(hotel: Hotel?, name: String?, _emitter: Emitter?=null): Hotel {
+        val instruction: String = "just return a hotel object"
+        val modelId: String = "test"
+
+
+        return Hotel(session)
+    }
 }
 
 
