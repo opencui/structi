@@ -3,13 +3,13 @@ package io.opencui.core.da
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
+import io.opencui.serialization.Json
 import io.opencui.system1.Augmentation
 import io.opencui.system1.ISystem1
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
@@ -53,15 +53,15 @@ open class System1Generation(
             mode = mode
         )
 
-        val channel = Channel<String>(Channel.UNLIMITED)
+        val channel = Channel<System1Inform>(Channel.UNLIMITED)
         val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
 
         val result = runBlocking {
             // This entire block must complete before 'result' gets its value
             // Producer: asyncJob emits to channel, then produces JsonElement?
             val asyncJob = async(Dispatchers.Default) {
-                val emitter = object : Emitter<String> {
-                    override fun invoke(x: String) {
+                val emitter = object : Emitter<System1Inform> {
+                    override fun invoke(x: System1Inform) {
                         println("Emitter: Emitting '$x'") // Added for clarity
                         channel.trySend(x) // trySend is non-suspending
                     }
@@ -76,9 +76,9 @@ open class System1Generation(
         }
 
         // We can decide handle flow or result, here.
-        val daFlow = flow.map { it -> System1Inform(templateOf(it)) }
+        // the system1 should already return the System1Inform.
         val actionResult = ActionResult(
-            daFlow,
+            flow,
             createLog("AugmentedGeneration"),
             true
         )
@@ -307,7 +307,9 @@ class DumbDialogAct : DialogAct {
 
 data class RawInform(override var templates: Templates = emptyTemplate()) : DialogAct
 
-data class System1Inform(override var templates: Templates = emptyTemplate()) : DialogAct
+data class System1Inform(val type: String, override var templates: Templates = emptyTemplate()) : DialogAct {
+    constructor(type: String, payload: Map<String, Any>): this(type, templateOf(Json.encodeToString(payload)))
+}
 
 // This might be useful to capture the system1 response.
 data class ForwardDialogAct(val msg: String): DialogAct {

@@ -1,8 +1,6 @@
 package io.opencui.system1
 
 import com.fasterxml.jackson.databind.node.ArrayNode
-import com.google.adk.JsonBaseModel
-import com.google.adk.SchemaUtils
 import com.google.genai.types.Schema
 import com.google.adk.agents.BaseAgent
 import com.google.adk.agents.LlmAgent
@@ -14,7 +12,6 @@ import com.google.adk.sessions.Session
 import com.google.adk.tools.Annotations
 import com.google.adk.tools.BaseTool
 import com.google.adk.tools.FunctionTool
-import com.google.adk.tools.ToolContext
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import io.reactivex.rxjava3.core.Flowable
@@ -24,22 +21,17 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Scanner
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
 import com.google.genai.types.GenerateContentConfig;
-import io.opencui.core.CachedMethod3Raw
 import io.opencui.core.Emitter
 import io.opencui.core.UserSession
+import io.opencui.core.da.System1Inform
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
-import io.reactivex.rxjava3.core.Single
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlinx.coroutines.runBlocking
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 
 //
 // For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
@@ -51,7 +43,6 @@ import java.util.concurrent.ConcurrentMap
 // it will be used for two different use cases: action, and function.
 //
 // but we will really build Llm Agent.
-
 
 //
 // Question, for fallback, should we allow build to use slot value? if we do, should we keep
@@ -80,7 +71,7 @@ data class AdkConnection(val model: ModelConfig): Serializable {
 
     // If we find URL, we use it, other
     @Throws(ProviderInvokeException::class)
-    fun invoke(session: UserSession, inputs: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter<System1Event>? = null): JsonElement? {
+    fun invoke(session: UserSession, inputs: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter<System1Inform>? = null): JsonElement? {
         val inputStr = Json.encodeToString(inputs)
         val userMsg = Content.fromParts(Part.fromText(inputStr))
 
@@ -135,7 +126,7 @@ data class AdkConnection(val model: ModelConfig): Serializable {
 
 
 data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter<System1Event>?): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
         val userInput = session.currentUtterance() ?: ""
 
         val userMsg = Content.fromParts(Part.fromText(userInput))
@@ -155,7 +146,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 }
 
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter<System1Event>?): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
         val label = "fall back agent"
         val agent = AdkSystem1Builder.buildForAction(label, model, augmentation.instruction, emptyList())
         val runner = InMemoryRunner(agent)
@@ -173,7 +164,7 @@ data class AdkAction(val session: UserSession, val model: ModelConfig, val augme
 
 // This need to be processed.
 data class AdkFunction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter<System1Event>?): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
         TODO("Not yet implemented")
     }
 }
@@ -263,7 +254,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             runner: Runner,
             userId: String,
             sessionId: String,
-            emitter: Emitter<System1Event>?,
+            emitter: Emitter<System1Inform>?,
             bufferUp: Boolean = true
         ) {
             logger.info("User Query: $content")
@@ -300,8 +291,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 try {
                                     val jsonData = Json.parseToJsonElement(trimmedText)
                                     emitter?.invoke(
-                                        System1Event(
-                                            "json_response", mapOf(
+                                        System1Inform(
+                                            "json_response", mapOf<String, Any>(
                                                 "author" to event.author(),
                                                 "data" to jsonData,
                                                 "invocation_id" to event.invocationId(),
@@ -311,8 +302,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${event.author()}: ${e.message}")
                                     emitter?.invoke(
-                                        System1Event(
-                                            "response", mapOf(
+                                        System1Inform(
+                                            "response", mapOf<String, String>(
                                                 "author" to event.author(),
                                                 "source" to "${event.author()}|${event.invocationId()}",
                                                 "message" to trimmedText,
@@ -323,8 +314,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 }
                             } else {
                                 emitter?.invoke(
-                                    System1Event(
-                                        "response", mapOf(
+                                    System1Inform(
+                                        "response", mapOf<String, String>(
                                             "author" to event.author(),
                                             "source" to "${event.author()}|${event.invocationId()}",
                                             "message" to trimmedText,
@@ -339,8 +330,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     // Handle artifacts
                     event.actions()?.artifactDelta()?.forEach { (key, value) ->
                         emitter?.invoke(
-                            System1Event(
-                                "json", mapOf(
+                            System1Inform(
+                                "json", mapOf<String, Any>(
                                     "type" to "artifact",
                                     "source" to "${event.author()}|${event.invocationId()}",
                                     "author" to event.author(),
@@ -353,7 +344,12 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 }
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emitter?.invoke(System1Event("stream_error", mapOf("content" to "Error: ${e.message}")))
+                emitter?.invoke(
+                    System1Inform(
+                        "stream_error",
+                        mapOf<String, String>("content" to "Error: ${e.message}")
+                    )
+                )
             }
         }
     }
