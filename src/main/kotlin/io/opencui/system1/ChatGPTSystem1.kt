@@ -2,6 +2,7 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
+import io.opencui.core.da.System1Inform
 import io.opencui.serialization.JsonElement
 import org.slf4j.LoggerFactory
 
@@ -30,13 +31,9 @@ data class System1Request(
 
 data class System1Reply(val reply: String)
 
-
-data class System1Event(val type: String, val payload: Map<String, Any>)
-
-
 // augmentation might also change. We have another layer.
 interface ISystem1Executor {
-    operator fun invoke(emitter: Emitter<System1Event>? = null) : JsonElement?
+    operator fun invoke(emitter: Emitter<System1Inform>? = null) : JsonElement?
 }
 
 interface ISystem1Builder {
@@ -52,7 +49,7 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
     override fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?): JsonElement? {
         // Now use an interface that can handle all three use cases.
         val system1Executor = builder.build(session, augmentation)
-        return system1Executor.invoke(emitter as? Emitter<System1Event>)
+        return system1Executor.invoke(emitter as? Emitter<System1Inform>)
     }
 
 
