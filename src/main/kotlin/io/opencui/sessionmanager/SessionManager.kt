@@ -223,22 +223,32 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         targetChannel: String,
         events: List<FrameEvent> = emptyList()
     ) : Flow<Map<String, List<String>>> = flow {
-        logger.info("Got events:")
-        logger.info(Json.encodeToString(events))
+        val dialogActFlow = getDialogActFlow(session, query, targetChannel, events)
+        dialogActFlow.collect {
+            item -> Dispatcher.convertDialogActsToText(session, listOf(item), session.targetChannel)
+        }
+    }
 
-        session.targetChannel = if (targetChannel == null)  listOf(SideEffect.RESTFUL) else listOf(targetChannel, SideEffect.RESTFUL)
+    fun getDialogActFlow(
+        session: UserSession,
+        query: String,
+        targetChannel: String,
+        events: List<FrameEvent> = emptyList()
+    ) : Flow<DialogAct> = flow {
+        logger.info("Got events:" + Json.encodeToString(events))
+        session.targetChannel = listOf(targetChannel, SideEffect.RESTFUL)
 
         val batched = getReplyFlowInside(session, query, targetChannel, events)
-
-        var dialogActs : List<DialogAct>? =  null
-
+        val dialogActs = mutableListOf<DialogAct>()
         batched.second.collect { item ->
-            dialogActs = item
-            emit(Dispatcher.convertDialogActsToText(session, dialogActs!!, session.targetChannel))
+            for (dialogAct in item) {
+                emit(dialogAct)
+                dialogActs.add(dialogAct)
+            }
         }
 
         val turn = batched.first
-        updateTurn(turn, dialogActs!!, session)
+        updateTurn(turn, dialogActs, session)
     }
 
 

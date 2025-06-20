@@ -86,6 +86,11 @@ fun Sink.send(msgMap: Map<String, List<String>>) {
     }
 }
 
+fun Sink.send(session: UserSession, dialogAct: DialogAct) {
+    val msgMap = Dispatcher.convertDialogActsToText(session, listOf(dialogAct), session.targetChannel)
+    send(msgMap)
+}
+
 data class SimpleSink(override val targetChannel: String? = null): Sink {
     val messages: MutableList<String> = mutableListOf()
     override fun send(msg: String) {
@@ -348,6 +353,19 @@ object Dispatcher {
         message: TextPayload? = null,
         sink: ControlSink? = null,  // Only useful for markSeen
         events: List<FrameEvent> = emptyList()): Flow<Map<String, List<String>>> = flow {
+        val dialogActFlow = getDialogActFlow(userSession, message, sink, events)
+        dialogActFlow.collect {
+            dialogAct -> emit (Dispatcher.convertDialogActsToText(userSession, listOf(dialogAct), listOf(sink!!.targetChannel!!)))
+        }
+    }
+
+
+    // We assume the history is maintained by session, so this is only for the current input.
+    fun getDialogActFlow(
+        userSession: UserSession,
+        message: TextPayload? = null,
+        sink: ControlSink? = null,  // Only useful for markSeen
+        events: List<FrameEvent> = emptyList()): Flow<DialogAct> = flow {
         val msgId = message?.msgId
 
         // if there is no msgId, or msgId is not repeated, we handle message.
@@ -390,12 +408,12 @@ object Dispatcher {
 
             // always add the RESTFUL just in case.
 
-            val batched1 = sessionManager.getReplyFlow(userSession, query, userInfo.channelType!!, events)
+            val batched1 = sessionManager.getDialogActFlow(userSession, query, userInfo.channelType!!, events)
 
             // Need to copy the messages for system1, and then emit the messages.
             val sink1 = SimpleSink(userInfo.channelType!!)
             batched1.collect { item ->
-                sink1.send(item)
+                sink1.send(userSession, item)
                 sink1.flush()
                 emit(item)
             }
@@ -415,7 +433,6 @@ object Dispatcher {
         } else {
             if (support == null || !support.info.assist) return@flow
             // assist mode, not need to divide into two parts.
-
             val batched = sessionManager.getReplyFlow(userSession, query, userInfo.channelType!!, events)
             val sink1 = SimpleSink(userInfo.channelType!!)
             runBlocking {
@@ -429,7 +446,6 @@ object Dispatcher {
             }
         }
     }
-
 
     // This is called to trigger handoff.
     fun handOffSession(target: IUserIdentifier, botInfo: BotInfo, department:String) {
