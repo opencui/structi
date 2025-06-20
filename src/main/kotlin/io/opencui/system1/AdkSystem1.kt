@@ -8,19 +8,9 @@ import com.google.adk.agents.RunConfig
 import com.google.adk.events.Event
 import com.google.adk.runner.InMemoryRunner
 import com.google.adk.runner.Runner
-import com.google.adk.sessions.Session
-import com.google.adk.tools.Annotations
 import com.google.adk.tools.BaseTool
-import com.google.adk.tools.FunctionTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
-import io.reactivex.rxjava3.core.Flowable
-import java.nio.charset.StandardCharsets
-import java.text.Normalizer
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Scanner
 import com.google.genai.types.GenerateContentConfig;
 import io.opencui.core.Emitter
 import io.opencui.core.UserSession
@@ -30,8 +20,15 @@ import io.opencui.provider.ProviderInvokeException
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
-import java.io.Serializable
 import kotlinx.coroutines.runBlocking
+
+
+
+// This can be used.
+class AdkAugmentContext : AugmentContext {
+    var inputSchema: Schema? = null
+    var outputScheam: Schema? = null
+}
 
 //
 // For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
@@ -57,28 +54,24 @@ import kotlinx.coroutines.runBlocking
 //
 // Input should be handled as input, members should be handled as state.
 // Instead of using {} to refer to member data, build will user kotlin template ${}.
-data class AdkConnection(val model: ModelConfig): Serializable {
-    // To make this work:
-    // create schema
-    // create agent,
-    // run it with emitter
-    // collect value.
-    // return value
-    // depends on where it is invoked, we do it in the right way.
-    var inputSchema: Schema? = null
-    var outputSchema: Schema? = null
+data class AdkFunction(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : ISystem1Executor {
+    var inputs: Map<String, Any?>? = null
 
-
-    // If we find URL, we use it, other
     @Throws(ProviderInvokeException::class)
-    fun invoke(session: UserSession, inputs: Map<String, Any?>, augmentation: Augmentation, emitter: Emitter<System1Inform>? = null): JsonElement? {
+    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
+        val context = augmentation.context as AdkAugmentContext
         val inputStr = Json.encodeToString(inputs)
         val userMsg = Content.fromParts(Part.fromText(inputStr))
 
         val label = "fall back agent"
 
         // First we need to set up schema for input and output.
-        val agent = AdkSystem1Builder.buildForFunc(label, model, augmentation.instruction, inputSchema, outputSchema)
+        val agent = AdkSystem1Builder.Companion.build(
+            label, model,
+            augmentation.instruction,
+            context.inputSchema,
+            context.outputScheam
+        )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
         val runner = InMemoryRunner(agent)
@@ -93,33 +86,28 @@ data class AdkConnection(val model: ModelConfig): Serializable {
         // now we need to get result from agent.
         val sessionService = runner.sessionService()
         val sessionInRunner = sessionService.getSession(label, userId, sessionId, Optional.empty()).blockingGet()
-        return sessionInRunner?.state()?.get("result") as JsonElement?
+        return sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> svInvoke(session: UserSession, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): T {
-        val result = invoke(session, functionMeta, augmentation)!!
+    fun <T> svInvoke(converter: Converter<T>, emitter: Emitter<System1Inform>?): T {
+        val result = invoke(emitter)!!
         assert(result is JsonObject)
         return converter(result)
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> mvInvoke(session: UserSession, functionMeta: Map<String, Any?>, augmentation: Augmentation, converter: Converter<T>): List<T> {
-        val result = invoke(session, functionMeta, augmentation)!!
+    fun <T> mvInvoke(converter: Converter<T>, emitter: Emitter<System1Inform>?): List<T> {
+        val result = invoke(emitter)!!
         assert(result is ArrayNode)
         val results = mutableListOf<T>()
         result.map { converter(it) }
         return results
     }
 
-    fun close() {
-        TODO("Not yet implemented")
-    }
-
-
     companion object{
-        const val URL = "url"
-        val logger = LoggerFactory.getLogger(AdkConnection::class.java)
+        const val RESULTKEY = "result"
+        val logger = LoggerFactory.getLogger(AdkFunction::class.java)
     }
 
 }
@@ -131,7 +119,8 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 
         val userMsg = Content.fromParts(Part.fromText(userInput))
         val label = "fall back agent"
-        val agent = AdkSystem1Builder.buildForFallback(label, model, augmentation.instruction, emptyList())
+        emptyList<BaseTool>()
+        val agent = AdkSystem1Builder.Companion.build(label, model, augmentation.instruction)
         val runner = InMemoryRunner(agent)
 
         val userId = session.userId
@@ -148,7 +137,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
     override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
         val label = "fall back agent"
-        val agent = AdkSystem1Builder.buildForAction(label, model, augmentation.instruction, emptyList())
+        val agent = AdkSystem1Builder.Companion.build(label, model, augmentation.instruction, tools = emptyList())
         val runner = InMemoryRunner(agent)
 
         val userId = session.userId
@@ -162,14 +151,8 @@ data class AdkAction(val session: UserSession, val model: ModelConfig, val augme
     }
 }
 
-// This need to be processed.
-data class AdkFunction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
-        TODO("Not yet implemented")
-    }
-}
 
-
+// At the runtime, this is used to create agent based on augmentation.
 data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
     override fun build(
@@ -177,18 +160,17 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         augmentation: Augmentation
     ): ISystem1Executor {
         return when (augmentation.mode) {
-            System1Mode.FALLBACK -> AdkFallback(session, model,augmentation)
+            System1Mode.FALLBACK -> AdkFallback(session, model, augmentation)
             System1Mode.ACTION -> AdkAction(session, model, augmentation)
             System1Mode.FUNCTION -> AdkFunction(session, model, augmentation)
         }
     }
 
-
     // These are like static method
     companion object {
         val logger = LoggerFactory.getLogger(AdkSystem1Builder::class.java)
 
-        private fun build(
+        fun build(
             label: String,
             model: ModelConfig,
             instruction: String,
@@ -229,24 +211,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 }
                 .generateContentConfig(config)
                 .build()
-        }
-
-        fun buildForFunc(
-            label: String,
-            model: ModelConfig,
-            instruction: String,
-            inputSchema: Schema?,
-            outputSchema: Schema?
-        ): BaseAgent {
-            return build(label, model, instruction, inputSchema, outputSchema)
-        }
-
-        fun buildForAction(label: String, model: ModelConfig, instruction: String, tools: List<BaseTool>): BaseAgent {
-            return build(label, model, instruction, tools = tools)
-        }
-
-        fun buildForFallback(label: String, model: ModelConfig, instruction: String, tools:List<BaseTool>): BaseAgent {
-            return build(label, model, instruction)
         }
 
         suspend fun callAgentAsync(
@@ -350,129 +314,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                         mapOf<String, String>("content" to "Error: ${e.message}")
                     )
                 )
-            }
-        }
-    }
-
-}
-
-
-object MultiToolAgent { // Changed to object for static-like behavior in Kotlin
-
-    private const val USER_ID = "student"
-    private const val NAME = "multi_tool_agent"
-
-    // The run your agent with Dev UI, the ROOT_AGENT should be a global public static variable.
-    @JvmField // Use @JvmField to expose as a static field in Java bytecode
-    val ROOT_AGENT: BaseAgent = initAgent()
-
-    private fun initAgent(): BaseAgent {
-
-        val CAPITAL_OUTPUT = Schema.builder()
-            .type("OBJECT")
-            .description("Schema for capital city information.")
-            .properties(
-                mapOf(
-                    "capital" to Schema.builder()
-                        .type("STRING")
-                        .description("The capital city of the country.")
-                        .build()
-                )
-            )
-            .build()
-
-        return LlmAgent.builder()
-            .name(NAME)
-            .model("gemini-2.0-flash")
-            .description("Agent to answer questions about the time and weather in a city.")
-            .instruction(
-                "You are a helpful agent who can answer user questions about the time and weather" +
-                    " in a city."
-            )
-            .tools(
-                FunctionTool.create(MultiToolAgent::class.java, "getCurrentTime"),
-                FunctionTool.create(MultiToolAgent::class.java, "getWeather")
-            )
-            .build()
-    }
-
-    @JvmStatic // Use @JvmStatic to make this function callable statically from Java
-    @Annotations.Schema(description = "")
-    fun getCurrentTime(
-        @Annotations.Schema(description = "The name of the city for which to retrieve the current time")
-        city: String
-    ): Map<String, String> {
-        val normalizedCity = Normalizer.normalize(city, Normalizer.Form.NFD)
-            .trim()
-            .lowercase()
-            .replace("(\\p{IsM}+|\\p{IsP}+)".toRegex(), "")
-            .replace("\\s+".toRegex(), "_")
-
-        return ZoneId.getAvailableZoneIds().stream()
-            .filter { zid: String -> zid.lowercase().endsWith("/$normalizedCity") }
-            .findFirst()
-            .map { zid: String ->
-                mapOf(
-                    "status" to "success",
-                    "report" to "The current time in " +
-                        city +
-                        " is " +
-                        ZonedDateTime.now(ZoneId.of(zid))
-                            .format(DateTimeFormatter.ofPattern("HH:mm")) +
-                        "."
-                )
-            }
-            .orElse(
-                mapOf(
-                    "status" to "error",
-                    "report" to "Sorry, I don't have timezone information for $city."
-                )
-            )
-    }
-
-    @JvmStatic // Use @JvmStatic to make this function callable statically from Java
-    fun getWeather(
-        @Annotations.Schema(description = "The name of the city for which to retrieve the weather report")
-        city: String
-    ): Map<String, String> {
-        return if (city.lowercase() == "new york") {
-            mapOf(
-                "status" to "success",
-                "report" to "The weather in New York is sunny with a temperature of 25 degrees Celsius (77 degrees Fahrenheit)."
-            )
-        } else {
-            mapOf(
-                "status" to "error",
-                "report" to "Weather information for $city is not available."
-            )
-        }
-    }
-
-
-    @JvmStatic // Use @JvmStatic to make the main function callable statically from Java
-    fun main(args: Array<String>) {
-
-        val runner = InMemoryRunner(ROOT_AGENT)
-
-        val session: Session = runner
-            .sessionService()
-            .createSession(NAME, USER_ID)
-            .blockingGet()
-
-        Scanner(System.`in`, StandardCharsets.UTF_8).use { scanner ->
-            while (true) {
-                print("\nYou > ")
-                val userInput = scanner.nextLine()
-
-                if ("quit".equals(userInput, ignoreCase = true)) {
-                    break
-                }
-
-                val userMsg = Content.fromParts(Part.fromText(userInput))
-                val events: Flowable<Event> = runner.runAsync(USER_ID, session.id(), userMsg)
-
-                print("\nAgent > ")
-                events.blockingForEach { event: Event -> println(event.stringifyContent()) }
             }
         }
     }

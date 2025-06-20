@@ -16,7 +16,10 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
+import io.opencui.system1.AdkSystem1Builder
+import io.opencui.system1.ChatGPTSystem1
 import io.opencui.system1.ModelConfig
+import io.opencui.system1.ISystem1
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration
@@ -416,6 +419,12 @@ data class UserSession(
             return listOf(RecoverAction())
         }
         return listOf()
+    }
+
+    // For now, expose this Adk only interface. We can generalize this when we need to support more framework.
+    fun getSystem1Builder(system1Id: String) : AdkSystem1Builder {
+         val system1 = chatbot!!.getExtension<ISystem1>(system1Id)!! as ChatGPTSystem1
+         return system1.builder as AdkSystem1Builder
     }
 
     /**

@@ -11,6 +11,7 @@ import kotlin.reflect.full.memberFunctions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.reflect.full.declaredFunctions
+import com.google.genai.types.Schema
 
 // The goal of the type system is to figure out
 object TypeSystem {
@@ -213,13 +214,13 @@ enum class System1Mode {
 data class ToolReference(val context: KClass<*>, val instance: String, val method: String)
 data class ToolSetReference(val context: KClass<*>, val instance: String)
 
+interface AugmentContext{}
 
 // This is all the information we need for LLM to perform.
 data class Augmentation(
     val instruction: String, // This should be a jinja2 template so that system1 can follow.
     val mode: System1Mode = System1Mode.FALLBACK) {
-    var inputSchema: Annotations.Schema? = null
-    var outputScheam: Annotations.Schema? = null
+    var context: AugmentContext? = null
 }
 
 

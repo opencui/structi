@@ -56,7 +56,7 @@ open class System1Generation(
         val channel = Channel<System1Inform>(Channel.UNLIMITED)
         val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
 
-        val result = runBlocking {
+        runBlocking {
             // This entire block must complete before 'result' gets its value
             // Producer: asyncJob emits to channel, then produces JsonElement?
             val asyncJob = async(Dispatchers.Default) {
