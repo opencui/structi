@@ -48,10 +48,11 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
 
     override fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?): JsonElement? {
         // Now use an interface that can handle all three use cases.
+        // For now we assume the instruction is dynamically created so that there is no need to
+        // cache system1. Instead, we assume the prefix caching of the LLM will kick in.
         val system1Executor = builder.build(session, augmentation)
         return system1Executor.invoke(emitter as? Emitter<System1Inform>)
     }
-
 
     companion object : ExtensionBuilder {
         private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)

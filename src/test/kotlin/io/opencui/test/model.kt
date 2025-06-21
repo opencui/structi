@@ -7,7 +7,13 @@ import kotlin.reflect.KMutableProperty0
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
+import io.opencui.system1.ISystem1
 import io.opencui.core.da.*
+import io.opencui.system1.AdkFunction
+import io.opencui.system1.AdkSystem1Builder
+import io.opencui.system1.Augmentation
+import io.opencui.system1.ChatGPTSystem1
+import io.opencui.system1.System1Mode
 import java.io.Serializable
 
 data class PayMethod(@get:JsonIgnore override var value: String): IEntity, Serializable {
@@ -745,10 +751,21 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
 
     fun testPromptFunction(hotel: Hotel?, name: String?, _emitter: Emitter<*>?=null): Hotel {
         val instruction: String = "just return a hotel object"
-        val modelId: String = "test"
+        val system1Id: String = "test"
+        val system1Builder = session?.getSystem1Builder(system1Id)!!
 
+        val augmentation = Augmentation(
+            instruction,
+            mode = System1Mode.FUNCTION)
 
-        return Hotel(session)
+        // now we also need to add schema, or AdkAugmentContent.
+        val system1Func = system1Builder.build(session!!, augmentation) as AdkFunction
+        system1Func.inputs = mapOf(
+            "hotel" to hotel,
+            "name" to name
+        )
+
+        return system1Func.svInvoke(Json.getConverter<Hotel>(session), _emitter as? Emitter<System1Inform>)
     }
 }
 
