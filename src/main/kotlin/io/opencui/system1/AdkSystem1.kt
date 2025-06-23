@@ -23,12 +23,11 @@ import org.slf4j.LoggerFactory
 import kotlinx.coroutines.runBlocking
 
 
-
 // This can be used.
-class AdkAugmentContext : AugmentContext {
-    var inputSchema: Schema? = null
-    var outputScheam: Schema? = null
-}
+data class AdkAugmentContext(
+    val inputSchema: Schema? = null,
+    val outputSchema: Schema? = null
+): AugmentContext
 
 //
 // For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
@@ -70,7 +69,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             label, model,
             augmentation.instruction,
             context.inputSchema,
-            context.outputScheam
+            context.outputSchema
         )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.

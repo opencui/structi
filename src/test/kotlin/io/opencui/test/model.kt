@@ -7,12 +7,13 @@ import kotlin.reflect.KMutableProperty0
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
-import io.opencui.system1.ISystem1
 import io.opencui.core.da.*
 import io.opencui.system1.AdkFunction
 import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.Augmentation
 import io.opencui.system1.ChatGPTSystem1
+import com.google.genai.types.Schema
+import io.opencui.system1.AdkAugmentContext
 import io.opencui.system1.System1Mode
 import java.io.Serializable
 
@@ -765,6 +766,8 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
             "name" to name
         )
 
+        val inputSchema = Schema.builder().build()
+        augmentation.context = AdkAugmentContext(inputSchema, inputSchema)
         return system1Func.svInvoke(Json.getConverter<Hotel>(session), _emitter as? Emitter<System1Inform>)
     }
 }
