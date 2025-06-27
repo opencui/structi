@@ -50,7 +50,7 @@ interface ISessionStore {
 
 
             session?.chatbot =  ChatbotLoader.findChatbot(session?.botInfo!!)
-            session?.holder = mutableMapOf()
+            session?.extensionByType = mutableMapOf()
             return session
         }
 
@@ -58,7 +58,7 @@ interface ISessionStore {
             // Always keep record of the last touch, so that we can decide whether we want to wake
             // up the conversation.
             session.lastTouch = LocalDateTime.now()
-            session.holder == null
+            session.extensionByType == null
             val byteArrayOut = ByteArrayOutputStream()
             val objectOut = ObjectOutputStream(byteArrayOut)
             objectOut.use {
