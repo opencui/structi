@@ -485,7 +485,7 @@ data class UserSession(
     // This is not cached into disk.
     @JsonIgnore
     @Transient
-    var extensionByType: MutableMap<Pair<KClass<*>, String?>, IExtension> = mutableMapOf()
+    var extensionCache: MutableMap<Pair<KClass<*>, String?>, IExtension> = mutableMapOf()
 
     inline fun <reified T : IExtension> getExtension(label: String?=null) : T? {
         val kClass = T::class.java
@@ -494,7 +494,7 @@ data class UserSession(
             return Dispatcher.sessionManager.botStore as T
         }
 
-        val cached = extensionByType.get(Pair(T::class, label)) as? T
+        val cached = extensionCache.get(Pair(T::class, label)) as? T
         // We need to cache a copy for the session, instead of create a new one everytime.
         return if (cached == null) {
             // We always try to clone for session, but default implementation does nothing.
@@ -507,11 +507,11 @@ data class UserSession(
             // when cloneForSession is in effect, let's cache it in session, but
             // only for im memory part.
             if (res != resRaw) {
-                extensionByType!![Pair(T::class, label)] = res
+                extensionCache!![Pair(T::class, label)] = res
             }
             res as T
         }  else {
-            val res = extensionByType!![Pair(T::class, label)] as? T
+            val res = extensionCache!![Pair(T::class, label)] as? T
             if (res is IProvider) {
                 res.session = this
             }
