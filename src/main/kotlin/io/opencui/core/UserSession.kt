@@ -485,20 +485,20 @@ data class UserSession(
     // This is not cached into disk.
     @JsonIgnore
     @Transient
-    var holder: MutableMap<KClass<*>, IExtension>? = mutableMapOf()
+    var extensionCache: MutableMap<Pair<KClass<*>, String?>, IExtension> = mutableMapOf()
 
-    inline fun <reified T : IExtension> getExtension() : T? {
+    inline fun <reified T : IExtension> getExtension(label: String?=null) : T? {
         val kClass = T::class.java
         // This fakes the IKVStore as provider, although the implementation.
         if (kClass.isAssignableFrom(IKVStore::class.java)) {
             return Dispatcher.sessionManager.botStore as T
         }
 
-        val cached = holder?.get(T::class) as? T
+        val cached = extensionCache.get(Pair(T::class, label)) as? T
         // We need to cache a copy for the session, instead of create a new one everytime.
         return if (cached == null) {
             // We always try to clone for session, but default implementation does nothing.
-            val resRaw = chatbot!!.extensions.get<T>() ?: return null
+            val resRaw = (if (label == null) chatbot!!.extensions.get<T>() else chatbot!!.extensions.get<T>(label)) ?: return null
 
             val res = resRaw.cloneForSession(this@UserSession)
             if (res is IProvider) {
@@ -507,11 +507,11 @@ data class UserSession(
             // when cloneForSession is in effect, let's cache it in session, but
             // only for im memory part.
             if (res != resRaw) {
-                holder!![T::class] = res
+                extensionCache!![Pair(T::class, label)] = res
             }
             res as T
         }  else {
-            val res = holder!![T::class] as? T
+            val res = extensionCache!![Pair(T::class, label)] as? T
             if (res is IProvider) {
                 res.session = this
             }
