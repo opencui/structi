@@ -195,6 +195,11 @@ interface IFrame : ICui {
         return session
     }
 
+    fun getRawUserInput(): String? {
+        val lastMessage = session?.history?.last()
+        return if (lastMessage?.user == true) lastMessage.message else null
+    }
+
     fun annotations(path: String): List<Annotation> = listOf()
 
     fun createBuilder(): FillBuilder
