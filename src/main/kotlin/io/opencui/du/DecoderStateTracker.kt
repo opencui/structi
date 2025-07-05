@@ -195,6 +195,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     val dontCareForPagedSelectable = DontCareForPagedSelectable()
+    val rawInputSkillConverter = RawInputSkillConverter(duMeta)
 
     // Eventually we should use this new paradigm.
     // First, we detect triggereables this should imply skill understanding.
@@ -235,7 +236,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
         // setLogLevel(DecoderStateTracker::class.java.name, "INFO")
-        return res.map { postProcess(it) }
+        // If the skill frame event has no slot event.
+        // TODO(sean): double check to make sure no slot event is good, frame event?
+        val beforeRaw = res.map { postProcess(it) }
+        return beforeRaw.map { rawInputSkillConverter.invoke(it, utterance) }
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
