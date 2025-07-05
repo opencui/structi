@@ -938,11 +938,11 @@ data class ComponentSkillConverter(
     private val expectedFrames = dialogExpectation.expectations.map { it.activeFrames }.flatten()
 
     override fun invoke(p1: FrameEvent): FrameEvent {
-        val matched = expectedFrames.firstOrNull { expectedFrame ->
-            duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
+        val matched = expectedFrames.firstOrNull {
+            expectedFrame -> duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
         }
 
-        return if (!duMeta.isSkill(p1.fullType) || matched == null) {
+        if (!duMeta.isSkill(p1.fullType) || matched == null) {
             return p1
         } else {
             val componentSlot = duMeta.getSlotMetas(matched.frame).firstOrNull { it.type == p1.fullType }!!
@@ -954,6 +954,31 @@ data class ComponentSkillConverter(
         }
     }
 }
+
+/**
+ * When the current active frames contains a skill for the new skill.
+ */
+data class RawInputSkillConverter(val duMeta: DUMeta) {
+    // This is used to detect whether one class implements another class
+
+    fun invoke(p1: FrameEvent, utterance: String): FrameEvent {
+        if (!duMeta.isSkill(p1.fullType)) {
+            return p1
+        }
+        val clazz = Class.forName(p1.fullType)
+        // no entity events, no frame slot events.
+        if (!IRawInputHandler::class.java.isAssignableFrom(clazz) && p1.slots.isEmpty() && p1.frames.isEmpty()) {
+            return p1;
+        } else {
+            val entityEvents = listOf(
+                EntityEvent.build("rawUserInput", utterance),
+            )
+            return FrameEvent.build(p1.fullType, entityEvents)
+        }
+    }
+}
+
+
 
 data class ChainedFrameEventProcesser(val processers: List<FrameEventProcessor>) : FrameEventProcessor {
     constructor(vararg transformers: FrameEventProcessor): this(transformers.toList())
