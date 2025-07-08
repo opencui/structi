@@ -42,12 +42,9 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     fun copyFrom(other: Configuration) {
         val currentLabel = this.label
 
-        // Clear current content (except we'll restore label)
-        this.clear()
-
         // Copy all entries from other configuration
         for ((key, value) in other) {
-            if (key != "label") {  // Skip the label key
+            if (key in ignoringProperties) {  // Skip the label key
                 this[key] = value
             }
         }
@@ -90,6 +87,7 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
 
     companion object {
         const val DEFAULT = "default"
+        val ignoringProperties = setOf("label", "topK", "temperature")
         val configurables = mutableMapOf<String, Configuration>()
 
         fun get(triple: String): Configuration? {

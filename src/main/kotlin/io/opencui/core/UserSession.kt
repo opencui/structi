@@ -422,8 +422,8 @@ data class UserSession(
     }
 
     // For now, expose this Adk only interface. We can generalize this when we need to support more framework.
-    fun getSystem1Builder(system1Id: String) : AdkSystem1Builder {
-         val system1 = chatbot!!.getExtension<ISystem1>(system1Id)!! as ChatGPTSystem1
+    fun getSystem1Builder(system1Id: String, packageName: String? = null) : AdkSystem1Builder {
+         val system1 = chatbot!!.getExtension<ChatGPTSystem1>(system1Id)!! as ChatGPTSystem1
          return system1.builder as AdkSystem1Builder
     }
 
