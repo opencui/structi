@@ -11,6 +11,7 @@ import java.net.http.HttpResponse
 import io.opencui.serialization.*
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.LoggerContext
+import org.jetbrains.kotlin.incremental.parsing.classesFqNames
 import java.util.*
 
 
@@ -102,11 +103,11 @@ data class RestNluService(val url: String) {
     data class Request(
         val mode: DugMode,
         val utterance: String,
-        val expectations: List<Map<String, String?>> = emptyList(),
-        val slots: List<Map<String, String>> = emptyList(),
-        val candidates: Map<String, List<String>> = emptyMap(),
-        val questions: List<String> = emptyList(),
-        val dialogActs: List<String> = emptyList())
+        var expectations: List<Map<String, String?>> = emptyList(),
+        var slots: List<Map<String, String>> = emptyList(),
+        var candidates: Map<String, List<String>> = emptyMap(),
+        var questions: List<String> = emptyList(),
+        var dialogActs: List<String> = emptyList())
 
     fun buildRequest(ctxt: Context, text: String, timeoutMillis: Long = 1000L): HttpRequest {
         return HttpRequest.newBuilder()
@@ -122,7 +123,9 @@ data class RestNluService(val url: String) {
     fun detectTriggerables(
         ctxt: Context,
         utterance: String,
-        expectations: List<Map<String, String?>> = emptyList()): List<TriggerDecision> {
+        expectations: List<Map<String, String?>> = emptyList(),
+        duContext: Map<String, List<String>> = emptyMap(),
+        ): List<TriggerDecision> {
 
         val input = Request(DugMode.SKILL, utterance, expectations)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
@@ -264,8 +267,12 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     // This layer is handling the
     fun convertImpl(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+        // first get the raw du context working
+        val rawDuContext = buildDuContext(session, putterance, expectations)
+        val candidates = rawDuContext.getCandidates()
+
         // if there is negative example, skip.
-        val triggerables = detectTriggerables(putterance, expectations).filter { !it.hasNegative }
+        val triggerables = detectTriggerables(putterance, expectations, candidates).filter { !it.hasNegative }
         logger.debug("getting $triggerables for utterance: $putterance expectations $expectations")
 
         // Now we apply recognizers on every triggerable.
@@ -273,7 +280,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             triggerable.duContext = buildDuContext(session, triggerable.utterance, expectations)
             if (triggerable.owner == null) {
                 val exactOwner = triggerable.exactMatch(triggerable.duContext)
-
                 if (exactOwner != null) {
                     logger.debug("The exactOwner $exactOwner different from guessed owner null.")
                     triggerable.owner = exactOwner
@@ -312,7 +318,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     // remember to update event for corresponding NOT
                     results.addAll(events.map { it.toCompanion(CompanionType.NEGATE) })
                 }
-            } else if (isUpdateSlot(triggerable.owner)) {
+            } else if (isSlotCrud(triggerable.owner)) {
                 // now we handle slot update not working yet.
                 val events = handleSlotSkill(duContext, triggerable)
                 if (!events.isNullOrEmpty()) {
@@ -320,7 +326,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     results.addAll(events)
                 }
             } else {
-                // now we handle the no slot update cases.
                 val events = handleExpectations(triggerable, duContext.expectedFrames)
                 if (!events.isNullOrEmpty()) {
                     logger.debug("getting $events for $utterance in handleExpectations")
@@ -495,13 +500,19 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         return slotMapTransformed.filter { it.triggers.isNotEmpty() }
     }
 
-    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
+    fun detectTriggerables(
+        utterance: String,
+        expectations: DialogExpectations,
+        candidates: Map<String, List<String>> = emptyMap()): List<TriggerDecision> {
+
         // TODO(sean): how do we resolve the type for generic type?
         // We assume true/false or null here.
         val pcandidates = nluService.detectTriggerables(
             context,
             utterance,
-            expectations.activeFrames.map { it.toDict() })
+            expectations.activeFrames.map { it.toDict() },
+            candidates
+        )
 
         val candidates = ChainedExampledLabelsTransformer(
             StatusTransformer(expectations)
