@@ -258,7 +258,6 @@ data class ModelSpec(
     val size: ModelSize,
     val jsonOutput: Boolean?
 ) {
-    constructor(plabel: String): this(plabel, null, null)
     constructor(psize: ModelSize, pjsonOutput: Boolean): this(null, psize, pjsonOutput)
 
     fun match(other: ModelSpec): Boolean {
