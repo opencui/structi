@@ -36,6 +36,29 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     }
 
     /**
+     * Copy all key-value pairs from another configuration, except "label"
+     * @param other the configuration to copy from
+     */
+    fun copyFrom(other: Configuration) {
+        val currentLabel = this.label
+
+        // Clear current content (except we'll restore label)
+        this.clear()
+
+        // Copy all entries from other configuration
+        for ((key, value) in other) {
+            if (key != "label") {  // Skip the label key
+                this[key] = value
+            }
+        }
+
+        // Restore original label if it was stored in the map
+        // (Note: the val label property is separate from map entries)
+        println("Copied from ${other.label} to $currentLabel, preserving label")
+    }
+
+
+    /**
      * if the assist is true, chatbot will continue to send the automatical response to support so that
      * live agent can decide what to do with this. For support.
      */
