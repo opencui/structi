@@ -12,6 +12,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.reflect.full.declaredFunctions
 import com.google.genai.types.Schema
+import org.apache.http.config.ConnectionConfig
 
 // The goal of the type system is to figure out
 object TypeSystem {
@@ -248,6 +249,26 @@ data class ModelConfig(
     val tags: List<String> = emptyList()
 )
 
+enum class ModelSize {
+    ENTRY, MIDDLE, ADVANCED, EXPERT
+}
+
+// we might have other criteria
+interface ModelSpecs{
+    val size: ModelSize?
+    val jsonOutput: Boolean?
+}
+
+
+// we might have other criteria later.
+data class ModelRequirement(
+    val label: String?,
+    override val size: ModelSize?,
+    override val jsonOutput: Boolean?
+): ModelSpecs {
+    constructor(plabel: String): this(plabel, null, null)
+    constructor(psize: ModelSize, pjsonOutput: Boolean): this(null, psize, pjsonOutput)
+}
 
 
 
@@ -262,6 +283,43 @@ interface ISystem1 : IExtension {
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
+
+        /**
+         * Separates all configurations into two lists based on a predicate
+         * @param predicate function that returns true for configurations that should go in the first list
+         * @return Pair of lists: (matching configurations, non-matching configurations)
+         */
+        fun separateConfigurations(configurables: List<Configuration>, predicate: (Configuration) -> Boolean): Pair<List<Configuration>, List<Configuration>> {
+            val matching = mutableListOf<Configuration>()
+            val nonMatching = mutableListOf<Configuration>()
+
+            for (config in configurables) {
+                if (predicate(config)) {
+                    matching.add(config)
+                } else {
+                    nonMatching.add(config)
+                }
+            }
+
+            return Pair(matching, nonMatching)
+        }
+
+        // bind requirement to actual
+        fun bindSystem1(configurations: List<Configuration>) {
+            val (bound, unbound) = separateConfigurations(configurations) { it -> it.url != null }
+            for (item in unbound) {
+                val bestMatch = bestMatch(item, bound)
+                if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
+                item.copyFrom(bestMatch)
+            }
+        }
+
+
+
+
+        fun bestMatch(target: Configuration, boundConfiguration: List<Configuration>): Configuration? {
+            return null
+        }
 
         const val methodName = "getFallback"
         // This method is used to dynamically figure out what most relevant system1 to use.
