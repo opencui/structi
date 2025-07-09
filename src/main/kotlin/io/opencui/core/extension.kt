@@ -131,7 +131,7 @@ interface ExtensionBuilder : (Configuration) -> IExtension
 class ExtensionManager {
     val holder = mutableMapOf<String, IExtension>()
     val builderByLabel = mutableMapOf<String, ExtensionBuilder>()
-
+    val configurationsByInterface = mutableMapOf<KClass<*>, MutableList<Configuration>>()
     // This is used to narrow
     val labelsByInterface = mutableMapOf<KClass<*>, MutableList<String>>()
 
@@ -168,6 +168,15 @@ class ExtensionManager {
         }
         labelsByInterface[T::class]!!.add(label)
     }
+
+    inline fun <reified T:IExtension> findAllConfigurations() : List<Configuration> {
+        if (!labelsByInterface.containsKey(T::class)) {
+            labelsByInterface[T::class] = mutableListOf<String>()
+        }
+        return labelsByInterface[T::class]!!.mapNotNull { Configuration.get(it) }
+    }
+
+
 
     companion object {
         val logger = LoggerFactory.getLogger(ExtensionManager::class.java)
@@ -280,8 +289,3 @@ data class SimpleManager<T: IExtension>(val builder: () -> T) : ServiceManager<T
         return provider!!
     }
 }
-
-
-// We have two kind of provider: native provider, and templated provider.
-// For each service, we code gen a manager, and then a service property.
-// The service property should use get to get the actual provider.

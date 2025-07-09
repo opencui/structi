@@ -256,14 +256,18 @@ enum class ModelSize {
 data class ModelSpec(
     val label: String?,
     val size: ModelSize,
-    val jsonOutput: Boolean?
-) {
-    constructor(psize: ModelSize, pjsonOutput: Boolean): this(null, psize, pjsonOutput)
-
+    val jsonOutput: Boolean?) {
     fun match(other: ModelSpec): Boolean {
         if (jsonOutput != null && jsonOutput != other.jsonOutput) return false
         return size <= other.size
     }
+}
+
+
+fun Configuration.toModleSpecs() : ModelSpec {
+    val size = ModelSize.valueOf((this[ISystem1.MODELSIZE] as String).uppercase())
+    val jsonOutput = (this[ISystem1.STRUCTUREDOUTPUT] as String).toBoolean()
+    return ModelSpec(label!!, size, jsonOutput)
 }
 
 
@@ -280,11 +284,6 @@ interface ISystem1 : IExtension {
         const val MODELSIZE = "model_size"
         const val STRUCTUREDOUTPUT = "structured_output"
 
-        fun Configuration.toModleSpecs() : ModelSpec {
-            val size = ModelSize.valueOf((this[MODELSIZE] as String).uppercase())
-            val jsonOutput = (this[STRUCTUREDOUTPUT] as String).toBoolean()
-            return ModelSpec(label!!, size, jsonOutput)
-        }
 
         /**
          * Separates all configurations into two lists based on a predicate
@@ -304,19 +303,6 @@ interface ISystem1 : IExtension {
             }
 
             return Pair(matching, nonMatching)
-        }
-
-        // bind requirement to actual
-        fun bindSystem1(configurations: List<Configuration>) {
-            val (bound, unbound) = separateConfigurations(configurations) { it -> it.url != null }
-
-            // TODO: sort the bound based on the cost performance
-            val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
-            for (item in unbound) {
-                val bestMatch = bestMatch(item, boundPairs)
-                if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
-                item.copyFrom(bestMatch)
-            }
         }
 
         // Remember the best part rely on sort that is currently missing.
@@ -358,6 +344,21 @@ interface ISystem1 : IExtension {
                 }
             }
         }
+    }
+}
+
+
+// bind system1 requirement.
+fun ExtensionManager.bindSystem1() {
+    val configurations = findAllConfigurations<ISystem1>()
+    val (bound, unbound) = ISystem1.separateConfigurations(configurations) { it -> it.url != null }
+
+    // TODO: sort the bound based on the cost performance
+    val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
+    for (item in unbound) {
+        val bestMatch = ISystem1.bestMatch(item, boundPairs)
+        if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
+        item.copyFrom(bestMatch)
     }
 }
 
