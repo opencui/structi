@@ -2,6 +2,10 @@ package io.opencui.core
 
 import io.opencui.channel.IChannel
 import io.opencui.core.user.IUserIdentifier
+import io.opencui.system1.ChatGPTSystem1
+import io.opencui.system1.ISystem1
+import io.opencui.system1.ModelSize
+import io.opencui.system1.ModelSpec
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlin.reflect.KClass
@@ -34,6 +38,14 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
             println("Hmmm..., there are already a configure labeled as $label.")
         }
     }
+
+    // For system1 binding.
+    fun toModleSpecs() : ModelSpec {
+        val size = ModelSize.valueOf((this[ISystem1.MODELSIZE] as String).uppercase())
+        val jsonOutput = (this[ISystem1.STRUCTUREDOUTPUT] as String).toBoolean()
+        return ModelSpec(label!!, size, jsonOutput)
+    }
+
 
     /**
      * Copy all key-value pairs from another configuration, except "label"
@@ -174,6 +186,22 @@ class ExtensionManager {
             labelsByInterface[T::class] = mutableListOf<String>()
         }
         return labelsByInterface[T::class]!!.mapNotNull { Configuration.get(it) }
+    }
+
+
+    // bind system1 requirement.
+    fun bindSystem1() {
+        // We only handle ChatGPTSystem1.
+        val configurations = findAllConfigurations<ChatGPTSystem1>()
+        val (bound, unbound) = ISystem1.separateConfigurations(configurations) { it -> it.url != null }
+
+        // TODO: sort the bound based on the cost performance
+        val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
+        for (item in unbound) {
+            val bestMatch = ISystem1.bestMatch(item, boundPairs)
+            if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
+            item.copyFrom(bestMatch)
+        }
     }
 
 
