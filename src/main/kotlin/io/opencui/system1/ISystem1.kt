@@ -264,11 +264,6 @@ data class ModelSpec(
 }
 
 
-fun Configuration.toModleSpecs() : ModelSpec {
-    val size = ModelSize.valueOf((this[ISystem1.MODELSIZE] as String).uppercase())
-    val jsonOutput = (this[ISystem1.STRUCTUREDOUTPUT] as String).toBoolean()
-    return ModelSpec(label!!, size, jsonOutput)
-}
 
 
 //
@@ -344,21 +339,6 @@ interface ISystem1 : IExtension {
                 }
             }
         }
-    }
-}
-
-
-// bind system1 requirement.
-fun ExtensionManager.bindSystem1() {
-    val configurations = findAllConfigurations<ISystem1>()
-    val (bound, unbound) = ISystem1.separateConfigurations(configurations) { it -> it.url != null }
-
-    // TODO: sort the bound based on the cost performance
-    val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
-    for (item in unbound) {
-        val bestMatch = ISystem1.bestMatch(item, boundPairs)
-        if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
-        item.copyFrom(bestMatch)
     }
 }
 
