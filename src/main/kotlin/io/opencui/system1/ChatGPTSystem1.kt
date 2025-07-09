@@ -61,8 +61,8 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
             val apikey = config[APIKEY]!! as String
             val family = config[FAMILY]!! as String
             val label = config[LABEL]!! as String
-            val temperature: Float = (config["temperature"]!! as String).toFloat()
-            val topk: Int = (config["topk"]!! as String).toInt()
+            val temperature: Float = (config[TEMPERATURE]!! as String).toFloat()
+            val topk: Int = (config[TOPK]!! as String).toInt()
             val maxLength: Int = 1024
             val model = ModelConfig(family, label, url = url, apikey = apikey, temperature = temperature, topK = topk, maxOutputTokens = maxLength)
             return ChatGPTSystem1(model)
@@ -72,6 +72,8 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
         const val APIKEY = "model_apikey"
         const val FAMILY = "model_family"
         const val LABEL = "model_label"
+        const val TOPK = "topk"
+        const val TEMPERATURE = "temperature"
         const val THINKSTART = "<think>"
         const val THINKEND = "</think>"
     }

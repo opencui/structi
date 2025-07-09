@@ -1,6 +1,5 @@
 package io.opencui.system1
 
-import com.google.adk.tools.Annotations
 import io.opencui.core.*
 import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.flow.Flow
@@ -11,8 +10,6 @@ import kotlin.reflect.full.memberFunctions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.reflect.full.declaredFunctions
-import com.google.genai.types.Schema
-import org.apache.http.config.ConnectionConfig
 
 // The goal of the type system is to figure out
 object TypeSystem {
@@ -253,24 +250,25 @@ enum class ModelSize {
     ENTRY, MIDDLE, ADVANCED, EXPERT
 }
 
-// we might have other criteria
-interface ModelSpecs{
-    val size: ModelSize?
-    val jsonOutput: Boolean?
-}
-
+// we might have other criteri
 
 // we might have other criteria later.
-data class ModelRequirement(
+data class ModelSpec(
     val label: String?,
-    override val size: ModelSize?,
-    override val jsonOutput: Boolean?
-): ModelSpecs {
-    constructor(plabel: String): this(plabel, null, null)
-    constructor(psize: ModelSize, pjsonOutput: Boolean): this(null, psize, pjsonOutput)
+    val size: ModelSize,
+    val jsonOutput: Boolean?) {
+    fun match(other: ModelSpec): Boolean {
+        if (jsonOutput != null && jsonOutput != other.jsonOutput) return false
+        return size <= other.size
+    }
 }
 
 
+fun Configuration.toModleSpecs() : ModelSpec {
+    val size = ModelSize.valueOf((this[ISystem1.MODELSIZE] as String).uppercase())
+    val jsonOutput = (this[ISystem1.STRUCTUREDOUTPUT] as String).toBoolean()
+    return ModelSpec(label!!, size, jsonOutput)
+}
 
 
 //
@@ -283,6 +281,9 @@ interface ISystem1 : IExtension {
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
+        const val MODELSIZE = "model_size"
+        const val STRUCTUREDOUTPUT = "structured_output"
+
 
         /**
          * Separates all configurations into two lists based on a predicate
@@ -304,20 +305,14 @@ interface ISystem1 : IExtension {
             return Pair(matching, nonMatching)
         }
 
-        // bind requirement to actual
-        fun bindSystem1(configurations: List<Configuration>) {
-            val (bound, unbound) = separateConfigurations(configurations) { it -> it.url != null }
-            for (item in unbound) {
-                val bestMatch = bestMatch(item, bound)
-                if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
-                item.copyFrom(bestMatch)
+        // Remember the best part rely on sort that is currently missing.
+        fun bestMatch(target: Configuration, boundConfiguration: List<Pair<Configuration, ModelSpec>>): Configuration? {
+            val targetSpec = target.toModleSpecs()
+            for (item in boundConfiguration) {
+                if (item.second.match(targetSpec)) {
+                    return item.first
+                }
             }
-        }
-
-
-
-
-        fun bestMatch(target: Configuration, boundConfiguration: List<Configuration>): Configuration? {
             return null
         }
 
@@ -349,6 +344,21 @@ interface ISystem1 : IExtension {
                 }
             }
         }
+    }
+}
+
+
+// bind system1 requirement.
+fun ExtensionManager.bindSystem1() {
+    val configurations = findAllConfigurations<ISystem1>()
+    val (bound, unbound) = ISystem1.separateConfigurations(configurations) { it -> it.url != null }
+
+    // TODO: sort the bound based on the cost performance
+    val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
+    for (item in unbound) {
+        val bestMatch = ISystem1.bestMatch(item, boundPairs)
+        if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
+        item.copyFrom(bestMatch)
     }
 }
 
