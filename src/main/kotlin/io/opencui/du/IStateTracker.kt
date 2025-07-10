@@ -965,7 +965,8 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
         if (!duMeta.isSkill(p1.fullType)) {
             return p1
         }
-        val clazz = Class.forName(p1.fullType)
+        // val clazz = Class.forName(p1.fullType)
+        val clazz = this::class.java.classLoader.loadClass(p1.fullType)
         // no entity events, no frame slot events.
         if (!IRawInputHandler::class.java.isAssignableFrom(clazz) && p1.slots.isEmpty() && p1.frames.isEmpty()) {
             return p1;
