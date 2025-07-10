@@ -955,17 +955,47 @@ data class ComponentSkillConverter(
     }
 }
 
+
+
+
 /**
  * When the current active frames contains a skill for the new skill.
  */
 data class RawInputSkillConverter(val duMeta: DUMeta) {
     // This is used to detect whether one class implements another class
+    private fun debugClassLoaders(className: String) {
+        println("=== ClassLoader Debug ===")
+        println("Target class: $className")
 
+        val currentThread = Thread.currentThread().contextClassLoader
+        val thisClass = this::class.java.classLoader
+        val system = ClassLoader.getSystemClassLoader()
+
+        println("Thread context classloader: $currentThread")
+        println("This class classloader: $thisClass")
+        println("System classloader: $system")
+
+        // Try each classloader
+        listOf(
+            "Thread context" to currentThread,
+            "This class" to thisClass,
+            "System" to system
+        ).forEach { (name, cl) ->
+            try {
+                val clazz = cl.loadClass(className)
+                println("✓ SUCCESS with $name classloader: $clazz")
+            } catch (e: ClassNotFoundException) {
+                println("✗ FAILED with $name classloader: ${e.message}")
+            }
+        }
+    }
     fun invoke(p1: FrameEvent, utterance: String): FrameEvent {
         if (!duMeta.isSkill(p1.fullType)) {
             return p1
         }
-        val clazz = Class.forName(p1.fullType)
+        // val clazz = Class.forName(p1.fullType)
+        debugClassLoaders(p1.fullType)
+        val clazz = this::class.java.classLoader.loadClass(p1.fullType)
         // no entity events, no frame slot events.
         if (!IRawInputHandler::class.java.isAssignableFrom(clazz) && p1.slots.isEmpty() && p1.frames.isEmpty()) {
             return p1;
