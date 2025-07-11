@@ -68,7 +68,7 @@ object ChatbotLoader {
                 if (!pattern.matcher(lang).find()) {
                     val classLoader = URLClassLoader(arrayOf(it.toURI().toURL()), javaClass.classLoader)
                     val qualifiedAgentName = "${botPrefix}.Agent"
-                    logger.info("load agent :$qualifiedAgentName with $lang from $file")
+                    logger.info("load agent :$qualifiedAgentName with $lang from $file using $classLoader")
                     val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
                     val chatbot = kClass.constructors.first { it.parameters.isEmpty() }.call() as IChatbot
                     chatbots.add(chatbot)
