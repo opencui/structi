@@ -162,7 +162,7 @@ class NestedMatcher(val context: DuContext) : Matcher {
             // For updateSlot
             val matchedSlots = context.entityTypeToValueInfoMap[SLOTTYPE]!!
             for (matchedSlot in matchedSlots) {
-                val trueSlot = matchedSlot.value as String
+                val trueSlot = matchedSlot.value as String? ?: continue
                 val tkns = trueSlot.split(".")
                 val frame = tkns.subList(0, tkns.size - 1).joinToString(".")
                 if (!context.expectations.isFrameCompatible(frame)) continue
