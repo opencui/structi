@@ -239,7 +239,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // If the skill frame event has no slot event.
         // TODO(sean): double check to make sure no slot event is good, frame event?
         val beforeRaw = res.map { postProcess(it) }
-        return beforeRaw.map { rawInputSkillConverter.invoke(it, utterance) }
+        return beforeRaw.map { rawInputSkillConverter.invoke(it, utterance, session.chatbot!!.getLoader()) }
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
