@@ -970,11 +970,13 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
         val clazz = classLoader.loadClass(p1.fullType)
         // no entity events, no frame slot events.
         if (IRawInputHandler::class.java.isAssignableFrom(clazz)) {
+            println("Class: $clazz is implementing IRawInputHandler")
             val entityEvents = listOf(
                 EntityEvent.build("rawUserInput", utterance),
             )
             return FrameEvent.build(p1.fullType, entityEvents + p1.slots, frames = p1.frames)
         } else {
+            println("Class $clazz is not implementing IRawInputHandler")
             return p1
         }
     }
