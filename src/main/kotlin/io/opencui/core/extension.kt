@@ -42,8 +42,9 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
     // For system1 binding.
     fun toModleSpecs() : ModelSpec {
         val size = ModelSize.valueOf((this[ISystem1.MODELSIZE] as String?)?.uppercase() ?: ModelSize.ADVANCED.name)
-        val jsonOutput = (this[ISystem1.STRUCTUREDOUTPUT] as String?)?.toBoolean() ?: false
-        return ModelSpec(label!!, size, jsonOutput)
+        val jsonOutput = (this[ISystem1.STRUCTUREDOUTPUT] as String?)?.toBoolean()
+        val label = this[ISystem1.MODELFAMILY]!! as String
+        return ModelSpec(label, size, jsonOutput)
     }
 
 

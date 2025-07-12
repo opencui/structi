@@ -254,12 +254,13 @@ enum class ModelSize {
 
 // we might have other criteria later.
 data class ModelSpec(
-    val label: String?,
+    val family: String,
     val size: ModelSize,
     val jsonOutput: Boolean?) {
     fun match(other: ModelSpec): Boolean {
         if (jsonOutput != null && jsonOutput != other.jsonOutput) return false
-        return size <= other.size
+        // For now, we require family to match.
+        return  family == other.family && size <= other.size
     }
 }
 
@@ -278,7 +279,7 @@ interface ISystem1 : IExtension {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
         const val MODELSIZE = "model_size"
         const val STRUCTUREDOUTPUT = "structured_output"
-
+        const val MODELFAMILY = "model_family"
 
         /**
          * Separates all configurations into two lists based on a predicate
