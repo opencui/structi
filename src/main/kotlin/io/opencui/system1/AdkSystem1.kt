@@ -58,6 +58,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
 
     @Throws(ProviderInvokeException::class)
     override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
+        logger.info("end adk function.")
         val context = augmentation.context as AdkAugmentContext
         val inputStr = Json.encodeToString(inputs)
         val userMsg = Content.fromParts(Part.fromText(inputStr))
@@ -85,6 +86,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         // now we need to get result from agent.
         val sessionService = runner.sessionService()
         val sessionInRunner = sessionService.getSession(label, userId, sessionId, Optional.empty()).blockingGet()
+        logger.info((sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?).toString())
         return sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?
     }
 
