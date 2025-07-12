@@ -422,7 +422,7 @@ data class UserSession(
     }
 
     // For now, expose this Adk only interface. We can generalize this when we need to support more framework.
-    fun getSystem1Builder(system1Id: String, packageName: String? = null) : AdkSystem1Builder {
+    fun getSystem1Builder(system1Id: String, packageName: String) : AdkSystem1Builder {
         // if label does not contain dot, add it.
         val label = if (system1Id.contains(".")) "${packageName}.${system1Id}" else system1Id
         val system1 = chatbot!!.getExtension<ChatGPTSystem1>(label)!! as ChatGPTSystem1
