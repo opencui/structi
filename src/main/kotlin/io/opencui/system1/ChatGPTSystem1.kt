@@ -57,8 +57,8 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
     companion object : ExtensionBuilder {
         private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)
         override fun invoke(config: Configuration): ISystem1 {
-            val url = config[URL]!! as String
-            val apikey = config[APIKEY]!! as String
+            val url = config[URL] as String?
+            val apikey = config[APIKEY] as String?
             val family = config[FAMILY]!! as String
             val label = config[LABEL]!! as String
             val temperature: Float = (config[TEMPERATURE]!! as String).toFloat()
