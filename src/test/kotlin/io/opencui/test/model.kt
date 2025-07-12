@@ -753,7 +753,7 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
     fun testPromptFunction(hotel: Hotel?, name: String?, _emitter: Emitter<*>?=null): Hotel {
         val instruction: String = "just return a hotel object"
         val system1Id: String = "test"
-        val system1Builder = session?.getSystem1Builder(system1Id)!!
+        val system1Builder = session?.getSystem1Builder(system1Id, "io.opencui.test")!!
 
         val augmentation = Augmentation(
             instruction,
