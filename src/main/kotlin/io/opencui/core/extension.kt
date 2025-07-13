@@ -190,7 +190,11 @@ class ExtensionManager {
         // We only handle ChatGPTSystem1.
         val configurations = findAllConfigurations<ChatGPTSystem1>()
         logger.info("bindSystem1 found ${configurations.size} system1 configurations")
-        val (bound, unbound) = ISystem1.separateConfigurations(configurations) { it -> it.url != null }
+        val (bound, unbound) = ISystem1.separateConfigurations(configurations) {
+            // For now, the key to separate bound and unbound is model apikey.
+            // TODO(sean): make this a bit more robust.
+            it -> it["model_apikey"] != null
+        }
         logger.info("bindSystem1 found ${bound.size} bound and ${unbound.size} unbound system1 configurations")
         // TODO: sort the bound based on the cost performance
         val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
