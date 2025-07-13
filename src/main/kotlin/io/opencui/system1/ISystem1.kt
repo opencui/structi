@@ -250,7 +250,6 @@ enum class ModelSize {
     ENTRY, MIDDLE, ADVANCED, EXPERT
 }
 
-// we might have other criteri
 
 // we might have other criteria later.
 data class ModelSpec(
@@ -263,8 +262,6 @@ data class ModelSpec(
         return  family == other.family && size <= other.size
     }
 }
-
-
 
 
 //
