@@ -201,6 +201,7 @@ class ExtensionManager {
         }
 
         // this print out the bound system1
+        println("system1 configurations after binding")
         for (config in configurations) {
             println(config)
         }
