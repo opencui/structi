@@ -47,7 +47,6 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
         return ModelSpec(label, size, jsonOutput)
     }
 
-
     /**
      * Copy all key-value pairs from another configuration, except "label"
      * @param other the configuration to copy from
@@ -202,6 +201,11 @@ class ExtensionManager {
             val bestMatch = ISystem1.bestMatch(item, boundPairs)
             if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
             item.copyFrom(bestMatch)
+        }
+
+        // this print out the bound system1
+        for (config in configurations) {
+            println(config)
         }
     }
 
