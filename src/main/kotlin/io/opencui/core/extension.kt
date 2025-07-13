@@ -47,7 +47,6 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
         return ModelSpec(label, size, jsonOutput)
     }
 
-
     /**
      * Copy all key-value pairs from another configuration, except "label"
      * @param other the configuration to copy from
