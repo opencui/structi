@@ -182,10 +182,9 @@ class ExtensionManager {
     }
 
     inline fun <reified T:IExtension> findAllConfigurations() : List<Configuration> {
-        return labelsByInterface[T::class]!!.mapNotNull { Configuration.get(it) }
+        return labelsByInterface[T::class]?.mapNotNull { Configuration.get(it) } ?: emptyList()
     }
 
-d
     // bind system1 requirement.
     fun bindSystem1() {
         // We only handle ChatGPTSystem1.
