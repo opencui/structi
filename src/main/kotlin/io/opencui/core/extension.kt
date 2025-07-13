@@ -56,7 +56,7 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
 
         // Copy all entries from other configuration
         for ((key, value) in other) {
-            if (key in ignoringProperties) {  // Skip the label key
+            if (key !in ignoringProperties) {  // Skip the label key
                 this[key] = value
             }
         }
