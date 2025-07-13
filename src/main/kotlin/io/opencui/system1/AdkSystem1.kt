@@ -5,9 +5,11 @@ import com.google.genai.types.Schema
 import com.google.adk.agents.BaseAgent
 import com.google.adk.agents.LlmAgent
 import com.google.adk.agents.RunConfig
+import com.google.adk.artifacts.InMemoryArtifactService
 import com.google.adk.events.Event
 import com.google.adk.runner.InMemoryRunner
 import com.google.adk.runner.Runner
+import com.google.adk.sessions.InMemorySessionService
 import com.google.adk.tools.BaseTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
@@ -21,6 +23,7 @@ import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentHashMap
 
 
 // This can be used.
@@ -58,34 +61,48 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
 
     @Throws(ProviderInvokeException::class)
     override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
-        logger.info("end adk function.")
+        logger.info("start adk function.")
         val context = augmentation.context as AdkAugmentContext
         val inputStr = Json.encodeToString(inputs)
         val userMsg = Content.fromParts(Part.fromText(inputStr))
 
-        val label = "fall back agent"
+        val label = "function agent"
 
         // First we need to set up schema for input and output.
         val agent = AdkSystem1Builder.Companion.build(
-            label, model,
+            label,
+            model,
             augmentation.instruction,
             context.inputSchema,
             context.outputSchema
         )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
-        val runner = InMemoryRunner(agent)
 
-        val userId = session.userId!!
-        val sessionId = session.sessionId!!
 
+        val initialState = ConcurrentHashMap<String, Any>()
+
+        // adkSession to hold the input.
+        val adkSession = AdkSystem1Builder.sessionService.createSession(
+            label,
+            session.userId!!,
+            initialState,
+            session.sessionId!!
+        ).blockingGet()
+
+        val runner = Runner(
+            agent,
+            label,
+            AdkSystem1Builder.artifactService,
+            AdkSystem1Builder.sessionService )
+        
         runBlocking {
-            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId, sessionId, emitter)
+            AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, emitter)
         }
 
         // now we need to get result from agent.
         val sessionService = runner.sessionService()
-        val sessionInRunner = sessionService.getSession(label, userId, sessionId, Optional.empty()).blockingGet()
+        val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
         logger.info((sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?).toString())
         return sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?
     }
@@ -170,6 +187,9 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
     // These are like static method
     companion object {
         val logger = LoggerFactory.getLogger(AdkSystem1Builder::class.java)
+        // use shared state for now.
+        val sessionService = InMemorySessionService()
+        val artifactService = InMemoryArtifactService()
 
         fun build(
             label: String,
