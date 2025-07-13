@@ -202,6 +202,11 @@ class ExtensionManager {
             if (bestMatch == null) throw IllegalArgumentException("could not found system1 that can handle ${item.label}")
             item.copyFrom(bestMatch)
         }
+
+        // this print out the bound system1
+        for (config in configurations) {
+            println(config)
+        }
     }
 
 
