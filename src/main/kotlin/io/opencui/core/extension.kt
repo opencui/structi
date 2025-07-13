@@ -182,19 +182,17 @@ class ExtensionManager {
     }
 
     inline fun <reified T:IExtension> findAllConfigurations() : List<Configuration> {
-        if (!labelsByInterface.containsKey(T::class)) {
-            labelsByInterface[T::class] = mutableListOf<String>()
-        }
         return labelsByInterface[T::class]!!.mapNotNull { Configuration.get(it) }
     }
 
-
+d
     // bind system1 requirement.
     fun bindSystem1() {
         // We only handle ChatGPTSystem1.
         val configurations = findAllConfigurations<ChatGPTSystem1>()
+        logger.info("bindSystem1 found ${configurations.size} system1 configurations")
         val (bound, unbound) = ISystem1.separateConfigurations(configurations) { it -> it.url != null }
-
+        logger.info("bindSystem1 found ${bound.size} bound and ${unbound.size} unbound system1 configurations")
         // TODO: sort the bound based on the cost performance
         val boundPairs = bound.map { Pair(it, it.toModleSpecs())}
         for (item in unbound) {
