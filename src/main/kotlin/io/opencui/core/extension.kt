@@ -136,6 +136,22 @@ open class Configuration(val label: String): Serializable, HashMap<String, Any>(
 
 interface ExtensionBuilder : (Configuration) -> IExtension
 
+
+
+// We set up environment key/values
+fun Configuration.setupEnvironmentVariables() {
+    for ((key, value) in this) {
+        if (key.endsWith("_envkey")) {
+            val realKey = key.substring(0, key.length - 7)
+            val envKey = value
+            val envValue = this[realKey] ?: continue
+            println("Setting environment variable $envKey")
+            EnvironmentVariableHacker.setEnvironmentVariable(envKey as String, envValue as String)
+        }
+    }
+}
+
+
 /**
  * This class holds a builder for each channel, and create a channel instance for given chatbot
  * on the first time it was requested.
@@ -208,6 +224,9 @@ class ExtensionManager {
         println("system1 configurations after binding")
         for (config in configurations) {
             println(config)
+        }
+        for (config in bound) {
+            config.setupEnvironmentVariables()
         }
     }
 
