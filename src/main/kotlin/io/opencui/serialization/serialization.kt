@@ -1,5 +1,6 @@
 package io.opencui.serialization
 
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
@@ -124,6 +125,10 @@ class InterfaceIEntitySerializer: JsonSerializer<IEntity>() {
 // TODO(sean) maybe chagned to regular class so that we can take session as member.
 object Json {
     val mapper = jacksonObjectMapper()
+
+    fun initialize() {
+        ObjectMapper().registerModule(KotlinModule.Builder().build())
+    }
 
     init {
         // support the java time.
