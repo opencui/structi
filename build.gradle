@@ -1,7 +1,5 @@
 buildscript {
     ext.kotlin_version = '1.9.25'
-    ext.protobuf_version = '0.9.4'
-    ext.grpc_version = '1.65.1'
     ext.boot_version = "3.3.13"
 
     repositories {
