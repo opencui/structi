@@ -75,6 +75,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-rx3:1.8.0") // Use the latest compatible version
     implementation 'org.postgresql:postgresql:42.7.2'
     implementation "com.google.adk:google-adk:0.2.0"
+    implementation 'com.google.guava:guava:33.4.0-jre'
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
