@@ -488,6 +488,25 @@ abstract class IChatbot : Component {
         return session.construct(revisedPackageName, p1, session)?.createBuilder()
     }
 
+    // Add this to isolate the guava issue.
+    fun checkGuava() {
+        try {
+            val builderClass = com.google.common.collect.ImmutableMap.Builder::class.java
+            val methods = builderClass.declaredMethods.map { it.name }
+            Dispatcher.logger.info("ImmutableMap.Builder methods: $methods")
+            Dispatcher.logger.info("Has buildOrThrow: ${methods.contains("buildOrThrow")}")
+
+            val location = builderClass.protectionDomain.codeSource.location
+            Dispatcher.logger.info("Guava loaded from: $location")
+
+            val classLoader = builderClass.classLoader
+            Dispatcher.logger.info("Loaded by classloader: $classLoader")
+        } catch (e: Exception) {
+            Dispatcher.logger.error("Error checking Guava in dynamic module: ${e.message}")
+        }
+    }
+
+
     companion object {
         val ExpressionPath = "expression.json"
         val EntityPath = "entity.json"
