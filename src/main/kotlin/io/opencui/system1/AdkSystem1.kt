@@ -103,8 +103,9 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         // now we need to get result from agent.
         val sessionService = runner.sessionService()
         val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
-        logger.info((sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?).toString())
-        return sessionInRunner?.state()?.get(RESULTKEY) as JsonElement?
+        logger.info((sessionInRunner?.state()?.get(RESULTKEY) as Map<*, *>?).toString())
+        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return null
+        return Json.encodeToJsonElement( value) as JsonElement?
     }
 
     @Throws(ProviderInvokeException::class)
