@@ -41,15 +41,14 @@ data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : Kno
 // This is this generation does the soft generate the response.
 open class System1Generation(
     val system1Id: String,
-    val prompt: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
+    val templates: Templates, // This should be a jinja2 template so that system1 can follow.
     val mode: System1Mode = System1Mode.FALLBACK): Generation {
 
     override fun run(session: UserSession): ActionResult {
         val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)!!
 
-        val dialogAct = prompt.invoke()
         val augmentation = Augmentation(
-            dialogAct.templates.pick(),
+            templates.pick(),
             mode = mode
         )
 
