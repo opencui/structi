@@ -590,7 +590,7 @@ data class Confirmation(
     override var session: UserSession? = null,
     val target: IFrame?,
     val slot: String,
-    val prompts: () -> DialogAct,
+    val prompts: () -> EmissionAction,
     val implicit: Boolean = false,
     val actions: List<Action>? = null): IIntent {
 
