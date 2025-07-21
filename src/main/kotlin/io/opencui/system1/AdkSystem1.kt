@@ -78,8 +78,6 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
-
-
         val initialState = ConcurrentHashMap<String, Any>()
 
         // adkSession to hold the input.
@@ -141,10 +139,26 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
         val label = "fall back agent"
         emptyList<BaseTool>()
         val agent = AdkSystem1Builder.Companion.build(label, model, augmentation.instruction)
-        val runner = InMemoryRunner(agent)
+
 
         val userId = session.userId
         val sessionId = session.sessionId
+        // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
+        val initialState = ConcurrentHashMap<String, Any>()
+
+        // adkSession to hold the input.
+        val adkSession = AdkSystem1Builder.sessionService.createSession(
+            label,
+            session.userId!!,
+            initialState,
+            session.sessionId!!
+        ).blockingGet()
+
+        val runner = Runner(
+            agent,
+            label,
+            AdkSystem1Builder.artifactService,
+            AdkSystem1Builder.sessionService )
 
         runBlocking {
             AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
@@ -156,12 +170,31 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
     override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
-        val label = "fall back agent"
+        val label = "action agent"
         val agent = AdkSystem1Builder.Companion.build(label, model, augmentation.instruction, tools = emptyList())
-        val runner = InMemoryRunner(agent)
+
 
         val userId = session.userId
         val sessionId = session.sessionId
+
+        // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
+        val initialState = ConcurrentHashMap<String, Any>()
+
+        // adkSession to hold the input.
+        val adkSession = AdkSystem1Builder.sessionService.createSession(
+            label,
+            session.userId!!,
+            initialState,
+            session.sessionId!!
+        ).blockingGet()
+
+        val runner = Runner(
+            agent,
+            label,
+            AdkSystem1Builder.artifactService,
+            AdkSystem1Builder.sessionService )
+
+
         // For action, agent are supposedly only take structured input in the prompt, to generate the response.
         val userMsg = Content.fromParts(Part.fromText(""))
         runBlocking {
