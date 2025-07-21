@@ -42,15 +42,19 @@ data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : Kno
 open class System1Generation(
     val system1Id: String,
     val templates: Templates, // This should be a jinja2 template so that system1 can follow.
-    val mode: System1Mode = System1Mode.FALLBACK): Generation {
+    val mode: System1Mode = System1Mode.FALLBACK,
+    val packageName: String): Generation {
 
     override fun run(session: UserSession): ActionResult {
-        val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)!!
+        logger.info("System1Generation with $system1Id: $templates")
+        val system1Builder = session.getSystem1Builder(system1Id, packageName)
 
         val augmentation = Augmentation(
             templates.pick(),
             mode = mode
         )
+
+        val system1Action = system1Builder.build(session, augmentation)
 
         val channel = Channel<System1Inform>(Channel.UNLIMITED)
         val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
@@ -66,7 +70,7 @@ open class System1Generation(
                     }
                 }
                 // this is used to process.
-                system1.response(session, augmentation, emitter)
+                system1Action.invoke(emitter)
             }
 
             val jsonResult = asyncJob.await() // Await the JsonElement? from the producer
