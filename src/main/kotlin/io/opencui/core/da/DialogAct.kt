@@ -42,12 +42,13 @@ data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : Kno
 open class System1Generation(
     val system1Id: String,
     val templates: Templates, // This should be a jinja2 template so that system1 can follow.
-    val mode: System1Mode = System1Mode.FALLBACK,
-    val packageName: String): Generation {
+    var mode: System1Mode = System1Mode.FALLBACK
+  ): Generation {
+    var packageName: String? = null
 
     override fun run(session: UserSession): ActionResult {
         logger.info("System1Generation with $system1Id: $templates")
-        val system1Builder = session.getSystem1Builder(system1Id, packageName)
+        val system1Builder = session.getSystem1Builder(system1Id, packageName!!)
 
         val augmentation = Augmentation(
             templates.pick(),
