@@ -49,7 +49,7 @@ open class System1Generation(
 
     override fun run(session: UserSession): ActionResult {
         logger.info("System1Generation with $system1Id: $templates")
-        val system1Builder = session.getSystem1Builder(system1Id, packageName)
+        val system1Builder = session.getSystem1Builder(system1Id, packageName!!)
 
         val augmentation = Augmentation(
             templates.pick(),
