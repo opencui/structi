@@ -196,6 +196,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
     val dontCareForPagedSelectable = DontCareForPagedSelectable()
     val rawInputSkillConverter = RawInputSkillConverter(duMeta)
+    val iDontGetItToRawInputUpgrader = IDontGetItToRawInputUpgrader(duMeta)
 
     // Eventually we should use this new paradigm.
     // First, we detect triggereables this should imply skill understanding.
@@ -209,7 +210,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // this build the post processors
         return ChainedFrameEventProcesser(
             dontCareForPagedSelectable,        // The first is to resolve the don't care for pagedselectable.
-            ComponentSkillConverter(duMeta, expectations)
+            ComponentSkillConverter(duMeta)
         )
     }
 
@@ -238,8 +239,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // setLogLevel(DecoderStateTracker::class.java.name, "INFO")
         // If the skill frame event has no slot event.
         // TODO(sean): double check to make sure no slot event is good, frame event?
-        val beforeRaw = res.map { postProcess(it) }
-        return beforeRaw.map { rawInputSkillConverter.invoke(it, utterance, session.chatbot!!.getLoader()) }
+        val beforeRaw = res.map { postProcess(it, expectations) }
+        return beforeRaw
+            .map { rawInputSkillConverter.invoke(it, utterance, expectations, session.chatbot!!.getLoader()) }
+            .map {iDontGetItToRawInputUpgrader.invoke(it, utterance, expectations, session.chatbot!!.getLoader())}
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
