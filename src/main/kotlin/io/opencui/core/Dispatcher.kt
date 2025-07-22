@@ -155,8 +155,9 @@ object Dispatcher {
         } else {
             rewrittenResponses
         }
-
-        return targetChannels.associateWith { k -> dialogActs.map {"""${if (k == SideEffect.RESTFUL) "[${it::class.simpleName}]" else ""}${it.templates.pick(k)}"""} }
+        // Here, we assume restful is testing. but this assumption is not true.
+        // TODO: figure out other ways to add source for debug
+        return targetChannels.associateWith { k -> dialogActs.map { it.templates.pick(k) } }
     }
 
     private fun isDonotUnderstand(it: DialogAct): Boolean {
