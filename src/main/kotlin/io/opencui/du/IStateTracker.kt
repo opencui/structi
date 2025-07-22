@@ -885,11 +885,11 @@ interface IStateTracker : IExtension {
 }
 
 interface FrameEventProcessor {
-    operator fun invoke(input: FrameEvent) : FrameEvent
+    operator fun invoke(input: FrameEvent, expectations: DialogExpectations) : FrameEvent
 }
 
 class DontCareForPagedSelectable: FrameEventProcessor {
-    override operator fun invoke(event: FrameEvent) : FrameEvent {
+    override operator fun invoke(event: FrameEvent, expectations: DialogExpectations): FrameEvent {
         if (event.type == "PagedSelectable" &&
             event.slots.size == 1 &&
             event.slots[0].attribute == "index" &&
@@ -932,12 +932,9 @@ fun filter(filters: List<FrameEventsProcessor>, input: MutableList<FrameEvent>) 
  * When the current active frames contains a skill for the new skill.
  */
 data class ComponentSkillConverter(
-    val duMeta: DUMeta,
-    val dialogExpectation: DialogExpectations) : FrameEventProcessor {
-
-    private val expectedFrames = dialogExpectation.expectations.map { it.activeFrames }.flatten()
-
-    override fun invoke(p1: FrameEvent): FrameEvent {
+    val duMeta: DUMeta) : FrameEventProcessor {
+    override fun invoke(p1: FrameEvent, expectations: DialogExpectations): FrameEvent {
+        val expectedFrames = expectations.expectations.map { it.activeFrames }.flatten()
         val matched = expectedFrames.firstOrNull {
             expectedFrame -> duMeta.getSlotMetas(expectedFrame.frame).find { it.type == p1.fullType } != null
         }
@@ -956,6 +953,32 @@ data class ComponentSkillConverter(
 }
 
 
+/**
+ * For IDontGetIt frame, if there is anexpected skill handles raw input, then we should upgrade that
+ * to the expected frame with rawInput filled.
+ */
+data class IDontGetItToRawInputUpgrader(val duMeta: DUMeta) {
+    // This is used to detect whether one class implements another class
+    fun invoke(p1: FrameEvent, utterance: String, expectations: DialogExpectations, classLoader: ClassLoader): FrameEvent {
+        if (p1.type != "IDonotGetIt") return p1
+
+        val expectedFrames = expectations.expectations.map { it.activeFrames }.flatten()
+
+        val matched = expectedFrames.find {
+            val clazz = classLoader.loadClass(it.frame)
+            // no entity events, no frame slot events.
+            IRawInputHandler::class.java.isAssignableFrom(clazz)
+        }
+
+        if (matched == null)  return p1
+
+
+        val entityEvents = listOf(
+            EntityEvent.build("rawUserInput", utterance),
+        )
+        return FrameEvent.build(matched.frame, entityEvents)
+    }
+}
 
 
 /**
@@ -963,7 +986,7 @@ data class ComponentSkillConverter(
  */
 data class RawInputSkillConverter(val duMeta: DUMeta) {
     // This is used to detect whether one class implements another class
-    fun invoke(p1: FrameEvent, utterance: String, classLoader: ClassLoader): FrameEvent {
+    fun invoke(p1: FrameEvent, utterance: String, expectations: DialogExpectations, classLoader: ClassLoader): FrameEvent {
         if (!duMeta.isSkill(p1.fullType)) {
             return p1
         }
@@ -986,10 +1009,10 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
 
 data class ChainedFrameEventProcesser(val processers: List<FrameEventProcessor>) : FrameEventProcessor {
     constructor(vararg transformers: FrameEventProcessor): this(transformers.toList())
-    override fun invoke(p1: FrameEvent): FrameEvent {
+    override fun invoke(p1: FrameEvent, expectations: DialogExpectations): FrameEvent {
         var current = p1
         for( transform in processers) {
-            current = transform(current)
+            current = transform(current, expectations)
         }
         return current
     }
