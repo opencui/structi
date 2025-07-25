@@ -1,5 +1,6 @@
 package io.opencui.core
 
+import com.anthropic.models.messages.Model
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
@@ -113,6 +114,13 @@ data class ParamPath(val path: List<Branch>): Serializable {
         }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
+        if (T::class == ValueCheckAnnotation::class) {
+            val result = path.indices.firstNotNullOfOrNull { idx -> pathFind<T>(idx).takeIf { it.isNotEmpty() } } ?: emptyList()
+            if (result.isNotEmpty()) {
+                println("Try to find ValueCheck for $path and found ${result.size} valuecheck.")
+            }
+
+        }
         return path.indices.firstNotNullOfOrNull { idx -> pathFind<T>(idx).takeIf { it.isNotEmpty() } } ?: emptyList()
     }
 
@@ -867,6 +875,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         stateUpdateFiller?.clear()
     }
 
+    // this is deprecated, builder are encouraged to handle bool gate manually.
     val boolGate: BoolGate? by lazy {
         val askStrategy = askStrategy()
         if (askStrategy is BoolGateAsk) {
@@ -1085,7 +1094,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
             }
         } else {
             //value check
-            if (!checkDone) {
+            if (!checkDone && checkFiller == null) {
                 this.checkFiller = initCheckFiller()
                 schedule.push(checkFiller!!)
                 return true
@@ -1162,6 +1171,13 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                 || canNotEnter
                 || lastClauseInDone(frameEvents)
         if (slotCrudFlag) println("done: $res with canNotEnter: $canNotEnter")
+
+        // this is for debug the issue where value check is bypassed.
+        if (targetFiller is FrameFiller<*>) {
+            if (targetFiller.frame() is ValueCheck) {
+                println("for value check: done: $res with canNotEnter: $canNotEnter")
+            }
+        }
         return res
     }
 

@@ -74,7 +74,8 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             model,
             augmentation.instruction,
             context.inputSchema,
-            context.outputSchema
+            context.outputSchema,
+            selfContained = true
         )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
@@ -127,7 +128,6 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         const val RESULTKEY = "result"
         val logger = LoggerFactory.getLogger(AdkFunction::class.java)
     }
-
 }
 
 
@@ -232,7 +232,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             instruction: String,
             inputSchema: Schema? = null,
             outputSchema: Schema? = null,
-            tools: List<BaseTool>? = null
+            tools: List<BaseTool>? = null,
+            selfContained: Boolean = false
         ): BaseAgent {
             // This copy the configuration to adk agent.
             val config = GenerateContentConfig.builder()
@@ -263,6 +264,10 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     }
                     if (tools != null) {
                         this.tools(tools)
+                    }
+                    if (selfContained) {
+                        this.disallowTransferToPeers(true)
+                        this.disallowTransferToParent(true)
                     }
                 }
                 .generateContentConfig(config)

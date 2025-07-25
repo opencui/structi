@@ -48,7 +48,7 @@ open class System1Generation(
 
 
     override fun run(session: UserSession): ActionResult {
-        logger.info("System1Generation with $system1Id: $templates")
+        logger.info("Start of System1Generation with $system1Id: $templates")
         val system1Builder = session.getSystem1Builder(system1Id, packageName!!)
 
         val augmentation = Augmentation(
@@ -87,7 +87,7 @@ open class System1Generation(
             createLog("AugmentedGeneration"),
             true
         )
-        
+        logger.info("End of System1Generation with $system1Id: $templates")
         return actionResult
     }
     companion object {
