@@ -40,9 +40,10 @@ data class ActionResult(
     private var botUtteranceFlow: Flow<DialogAct>? = null
 
 
-    // List access when needed
-    val botUtterance: List<DialogAct>?
-        get() = botUtteranceFlow?.let { runBlocking { it.toList() } }
+    // List access when needed.
+    val botUtterance: List<DialogAct>? by lazy {
+        botUtteranceFlow?.let { runBlocking { it.toList() } }
+    }
 
     // Constructor from List
     constructor(b: List<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
@@ -328,7 +329,7 @@ data class RefocusAction(
         }
 
         // set slots in between to recheck state; in post order
-        session.postOrderManipulation(scheduler, start, end) { it.recheck() }
+        session.postOrderManipulation(scheduler, start, end) { it.recheck(session) }
 
         // assume we have a candidate value for the refocused slot, or we want to ask for the refocused slot
         if (scheduler == session.schedule) {
@@ -377,7 +378,7 @@ data class ReactiveMVAction(
         }
 
         // set slots in between to recheck state; in post order
-        session.postOrderManipulation(scheduler, start, end) { it.recheck() }
+        session.postOrderManipulation(scheduler, start, end) { it.recheck(session) }
 
         // assume we have a candidate value for the refocused slot, or we want to ask for the refocused slot
         if (scheduler == session.schedule) {

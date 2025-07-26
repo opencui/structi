@@ -74,7 +74,8 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             model,
             augmentation.instruction,
             context.inputSchema,
-            context.outputSchema
+            context.outputSchema,
+            selfContained = true
         )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
@@ -95,7 +96,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             AdkSystem1Builder.sessionService )
         
         runBlocking {
-            AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, emitter)
+            AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, emitter, jsonOutput = true)
         }
 
         // now we need to get result from agent.
@@ -127,7 +128,6 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         const val RESULTKEY = "result"
         val logger = LoggerFactory.getLogger(AdkFunction::class.java)
     }
-
 }
 
 
@@ -232,7 +232,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             instruction: String,
             inputSchema: Schema? = null,
             outputSchema: Schema? = null,
-            tools: List<BaseTool>? = null
+            tools: List<BaseTool>? = null,
+            selfContained: Boolean = false
         ): BaseAgent {
             // This copy the configuration to adk agent.
             val config = GenerateContentConfig.builder()
@@ -264,17 +265,23 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     if (tools != null) {
                         this.tools(tools)
                     }
+                    if (selfContained) {
+                        this.disallowTransferToPeers(true)
+                        this.disallowTransferToParent(true)
+                    }
                 }
                 .generateContentConfig(config)
                 .build()
         }
 
+        // Now we return three different message: json for function, text for action/fallback, and error
         suspend fun callAgentAsync(
             content: Content,  // for action, this should be empty, for
             runner: Runner,
             userId: String,
             sessionId: String,
             emitter: Emitter<System1Inform>?,
+            jsonOutput: Boolean = false,
             bufferUp: Boolean = true
         ) {
             logger.info("User Query: $content")
@@ -296,6 +303,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     logger.info("Processing event: author=${event.author()}, partial=${event.partial()}")
 
                     // Handle text content, only handle the first part?
+                    // TODO: right now we buffer up things, to stream out we need a new design.
                     val parts = event.content().orElse(null)?.parts()?.orElse(null)
                     parts?.firstOrNull()?.text()?.orElse(null)?.let { textPart ->
                         val doNotBuffer = !event.partial().orElse(false) || bufferUp
@@ -307,69 +315,26 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                             val trimmedText = finalText.trim()
 
                             // Try to parse as JSON first
-                            if (trimmedText.startsWith("{") && trimmedText.endsWith("}")) {
+                            if (jsonOutput) {
+                                // JsonOutput is required for function.
+                                // We might use this opportunity to add error back to prompt so llm can fix.
+                                // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
                                 try {
-                                    val jsonData = Json.parseToJsonElement(trimmedText)
-                                    emitter?.invoke(
-                                        System1Inform(
-                                            "json_response", mapOf<String, Any>(
-                                                "author" to event.author(),
-                                                "data" to jsonData,
-                                                "invocation_id" to event.invocationId(),
-                                            )
-                                        )
-                                    )
+                                    Json.parseToJsonElement(trimmedText)
+                                    emitter?.invoke(System1Inform("json", trimmedText))
                                 } catch (e: Exception) {
-                                    logger.warn("JSON parse error for final text from ${event.author()}: ${e.message}")
-                                    emitter?.invoke(
-                                        System1Inform(
-                                            "response", mapOf<String, String>(
-                                                "author" to event.author(),
-                                                "source" to "${event.author()}|${event.invocationId()}",
-                                                "message" to trimmedText,
-                                                "invocation_id" to event.invocationId(),
-                                            )
-                                        )
-                                    )
+                                    logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
+                                    emitter?.invoke(System1Inform("error", e.message.toString()))
                                 }
                             } else {
-                                emitter?.invoke(
-                                    System1Inform(
-                                        "response", mapOf<String, String>(
-                                            "author" to event.author(),
-                                            "source" to "${event.author()}|${event.invocationId()}",
-                                            "message" to trimmedText,
-                                            "invocation_id" to event.invocationId(),
-                                        )
-                                    )
-                                )
+                                emitter?.invoke(System1Inform("response",  trimmedText))
                             }
                         }
-                    }
-
-                    // Handle artifacts
-                    event.actions()?.artifactDelta()?.forEach { (key, value) ->
-                        emitter?.invoke(
-                            System1Inform(
-                                "json", mapOf<String, Any>(
-                                    "type" to "artifact",
-                                    "source" to "${event.author()}|${event.invocationId()}",
-                                    "author" to event.author(),
-                                    "filename" to key,
-                                    "version" to value
-                                )
-                            )
-                        )
                     }
                 }
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emitter?.invoke(
-                    System1Inform(
-                        "stream_error",
-                        mapOf<String, String>("content" to "Error: ${e.message}")
-                    )
-                )
+                emitter?.invoke(System1Inform("error", e.message.toString()))
             }
         }
     }

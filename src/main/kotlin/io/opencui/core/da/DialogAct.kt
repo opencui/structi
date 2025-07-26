@@ -48,8 +48,8 @@ open class System1Generation(
 
 
     override fun run(session: UserSession): ActionResult {
-        logger.info("System1Generation with $system1Id: $templates")
-        val system1Builder = session.getSystem1Builder(system1Id, packageName!!)
+        logger.info("Start of System1Generation with $system1Id")
+        val system1Builder = session.getSystem1Builder(system1Id, packageName)
 
         val augmentation = Augmentation(
             templates.pick(),
@@ -87,7 +87,7 @@ open class System1Generation(
             createLog("AugmentedGeneration"),
             true
         )
-        
+        logger.info("End of System1Generation with $system1Id")
         return actionResult
     }
     companion object {
@@ -313,7 +313,7 @@ class DumbDialogAct : DialogAct {
 data class RawInform(override var templates: Templates = emptyTemplate()) : DialogAct
 
 data class System1Inform(val type: String, override var templates: Templates = emptyTemplate()) : DialogAct {
-    constructor(type: String, payload: Map<String, Any>): this(type, templateOf(Json.encodeToString(payload)))
+    constructor(type: String, payload: String): this(type, templateOf(payload))
 }
 
 // This might be useful to capture the system1 response.
