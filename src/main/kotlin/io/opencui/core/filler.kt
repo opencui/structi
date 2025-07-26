@@ -847,6 +847,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     var startedFill = false
 
     fun directlyFill(a: Any) {
+        // TODO (sean): this might overlap with opaque filler.
         val ltarget = (targetFiller as TypedFiller<in Any>).target
         val vtarget = ltarget.get()
         // There are so many potential problem here.
@@ -867,8 +868,11 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         markedDone = flag
     }
 
-    fun recheck() {
-        checkFiller = null
+    fun recheck(session: UserSession) {
+        // the turnId is different, we need to clear it.
+        if (checkTurnId != session.turnId) {
+            checkFiller = null
+        }
     }
 
     fun reinit() {
@@ -992,6 +996,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     var confirmationFillers: List<AnnotatedWrapperFiller> = listOf()
     var checkFiller: AnnotatedWrapperFiller? = null
+    // For each turn,
+    var checkTurnId: Int? = null
 
     val confirmDone: Boolean
         get() {
@@ -1093,11 +1099,15 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                 return true
             }
         } else {
-            //value check
+            //value check, in the same turn, there is no need to create an check.
             if (!checkDone && checkFiller == null) {
-                this.checkFiller = initCheckFiller()
-                schedule.push(checkFiller!!)
-                return true
+                if (checkTurnId == null || checkTurnId != session.turnId) {
+                    println("checkTurnId ${checkTurnId} : ${session.turnId}")
+                    checkTurnId = session.turnId
+                    this.checkFiller = initCheckFiller()
+                    schedule.push(checkFiller!!)
+                    return true
+                }
             }
 
             // value confirm

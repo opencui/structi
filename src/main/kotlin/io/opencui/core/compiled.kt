@@ -309,7 +309,7 @@ data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : S
 data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
     override fun run(session: UserSession): ActionResult {
         for (fillerToBeRechecked in toBeRechecked) {
-            (fillerToBeRechecked as? AnnotatedWrapperFiller)?.recheck()
+            (fillerToBeRechecked as? AnnotatedWrapperFiller)?.recheck(session)
         }
 
         return ActionResult(
