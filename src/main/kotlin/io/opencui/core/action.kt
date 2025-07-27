@@ -28,17 +28,18 @@ data class ActionLog(
     val payload: JsonElement,
     @JsonIgnore val isTestable: Boolean = false) : Serializable
 
+
+// ActionResult serves two purpose: 1. collect the dialog act that bot send to user, 2. make it
+// possible to write the deterministic tests.
 data class ActionResult(
     val actionLog: ActionLog?,
     val success: Boolean = true
 ) : Serializable {
-
     var botOwn: Boolean = true
 
-    // Single Flow member
+    // Eventually, we might stream the dialog act off the flow directly.
     @Transient
     private var botUtteranceFlow: Flow<DialogAct>? = null
-
 
     // List access when needed.
     val botUtterance: List<DialogAct>? by lazy {

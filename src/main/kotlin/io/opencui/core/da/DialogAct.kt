@@ -38,14 +38,13 @@ interface KnowledgePart
 data class FilePart(val content: String, val type: String="txt") : KnowledgePart
 data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : KnowledgePart
 
-// This is this generation does the soft generate the response.
+// Using system1 for dynamic generation.
 open class System1Generation(
     val system1Id: String,
     val templates: Templates, // This should be a jinja2 template so that system1 can follow.
     val packageName: String,
     var mode: System1Mode = System1Mode.FALLBACK
   ): Generation {
-
 
     override fun run(session: UserSession): ActionResult {
         logger.info("Start of System1Generation with $system1Id")
@@ -60,8 +59,8 @@ open class System1Generation(
 
         val channel = Channel<System1Inform>(Channel.UNLIMITED)
         val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
-
-        runBlocking {
+        
+        val result = runBlocking {
             // This entire block must complete before 'result' gets its value
             // Producer: asyncJob emits to channel, then produces JsonElement?
             val asyncJob = async(Dispatchers.Default) {
