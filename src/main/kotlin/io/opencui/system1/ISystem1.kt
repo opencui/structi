@@ -259,7 +259,7 @@ data class ModelSpec(
     fun match(other: ModelSpec): Boolean {
         if (jsonOutput != null && jsonOutput != other.jsonOutput) return false
         // For now, we require family to match.
-        return  family == other.family && size <= other.size
+        return  family == other.family && size >= other.size
     }
 }
 
