@@ -266,7 +266,7 @@ data class BertStateTracker(
         // this build the post processors
         return ChainedFrameEventProcesser(
             dontCareForPagedSelectable,        // The first is to resolve the don't care for pagedselectable.
-            ComponentSkillConverter(agentMeta, expectations)
+            ComponentSkillConverter(agentMeta)
         )
     }
 
@@ -282,7 +282,7 @@ data class BertStateTracker(
 
         // get the post process done
         val postProcess = buildPostProcessor(expectations)
-        return res.map { postProcess(it) }
+        return res.map { postProcess(it, expectations) }
     }
 
     fun convertImpl(pducontext: DuContext): List<FrameEvent> {

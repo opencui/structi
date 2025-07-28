@@ -41,17 +41,22 @@ data class RetrievablePart(val name: String, val tags: List<KnowledgeTag>) : Kno
 // This is this generation does the soft generate the response.
 open class System1Generation(
     val system1Id: String,
-    val prompt: () -> DialogAct, // This should be a jinja2 template so that system1 can follow.
-    val mode: System1Mode = System1Mode.FALLBACK): Generation {
+    val templates: Templates, // This should be a jinja2 template so that system1 can follow.
+    val packageName: String,
+    var mode: System1Mode = System1Mode.FALLBACK
+  ): Generation {
+
 
     override fun run(session: UserSession): ActionResult {
-        val system1 = session.chatbot!!.getExtension<ISystem1>(system1Id)!!
+        logger.info("Start of System1Generation with $system1Id")
+        val system1Builder = session.getSystem1Builder(system1Id, packageName)
 
-        val dialogAct = prompt.invoke()
         val augmentation = Augmentation(
-            dialogAct.templates.pick(),
+            templates.pick(),
             mode = mode
         )
+
+        val system1Action = system1Builder.build(session, augmentation)
 
         val channel = Channel<System1Inform>(Channel.UNLIMITED)
         val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
@@ -67,7 +72,7 @@ open class System1Generation(
                     }
                 }
                 // this is used to process.
-                system1.response(session, augmentation, emitter)
+                system1Action.invoke(emitter)
             }
 
             val jsonResult = asyncJob.await() // Await the JsonElement? from the producer
@@ -82,7 +87,7 @@ open class System1Generation(
             createLog("AugmentedGeneration"),
             true
         )
-        
+        logger.info("End of System1Generation with $system1Id")
         return actionResult
     }
     companion object {
@@ -308,7 +313,7 @@ class DumbDialogAct : DialogAct {
 data class RawInform(override var templates: Templates = emptyTemplate()) : DialogAct
 
 data class System1Inform(val type: String, override var templates: Templates = emptyTemplate()) : DialogAct {
-    constructor(type: String, payload: Map<String, Any>): this(type, templateOf(Json.encodeToString(payload)))
+    constructor(type: String, payload: String): this(type, templateOf(payload))
 }
 
 // This might be useful to capture the system1 response.

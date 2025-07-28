@@ -1,5 +1,6 @@
 package io.opencui.core
 
+import com.anthropic.models.messages.Model
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
@@ -113,6 +114,13 @@ data class ParamPath(val path: List<Branch>): Serializable {
         }
 
     inline fun <reified T : Annotation> findAll(): List<T> {
+        if (T::class == ValueCheckAnnotation::class) {
+            val result = path.indices.firstNotNullOfOrNull { idx -> pathFind<T>(idx).takeIf { it.isNotEmpty() } } ?: emptyList()
+            if (result.isNotEmpty()) {
+                println("Try to find ValueCheck for $path and found ${result.size} valuecheck.")
+            }
+
+        }
         return path.indices.firstNotNullOfOrNull { idx -> pathFind<T>(idx).takeIf { it.isNotEmpty() } } ?: emptyList()
     }
 
@@ -839,6 +847,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     var startedFill = false
 
     fun directlyFill(a: Any) {
+        // TODO (sean): this might overlap with opaque filler.
         val ltarget = (targetFiller as TypedFiller<in Any>).target
         val vtarget = ltarget.get()
         // There are so many potential problem here.
@@ -859,14 +868,18 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         markedDone = flag
     }
 
-    fun recheck() {
-        checkFiller = null
+    fun recheck(session: UserSession) {
+        // the turnId is different, we need to clear it.
+        if (checkTurnId != session.turnId) {
+            checkFiller = null
+        }
     }
 
     fun reinit() {
         stateUpdateFiller?.clear()
     }
 
+    // this is deprecated, builder are encouraged to handle bool gate manually.
     val boolGate: BoolGate? by lazy {
         val askStrategy = askStrategy()
         if (askStrategy is BoolGateAsk) {
@@ -983,6 +996,8 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     var confirmationFillers: List<AnnotatedWrapperFiller> = listOf()
     var checkFiller: AnnotatedWrapperFiller? = null
+    // For each turn,
+    var checkTurnId: Int? = null
 
     val confirmDone: Boolean
         get() {
@@ -1084,11 +1099,15 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                 return true
             }
         } else {
-            //value check
-            if (!checkDone) {
-                this.checkFiller = initCheckFiller()
-                schedule.push(checkFiller!!)
-                return true
+            //value check, in the same turn, there is no need to create an check.
+            if (!checkDone && checkFiller == null) {
+                if (checkTurnId == null || checkTurnId != session.turnId) {
+                    println("checkTurnId ${checkTurnId} : ${session.turnId}")
+                    checkTurnId = session.turnId
+                    this.checkFiller = initCheckFiller()
+                    schedule.push(checkFiller!!)
+                    return true
+                }
             }
 
             // value confirm
@@ -1162,6 +1181,13 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                 || canNotEnter
                 || lastClauseInDone(frameEvents)
         if (slotCrudFlag) println("done: $res with canNotEnter: $canNotEnter")
+
+        // this is for debug the issue where value check is bypassed.
+        if (targetFiller is FrameFiller<*>) {
+            if (targetFiller.frame() is ValueCheck) {
+                println("for value check: done: $res with canNotEnter: $canNotEnter")
+            }
+        }
         return res
     }
 

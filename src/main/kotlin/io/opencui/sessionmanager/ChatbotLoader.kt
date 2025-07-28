@@ -67,6 +67,7 @@ object ChatbotLoader {
                 // there should not be special letter in lang?
                 if (!pattern.matcher(lang).find()) {
                     val classLoader = URLClassLoader(arrayOf(it.toURI().toURL()), javaClass.classLoader)
+                    // val classLoader = URLClassLoader(arrayOf(it.toURI().toURL()), Thread.currentThread().contextClassLoader)
                     val qualifiedAgentName = "${botPrefix}.Agent"
                     logger.info("load agent :$qualifiedAgentName with $lang from $file using $classLoader")
                     val kClass = Class.forName(qualifiedAgentName, true, classLoader).kotlin
