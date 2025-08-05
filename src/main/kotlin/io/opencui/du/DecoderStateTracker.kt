@@ -155,8 +155,8 @@ data class RestNluService(val url: String) {
         candidates: Map<String, List<String>> = emptyMap()): List<TriggerDecision> {
 
         val input = IntentRequest(DugMode.SKILL, utterance, expectations, candidates)
-        logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
-        logger.debug("utterance = $utterance and expectations = $expectations")
+        logger.info("connecting to $url/v1/predict/${ctxt.bot}")
+        logger.info("utterance = $utterance and expectations = $expectations")
         val jsonRequest = Json.encodeToString(input).trimIndent()
         val request: HttpRequest = buildRequest(ctxt, jsonRequest)
 
@@ -177,8 +177,8 @@ data class RestNluService(val url: String) {
         valueCandidates: Map<String, List<String>> = emptyMap(),
         expectedSlots: List<String> = emptyList()): Map<String, SlotValue> {
         val input = SlotRequest(DugMode.SLOT, utterance, frame, valueCandidates, expectedSlots)
-        logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
-        logger.debug("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
+        logger.info("connecting to $url/v1/predict/${ctxt.bot}")
+        logger.info("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
@@ -192,8 +192,8 @@ data class RestNluService(val url: String) {
 
     fun yesNoInference(ctxt: Context, utterance: String, question: String, dialogActType: String? = null, targetFrame: String? = null, targetSlot: String? = null): YesNoResult? {
         val input = YesNoRequest(DugMode.BINARY, utterance, question, dialogActType, targetFrame, targetSlot)
-        logger.debug("connecting to $url/v1/predict")
-        logger.debug("utterance = $utterance and questions = $question")
+        logger.info("connecting to $url/v1/predict")
+        logger.info("utterance = $utterance and questions = $question")
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
