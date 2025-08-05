@@ -11,6 +11,7 @@ import java.net.http.HttpResponse
 import io.opencui.serialization.*
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.LoggerContext
+import io.opencui.core.da.DialogAct
 import java.util.*
 
 
@@ -21,6 +22,12 @@ enum class DugMode {
     SEGMENT
 }
 
+data class YesNoQuestion(
+    val question: String,
+    val type: String? = null,
+    val frame: String? = null,
+    val slot: String? = null
+)
 
 // the result from YesNoInference
 enum class YesNoResult {
@@ -99,14 +106,36 @@ data class RestNluService(val url: String) {
         val bot: String
     )
 
-    data class Request(
-        val mode: DugMode,
-        val utterance: String,
-        val expectations: List<Map<String, String?>> = emptyList(),
-        val slots: List<Map<String, String>> = emptyList(),
+    interface NluRequest{
+        val mode: DugMode
+        val utterance: String
+    }
+
+
+    data class IntentRequest(
+        override val mode: DugMode,
+        override val utterance: String,
+        val expectedFrames: List<String> = emptyList(),
+        val candidates: Map<String, List<String>> = emptyMap()) : NluRequest
+
+
+    data class SlotRequest(
+        override val mode: DugMode,
+        override val utterance: String,
+        val targetFrame: String,
         val candidates: Map<String, List<String>> = emptyMap(),
-        val questions: List<String> = emptyList(),
-        val dialogActs: List<String> = emptyList())
+        val expectedSlots: List<String> = emptyList()): NluRequest
+
+
+    data class YesNoRequest(
+        override val mode: DugMode,
+        override val utterance: String,
+        val question: String,
+        val dialogActType: String? = null,
+        val targetFrame: String? = null,
+        val targetSlot: String? = null) : NluRequest
+
+
 
     fun buildRequest(ctxt: Context, text: String, timeoutMillis: Long = 1000L): HttpRequest {
         return HttpRequest.newBuilder()
@@ -122,9 +151,10 @@ data class RestNluService(val url: String) {
     fun detectTriggerables(
         ctxt: Context,
         utterance: String,
-        expectations: List<Map<String, String?>> = emptyList()): List<TriggerDecision> {
+        expectations: List<String> = emptyList(),
+        candidates: Map<String, List<String>> = emptyMap()): List<TriggerDecision> {
 
-        val input = Request(DugMode.SKILL, utterance, expectations)
+        val input = IntentRequest(DugMode.SKILL, utterance, expectations, candidates)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
         logger.debug("utterance = $utterance and expectations = $expectations")
         val jsonRequest = Json.encodeToString(input).trimIndent()
@@ -143,11 +173,12 @@ data class RestNluService(val url: String) {
     fun fillSlots(
         ctxt: Context,
         utterance: String,
-        slots: List<Map<String, String>>,
-        valueCandidates: Map<String, List<String>>): Map<String, SlotValue> {
-        val input = Request(DugMode.SLOT, utterance, slots = slots, candidates =  valueCandidates)
+        frame: String,
+        valueCandidates: Map<String, List<String>> = emptyMap(),
+        expectedSlots: List<String> = emptyList()): Map<String, SlotValue> {
+        val input = SlotRequest(DugMode.SLOT, utterance, frame, valueCandidates, expectedSlots)
         logger.debug("connecting to $url/v1/predict/${ctxt.bot}")
-        logger.debug("utterance = $utterance and expectations = $slots, entities = $valueCandidates")
+        logger.debug("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
@@ -159,18 +190,18 @@ data class RestNluService(val url: String) {
         return Json.decodeFromString<Map<String, SlotValue>>(response.body())
     }
 
-    fun yesNoInference(ctxt: Context, utterance: String, questions: List<String>): List<YesNoResult> {
-        val input = Request(DugMode.BINARY, utterance, questions = questions)
+    fun yesNoInference(ctxt: Context, utterance: String, question: String, dialogActType: String? = null, targetFrame: String? = null, targetSlot: String? = null): YesNoResult? {
+        val input = YesNoRequest(DugMode.BINARY, utterance, question, dialogActType, targetFrame, targetSlot)
         logger.debug("connecting to $url/v1/predict")
-        logger.debug("utterance = $utterance and questions = $questions")
+        logger.debug("utterance = $utterance and questions = $question")
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
         if (response.statusCode() != 200) {
             logger.error("NLU request error: ${response.toString()}")
-            return emptyList()
+            return null
         }
-        return Json.decodeFromString<List<YesNoResult>>(response.body())
+        return Json.decodeFromString<YesNoResult>(response.body())
     }
 }
 
@@ -504,7 +535,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val pcandidates = nluService.detectTriggerables(
             context,
             utterance,
-            expectations.activeFrames.map { it.toDict() })
+            expectations.activeFrames.map { it.frame})
 
         val candidates = ChainedExampledLabelsTransformer(
             StatusTransformer(expectations)
@@ -563,8 +594,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                     if (events != null) hardBooleanEvents.addAll(events)
                 }
 
-                val status = nluService.yesNoInference(context, utterance, listOf<String>(question))[0]
-                if (status != YesNoResult.Irrelevant) {
+                // TODO(sean): need to add more information here to use rag based understanding.
+                val status = nluService.yesNoInference(context, utterance, question)
+                if (status != null && status != YesNoResult.Irrelevant) {
                     // First handle the frame wrappers we had for boolean type.
                     // what happens we have good match, and these matches are related to expectations.
                     // There are at least couple different use cases.
@@ -743,7 +775,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // For now, we only focus on the equal operator, we will handle other semantics later.
         val nluSlots = nluSlotMetas.map { it.asMap() }.toList()
-        val results = nluService.fillSlots(context, duContext.utterance, nluSlots, nluSlotValues)
+        // TODO (sean): add the expected slots here later to potentially improve
+        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType,nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
         // Now we add the extract evidence.
@@ -764,7 +797,6 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 }
             }
         }
-
         return frameEvents
     }
 
@@ -802,7 +834,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
         // For now, we only focus on the equal operator, we will handle other semantics later.
         val nluSlots = nluSlotMetas.map { it.asMap() }.toList()
-        val results = nluService.fillSlots(context, duContext.utterance, nluSlots, nluSlotValues)
+        // TODO: pass expected slot to potentially improve the nlu performance.
+        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
         // Now we add the extract evidence.
