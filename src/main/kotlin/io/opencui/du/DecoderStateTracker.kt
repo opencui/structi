@@ -138,6 +138,11 @@ data class RestNluService(val url: String) {
 
 
     fun buildRequest(ctxt: Context, text: String, timeoutMillis: Long = 1000L): HttpRequest {
+        // Generate and print the curl command
+        val escapedText = text.replace("'", "'\\''") // Escape single quotes for shell
+        val curlCommand = "curl -X POST '$url/v1/predict/${ctxt.bot}' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '$escapedText'"
+        println(curlCommand)
+
         return HttpRequest.newBuilder()
             .uri(URI.create("$url/v1/predict/${ctxt.bot}"))
             .header("Content-type", "application/json")
