@@ -282,7 +282,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     fun buildDuContext(session: UserSession, utterance: String, expectations: DialogExpectations): DuContext {
-        val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, duMeta)
+        val ducontext = DuContext(session.userIdentifier.toString(), utterance, expectations, duMeta, session.chatbot?.getLoader())
 
         ducontext.normalizers += normalizers.toList()
         // Session and turn based recognizers
@@ -310,9 +310,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // Now we apply recognizers on every triggerable.
         for (triggerable in triggerables) {
             triggerable.duContext = buildDuContext(session, triggerable.utterance, expectations)
-            if (triggerable.owner == null) {
+            if (triggerable.owner.isNullOrEmpty()) {
                 val exactOwner = triggerable.exactMatch(triggerable.duContext)
-
                 if (exactOwner != null) {
                     logger.debug("The exactOwner $exactOwner different from guessed owner null.")
                     triggerable.owner = exactOwner
@@ -718,6 +717,8 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val slotMapBef = duMeta
             .getSlotMetas(topLevelFrameType)
             .filter { !it.isDirectFilled }
+            // no need to extract rawUserInput.
+            .filter { duContext.rawUserInput(topLevelFrameType, it.label) != true }
 
         // if not direct filled,
         val duMeta = duContext.duMeta!!
@@ -838,7 +839,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
 
         // For now, we only focus on the equal operator, we will handle other semantics later.
-        val nluSlots = nluSlotMetas.map { it.asMap() }.toList()
+        val nluSlots = nluSlotMetas
+            .filter { duContext.rawUserInput( topLevelFrameType, it.label) != true }
+            .map { it.asMap() }.toList()
         // TODO: pass expected slot to potentially improve the nlu performance.
         val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")

@@ -505,7 +505,8 @@ open class DuContext(
     open val session: String,
     open val utterance: String,
     open val expectations: DialogExpectations = DialogExpectations(),
-    open val duMeta: DUMeta? = null) {
+    open val duMeta: DUMeta? = null,
+    open val classLoader: ClassLoader?=null) {
 
     // These are used to keep the entity values.
     val entityTypeToValueInfoMap = mutableMapOf<String, MutableList<ValueInfo>>()
@@ -524,6 +525,9 @@ open class DuContext(
         return entityTypeToValueInfoMap[typeName]?.filter{ !it.partialMatch }?: emptyList()
     }
 
+    fun rawUserInput(frame: String, slot: String) : Boolean? {
+        return duMeta?.rawUserInput(classLoader!!, frame, slot)
+    }
 
     fun convert(): Map<Int, List<Pair<String, Int>>> {
         // create the char end to token end.
