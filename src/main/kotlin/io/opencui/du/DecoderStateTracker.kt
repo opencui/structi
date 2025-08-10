@@ -123,6 +123,7 @@ data class RestNluService(val url: String) {
         override val mode: DugMode,
         override val utterance: String,
         val targetFrame: String,
+        val slots: List<String>,  // not every slot need value extraction.
         val candidates: Map<String, List<String>> = emptyMap(),
         val expectedSlots: List<String> = emptyList()): NluRequest
 
@@ -179,9 +180,12 @@ data class RestNluService(val url: String) {
         ctxt: Context,
         utterance: String,
         frame: String,
+        slots: List<String>,
         valueCandidates: Map<String, List<String>> = emptyMap(),
         expectedSlots: List<String> = emptyList()): Map<String, SlotValue> {
-        val input = SlotRequest(DugMode.SLOT, utterance, frame, valueCandidates, expectedSlots)
+        if (slots.isEmpty()) return emptyMap()
+
+        val input = SlotRequest(DugMode.SLOT, utterance, frame,  slots, valueCandidates, expectedSlots)
         logger.info("connecting to $url/v1/predict/${ctxt.bot}")
         logger.info("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
@@ -780,9 +784,9 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
 
         // For now, we only focus on the equal operator, we will handle other semantics later.
-        val nluSlots = nluSlotMetas.map { it.asMap() }.toList()
+        val nluSlots = nluSlotMetas.map { it.label }.toList()
         // TODO (sean): add the expected slots here later to potentially improve
-        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType,nluSlotValues)
+        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlots,nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
         // Now we add the extract evidence.
@@ -841,9 +845,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // For now, we only focus on the equal operator, we will handle other semantics later.
         val nluSlots = nluSlotMetas
             .filter { duContext.rawUserInput( topLevelFrameType, it.label) != true }
-            .map { it.asMap() }.toList()
+            .map { it.label }.toList()
+
         // TODO: pass expected slot to potentially improve the nlu performance.
-        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlotValues)
+        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlots,nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
         // Now we add the extract evidence.
