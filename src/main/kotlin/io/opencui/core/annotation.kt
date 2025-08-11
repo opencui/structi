@@ -104,6 +104,9 @@ data class SlotInformActionAnnotation(override val actions: List<Action>) : Prom
 // We should have changed this to FillStrategy.
 interface AskStrategy: Annotation {
     fun canEnter(): Boolean
+    fun canNotEnter(): Boolean {
+        return !canEnter()
+    }
 }
 
 data class AlwaysAsk(val condition: Boolean = true): AskStrategy {
