@@ -1,6 +1,5 @@
 package io.opencui.core
 
-import com.anthropic.models.messages.Model
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
@@ -1191,13 +1190,18 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
         return res
     }
 
+    fun noCompatibleEvents(frameEvents: List<FrameEvent>): Boolean {
+        // test whether there are usable frameEvent.
+        return frameEvents.firstOrNull{ isCompatible(it)} == null
+    }
+
     fun canEnter(frameEvents: List<FrameEvent>): Boolean {
         val askStrategy =  askStrategy()
-        val askStrategyNotMet = (askStrategy is ConditionalAsk && !askStrategy.canEnter())
-                || (askStrategy is NeverAsk && stateUpdateDone && frameEvents.firstOrNull { isCompatible(it) } == null)
-                || (askStrategy is RecoverOnly && stateUpdateDone && !askStrategy.canEnter() && frameEvents.firstOrNull { isCompatible(it) } == null)
-                || (askStrategy is BoolGateAsk && boolGate!!.status is io.opencui.core.booleanGate.No && frameEvents.firstOrNull { isCompatible(it) } == null)
-        return !responseDone && !askStrategyNotMet && !ancestorTerminated
+        val canNotEnterByAskStrategy = (askStrategy is ConditionalAsk && askStrategy.canNotEnter())
+                || (askStrategy is NeverAsk && stateUpdateDone && noCompatibleEvents(frameEvents))
+                || (askStrategy is RecoverOnly && stateUpdateDone && askStrategy.canNotEnter() && noCompatibleEvents(frameEvents))
+                || (askStrategy is BoolGateAsk && boolGate!!.status is io.opencui.core.booleanGate.No && noCompatibleEvents(frameEvents))
+        return !responseDone && !canNotEnterByAskStrategy && !ancestorTerminated
     }
 
     fun filled(frameEvents: List<FrameEvent>): Boolean {
@@ -1210,6 +1214,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     }
 
     override fun clear() {
+        // If it is mentioned once, it should always be recovered.
         (askStrategy() as? RecoverOnly)?.disable()
         recommendationFiller?.clear()
         recommendationFiller = null
