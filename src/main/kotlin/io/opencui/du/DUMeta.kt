@@ -242,6 +242,11 @@ interface DUMeta : ExtractiveMeta {
         return listOf(Exemplar(frame,"<${head.label}>"))
     }
 
+    fun rawUserInput(classLoader: ClassLoader, frame: String, slot: String) : Boolean {
+        val fromClass = Class.forName(frame, true, classLoader)
+        val toClass = Class.forName("io.opencui.core.IRawInputHandler")
+        return toClass.isAssignableFrom(fromClass) && slot == "rawUserInput"
+    }
 
     companion object {
         const val OWNERID = "owner_id"
