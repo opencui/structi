@@ -149,11 +149,13 @@ data class RecoverOnly(var condition: Boolean = false): AskStrategy {
     }
 
     fun enable() {
-        condition = true;
+        condition = true
     }
 
     fun disable() {
-        condition = false;
+        if (condition) {
+            condition = false
+        }
     }
 }
 
