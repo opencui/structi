@@ -225,9 +225,12 @@ interface IFiller: Compatible, Serializable {
         return path?.let { it.findAll<SlotInformActionAnnotation>().firstOrNull() }
     }
 
+    val askStrategy: AskStrategy
+
+    /*
     fun askStrategy(): AskStrategy {
-        return path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk()
-    }
+        val res = path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk()
+    }*/
 
     // fully type for compatible FrameEvent
     fun qualifiedEventType(): String? {
@@ -305,6 +308,8 @@ class EntityFiller<T>(
     var value: String? = null
     var origValue: String? = null
     var valueGood: ((String, String?) -> Boolean)? = null
+
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
 
     init {
         valueGood = {
@@ -408,7 +413,7 @@ class RealTypeFiller(
     var value: String? = null
     var origValue: String? = null
     var valueGood: ((String, String?) -> Boolean)? = null
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     init {
         valueGood = {
             s, _ ->
@@ -521,7 +526,7 @@ class HelperFiller<T>(
     val helper: Helper<T>,
     val builder: (String, String?) -> T?
 ) :  AFrameFiller(), TypedFiller<Helper<T>> {
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     var valueGood: ((String, String?) -> Boolean)? = null
     var entityEvent : EntityEvent? = null
 
@@ -639,7 +644,7 @@ class OpaqueFiller<T>(
     val buildSink: () -> KMutableProperty0<T?>,
     val declaredType: String,
     val builder: (JsonObject) -> T?) : AFrameFiller(), TypedFiller<T> {
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     override val target: KMutableProperty0<T?>
         get() = buildSink()
 
@@ -824,7 +829,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     val boolGatePackage = io.opencui.core.booleanGate.IStatus::class.java.`package`.name
     val hasMorePackage = io.opencui.core.hasMore.IStatus::class.java.`package`.name
     override var parent: ICompositeFiller? = null
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     override var path: ParamPath? = targetFiller.path
 
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
@@ -880,7 +885,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     // this is deprecated, builder are encouraged to handle bool gate manually.
     val boolGate: BoolGate? by lazy {
-        val askStrategy = askStrategy()
+        val askStrategy = askStrategy
         if (askStrategy is BoolGateAsk) {
             BoolGate(path!!.root().session, askStrategy.generator, ::infer)
         } else {
@@ -1092,7 +1097,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
                 schedule.push(recommendationFiller!!)
                 return true
             }
-            if (askStrategy() !is NeverAsk || frameEvent != null) {
+            if (askStrategy !is NeverAsk || frameEvent != null) {
                 targetFiller.parent = this
                 schedule.push(targetFiller)
                 return true
@@ -1164,7 +1169,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     override fun onPush() {
         recommendationFiller?.responseDone = false
-        (askStrategy() as? RecoverOnly)?.enable()
+        (askStrategy as? RecoverOnly)?.enable()
     }
 
     private fun lastClauseInDone(frameEvents: List<FrameEvent>) : Boolean {
@@ -1196,12 +1201,16 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
     }
 
     fun canEnter(frameEvents: List<FrameEvent>): Boolean {
-        val askStrategy =  askStrategy()
-        val canNotEnterByAskStrategy = (askStrategy is ConditionalAsk && askStrategy.canNotEnter())
-                || (askStrategy is NeverAsk && stateUpdateDone && noCompatibleEvents(frameEvents))
-                || (askStrategy is RecoverOnly && stateUpdateDone && askStrategy.canNotEnter() && noCompatibleEvents(frameEvents))
-                || (askStrategy is BoolGateAsk && boolGate!!.status is io.opencui.core.booleanGate.No && noCompatibleEvents(frameEvents))
-        return !responseDone && !canNotEnterByAskStrategy && !ancestorTerminated
+        val askStrategy =  askStrategy
+        val noCompatibleEvents = noCompatibleEvents(frameEvents)
+        val askStrategyCanNotEnter = askStrategy.canNotEnter()
+        val canNotEnterAsConditionalAsk = (askStrategy is ConditionalAsk && askStrategyCanNotEnter)
+        val canNotEnterAsNeverAsk = (askStrategy is NeverAsk && stateUpdateDone && noCompatibleEvents)
+        val canNoteEnterAsRecoverOnly = (askStrategy is RecoverOnly && stateUpdateDone && askStrategyCanNotEnter && noCompatibleEvents)
+        val canNotEnterByBoolGateAsk = (askStrategy is BoolGateAsk && boolGate!!.status is io.opencui.core.booleanGate.No && noCompatibleEvents)
+        val canNotEnterByAskStrategy = canNotEnterAsConditionalAsk || canNotEnterAsNeverAsk || canNoteEnterAsRecoverOnly || canNotEnterByBoolGateAsk
+        val canEnter = !responseDone && !canNotEnterByAskStrategy && !ancestorTerminated
+        return canEnter
     }
 
     fun filled(frameEvents: List<FrameEvent>): Boolean {
@@ -1215,7 +1224,7 @@ class AnnotatedWrapperFiller(val targetFiller: IFiller, val isSlot: Boolean = tr
 
     override fun clear() {
         // If it is mentioned once, it should always be recovered.
-        (askStrategy() as? RecoverOnly)?.disable()
+        // (askStrategy as? RecoverOnly)?.disable()
         recommendationFiller?.clear()
         recommendationFiller = null
         boolGateFiller?.clear()
@@ -1249,7 +1258,7 @@ class FrameFiller<T: IFrame>(
     val buildSink: () -> KMutableProperty0<T?>,
     override var path: ParamPath?
 ) : ICompositeFiller, MappedFiller, TypedFiller<T>, Committable {
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     override val target: KMutableProperty0<T?>
         get() = buildSink()
 
@@ -1335,7 +1344,7 @@ class FrameFiller<T: IFrame>(
      */
     override fun done(frameEvents: List<FrameEvent>): Boolean {
         val a = findNextChildFiller(frameEvents)
-        val askStrategy = askStrategy()
+        val askStrategy = askStrategy
         return a == null && (askStrategy !is ExternalEventStrategy || committed)
     }
 
@@ -1368,7 +1377,7 @@ class FrameFiller<T: IFrame>(
             }
         }
 
-        if (askStrategy() is ExternalEventStrategy) {
+        if (askStrategy is ExternalEventStrategy) {
             session.schedule.state = Scheduler.State.ASK
             return true
         }
@@ -1399,7 +1408,7 @@ class InterfaceFiller<T>(
     override fun isCompatible(frameEvent: FrameEvent) : Boolean {
         return askFiller.isCompatible(frameEvent)
     }
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     override var parent: ICompositeFiller? = null
     override var path: ParamPath? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
@@ -1470,7 +1479,7 @@ class MultiValueFiller<T>(
     val hasMorePackage = io.opencui.core.hasMore.IStatus::class.java.`package`.name
     override val target: KMutableProperty0<MutableList<T>?>
         get() = buildSink()
-
+    override val askStrategy by lazy { path!!.findAll<AskStrategy>().firstOrNull() ?: AlwaysAsk() }
     override var path: ParamPath? = null
     override var parent: ICompositeFiller? = null
     override val decorativeAnnotations: MutableList<Annotation> = mutableListOf()
