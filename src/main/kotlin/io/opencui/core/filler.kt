@@ -10,6 +10,7 @@ import io.opencui.serialization.JsonObject
 import org.slf4j.LoggerFactory
 import java.io.Serializable
 import kotlin.collections.LinkedHashMap
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty1
@@ -676,7 +677,9 @@ class OpaqueFiller<T>(
     }
 
     override fun qualifiedEventType(): String {
-        return target()!!::class.java.canonicalName
+        val kType = target.returnType
+        val kClass = kType.classifier as KClass<*>
+        return kClass.java.canonicalName
     }
 
     override fun isCompatible(frameEvent: FrameEvent): Boolean {
