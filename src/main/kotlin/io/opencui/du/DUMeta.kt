@@ -488,12 +488,16 @@ data class Exemplar(
         val nameToTypeMap = mutableMapOf<String, String>()
         val shouldNotBinding = contextFrame == null || contextSlot == null
         for (slotName in slotNames) {
-            val slotMeta = duMeta.getSlotMeta(ownerFrame, slotName)!!
-            if (!slotMeta.isGenericTyped() || shouldNotBinding) {
-                // not generic type.
-                nameToTypeMap[slotMeta.label] = slotMeta.type!!
+            val slotMeta = duMeta.getSlotMeta(ownerFrame, slotName)
+            if (slotMeta != null) {
+                if (!slotMeta.isGenericTyped() || shouldNotBinding) {
+                    // not generic type.
+                    nameToTypeMap[slotMeta.label] = slotMeta.type!!
+                } else {
+                    nameToTypeMap[slotMeta.label] = duMeta.getSlotType(contextFrame!!, contextSlot!!)
+                }
             } else {
-                nameToTypeMap[slotMeta.label] = duMeta.getSlotType(contextFrame!!, contextSlot!!)
+                logger.info("Could not find the slot meta for $slotName in $ownerFrame")
             }
         }
 
