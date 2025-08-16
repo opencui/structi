@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.node.TextNode
 import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
-import io.opencui.du.extractSlotSurroundingWords
 import io.opencui.serialization.Json
 import java.io.Serializable
 import java.lang.RuntimeException
