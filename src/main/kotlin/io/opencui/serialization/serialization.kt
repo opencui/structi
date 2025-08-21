@@ -1,5 +1,6 @@
 package io.opencui.serialization
 
+import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
@@ -9,7 +10,10 @@ import com.fasterxml.jackson.databind.node.*
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.jsonSchema.JsonSchema
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.fasterxml.jackson.module.jsonSchema.types.ObjectSchema
+import io.modelcontextprotocol.spec.McpSchema
 import io.opencui.core.*
 import java.io.*
 import java.time.OffsetDateTime
@@ -82,7 +86,6 @@ fun ValueNode.content() : String {
 
 interface Converter<T>: Serializable {
     operator fun invoke(o: JsonElement?) : T
-
     val isEntity: Boolean
 }
 
@@ -126,10 +129,6 @@ class InterfaceIEntitySerializer: JsonSerializer<IEntity>() {
 object Json {
     val mapper = jacksonObjectMapper()
 
-    fun initialize() {
-        ObjectMapper().registerModule(KotlinModule.Builder().build())
-    }
-
     init {
         // support the java time.
         val module = JavaTimeModule()
@@ -145,7 +144,6 @@ object Json {
         // For now, we only handles the deserialization of Criterion<T>.
         module.addDeserializer(Criterion::class.java, CriterionDeserializer)
 
-
         module.addSerializer(
             OffsetDateTime::class.java,
             object: JsonSerializer<OffsetDateTime>() {
@@ -160,6 +158,12 @@ object Json {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
         mapper.enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL)
+    }
+
+    val schemaGen by lazy { JsonSchemaGenerator(mapper) }
+
+    inline fun <reified T:Any> buildSchema(): JsonSchema {
+        return schemaGen.generateSchema(T::class.java) as JsonSchema
     }
 
     // If you load a string from disk or network, and you want use it as value of string, you need to
