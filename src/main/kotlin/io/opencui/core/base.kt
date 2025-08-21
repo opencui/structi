@@ -47,6 +47,7 @@ data class Criterion<T>(val relation: RelationType, val reference: T?, val refer
 
 }
 
+
 object CriterionDeserializer : JsonDeserializer<Criterion<*>>() {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Criterion<*> {
         val node: ObjectNode = p.codec.readTree(p)
@@ -85,6 +86,7 @@ object CriterionDeserializer : JsonDeserializer<Criterion<*>>() {
     }
 }
 
+
 fun Criterion<*>.compatible(value: Any) : Boolean {
     return if (!RelationType.isListCompatible(relation)) {
         value as Comparable<Any>
@@ -105,13 +107,13 @@ fun Criterion<*>.compatible(value: Any) : Boolean {
     }
 }
 
+
 fun List<Criterion<*>>.compatible(value: Any) : Boolean {
     for (criterion in this) {
         if (!criterion.compatible(value)) return false
     }
     return true
 }
-
 
 
 /**
@@ -152,7 +154,6 @@ fun <T: Any> useClassLoader(classLoader: ClassLoader, block: () -> T): T {
 }
 
 interface ICui: Serializable {
-
     fun <T: Any> fromTypeNameList(vararg typeName: String) : List<T> {
         val classLoader = this.javaClass.classLoader
         val typeNames = typeName.toList()
@@ -166,8 +167,6 @@ interface ICui: Serializable {
             constructor?.callBy(constructor.parameters.associateWith { null }) as T
         }
     }
-
-
 }
 
 /**
