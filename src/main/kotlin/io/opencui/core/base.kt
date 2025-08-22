@@ -258,7 +258,6 @@ fun getPropertyValueByReflection(receiver: Any, propertyName: String): Any? {
     return property.get(receiver)
 }
 
-
 // This is used to pass the runtime configure, information needed for all agents.
 object RuntimeConfig {
     val configures = mutableMapOf<KClass<*>, Any>()

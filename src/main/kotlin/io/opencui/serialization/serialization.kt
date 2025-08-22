@@ -1,7 +1,6 @@
 package io.opencui.serialization
 
 import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
@@ -12,16 +11,65 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.jsonSchema.JsonSchema
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.fasterxml.jackson.module.jsonSchema.types.ObjectSchema
-import io.modelcontextprotocol.spec.McpSchema
 import io.opencui.core.*
 import java.io.*
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
+
+
+
+/**
+ *  this will make it easy to dump the content of a slot as fill action in json object.
+ *  client is responsible to render it to builder, and send back the modified value as
+ *  the frame event.
+ *  
+ * @param T The concrete IFrame type.
+ * @param R The type of the property's value.
+ * @param property A KProperty1 reference to the member property (e.g., `MyFrame::myProperty`).
+ * @return An ObjectNode representing the dumped property, like `{"propertyName": "propertyValue"}`.
+ */
+inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(property: KProperty1<T, R?>): ObjectNode {
+    // T::class gives you the KClass instance for T at runtime.
+    val kClass: KClass<T> = T::class
+
+    // 1. Get the name of the type
+    val simpleName = kClass.simpleName      // e.g., "MyFrame"
+    val qualifiedName = kClass.qualifiedName  // e.g., "com.example.agent.MyFrame"
+
+    // 2. Get the type itself
+    // The 'kClass' variable holds the KClass object.
+    // You can get the Java Class object with `kClass.java`.
+
+    // 3. Get the package of the type
+    val packageName = kClass.java.packageName // e.g., "com.example.agent"
+
+    val propertyName = property.name
+    val propertyValue = property.get(this)
+
+    val result = Json.mapper.createObjectNode()
+
+    if (propertyValue != null) {
+        result.set<JsonNode>("content", Json.mapper.valueToTree(propertyValue))
+    } else {
+        result.putNull("content")
+    }
+
+    result.put("type", "artifact")
+    result.put("qualifiedName", qualifiedName)
+    result.put("simpleName", simpleName)
+    result.put("packageName", packageName)
+    result.put("slotName", propertyName)
+    result.set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema<R>()))
+
+    return result
+}
+
+
 
 /**
  * This will be our serialization tool.
@@ -153,7 +201,6 @@ object Json {
             }
         )
         mapper.registerModule(module)
-        mapper.registerKotlinModule()
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
