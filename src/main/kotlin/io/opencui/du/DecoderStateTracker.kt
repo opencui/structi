@@ -183,11 +183,12 @@ data class RestNluService(val url: String) {
         slots: List<String>,
         valueCandidates: Map<String, List<String>> = emptyMap(),
         expectedSlots: List<String> = emptyList()): Map<String, SlotValue> {
+        logger.info("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
         if (slots.isEmpty()) return emptyMap()
 
         val input = SlotRequest(DugMode.SLOT, utterance, frame,  slots, valueCandidates, expectedSlots)
         logger.info("connecting to $url/v1/predict/${ctxt.bot}")
-        logger.info("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
+
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
