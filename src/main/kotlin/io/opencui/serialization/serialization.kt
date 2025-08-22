@@ -27,13 +27,13 @@ import kotlin.reflect.full.companionObjectInstance
  *  this will make it easy to dump the content of a slot as fill action in json object.
  *  client is responsible to render it to builder, and send back the modified value as
  *  the frame event.
- *  
+ *
  * @param T The concrete IFrame type.
  * @param R The type of the property's value.
  * @param property A KProperty1 reference to the member property (e.g., `MyFrame::myProperty`).
  * @return An ObjectNode representing the dumped property, like `{"propertyName": "propertyValue"}`.
  */
-inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(property: KProperty1<T, R?>): ObjectNode {
+inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(propertyName: String, propertyValue: R?): ObjectNode {
     // T::class gives you the KClass instance for T at runtime.
     val kClass: KClass<T> = T::class
 
@@ -47,10 +47,7 @@ inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(property
 
     // 3. Get the package of the type
     val packageName = kClass.java.packageName // e.g., "com.example.agent"
-
-    val propertyName = property.name
-    val propertyValue = property.get(this)
-
+    
     val result = Json.mapper.createObjectNode()
 
     if (propertyValue != null) {
