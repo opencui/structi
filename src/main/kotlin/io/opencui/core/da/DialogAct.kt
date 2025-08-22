@@ -314,6 +314,12 @@ data class RawInform(override var templates: Templates = emptyTemplate()) : Dial
 
 data class System1Inform(val type: String, override var templates: Templates = emptyTemplate()) : DialogAct {
     constructor(type: String, payload: String): this(type, templateOf(payload))
+
+    companion object {
+        const val JSON = "json"
+        const val ERROR = "error"
+        const val TEXT = "text"
+    }
 }
 
 // This might be useful to capture the system1 response.

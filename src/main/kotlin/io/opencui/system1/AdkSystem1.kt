@@ -274,6 +274,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         }
 
         // Now we return three different message: json for function, text for action/fallback, and error
+        // The system 1 inform is just an envelope, its type is only useful for figuring out the source.
         suspend fun callAgentAsync(
             content: Content,  // for action, this should be empty, for
             runner: Runner,
@@ -320,13 +321,13 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
                                 try {
                                     Json.parseToJsonElement(trimmedText)
-                                    emitter?.invoke(System1Inform("json", trimmedText))
+                                    emitter?.invoke(System1Inform(System1Inform.JSON, trimmedText))
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
-                                    emitter?.invoke(System1Inform("error", e.message.toString()))
+                                    emitter?.invoke(System1Inform(System1Inform.ERROR, e.message.toString()))
                                 }
                             } else {
-                                emitter?.invoke(System1Inform("text",  trimmedText))
+                                emitter?.invoke(System1Inform(System1Inform.TEXT,  trimmedText))
                             }
                         }
                     }
