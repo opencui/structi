@@ -11,6 +11,7 @@ import com.google.adk.tools.FunctionTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import com.google.genai.types.Schema
+import io.opencui.core.buildFillActionForSlot
 import io.opencui.test.HelloWorldService
 import io.reactivex.rxjava3.core.Flowable
 import java.util.Optional
@@ -207,7 +208,14 @@ class LlmAgentExample {
     }
 }
 
-fun main() {
+data class Person(
+    val first: String,
+    val last: String,
+    val age: Int
+)
 
-    LlmAgentExample().main()
+fun main() {
+    val p = Person("sean", "wu", 555)
+    print(p.buildFillActionForSlot<_, String>("last"))
+    // LlmAgentExample().main()
 }

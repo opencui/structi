@@ -262,7 +262,7 @@ fun invokeMethodByReflection(receiver: Any, funName: String, vararg params: Any?
  * @param property A KProperty1 reference to the member property (e.g., `MyFrame::myProperty`).
  * @return An ObjectNode representing the dumped property, like `{"propertyName": "propertyValue"}`.
  */
-inline fun <reified T: Any, reified R: Any> T.buildFillActionForSlot(propertyName: String): ObjectNode {
+inline fun <reified T: Any> T.buildFillActionForSlot(propertyName: String): ObjectNode {
     // T::class gives you the KClass instance for T at runtime.
     val frameClass: KClass<T> = T::class
 
@@ -276,12 +276,18 @@ inline fun <reified T: Any, reified R: Any> T.buildFillActionForSlot(propertyNam
         Json.mapper.createObjectNode().putNull("content")
     }
 
+    // Get the property's type via reflection, so we don't need a second generic parameter `R`.
+    val propertyType = property.returnType.classifier as? KClass<*>
+        ?: throw IllegalStateException(
+            "Cannot build schema for property '$propertyName' with a complex type: ${property.returnType}"
+        )
+
     Json.mapper.createObjectNode().put("type", "artifact")
     Json.mapper.createObjectNode().put("qualifiedName", frameClass.qualifiedName)
     Json.mapper.createObjectNode().put("simpleName", frameClass.simpleName)
     Json.mapper.createObjectNode().put("packageName", frameClass.java.packageName)
     Json.mapper.createObjectNode().put("slotName", propertyName)
-    Json.mapper.createObjectNode().set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema<R>()))
+    Json.mapper.createObjectNode().set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema(propertyType)))
 
     return Json.mapper.createObjectNode()
 }

@@ -162,6 +162,10 @@ object Json {
         return schemaGen.generateSchema(T::class.java) as JsonSchema
     }
 
+    fun buildSchema(kClass: KClass<*>): JsonSchema {
+        return schemaGen.generateSchema(kClass.java)
+    }
+
     // If you load a string from disk or network, and you want use it as value of string, you need to
     // first escapeDoubleQuotes so that the resulting string can be interpreted as value of a string.
     fun escapeDoubleQuotes(input: String): String {
