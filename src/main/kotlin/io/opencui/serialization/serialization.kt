@@ -10,17 +10,15 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.jsonSchema.JsonSchema
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.opencui.core.*
 import java.io.*
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
-
+import kotlin.reflect.full.memberProperties
 
 
 /**
@@ -33,21 +31,26 @@ import kotlin.reflect.full.companionObjectInstance
  * @param property A KProperty1 reference to the member property (e.g., `MyFrame::myProperty`).
  * @return An ObjectNode representing the dumped property, like `{"propertyName": "propertyValue"}`.
  */
-inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(propertyName: String, propertyValue: R?): ObjectNode {
+inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(propertyName: String): ObjectNode {
     // T::class gives you the KClass instance for T at runtime.
-    val kClass: KClass<T> = T::class
+    val frameClass: KClass<T> = T::class
 
     // 1. Get the name of the type
-    val simpleName = kClass.simpleName      // e.g., "MyFrame"
-    val qualifiedName = kClass.qualifiedName  // e.g., "com.example.agent.MyFrame"
+    val simpleName = frameClass.simpleName      // e.g., "MyFrame"
+    val qualifiedName = frameClass.qualifiedName  // e.g., "com.example.agent.MyFrame"
+
+    val property = frameClass.memberProperties.find { it.name == propertyName }
+        ?: throw IllegalArgumentException("Property '$propertyName' not found on ${frameClass.simpleName}")
 
     // 2. Get the type itself
     // The 'kClass' variable holds the KClass object.
     // You can get the Java Class object with `kClass.java`.
 
     // 3. Get the package of the type
-    val packageName = kClass.java.packageName // e.g., "com.example.agent"
-    
+    val packageName = frameClass.java.packageName // e.g., "com.example.agent"
+
+    val propertyValue = property.get(this)
+
     val result = Json.mapper.createObjectNode()
 
     if (propertyValue != null) {
