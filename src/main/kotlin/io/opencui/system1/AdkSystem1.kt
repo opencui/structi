@@ -7,7 +7,6 @@ import com.google.adk.agents.LlmAgent
 import com.google.adk.agents.RunConfig
 import com.google.adk.artifacts.InMemoryArtifactService
 import com.google.adk.events.Event
-import com.google.adk.runner.InMemoryRunner
 import com.google.adk.runner.Runner
 import com.google.adk.sessions.InMemorySessionService
 import com.google.adk.tools.BaseTool
@@ -327,7 +326,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                     emitter?.invoke(System1Inform("error", e.message.toString()))
                                 }
                             } else {
-                                emitter?.invoke(System1Inform("response",  trimmedText))
+                                emitter?.invoke(System1Inform("text",  trimmedText))
                             }
                         }
                     }
