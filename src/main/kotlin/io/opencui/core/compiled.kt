@@ -21,7 +21,8 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.KProperty1
-
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.full.NoSuchPropertyException
 
 /**
  * this file contains the things we need from platform, they will be declared on platform so that they can
@@ -1064,6 +1065,14 @@ object ValueFilterBuilder{
     }
 }
 
+
+@Throws(NoSuchPropertyException::class)
+fun getMutablePropertyValueByReflection(receiver: Any, propertyName: String): Any? {
+    val kClass = receiver::class
+    val property = kClass.members.firstOrNull { it.name == propertyName } as? KMutableProperty1<Any, *> ?: throw NoSuchPropertyException()
+    return property.get(receiver)
+}
+
 data class PagedSelectable<T: Any> (
     override var session: UserSession? = null,
     var suggestionIntentBuilder: FullFrameBuilder?,
@@ -1117,7 +1126,7 @@ data class PagedSelectable<T: Any> (
 
     val candidatesRaw : List<T>
         get() =  if (suggestionIntentBuilder != null) {
-            getPropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
+            getMutablePropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
         } else {
             candidateListProvider!!()
         }

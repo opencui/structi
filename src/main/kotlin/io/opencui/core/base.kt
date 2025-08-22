@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.channel.IChannel
@@ -15,7 +16,6 @@ import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
 
@@ -251,12 +251,41 @@ fun invokeMethodByReflection(receiver: Any, funName: String, vararg params: Any?
     return method.call(receiver, *params)
 }
 
-@Throws(NoSuchPropertyException::class)
-fun getPropertyValueByReflection(receiver: Any, propertyName: String): Any? {
-    val kClass = receiver::class
-    val property = kClass.members.firstOrNull { it.name == propertyName } as? KMutableProperty1<Any, *> ?: throw NoSuchPropertyException()
-    return property.get(receiver)
+
+/**
+ *  this will make it easy to dump the content of a slot as fill action in json object.
+ *  client is responsible to render it to builder, and send back the modified value as
+ *  the frame event.
+ *
+ * @param T The concrete IFrame type.
+ * @param R The type of the property's value.
+ * @param property A KProperty1 reference to the member property (e.g., `MyFrame::myProperty`).
+ * @return An ObjectNode representing the dumped property, like `{"propertyName": "propertyValue"}`.
+ */
+inline fun <reified T: Any, reified R: Any> T.buildFillActionForSlot(propertyName: String): ObjectNode {
+    // T::class gives you the KClass instance for T at runtime.
+    val frameClass: KClass<T> = T::class
+
+    val property = frameClass.memberProperties.find { it.name == propertyName }
+        ?: throw IllegalArgumentException("Property '$propertyName' not found on ${frameClass.simpleName}")
+
+    val propertyValue = property.get(this)
+    if (propertyValue != null) {
+        Json.mapper.createObjectNode().set<JsonNode>("content", Json.mapper.valueToTree(propertyValue))
+    } else {
+        Json.mapper.createObjectNode().putNull("content")
+    }
+
+    Json.mapper.createObjectNode().put("type", "artifact")
+    Json.mapper.createObjectNode().put("qualifiedName", frameClass.qualifiedName)
+    Json.mapper.createObjectNode().put("simpleName", frameClass.simpleName)
+    Json.mapper.createObjectNode().put("packageName", frameClass.java.packageName)
+    Json.mapper.createObjectNode().put("slotName", propertyName)
+    Json.mapper.createObjectNode().set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema<R>()))
+
+    return Json.mapper.createObjectNode()
 }
+
 
 // This is used to pass the runtime configure, information needed for all agents.
 object RuntimeConfig {

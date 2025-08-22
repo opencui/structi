@@ -11,6 +11,7 @@ import com.google.adk.tools.FunctionTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import com.google.genai.types.Schema
+import io.opencui.test.HelloWorldService
 import io.reactivex.rxjava3.core.Flowable
 import java.util.Optional
 
@@ -207,5 +208,6 @@ class LlmAgentExample {
 }
 
 fun main() {
+
     LlmAgentExample().main()
 }

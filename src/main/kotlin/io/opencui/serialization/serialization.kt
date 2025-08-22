@@ -21,53 +21,6 @@ import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.memberProperties
 
 
-/**
- *  this will make it easy to dump the content of a slot as fill action in json object.
- *  client is responsible to render it to builder, and send back the modified value as
- *  the frame event.
- *
- * @param T The concrete IFrame type.
- * @param R The type of the property's value.
- * @param property A KProperty1 reference to the member property (e.g., `MyFrame::myProperty`).
- * @return An ObjectNode representing the dumped property, like `{"propertyName": "propertyValue"}`.
- */
-inline fun <reified T: IFrame, reified R: Any> T.buildFillActionForSlot(propertyName: String): ObjectNode {
-    // T::class gives you the KClass instance for T at runtime.
-    val frameClass: KClass<T> = T::class
-
-    // 1. Get the name of the type
-    val simpleName = frameClass.simpleName      // e.g., "MyFrame"
-    val qualifiedName = frameClass.qualifiedName  // e.g., "com.example.agent.MyFrame"
-
-    val property = frameClass.memberProperties.find { it.name == propertyName }
-        ?: throw IllegalArgumentException("Property '$propertyName' not found on ${frameClass.simpleName}")
-
-    // 2. Get the type itself
-    // The 'kClass' variable holds the KClass object.
-    // You can get the Java Class object with `kClass.java`.
-
-    // 3. Get the package of the type
-    val packageName = frameClass.java.packageName // e.g., "com.example.agent"
-
-    val propertyValue = property.get(this)
-
-    val result = Json.mapper.createObjectNode()
-
-    if (propertyValue != null) {
-        result.set<JsonNode>("content", Json.mapper.valueToTree(propertyValue))
-    } else {
-        result.putNull("content")
-    }
-
-    result.put("type", "artifact")
-    result.put("qualifiedName", qualifiedName)
-    result.put("simpleName", simpleName)
-    result.put("packageName", packageName)
-    result.put("slotName", propertyName)
-    result.set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema<R>()))
-
-    return result
-}
 
 
 
@@ -419,7 +372,7 @@ object Json {
     fun makeObject(maps: Map<String, JsonNode> = mapOf()) : ObjectNode {
         val result = ObjectNode(JsonNodeFactory.instance)
         for ((k, v) in maps.entries) {
-            result.put(k, v)
+            result.set<JsonNode>(k, v)
         }
         return result
     }
