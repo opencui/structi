@@ -691,14 +691,17 @@ data class ValueCheck(
     }
 
     override fun searchResponse(): Action? {
-        var action: Action? = null
+        val actions = mutableListOf<Action>()
         for (p in conditionActionPairs) {
             if (!p.first()) {
-                action = SeqAction(p.second)
-                break
+                actions.addAll(p.second)
             }
         }
-        return action
+        // make sure we first handle emission, and state action should
+        // be last.
+        val (stateActions, otherActions) = actions.partition { it is StateAction }
+        val reorderedActions = otherActions + stateActions
+        return if (actions.isNotEmpty()) SeqAction(reorderedActions) else null
     }
 }
 

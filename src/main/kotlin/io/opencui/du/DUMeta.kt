@@ -1,5 +1,6 @@
 package io.opencui.du
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.core.En
 import io.opencui.core.RGBase
 import io.opencui.core.Zh
@@ -448,10 +449,13 @@ data class MetaExprSegments(val frame: String, val typedExpr: String, val segmen
 
 
 data class Exemplar(
+    @JsonProperty("owner")
     override val ownerFrame: String,
     override val template: String,
     override val label: String? = null,
+    @JsonProperty("context_frame")
     override val contextFrame: String? = null,
+    @JsonProperty("context_slot")
     val contextSlot: String? = null
 ) : IExemplar {
     override val slotNames by lazy {
@@ -484,12 +488,16 @@ data class Exemplar(
         val nameToTypeMap = mutableMapOf<String, String>()
         val shouldNotBinding = contextFrame == null || contextSlot == null
         for (slotName in slotNames) {
-            val slotMeta = duMeta.getSlotMeta(ownerFrame, slotName)!!
-            if (!slotMeta.isGenericTyped() || shouldNotBinding) {
-                // not generic type.
-                nameToTypeMap[slotMeta.label] = slotMeta.type!!
+            val slotMeta = duMeta.getSlotMeta(ownerFrame, slotName)
+            if (slotMeta != null) {
+                if (!slotMeta.isGenericTyped() || shouldNotBinding) {
+                    // not generic type.
+                    nameToTypeMap[slotMeta.label] = slotMeta.type!!
+                } else {
+                    nameToTypeMap[slotMeta.label] = duMeta.getSlotType(contextFrame!!, contextSlot!!)
+                }
             } else {
-                nameToTypeMap[slotMeta.label] = duMeta.getSlotType(contextFrame!!, contextSlot!!)
+                logger.info("Could not find the slot meta for $slotName in $ownerFrame")
             }
         }
 

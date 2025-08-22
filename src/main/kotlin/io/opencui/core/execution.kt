@@ -316,7 +316,7 @@ class DialogManager {
 
     fun findDialogExpectation(session: UserSession): DialogExpectation? {
         val entity = session.schedule.lastOrNull()
-        if (session.schedule.isEmpty() || entity == null || entity.askStrategy() is ExternalEventStrategy) return null
+        if (session.schedule.isEmpty() || entity == null || entity.askStrategy is ExternalEventStrategy) return null
         val topFrameWrapperFiller = session.schedule.filterIsInstance<AnnotatedWrapperFiller>().lastOrNull { it.targetFiller is FrameFiller<*> }!!
         return DialogExpectation(findExpectedFrames(session, topFrameWrapperFiller))
     }
