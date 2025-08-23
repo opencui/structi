@@ -166,6 +166,10 @@ object Json {
         return schemaGen.generateSchema(kClass.java)
     }
 
+    inline fun <reified T:Any> buildFillAction(receiver: T, propertyName: String): ObjectNode {
+        return receiver.buildFillActionForSlot<T>(propertyName)
+    }
+
     // If you load a string from disk or network, and you want use it as value of string, you need to
     // first escapeDoubleQuotes so that the resulting string can be interpreted as value of a string.
     fun escapeDoubleQuotes(input: String): String {
