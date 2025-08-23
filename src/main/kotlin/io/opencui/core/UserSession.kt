@@ -19,7 +19,6 @@ import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.ChatGPTSystem1
 import io.opencui.system1.ModelConfig
-import io.opencui.system1.ISystem1
 import java.io.ObjectInputStream
 import java.io.Serializable
 import java.time.Duration

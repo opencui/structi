@@ -1,7 +1,6 @@
 package io.opencui.serialization
 
 import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
@@ -11,9 +10,6 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.jsonSchema.JsonSchema
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.fasterxml.jackson.module.jsonSchema.types.ObjectSchema
-import io.modelcontextprotocol.spec.McpSchema
 import io.opencui.core.*
 import java.io.*
 import java.time.OffsetDateTime
@@ -22,6 +18,7 @@ import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
+
 
 /**
  * This will be our serialization tool.
@@ -153,7 +150,6 @@ object Json {
             }
         )
         mapper.registerModule(module)
-        mapper.registerKotlinModule()
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
@@ -164,6 +160,14 @@ object Json {
 
     inline fun <reified T:Any> buildSchema(): JsonSchema {
         return schemaGen.generateSchema(T::class.java) as JsonSchema
+    }
+
+    fun buildSchema(kClass: KClass<*>): JsonSchema {
+        return schemaGen.generateSchema(kClass.java)
+    }
+
+    inline fun <reified T:Any> buildFillAction(receiver: T, propertyName: String): ObjectNode {
+        return receiver.buildFillActionForSlot<T>(propertyName)
     }
 
     // If you load a string from disk or network, and you want use it as value of string, you need to
@@ -372,7 +376,7 @@ object Json {
     fun makeObject(maps: Map<String, JsonNode> = mapOf()) : ObjectNode {
         val result = ObjectNode(JsonNodeFactory.instance)
         for ((k, v) in maps.entries) {
-            result.put(k, v)
+            result.set<JsonNode>(k, v)
         }
         return result
     }
