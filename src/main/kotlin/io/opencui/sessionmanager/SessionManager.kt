@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import java.io.*
 import java.util.*
 import java.time.LocalDateTime
+import kotlin.reflect.KProperty1
 
 /**
  * We assume that at no circumstances that user will access more than one language at the same time.
@@ -80,6 +81,26 @@ interface IBotStore: IKVStore {
         return "agent:${botInfo.fullName}|$key"
     }
 }
+
+inline fun <reified T: Any, R> IBotStore.getKey(prop: KProperty1<T, R>): String {
+    val klass = T::class          // kotlin.reflect.KClass<User>
+    val className = klass.qualifiedName
+    return "${className}:${prop.name}"
+}
+
+inline fun <reified T: Any, R> IBotStore.save(prop: KProperty1<T, R>, receiver: T) {
+    val key = getKey(prop)
+    val value = prop.get(receiver)
+    val valueString = Json.encodeToString(value)
+    set(key, valueString)
+}
+
+inline fun <reified T: Any, reified R> IBotStore.load(prop: KProperty1<T, R>): R? {
+    val key = getKey(prop)
+    val valueString = get(key) ?: return null
+    return Json.decodeFromString<R>(valueString)
+}
+
 
 //  We need to return some part asap,
 fun <T> batchFirstRest(source: Flow<T>, predicate: (T) -> Boolean) : Flow<List<T>> = flow {
