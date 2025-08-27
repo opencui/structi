@@ -16,6 +16,8 @@ import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.sessionmanager.ChatbotLoader
+import io.opencui.sessionmanager.load
+import io.opencui.sessionmanager.save
 import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.ChatGPTSystem1
 import io.opencui.system1.ModelConfig
@@ -27,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KProperty1
 
 
 data class CoreMessage(val user: Boolean, val message: String): Serializable
@@ -203,7 +206,6 @@ data class UserSession(
     }
 
     // Default botInfo, need to be changed.
-
     override val events = mutableListOf<FrameEvent>()
 
     // when we create session without chatbot, it is only for du.
@@ -218,6 +220,17 @@ data class UserSession(
     }
 
     var hasSystem1: Boolean =  false
+
+
+    inline fun <reified T: Any, R> save(prop: KProperty1<T, R>, receiver: T) {
+        val botStore = Dispatcher.sessionManager.botStore ?: return
+        botStore.save(prop, receiver)
+    }
+
+    inline fun <reified T: Any, reified R: Any> load(prop: KProperty1<T, R>): R? {
+        val botStore = Dispatcher.sessionManager.botStore ?: return null
+        return botStore.load(prop)
+    }
 
     override fun addEvent(frameEvent: FrameEvent) {
         frameEvent.updateTurnId(turnId)
