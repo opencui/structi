@@ -222,12 +222,12 @@ data class UserSession(
     var hasSystem1: Boolean =  false
 
 
-    inline fun <reified T: Any, R> save(prop: KProperty1<T, R>, receiver: T) {
+    inline fun <reified T: Any, R> save(prop: KProperty1<T, R?>, receiver: T) {
         val botStore = Dispatcher.sessionManager.botStore ?: return
         botStore.save(prop, receiver)
     }
 
-    inline fun <reified T: Any, reified R: Any> load(prop: KProperty1<T, R>): R? {
+    inline fun <reified T: Any, reified R: Any> load(prop: KProperty1<T, R?>): R? {
         val botStore = Dispatcher.sessionManager.botStore ?: return null
         return botStore.load(prop)
     }
