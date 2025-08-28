@@ -227,7 +227,7 @@ inline fun <reified T: IFrame, reified R: Any> T.load(prop: KProperty1<T, R?>): 
     return session?.load(prop)
 }
 
-inline fun <reified T: IFrame, reified R: Any> T.buildFillAction(prop: KProperty1<T, R>): JsonNode {
+inline fun <reified T: IFrame, reified R: Any> T.buildFillAction(prop: KProperty1<T, R?>): JsonNode {
     return Json.buildFillAction(this, prop.name)
 }
 
