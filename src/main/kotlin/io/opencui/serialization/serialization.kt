@@ -16,8 +16,11 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty0
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaField
 
 
 /**
@@ -166,9 +169,31 @@ object Json {
         return schemaGen.generateSchema(kClass.java)
     }
 
-    inline fun <reified T:Any> buildFillAction(receiver: T, propertyName: String): ObjectNode {
-        return receiver.buildFillActionForSlot<T>(propertyName)
+
+    inline fun <reified R: Any> buildFillAction(prop: KProperty0<R?>): ObjectNode {
+        // T::class gives you the KClass instance for T at runtime.
+        val frameClass = prop.javaField?.declaringClass?.kotlin
+        val propertyName = prop.name
+
+        val propertyValue = prop.get()
+        if (propertyValue != null) {
+            mapper.createObjectNode().set<JsonNode>("content", Json.mapper.valueToTree(propertyValue))
+        } else {
+            mapper.createObjectNode().putNull("content")
+        }
+
+        // Get the property's type via reflection, so we don't need a second generic parameter `R`.
+        val propertyType = R::class
+        val res = mapper.createObjectNode()
+        res.put("type", "artifact")
+        res.put("qualifiedName", frameClass?.qualifiedName)
+        res.put("simpleName", frameClass?.simpleName)
+        res.put("packageName", frameClass?.java?.packageName)
+        res.put("slotName", propertyName)
+        res.set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema(propertyType)))
+        return res
     }
+
 
     // If you load a string from disk or network, and you want use it as value of string, you need to
     // first escapeDoubleQuotes so that the resulting string can be interpreted as value of a string.
