@@ -191,8 +191,6 @@ object Json {
         res.put("packageName", frameClass?.java?.packageName)
         res.put("slotName", propertyName)
         res.set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema(propertyType)))
-
-        println(res.toString())
         return res
     }
 
