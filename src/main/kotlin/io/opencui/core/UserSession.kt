@@ -223,7 +223,7 @@ data class UserSession(
     var hasSystem1: Boolean =  false
 
 
-    inline fun <reified R: Any> save(prop: KProperty0<R?>) {
+    fun <R: Any> save(prop: KProperty0<R?>) {
         val botStore = Dispatcher.sessionManager.botStore ?: return
         botStore.save(prop)
     }

@@ -85,15 +85,14 @@ interface IBotStore: IKVStore {
 }
 
 
-inline fun <reified R:Any> IBotStore.getKey(prop: KProperty0<R?>): String {
+fun <R:Any> IBotStore.getKey(prop: KProperty0<R?>): String {
     // T::class gives you the KClass instance for T at runtime.
     val frameClass = prop.javaField?.declaringClass?.kotlin
-    val propertyName = prop.name
     val className = frameClass?.qualifiedName
     return "${className}:${prop.name}"
 }
 
-inline fun <reified R: Any, > IBotStore.save(prop: KProperty0<R?>) {
+fun <R: Any, > IBotStore.save(prop: KProperty0<R?>) {
     val key = getKey(prop)
     val value = prop.get()
     val valueString = Json.encodeToString(value)
