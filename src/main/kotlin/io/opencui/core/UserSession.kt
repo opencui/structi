@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
 
@@ -222,12 +223,12 @@ data class UserSession(
     var hasSystem1: Boolean =  false
 
 
-    inline fun <reified T: Any, R> save(prop: KProperty1<T, R?>, receiver: T) {
+    fun <R: Any> save(prop: KProperty0<R?>) {
         val botStore = Dispatcher.sessionManager.botStore ?: return
-        botStore.save(prop, receiver)
+        botStore.save(prop)
     }
 
-    inline fun <reified T: Any, reified R: Any> load(prop: KProperty1<T, R?>): R? {
+    inline fun <reified R: Any> load(prop: KProperty0<R?>): R? {
         val botStore = Dispatcher.sessionManager.botStore ?: return null
         return botStore.load(prop)
     }

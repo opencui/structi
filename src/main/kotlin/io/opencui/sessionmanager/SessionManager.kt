@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory
 import java.io.*
 import java.util.*
 import java.time.LocalDateTime
+import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.javaField
 
 /**
  * We assume that at no circumstances that user will access more than one language at the same time.
@@ -82,20 +84,22 @@ interface IBotStore: IKVStore {
     }
 }
 
-inline fun <reified T: Any, R> IBotStore.getKey(prop: KProperty1<T, R>): String {
-    val klass = T::class          // kotlin.reflect.KClass<User>
-    val className = klass.qualifiedName
+
+fun <R:Any> IBotStore.getKey(prop: KProperty0<R?>): String {
+    // T::class gives you the KClass instance for T at runtime.
+    val frameClass = prop.javaField?.declaringClass?.kotlin
+    val className = frameClass?.qualifiedName
     return "${className}:${prop.name}"
 }
 
-inline fun <reified T: Any, R> IBotStore.save(prop: KProperty1<T, R>, receiver: T) {
+fun <R: Any, > IBotStore.save(prop: KProperty0<R?>) {
     val key = getKey(prop)
-    val value = prop.get(receiver)
+    val value = prop.get()
     val valueString = Json.encodeToString(value)
     set(key, valueString)
 }
 
-inline fun <reified T: Any, reified R> IBotStore.load(prop: KProperty1<T, R>): R? {
+inline fun <reified R: Any> IBotStore.load(prop: KProperty0<R?>): R? {
     val key = getKey(prop)
     val valueString = get(key) ?: return null
     return Json.decodeFromString<R>(valueString)

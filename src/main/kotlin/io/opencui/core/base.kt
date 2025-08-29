@@ -16,6 +16,7 @@ import io.opencui.sessionmanager.ChatbotLoader
 import java.io.Serializable
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
@@ -219,11 +220,12 @@ interface IFrame : ICui {
 inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
     annotations(path).filter { it is T && it.switch() }.map { it as T }
 
-inline fun <reified T: IFrame, R> T.save(prop: KProperty1<T, R?>) {
-    session?.save(prop, this)
+
+fun <R> IFrame.save(prop: KProperty0<R?>) {
+    session?.save(prop)
 }
 
-inline fun <reified T: IFrame, reified R: Any> T.load(prop: KProperty1<T, R?>): R? {
+inline fun <reified R: Any> IFrame.load(prop: KProperty0<R?>): R? {
     return session?.load(prop)
 }
 
