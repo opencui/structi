@@ -185,12 +185,13 @@ object Json {
         // Get the property's type via reflection, so we don't need a second generic parameter `R`.
         val propertyType = R::class
         val res = mapper.createObjectNode()
-        res.put("type", "artifact")
-        res.put("qualifiedName", frameClass?.qualifiedName)
-        res.put("simpleName", frameClass?.simpleName)
+        res.put("type", "slot")
+        res.put("frameName", frameClass?.simpleName)
         res.put("packageName", frameClass?.java?.packageName)
         res.put("slotName", propertyName)
+        res.put("slotType", propertyType.qualifiedName)
         res.set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema(propertyType)))
+        res.set<JsonNode>("value", Json.encodeToJsonElement(propertyValue))
         return res
     }
 
