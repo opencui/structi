@@ -176,22 +176,17 @@ object Json {
         val propertyName = prop.name
 
         val propertyValue = prop.get()
-        if (propertyValue != null) {
-            mapper.createObjectNode().set<JsonNode>("content", Json.mapper.valueToTree(propertyValue))
-        } else {
-            mapper.createObjectNode().putNull("content")
-        }
+        val res = mapper.createObjectNode()
 
         // Get the property's type via reflection, so we don't need a second generic parameter `R`.
         val propertyType = R::class
-        val res = mapper.createObjectNode()
         res.put("type", "slot")
         res.put("frameName", frameClass?.simpleName)
         res.put("packageName", frameClass?.java?.packageName)
         res.put("slotName", propertyName)
         res.put("slotType", propertyType.qualifiedName)
-        res.set<JsonNode>("schema", Json.encodeToJsonElement(Json.buildSchema(propertyType)))
-        res.set<JsonNode>("value", Json.encodeToJsonElement(propertyValue))
+        res.set<JsonNode>("schema", encodeToJsonElement(buildSchema(propertyType)))
+        res.set<JsonNode>("value", encodeToJsonElement(propertyValue))
         return res
     }
 
