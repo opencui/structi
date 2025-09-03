@@ -197,9 +197,8 @@ interface IFrame : ICui {
     var session: UserSession?
 
     // This is a computed property, not a stored one.
-    @get:JsonIgnore
-    val userIdentifier: IUserIdentifier?
-        get() = session
+    @JsonIgnore
+    fun getUserIdentifier: IUserIdentifier? = session
 
     fun annotations(path: String): List<Annotation> = listOf()
 
