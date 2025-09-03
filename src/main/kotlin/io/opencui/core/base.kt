@@ -1,5 +1,6 @@
 package io.opencui.core
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
@@ -195,14 +196,16 @@ interface CuiDisabled : Serializable
 interface IFrame : ICui {
     var session: UserSession?
 
-    fun getUserIdentifier(): IUserIdentifier? {
-        return session
-    }
+    // This is a computed property, not a stored one.
+    @get:JsonIgnore
+    val userIdentifier: IUserIdentifier?
+        get() = session
 
     fun annotations(path: String): List<Annotation> = listOf()
 
     fun createBuilder(): FillBuilder
 
+    @JsonIgnore
     fun getFallback(): CompositeAction? {
         return null
     }
