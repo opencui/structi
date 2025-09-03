@@ -198,7 +198,7 @@ interface IFrame : ICui {
 
     // This is a computed property, not a stored one.
     @JsonIgnore
-    fun getUserIdentifier: IUserIdentifier? = session
+    fun getUserIdentifier(): IUserIdentifier? = session
 
     fun annotations(path: String): List<Annotation> = listOf()
 
