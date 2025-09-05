@@ -29,7 +29,7 @@ data class DUSlotMeta(
     val suffixMap: Map<String, Int> = emptyMap()) {
 
     // Only direct filled slot does not need description, otherwise.
-    var isDirectFilled: Boolean = false
+    var isNluFilled: Boolean = true
 
     // Used to capture whether this slot is mentioned in the expression.
     var isMentioned: Boolean = false

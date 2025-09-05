@@ -621,8 +621,8 @@ data class BertStateTracker(
     fun fillSlots(pducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         val ducontext = pducontext as BertDuContext
         // we need to make sure we include slots mentioned in the intent expression
-        val slotMap = // Including all the top level slots.
-        agentMeta.getNestedSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
+        // Including all the top level slots.
+        val slotMap = agentMeta.getNestedSlotMetas(topLevelFrameType, emptyList()).filter { it.value.triggers.isNotEmpty() }
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 

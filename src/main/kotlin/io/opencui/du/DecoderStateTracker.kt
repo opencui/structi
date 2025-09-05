@@ -394,7 +394,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
             val frameSlots = duMeta
                 .getSlotMetas(triggerable.owner!!)
-                .filter { !it.isDirectFilled }
+                .filter { it.isNluFilled }
                 .filter { it.triggers.isNotEmpty()  }
                 .filter { !duMeta.isEntity(it.type!!) }
                 .filter { duMeta.getSlotMetas(it.type!!).find {it.isHead} != null }
@@ -721,7 +721,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // We only need description for slots with no direct fill.
         val slotMapBef = duMeta
             .getSlotMetas(topLevelFrameType)
-            .filter { !it.isDirectFilled }
+            .filter { it.isNluFilled }
             // no need to extract rawUserInput.
             .filter { duContext.rawUserInput(topLevelFrameType, it.label) != true }
 
