@@ -1,7 +1,9 @@
 package io.opencui.serialization
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect
 import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.PropertyAccessor
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
@@ -19,7 +21,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
-import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
 
 
@@ -250,6 +251,7 @@ object Json {
                 (o as? ObjectNode)?.put("@class", clazz.name)
                 val tmpMapper = mapper.copy()
                 tmpMapper.typeFactory = tmpMapper.typeFactory.withClassLoader(clazz.classLoader)
+                tmpMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
                 val res: T = tmpMapper.treeToValue(o, clazz)
                 if (res is IFrame && session != null) {
                     res.session = session
