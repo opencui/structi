@@ -25,11 +25,9 @@ data class DUSlotMeta(
     // We need to populate this soon.
     val parent: String? = null,
     val isHead: Boolean = false,
+    var isNluFilled: Boolean = true,      // Only direct filled slot does not need description, otherwise.
     val prefixMap: Map<String, Int> = emptyMap(),  //  So that we can do correct naive bayes for context.
     val suffixMap: Map<String, Int> = emptyMap()) {
-
-    // Only direct filled slot does not need description, otherwise.
-    var isNluFilled: Boolean = true
 
     // Used to capture whether this slot is mentioned in the expression.
     var isMentioned: Boolean = false
