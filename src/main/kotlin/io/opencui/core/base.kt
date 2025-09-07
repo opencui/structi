@@ -139,7 +139,7 @@ fun createFrameGenerator(session: UserSession, interfaceClassName: String) = obj
         val interfaceKClass = session.findKClass(interfaceClassName) ?: return null
         val packageName = type.substringBeforeLast(".", interfaceClassName.substringBeforeLast("."))
         val simpleType = type.substringAfterLast(".")
-        val frame = session.construct(packageName, simpleType, session)
+        val frame = session.constructByMap(packageName, simpleType, mapOf("session" to session))
         return if (interfaceKClass.isInstance(frame)) frame else null
     }
 }
@@ -492,7 +492,7 @@ abstract class IChatbot : Component {
     operator fun invoke(p1: String, session: UserSession, packageName: String? = null): FillBuilder? {
         // hardcode for clean session
         val revisedPackageName = packageName ?: this.javaClass.packageName
-        return session.construct(revisedPackageName, p1, session)?.createBuilder()
+        return session.constructByMap(revisedPackageName, p1, mapOf("session" to session))?.createBuilder()
     }
 
     // Add this to isolate the guava issue.
