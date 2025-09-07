@@ -125,11 +125,21 @@ class InterfaceIEntitySerializer: JsonSerializer<IEntity>() {
     }
 }
 
-// TODO(sean) maybe chagned to regular class so that we can take session as member.
-object Json {
-    val mapper = jacksonObjectMapper()
+object MapperCache{
+    val cache = mutableMapOf<ClassLoader, ObjectMapper>()
 
-    init {
+    fun getMapper(classLoader: ClassLoader) : ObjectMapper {
+        if (cache.containsKey(classLoader)) {
+            return cache[classLoader]!!
+        } else {
+            val mapper = createMapper(classLoader)
+            cache[classLoader] = mapper
+            return mapper
+        }
+    }
+
+    fun createMapper(classLoader: ClassLoader): ObjectMapper {
+        val mapper = jacksonObjectMapper()
         // support the java time.
         val module = JavaTimeModule()
         module.addDeserializer(
@@ -157,7 +167,18 @@ object Json {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
         mapper.enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL)
+
+        // get the class loader.
+        mapper.typeFactory = mapper.typeFactory.withClassLoader(classLoader)
+        return mapper
     }
+
+}
+
+
+// TODO(sean) maybe chagned to regular class so that we can take session as member.
+object Json {
+    val mapper = MapperCache.getMapper(Json.javaClass.classLoader)
 
     val schemaGen by lazy { JsonSchemaGenerator(mapper) }
 
@@ -248,8 +269,7 @@ object Json {
                     return null as T
                 }
                 (o as? ObjectNode)?.put("@class", clazz.name)
-                val tmpMapper = mapper.copy()
-                tmpMapper.typeFactory = tmpMapper.typeFactory.withClassLoader(clazz.classLoader)
+                val tmpMapper = MapperCache.getMapper(clazz.classLoader)
                 val res: T = tmpMapper.treeToValue(o, clazz)
                 if (res is IFrame && session != null) {
                     res.session = session
