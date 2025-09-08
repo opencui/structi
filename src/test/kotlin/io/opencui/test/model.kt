@@ -420,7 +420,7 @@ data class Hotel(override var session: UserSession? = null
 
     @JsonIgnore
     var pagedSelectable: String?.() -> PagedSelectable<String> = {PagedSelectable(
-        session, JsonFrameBuilder("""{"@class": "io.opencui.test.HotelSuggestionIntent"}""", constructorParameters = mapOf("session" to session), slotAssignments = mapOf("city" to {city}, "hotel" to {this})),
+        session, JsonFrameBuilder("""{"@class": "io.opencui.test.HotelSuggestionIntent"}""", constructorParameters = listOf(session), slotAssignments = mapOf("city" to {city}, "hotel" to {this})),
         {String::class},
         {offers ->
             SlotOffer(offers, "hotel", "kotlin.String",
@@ -907,7 +907,7 @@ data class FirstLevelQuestion(override var session: UserSession? = null) : IInte
 
     override fun searchResponse(): Action? {
         return when {
-            else -> IntentAction(JsonFrameBuilder("{\"@class\": \"io.opencui.test.BookHotel\"}",  mapOf("session" to session)))
+            else -> IntentAction(JsonFrameBuilder("{\"@class\": \"io.opencui.test.BookHotel\"}", listOf(session)))
         }
     }
 }

@@ -53,7 +53,7 @@ interface FullFrameBuilder: IFrameBuilder, InitIFrameFiller, Serializable {
 
 data class JsonFrameBuilder(
     @get:JsonIgnore val value: String,
-    @JsonIgnore val constructorParameters: Map<String, Any?> = mapOf(),
+    @JsonIgnore val constructorParameters: List<Any?> = listOf(),
     @JsonIgnore var slotAssignments: Map<String, ()->Any?> = mapOf()
 ): FullFrameBuilder {
     override fun invoke(session: UserSession) : IFrame? {
@@ -61,7 +61,7 @@ data class JsonFrameBuilder(
         val fullyQualifiedName = objectNode.get("@class").asText()
         val packageName = fullyQualifiedName.substringBeforeLast(".")
         val intentName = fullyQualifiedName.substringAfterLast(".")
-        return session.constructByMap(packageName, intentName, constructorParameters)
+        return session.construct(packageName, intentName, *constructorParameters.toTypedArray())
     }
 
     override fun init(session: UserSession, filler: FrameFiller<*>) {
@@ -111,7 +111,7 @@ fun intentBuilder(frameEvent: FrameEvent): IFrameBuilder {
     return IFrameBuilder{ session -> session.construct(packageName, type, session, *frameEvent.triggerParameters.toTypedArray()) as? IIntent }
 }
 
-fun intentBuilder(fullyQualifiedName: String): IFrameBuilder {
+fun intentBuilder(fullyQualifiedName: String, vararg args: Any?): IFrameBuilder {
     return IFrameBuilder{
         session ->
             if (fullyQualifiedName.isEmpty() || fullyQualifiedName.lastIndexOf(".") < 0 ) {
@@ -120,7 +120,7 @@ fun intentBuilder(fullyQualifiedName: String): IFrameBuilder {
                 val index = fullyQualifiedName.lastIndexOf(".")
                 val packageName = fullyQualifiedName.substring(0, index)
                 val className = fullyQualifiedName.substring(index + 1)
-                session.constructByMap(packageName, className, mapOf("session" to session)) as? IIntent
+                session.construct(packageName, className, session, *args) as? IIntent
             }
     }
 }

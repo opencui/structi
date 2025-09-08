@@ -1582,7 +1582,7 @@ data class ValueRecommendationTest(override var session: UserSession? = null): I
 
     @JsonIgnore
     val recommendation = PagedSelectable<String>(
-        session, JsonFrameBuilder("""{"@class": "io.opencui.test.ReturnValueTestIntent", "a": 1}""", mapOf("session" to session)),
+        session, JsonFrameBuilder("""{"@class": "io.opencui.test.ReturnValueTestIntent", "a": 1}""", listOf(session)),
         { String::class },
             {offers ->
                 SlotOffer(offers, "s", "kotlin.String",
@@ -2415,7 +2415,7 @@ data class ContextBasedRecIntent(
     @JsonIgnore
     val recommendation: (ContextBasedRecFrame?) -> PagedSelectable<ContextBasedRecFrame> = {PagedSelectable<ContextBasedRecFrame>(
         session, JsonFrameBuilder("""{"@class": "io.opencui.test.RecommendationIntentForContextBasedRec"}""",
-            mapOf("session" to session), mapOf("rf" to {it})
+            listOf(session), mapOf("rf" to {it})
         ),
         { ContextBasedRecFrame::class },
             {offers ->

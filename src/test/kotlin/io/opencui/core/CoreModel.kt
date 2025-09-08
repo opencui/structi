@@ -104,7 +104,7 @@ data class IntentSuggestion(override var session: UserSession? = null
     override fun searchResponse(): Action? {
         return when {
             // TODO(xiaobo): why we are triggering this intent action?
-            else -> IntentAction(JsonFrameBuilder("{\"@class\": \"${this.intentPackage ?: ""}.${this.intentName ?: ""}\"}", mapOf("session" to session)))
+            else -> IntentAction(JsonFrameBuilder("{\"@class\": \"${this.intentPackage ?: ""}.${this.intentName ?: ""}\"}", listOf(session)))
         }
     }
 }
