@@ -201,10 +201,6 @@ data class FrameEvent(
 
     @JsonIgnore
     val triggerParameters: MutableList<Any?> = mutableListOf()
-
-    @JsonIgnore
-    val triggerParameterInMap: MutableMap<String, Any?> = mutableMapOf()
-
     @JsonIgnore
     var slotAssignments: MutableMap<String, ()->Any?> = mutableMapOf()
 

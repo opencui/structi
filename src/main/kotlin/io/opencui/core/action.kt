@@ -224,15 +224,7 @@ data class StartFill(
 
                 val buildIntent = intentBuilder(
                     FrameEvent(clarificationClass.substringAfterLast("."), packageName = clarificationClass.substringBeforeLast(".", ""))
-                        .apply {
-                            triggerParameters.addAll(listOf({ SlotType::class }, candidates, intent, originalSlot))
-                            triggerParameterInMap.putAll(mapOf(
-                                "getClass" to { SlotType::class },
-                                "source" to candidates,
-                                "targetFrame" to intent,
-                                "slot" to originalSlot
-                            ))
-                        }
+                        .apply { triggerParameters.addAll(listOf({ SlotType::class }, candidates, intent, originalSlot))}
                     )
 
                 val clarificationIntent = buildIntent.invoke(session)!!
@@ -527,12 +519,6 @@ data class SlotPostAskAction(
                         val packageName = clarificationClass.substringBeforeLast(".", "")
                         val triggerEvent = FrameEvent(simpleName, packageName = packageName).apply {
                             triggerParameters.addAll(listOf(kClass , fromContexts.toSet().toMutableList(), (wrapperFiller.targetFiller as FrameFiller<*>).frame(), attr))
-                            triggerParameterInMap.putAll(mapOf(
-                                "getClass" to kClass,
-                                "source" to fromContexts.toSet().toMutableList(),
-                                "targetFrame" to (wrapperFiller.targetFiller as FrameFiller<*>).frame(),
-                                "slot" to attr
-                            ))
                         }
                         session.addEvent(triggerEvent)
                         return ActionResult(emptyLog())

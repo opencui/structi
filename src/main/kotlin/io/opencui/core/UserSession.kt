@@ -795,7 +795,7 @@ data class UserSession(
         return path
     }
 
-    fun constructBasic(packageName: String?, className: String, vararg args: Any?): IFrame? {
+    fun construct(packageName: String?, className: String, vararg args: Any?): IFrame? {
         val revisedPackageName = packageName ?: chatbot?.javaClass?.packageName
         try {
             val kClass = Class.forName("${revisedPackageName}.${className}", true, chatbot!!.getLoader()).kotlin
@@ -807,46 +807,6 @@ data class UserSession(
             return null
         } catch (e: Error) {
             return null
-        }
-    }
-
-    fun construct(packageName: String?, className: String, vararg args: Any?): IFrame? {
-        val revisedPackageName = packageName ?: chatbot?.javaClass?.packageName
-        return try {
-            val kClass = Class.forName("${revisedPackageName}.${className}", true, chatbot!!.getLoader()).kotlin
-
-            // Pick a constructor that matches the number of arguments
-            val ctor = kClass.constructors.firstOrNull { it.parameters.size == args.size } ?: return null
-
-            ctor.call(*args) as? IFrame
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    fun constructByMap(packageName: String?, className: String, args: Map<String, Any?>): IFrame? {
-        val revisedPackageName = packageName ?: chatbot?.javaClass?.packageName
-        return try {
-            val kClass = Class.forName(
-                "${revisedPackageName}.${className}",
-                true,
-                chatbot!!.getLoader()
-            ).kotlin
-
-            val ctor = kClass.primaryConstructor ?: return null
-
-            // Build mapping for callBy
-            val paramsMap = ctor.parameters.associateWith { param ->
-                args[param.name]  // use name match
-            }.filterValues { it != null || args.containsKey(it.toString()) }
-
-            ctor.callBy(paramsMap) as? IFrame
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        } catch (e: Error) {
-            null
         }
     }
 
@@ -946,15 +906,17 @@ data class UserSession(
         return null
     }
 
-    fun findSystemAnnotation(systemAnnotationType: SystemAnnotationType): IIntent? {
+    fun findSystemAnnotation(systemAnnotationType: SystemAnnotationType, vararg args: Any?): IIntent? {
         val fullyQualifiedName: String = systemAnnotationType.typeName
         if (fullyQualifiedName.isEmpty()) return null
         val index = fullyQualifiedName.lastIndexOf(".")
         if (index < 0) return null
         val packageName = fullyQualifiedName.substring(0, index)
         val className = fullyQualifiedName.substring(index + 1)
-        return constructByMap(packageName, className, mapOf("session" to this)) as? IIntent
+        return construct(packageName, className, this, *args) as? IIntent
     }
+
+
 
     private fun areParametersCompatible(formalParams: List<KParameter>, actualParams: List<DialogAct>): Boolean {
         check(formalParams.size == actualParams.size)
@@ -971,7 +933,7 @@ data class UserSession(
         } else if (dialogAct is FrameDialogAct<*>) {
             val packageName = dialogAct.frameType.substringBeforeLast(".")
             val className = dialogAct.frameType.substringAfterLast(".")
-            val annotations = constructByMap(packageName, className, mapOf("session" to this))?.findAll<DialogActCustomizationAnnotation>("this") ?: listOf()
+            val annotations = construct(packageName, className, this)?.findAll<DialogActCustomizationAnnotation>("this") ?: listOf()
             return annotations.firstOrNull { it.dialogActName == dialogAct::class.qualifiedName }?.templateGen?.invoke(dialogAct)
         } else {
             throw Exception("ComponentDialogAct not supported")
