@@ -108,7 +108,7 @@ data class EventFrameBuilder(
 fun intentBuilder(frameEvent: FrameEvent): IFrameBuilder {
     val type = frameEvent.type
     val packageName = frameEvent.packageName
-    return IFrameBuilder{ session -> session.construct(packageName, type, session, *frameEvent.triggerParameters.toTypedArray()) as? IIntent }
+    return IFrameBuilder{ session -> session.constructByMap(packageName, type,  frameEvent.triggerParameterInMap + mapOf("session" to session)) as? IIntent }
 }
 
 fun intentBuilder(fullyQualifiedName: String): IFrameBuilder {
