@@ -795,36 +795,6 @@ data class UserSession(
         return path
     }
 
-    fun constructBasic(packageName: String?, className: String, vararg args: Any?): IFrame? {
-        val revisedPackageName = packageName ?: chatbot?.javaClass?.packageName
-        try {
-            val kClass = Class.forName("${revisedPackageName}.${className}", true, chatbot!!.getLoader()).kotlin
-            val ctor = kClass.primaryConstructor ?: return null
-            // Checking whether this is singleton.
-            return ctor.call(*args) as? IFrame
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return null
-        } catch (e: Error) {
-            return null
-        }
-    }
-
-    fun construct(packageName: String?, className: String, vararg args: Any?): IFrame? {
-        val revisedPackageName = packageName ?: chatbot?.javaClass?.packageName
-        return try {
-            val kClass = Class.forName("${revisedPackageName}.${className}", true, chatbot!!.getLoader()).kotlin
-
-            // Pick a constructor that matches the number of arguments
-            val ctor = kClass.constructors.firstOrNull { it.parameters.size == args.size } ?: return null
-
-            ctor.call(*args) as? IFrame
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
     fun constructByMap(packageName: String?, className: String, args: Map<String, Any?>): IFrame? {
         val revisedPackageName = packageName ?: chatbot?.javaClass?.packageName
         return try {
