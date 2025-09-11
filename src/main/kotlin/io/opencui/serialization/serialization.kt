@@ -1,9 +1,7 @@
 package io.opencui.serialization
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect
 import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.annotation.PropertyAccessor
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
@@ -203,10 +201,10 @@ object Json {
         // Get the property's type via reflection, so we don't need a second generic parameter `R`.
         val propertyType = R::class
         res.put("type", "slot")
-        res.put("frameName", frameClass?.simpleName)
-        res.put("packageName", frameClass?.java?.packageName)
+        res.put("ownerFrame", frameClass?.qualifiedName)
+        res.put("slotPackageName", propertyType.java.packageName)
         res.put("slotName", propertyName)
-        res.put("slotType", propertyType.qualifiedName)
+        res.put("slotType", propertyType.simpleName)
         res.set<JsonNode>("schema", encodeToJsonElement(buildSchema(propertyType)))
         res.set<JsonNode>("value", encodeToJsonElement(propertyValue))
         return res
