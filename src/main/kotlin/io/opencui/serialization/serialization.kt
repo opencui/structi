@@ -190,7 +190,7 @@ object Json {
     }
 
 
-    inline fun <reified R: Any> buildFillAction(prop: KProperty0<R?>): ObjectNode {
+    inline fun <reified R: Any> buildFillAction(prop: KProperty0<R?>, readonly: Boolean = false): ObjectNode {
         // T::class gives you the KClass instance for T at runtime.
         val frameClass = prop.javaField?.declaringClass?.kotlin
         val propertyName = prop.name
@@ -202,6 +202,7 @@ object Json {
         val propertyType = R::class
         res.put("type", "slot")
         res.put("ownerFrame", frameClass?.qualifiedName)
+        res.put("readonly", readonly)
         res.put("slotPackageName", propertyType.java.packageName)
         res.put("slotName", propertyName)
         res.put("slotType", propertyType.simpleName)
