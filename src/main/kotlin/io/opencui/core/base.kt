@@ -250,7 +250,7 @@ interface IRawInputHandler : Serializable {
 }
 
 // For the Reducer, we need to make sure that rawUserInput is the first one, and ReduceState is last one
-interface Reducer: IRawInputHandler {
+interface NlReducible: IRawInputHandler {
     var state: ReduceState?
     fun isRelated(question: String): RelatedStatus { return RelatedStatus(true) }
     fun checkState(): ReduceState
