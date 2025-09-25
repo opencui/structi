@@ -62,8 +62,10 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
             val apikey = config[APIKEY] as String?
             val family = config[FAMILY]!! as String
             val label = config[LABEL]!! as String
-            val temperature: Float = (config[TEMPERATURE]!! as String).toFloat()
-            val topk: Int = (config[TOPK]!! as String).toInt()
+            val temperatureStr = config[TEMPERATURE] as String?
+            val temperature: Float = if (temperatureStr.isNullOrEmpty()) 0.0f else temperatureStr.toFloat()
+            val topkStr = config[TOPK]!! as String?
+            val topk: Int = if (topkStr.isNullOrEmpty()) 1 else topkStr.toInt()
             val maxOutputTokensStr = config[maxOutputTokens] as String?
             val maxLength: Int = if (maxOutputTokensStr.isNullOrEmpty()) defaultMaxOutputTokens else maxOutputTokensStr.toInt()
             val model = ModelConfig(family, label, url = url, apikey = apikey, temperature = temperature, topK = topk, maxOutputTokens = maxLength)
