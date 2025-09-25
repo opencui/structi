@@ -1004,11 +1004,32 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
             return FrameEvent.build(p1.fullType, entityEvents + p1.slots, frames = p1.frames)
         } else {
             println("Class $clazz is not implementing IRawInputHandler")
-            return p1
+            // Now we test whether the first lost is IRawInputHandler.
+            val slotMeta = duMeta.getSlotMetas(p1.fullType).firstOrNull() ?: return p1
+            return build(slotMeta.type!!, utterance, expectations, classLoader) ?: p1
+        }
+    }
+
+    fun build(fullType: String, utterance: String, expectations: DialogExpectations, classLoader: ClassLoader): FrameEvent? {
+        val clazz = classLoader.loadClass(fullType)
+
+        if (!IFrame::class.java.isAssignableFrom(clazz)) return null
+
+        // no entity events, no frame slot events.
+        if (IRawInputHandler::class.java.isAssignableFrom(clazz)) {
+            println("Class: $clazz is implementing IRawInputHandler")
+            val entityEvents = listOf(
+                EntityEvent.build("rawUserInput", utterance),
+            )
+            return FrameEvent.build(fullType, entityEvents)
+        } else {
+            println("Class $clazz is not implementing IRawInputHandler")
+            // Now we test whether the first lost is IRawInputHandler.
+            val slotMeta = duMeta.getSlotMetas(fullType).firstOrNull() ?: return null
+            return build(slotMeta.type!!, utterance, expectations, classLoader)
         }
     }
 }
-
 
 
 data class ChainedFrameEventProcesser(val processers: List<FrameEventProcessor>) : FrameEventProcessor {
