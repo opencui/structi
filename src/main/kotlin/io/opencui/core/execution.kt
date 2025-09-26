@@ -174,7 +174,11 @@ class DialogManager {
         val expectations = findDialogExpectation(session)
 
         val convertToFrameEvent = measureTimeMillisWithResult {
-            session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+            if (query.isEmpty()) {
+               emptyList()
+            } else {
+                session.chatbot!!.stateTracker.convert(session, query, DialogExpectations(expectations))
+            }
         }
         val duReturnedFrameEvent = convertToFrameEvent.second
 

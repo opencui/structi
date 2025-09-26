@@ -125,13 +125,6 @@ enum class ValueOperator {
     }
 }
 
-fun <F,T> List<F>.mapFirst(block: (F) -> T?): T? {
-    for (e in this) {
-        block(e)?.let { return it }
-    }
-    return null
-}
-
 
 data class SlotValue(val values: List<String>, val operator: String  = "EqualTo")
 
@@ -207,9 +200,9 @@ class SlotValueCandidates {
         }
         val slots = withBonus.sortedBy { -it.second }
         if (frame != IStateTracker.SlotUpdate) {
-            return slots.mapFirst { slotToValue(duContext, frame, it.first) }
+            return slots.firstNotNullOfOrNull { slotToValue(duContext, frame, it.first) }
         } else {
-            val result = slots.mapFirst { slotToValue(duContext, frame, it.first, targetSlot) }
+            val result = slots.firstNotNullOfOrNull { slotToValue(duContext, frame, it.first, targetSlot) }
             return result
         }
     }
@@ -221,7 +214,7 @@ class SlotValueCandidates {
         if (withBonus.isEmpty()) return null
         val slots = withBonus.sortedBy { -it.second }.map { it.first }
 
-        return slots.mapFirst { slotToValue(duContext, frame, it) }
+        return slots.firstNotNullOfOrNull { slotToValue(duContext, frame, it) }
     }
 }
 
@@ -989,10 +982,10 @@ data class IDontGetItToRawInputUpgrader(val duMeta: DUMeta) {
  * When the current active frames contains a skill for the new skill.
  */
 data class RawInputSkillConverter(val duMeta: DUMeta) {
-    // This is used to detect whether one class implements another class
-    fun invoke(p1: FrameEvent, utterance: String, expectations: DialogExpectations, classLoader: ClassLoader): FrameEvent {
+    // This is used to detect whether one class implements another class>
+    fun invoke(p1: FrameEvent, utterance: String, expectations: DialogExpectations, classLoader: ClassLoader): List<FrameEvent> {
         if (!duMeta.isSkill(p1.fullType)) {
-            return p1
+            return listOf(p1)
         }
         val clazz = classLoader.loadClass(p1.fullType)
         // no entity events, no frame slot events.
@@ -1001,14 +994,38 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
             val entityEvents = listOf(
                 EntityEvent.build("rawUserInput", utterance),
             )
-            return FrameEvent.build(p1.fullType, entityEvents + p1.slots, frames = p1.frames)
+            return listOf(FrameEvent.build(p1.fullType, entityEvents + p1.slots, frames = p1.frames))
         } else {
             println("Class $clazz is not implementing IRawInputHandler")
-            return p1
+            // Now we test whether the first lost is IRawInputHandler.
+            val slotMeta = duMeta.getSlotMetas(p1.fullType).firstOrNull() ?: return listOf(p1)
+            val frameEvents = build(slotMeta.type!!, utterance, expectations, classLoader)
+            // last one needs to have rawUserInput.
+            if (frameEvents.lastOrNull()?.slots?.find { it.attribute == "rawUserInput" } != null) return listOf(p1) + frameEvents
+            return listOf(p1)
+        }
+    }
+
+    fun build(fullType: String, utterance: String, expectations: DialogExpectations, classLoader: ClassLoader): List<FrameEvent> {
+        val clazz = classLoader.loadClass(fullType)
+
+        if (!IFrame::class.java.isAssignableFrom(clazz)) return emptyList()
+
+        // no entity events, no frame slot events.
+        if (IRawInputHandler::class.java.isAssignableFrom(clazz)) {
+            println("Class: $clazz is implementing IRawInputHandler")
+            val entityEvents = listOf(
+                EntityEvent.build("rawUserInput", utterance),
+            )
+            return listOf(FrameEvent.build(fullType, entityEvents))
+        } else {
+            println("Class $clazz is not implementing IRawInputHandler")
+            // Now we test whether the first lost is IRawInputHandler.
+            val slotMeta = duMeta.getSlotMetas(fullType).firstOrNull() ?: return emptyList()
+            return listOf(FrameEvent.build(fullType)) + build(slotMeta.type!!, utterance, expectations, classLoader)
         }
     }
 }
-
 
 
 data class ChainedFrameEventProcesser(val processers: List<FrameEventProcessor>) : FrameEventProcessor {
