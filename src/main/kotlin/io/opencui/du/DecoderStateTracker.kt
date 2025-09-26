@@ -283,6 +283,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         val beforeRaw = res.map { postProcess(it, expectations) }
         return beforeRaw
             .map { rawInputSkillConverter.invoke(it, utterance, expectations, session.chatbot!!.getLoader()) }
+            .flatten()
             .map { iDontGetItToRawInputUpgrader.invoke(it, utterance, expectations, session.chatbot!!.getLoader()) }
     }
 
