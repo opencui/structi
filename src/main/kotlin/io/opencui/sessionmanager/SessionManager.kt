@@ -85,27 +85,6 @@ interface IBotStore: IKVStore {
 }
 
 
-fun <R:Any> IBotStore.getKey(prop: KProperty0<R?>): String {
-    // T::class gives you the KClass instance for T at runtime.
-    val frameClass = prop.javaField?.declaringClass?.kotlin
-    val className = frameClass?.qualifiedName
-    return "${className}:${prop.name}"
-}
-
-fun <R: Any, > IBotStore.save(prop: KProperty0<R?>) {
-    val key = getKey(prop)
-    val value = prop.get()
-    val valueString = Json.encodeToString(value)
-    set(key, valueString)
-}
-
-inline fun <reified R: Any> IBotStore.load(prop: KProperty0<R?>): R? {
-    val key = getKey(prop)
-    val valueString = get(key) ?: return null
-    return Json.decodeFromString<R>(valueString)
-}
-
-
 //  We need to return some part asap,
 fun <T> batchFirstRest(source: Flow<T>, predicate: (T) -> Boolean) : Flow<List<T>> = flow {
     var foundItem: T? = null

@@ -15,9 +15,9 @@ import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
+import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
-import io.opencui.sessionmanager.load
-import io.opencui.sessionmanager.save
+import io.opencui.sessionmanager.IBotStore
 import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.ChatGPTSystem1
 import io.opencui.system1.ModelConfig
@@ -30,7 +30,7 @@ import kotlin.reflect.KParameter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KProperty0
-import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.javaField
 
 
 data class CoreMessage(val user: Boolean, val message: String): Serializable
@@ -179,8 +179,6 @@ interface StateChart {
     fun kernelStep(): List<Action>
 }
 
-
-
 /**
  * UserSession is used to keep the history of the conversation with user. It will
  * only keep for certain amount of time.
@@ -222,15 +220,20 @@ data class UserSession(
 
     var hasSystem1: Boolean =  false
 
-
-    fun <R: Any> save(prop: KProperty0<R?>) {
-        val botStore = Dispatcher.sessionManager.botStore ?: return
-        botStore.save(prop)
+    // This can be used to presist a value, but it can be used again.
+    fun <R: Any> save(className: String, propName: String, value : R?) : R?{
+        val botStore = Dispatcher.sessionManager.botStore ?: return value
+        val key = "$sessionId:${className}:${propName}"
+        val valueString = Json.encodeToString(value)
+        botStore.set(key, valueString)
+        return value
     }
 
-    inline fun <reified R: Any> load(prop: KProperty0<R?>): R? {
+    inline fun <reified R: Any> load(className: String, propName: String): R? {
         val botStore = Dispatcher.sessionManager.botStore ?: return null
-        return botStore.load(prop)
+        val key = "$sessionId:${className}:${propName}"
+        val valueString = botStore.get(key) ?: return null
+        return Json.decodeFromString<R>(valueString)
     }
 
     override fun addEvent(frameEvent: FrameEvent) {

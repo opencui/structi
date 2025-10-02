@@ -223,12 +223,22 @@ inline fun <reified T : Annotation> IFrame.findAll(path: String): List<T> =
     annotations(path).filter { it is T && it.switch() }.map { it as T }
 
 
-fun <R> IFrame.save(prop: KProperty0<R?>) {
-    session?.save(prop)
+fun <R> IFrame.save(prop: KProperty0<R?>): R? {
+    val className = this::class.java.name
+    val propName = prop.name
+    val value = prop.get()
+    return session?.save(className, propName, value)
+}
+
+fun <R:Any> IFrame.save(propName: String, value: R): R? {
+    val className = this::class.java.name
+    return session?.save(className, propName, value)
 }
 
 inline fun <reified R: Any> IFrame.load(prop: KProperty0<R?>): R? {
-    return session?.load(prop)
+    val className = this::class.java.name
+    val propName = prop.name
+    return session?.load(className, propName)
 }
 
 fun <T> renderValue(input: T?): String = when (input) {
