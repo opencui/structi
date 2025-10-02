@@ -1001,8 +1001,11 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
             val slotMeta = duMeta.getSlotMetas(p1.fullType).firstOrNull() ?: return listOf(p1)
             val frameEvents = build(slotMeta.type!!, utterance, expectations, classLoader)
             // last one needs to have rawUserInput.
-            if (frameEvents.lastOrNull()?.slots?.find { it.attribute == "rawUserInput" } != null) return listOf(p1) + frameEvents
-            return listOf(p1)
+            return if (frameEvents.lastOrNull()?.slots?.find { it.attribute == "rawUserInput" } != null) {
+                listOf(p1) + frameEvents
+            } else {
+                listOf(p1)
+            }
         }
     }
 
