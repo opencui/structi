@@ -366,8 +366,7 @@ object Dispatcher {
         userSession: UserSession,
         message: TextPayload? = null,
         sink: ControlSink? = null,  // Only useful for markSeen
-        events: List<FrameEvent> = emptyList(),
-        emitter: Emitter<System1Inform>?=null): Flow<DialogAct> = flow {
+        events: List<FrameEvent> = emptyList()): Flow<DialogAct> = flow {
         val msgId = message?.msgId
 
         // if there is no msgId, or msgId is not repeated, we handle message.
