@@ -66,7 +66,7 @@ open class System1Generation(
             // Producer: asyncJob emits to channel, then produces JsonElement?
             val asyncJob = async(Dispatchers.Default) {
                 val emitter = object : Emitter<System1Inform> {
-                    override fun invoke(x: System1Inform) {
+                    override suspend fun invoke(x: System1Inform) {
                         println("Emitter: Emitting '$x'") // Added for clarity
                         channel.trySend(x) // trySend is non-suspending
                     }
