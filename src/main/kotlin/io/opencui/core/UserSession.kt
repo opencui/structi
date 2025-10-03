@@ -13,6 +13,7 @@ import io.opencui.core.user.UserIdentifier
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.FrameDialogAct
 import io.opencui.core.da.SlotDialogAct
+import io.opencui.core.da.System1Inform
 import io.opencui.du.ListRecognizer
 import io.opencui.kvstore.IKVStore
 import io.opencui.serialization.Json
@@ -219,6 +220,9 @@ data class UserSession(
     }
 
     var hasSystem1: Boolean =  false
+
+    // This pointer to emitter that can be used by system1.
+    var emitter: Emitter<System1Inform>? = null
 
     // This can be used to presist a value, but it can be used again.
     fun <R: Any> save(className: String, propName: String, value : R?) : R?{
