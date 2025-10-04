@@ -3,15 +3,10 @@ package io.opencui.core.da
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
-import io.opencui.serialization.Json
 import io.opencui.system1.Augmentation
-import io.opencui.system1.ISystem1
 import io.opencui.system1.System1Mode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -59,31 +54,19 @@ open class System1Generation(
         val system1Action = system1Builder.build(session, augmentation)
 
         val channel = Channel<System1Inform>(Channel.UNLIMITED)
-        val flow = channel.receiveAsFlow() // <-- Flow object is created immediately
-
-        runBlocking {
-            // This entire block must complete before 'result' gets its value
-            // Producer: asyncJob emits to channel, then produces JsonElement?
-            val asyncJob = async(Dispatchers.Default) {
-                val emitter = object : Emitter<System1Inform> {
-                    override suspend fun invoke(x: System1Inform) {
-                        println("Emitter: Emitting '$x'") // Added for clarity
-                        channel.trySend(x) // trySend is non-suspending
-                    }
+        system1Action.invoke(
+            object : Emitter<System1Inform> {
+                override suspend fun invoke(x: System1Inform) {
+                    println("Emitter: Emitting '$x'") // Added for clarity
+                    channel.trySend(x) // trySend is non-suspending
                 }
-                // this is used to process.
-                system1Action.invoke(emitter)
-            }
-
-            val jsonResult = asyncJob.await() // Await the JsonElement? from the producer
-            channel.close() // Close the channel after producer is done
-            jsonResult // This is the value that 'result' will take on
-        }
+            })
+        channel.close()
 
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.
         val actionResult = ActionResult(
-            flow,
+            channel.receiveAsFlow(),
             createLog("AugmentedGeneration"),
             true
         )

@@ -1,7 +1,9 @@
 package io.opencui.system1
 
 import io.opencui.core.*
+import io.opencui.core.da.System1Inform
 import io.opencui.serialization.JsonElement
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlin.reflect.KClass
@@ -228,11 +230,6 @@ enum class System1Type {
 }
 
 
-// For now, we only SUPPORT Kotlin, but eventually, we can support other templates like Jinja2,
-enum class IntroductionType {
-    Kotlin
-}
-
 // Should we make this defined distributedly, or centrally defined like this.
 data class ModelConfig(
     val family: String,
@@ -271,6 +268,32 @@ data class ModelSpec(
 interface ISystem1 : IExtension {
     // All three modes are entered from here.
     fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?=null): JsonElement?
+
+    // Use english for now.
+    fun summarize(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) : String? {
+        val botStore = Dispatcher.sessionManager.botStore ?: return null
+
+        val key = "summarize:$clasName:$methodName"
+        val value = botStore.get(key)
+        if (value == null) {
+            val instruction = """Generate a detailed verb phrase to describe what LLM does using the following instruction:  ${augmentation.instruction}."""
+            val summaryAugmentation = Augmentation(instruction, mode=System1Mode.FALLBACK)
+            val system1Fallback = system1Builder.build(session, summaryAugmentation) as AdkFallback
+
+            val channel = Channel<String>(Channel.UNLIMITED)
+            system1Fallback.invoke(
+                object : Emitter<String> {
+                    override suspend fun invoke(x: String) {
+                        println("Emitter: Emitting '$x'") // Added for clarity
+                        channel.trySend(x) // trySend is non-suspending
+                    }
+                })
+            channel.close()
+
+            val response =
+        }
+        return value
+    }
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)

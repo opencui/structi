@@ -170,7 +170,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
     override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
         val label = "action agent"
-        val agent = AdkSystem1Builder.Companion.build(label, model, augmentation.instruction, tools = emptyList())
+        val agent = AdkSystem1Builder.build(label, model, augmentation.instruction, tools = emptyList())
 
 
         val userId = session.userId
