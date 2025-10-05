@@ -291,7 +291,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 // We need to config the runner later.
                 val runConfig = RunConfig.builder().build()
 
-
                 // Use Google ADK Java async streaming
                 val eventFlow = runner.runAsync(userId, sessionId, content, runConfig).asFlow()
 

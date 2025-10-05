@@ -302,6 +302,7 @@ data class System1Inform(val type: String, override var templates: Templates = e
         const val JSON = "json"
         const val ERROR = "error"
         const val TEXT = "text"
+        const val THINK = "thinking"
     }
 }
 
