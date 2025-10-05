@@ -1,14 +1,21 @@
 package io.opencui.system1
 
 import io.opencui.core.*
+import io.opencui.core.da.System1Inform
+import io.opencui.serialization.Json
 import io.opencui.serialization.JsonElement
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.http.codec.ServerSentEvent
 import kotlin.reflect.full.declaredFunctions
 
 // The goal of the type system is to figure out
@@ -228,11 +235,6 @@ enum class System1Type {
 }
 
 
-// For now, we only SUPPORT Kotlin, but eventually, we can support other templates like Jinja2,
-enum class IntroductionType {
-    Kotlin
-}
-
 // Should we make this defined distributedly, or centrally defined like this.
 data class ModelConfig(
     val family: String,
@@ -277,6 +279,39 @@ interface ISystem1 : IExtension {
         const val MODELSIZE = "model_size"
         const val STRUCTUREDOUTPUT = "structured_output"
         const val MODELFAMILY = "model_family"
+
+            // Use english for now.
+    fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) {
+        val botStore = Dispatcher.sessionManager.botStore ?: return
+
+        val key = "summarize:$clasName:$methodName"
+        var value = botStore.get(key)
+        if (value == null) {
+            val instruction = """Generate a detailed verb phrase to describe what LLM does using the following instruction:  ${augmentation.instruction}."""
+            val summaryAugmentation = Augmentation(instruction, mode=System1Mode.FALLBACK)
+            val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
+
+            val channel = Channel<System1Inform>(Channel.UNLIMITED)
+            system1Action.invoke(
+            object : Emitter<System1Inform> {
+                override suspend fun invoke(x: System1Inform) {
+                    println("Emitter: Emitting '$x'") // Added for clarity
+                    channel.trySend(x) // trySend is non-suspending
+                }
+            })
+            channel.close()
+            val botUtteranceFlow = channel.receiveAsFlow()
+            val dialogActs : List<System1Inform> = botUtteranceFlow.let { runBlocking { it.toList() } }.filter { it.type == System1Inform.TEXT }
+
+            // need to save so that we do not have to run this over and over.
+            value = dialogActs.joinToString { it.templates.pick() }
+            botStore.set(key, value)
+        }
+
+        if (value.isNotEmpty()) {
+            runBlocking { session.emitter?.invoke(System1Inform(System1Inform.THINK, value )) }
+        }
+    }
 
         /**
          * Separates all configurations into two lists based on a predicate

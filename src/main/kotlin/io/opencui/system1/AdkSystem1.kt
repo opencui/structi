@@ -170,7 +170,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
     override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
         val label = "action agent"
-        val agent = AdkSystem1Builder.Companion.build(label, model, augmentation.instruction, tools = emptyList())
+        val agent = AdkSystem1Builder.build(label, model, augmentation.instruction, tools = emptyList())
 
 
         val userId = session.userId
@@ -290,7 +290,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             try {
                 // We need to config the runner later.
                 val runConfig = RunConfig.builder().build()
-
 
                 // Use Google ADK Java async streaming
                 val eventFlow = runner.runAsync(userId, sessionId, content, runConfig).asFlow()
