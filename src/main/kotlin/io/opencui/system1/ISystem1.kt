@@ -4,12 +4,10 @@ import io.opencui.core.*
 import io.opencui.core.da.System1Inform
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonElement
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
@@ -281,7 +279,7 @@ interface ISystem1 : IExtension {
         const val MODELFAMILY = "model_family"
 
             // Use english for now.
-    fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) {
+    suspend fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) {
         val botStore = Dispatcher.sessionManager.botStore ?: return
 
         val key = "summarize:$clasName:$methodName"
@@ -291,17 +289,18 @@ interface ISystem1 : IExtension {
             val summaryAugmentation = Augmentation(instruction, mode=System1Mode.FALLBACK)
             val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
 
-            val channel = Channel<System1Inform>(Channel.UNLIMITED)
-            system1Action.invoke(
-            object : Emitter<System1Inform> {
-                override suspend fun invoke(x: System1Inform) {
-                    println("Emitter: Emitting '$x'") // Added for clarity
-                    channel.trySend(x) // trySend is non-suspending
-                }
-            })
-            channel.close()
-            val botUtteranceFlow = channel.receiveAsFlow()
-            val dialogActs : List<System1Inform> = botUtteranceFlow.let { runBlocking { it.toList() } }.filter { it.type == System1Inform.TEXT }
+            val botUtteranceFlow = channelFlow {
+                system1Action.invoke(
+                    object : Emitter<System1Inform> {
+                        override suspend fun invoke(x: System1Inform) {
+                            println("Emitter: Emitting '$x'") // Added for clarity
+                            send(x)
+                        }
+                    }
+                )
+            }
+
+            val dialogActs : List<System1Inform> = botUtteranceFlow.toList().filter { it.type == System1Inform.TEXT }
 
             // need to save so that we do not have to run this over and over.
             value = dialogActs.joinToString { it.templates.pick() }
@@ -309,7 +308,7 @@ interface ISystem1 : IExtension {
         }
 
         if (value.isNotEmpty()) {
-            runBlocking { session.emitter?.invoke(System1Inform(System1Inform.THINK, value )) }
+            session.emitter?.invoke(System1Inform(System1Inform.THINK, value ))
         }
     }
 
@@ -374,4 +373,3 @@ interface ISystem1 : IExtension {
         }
     }
 }
-
