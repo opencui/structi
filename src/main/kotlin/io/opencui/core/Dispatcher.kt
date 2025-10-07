@@ -16,7 +16,6 @@ import java.time.Duration
 import java.time.LocalDateTime
 import io.opencui.logger.ILogger
 import io.opencui.logger.Turn
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -46,9 +45,11 @@ interface ControlSink {
 // This is useful to create type sink.
 data class TypeSink(override val targetChannel: String) : ControlSink
 
-interface Sink : ControlSink{
-    fun send(msg: String)
+interface Emitter<T> {
+    fun send(msg: T)
+}
 
+interface Sink : ControlSink, Emitter<String>{
     // This is used for supporting fake streaming response back to client.
     // We assume the output from system2 chatbot is not super long, so we only
     // use this method to trigger forced delivery.

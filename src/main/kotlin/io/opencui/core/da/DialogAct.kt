@@ -56,7 +56,7 @@ open class System1Generation(
         val channel = Channel<System1Inform>(Channel.UNLIMITED)
         system1Action.invoke(
             object : Emitter<System1Inform> {
-                override suspend fun invoke(x: System1Inform) {
+                override fun send(x: System1Inform) {
                     println("Emitter: Emitting '$x'") // Added for clarity
                     channel.trySend(x) // trySend is non-suspending
                 }
