@@ -320,20 +320,20 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
                                 try {
                                     Json.parseToJsonElement(trimmedText)
-                                    emitter?.invoke(System1Inform(System1Inform.JSON, trimmedText))
+                                    emitter?.send(System1Inform(System1Inform.JSON, trimmedText))
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
-                                    emitter?.invoke(System1Inform(System1Inform.ERROR, e.message.toString()))
+                                    emitter?.send(System1Inform(System1Inform.ERROR, e.message.toString()))
                                 }
                             } else {
-                                emitter?.invoke(System1Inform(System1Inform.TEXT,  trimmedText))
+                                emitter?.send(System1Inform(System1Inform.TEXT,  trimmedText))
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emitter?.invoke(System1Inform("error", e.message.toString()))
+                emitter?.send(System1Inform("error", e.message.toString()))
             }
         }
     }

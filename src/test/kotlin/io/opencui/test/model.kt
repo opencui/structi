@@ -9,9 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 import io.opencui.core.da.*
 import io.opencui.system1.AdkFunction
-import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.Augmentation
-import io.opencui.system1.ChatGPTSystem1
 import com.google.genai.types.Schema
 import io.opencui.system1.AdkAugmentContext
 import io.opencui.system1.System1Mode
