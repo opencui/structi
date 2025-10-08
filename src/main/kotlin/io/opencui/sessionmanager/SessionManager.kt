@@ -200,7 +200,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
      * channel: the format that is expected.
      */
 
-    fun getReplySync(
+    suspend fun getReplySync(
         session: UserSession,
         query: String,
         targetChannel: String? = null,
@@ -213,7 +213,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
 
         val res = dm.responseAsync(query, events, session)
 
-        val dialogActs = runBlocking { res.second.toList() }
+        val dialogActs = res.second.toList()
 
         val turn = res.first
         updateTurn(turn, dialogActs, session)
@@ -256,7 +256,7 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
     }
 
 
-    private fun getReplyFlowInside(
+    private suspend fun getReplyFlowInside(
         session: UserSession,
         query: String,
         targetChannel: String? = null,
