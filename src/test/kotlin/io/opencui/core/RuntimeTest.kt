@@ -8,6 +8,7 @@ import io.opencui.serialization.*
 import io.opencui.sessionmanager.*
 import io.opencui.test.HelloWorldService
 import io.opencui.test.IComponent_0915
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -1739,7 +1740,7 @@ class RuntimeTest {
                 }
                 val convertedQuery = ParsedQuery(rawQuery.query, convertedFrameEvents)
                 timing("Executing response ") {
-                    dm.response(convertedQuery, session)
+                    runBlocking { dm.response(convertedQuery, session) }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

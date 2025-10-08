@@ -10,7 +10,6 @@ import io.opencui.logger.Turn
 import io.opencui.serialization.Json
 import io.opencui.system1.ISystem1
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
@@ -121,7 +120,7 @@ class DialogManager {
      * high level response, called before dialog understanding (DU, DU is handled by this method first, before it
      * calls the low level response method).
      */
-    fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, List<DialogAct>> {
+    suspend fun response(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, List<DialogAct>> {
         val timeStamp = LocalDateTime.now()
         val expectations = findDialogExpectation(session)
 
@@ -169,7 +168,7 @@ class DialogManager {
             .distinctUntilChanged()// Keep only distinct DialogActs based on utterance
     }
 
-    fun responseAsync(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, Flow<DialogAct>> {
+    suspend fun responseAsync(query: String, frameEvents: List<FrameEvent>, session: UserSession): Pair<Turn, Flow<DialogAct>> {
         val timeStamp = LocalDateTime.now()
         val expectations = findDialogExpectation(session)
 
@@ -215,11 +214,11 @@ class DialogManager {
     /**
      * Low level response, after DU is done. Currently we have two versions.
      */
-    fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> = runBlocking {
-        responseAsync(pinput, session).toList()
+    suspend fun response(pinput: ParsedQuery, session: UserSession): List<ActionResult> {
+        return responseAsync(pinput, session).toList()
     }
 
-    fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
+    suspend fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
         session.turnId += 1
         session.addUserMessage(pinput.query)
 
@@ -299,7 +298,7 @@ class DialogManager {
         }
     }
 
-    fun getSystem1Response(session: UserSession, frameEvents: List<FrameEvent>): Flow<ActionResult> = flow {
+    suspend fun getSystem1Response(session: UserSession, frameEvents: List<FrameEvent>): Flow<ActionResult> = flow {
         val actionResults = mutableListOf<ActionResult>()
         val userFrameEvents = frameEvents.filter { it.source == EventSource.USER }
 
