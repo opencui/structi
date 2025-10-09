@@ -223,8 +223,8 @@ data class Augmentation(
     val instruction: String, // This should be a jinja2 template so that system1 can follow.
     val mode: System1Mode = System1Mode.FALLBACK) {
     var context: AugmentContext? = null
+    var source: String? = null
 }
-
 
 // For now, we only support this, but we can potentially support other.
 enum class System1Type {
@@ -291,9 +291,8 @@ interface ISystem1 : IExtension {
                 val botUtteranceFlow = channelFlow<System1Inform> {
                     system1Action.invoke(
                         object : Emitter<System1Inform> {
-                            override fun send(x: System1Inform) {
-                                println("Emitter: Emitting '$x'") // Added for clarity
-                                send(x)
+                            override fun send(msg: System1Inform) {
+                                send(msg)
                             }
                         }
                     )
