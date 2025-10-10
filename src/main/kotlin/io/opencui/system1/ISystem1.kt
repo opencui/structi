@@ -269,7 +269,7 @@ data class ModelSpec(
 // System1 will be connection level,
 interface ISystem1 : IExtension {
     // All three modes are entered from here.
-    fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?=null): JsonElement?
+    fun response(session: UserSession, augmentation: Augmentation): Flow<SystemEvent>
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)

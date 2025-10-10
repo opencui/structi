@@ -4,6 +4,7 @@ import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
 import io.opencui.core.da.System1Inform
 import io.opencui.serialization.JsonElement
+import kotlinx.coroutines.flow.Flow
 import org.slf4j.LoggerFactory
 
 data class OpenAIMessage(val role: String, val content: String)
@@ -33,7 +34,7 @@ data class System1Reply(val reply: String)
 
 // augmentation might also change. We have another layer.
 interface ISystem1Executor {
-    operator fun invoke(emitter: Emitter<System1Inform>? = null) : JsonElement?
+    operator fun invoke() : Flow<SystemEvent>
 }
 
 interface ISystem1Builder {
@@ -46,12 +47,12 @@ interface ISystem1Builder {
 data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
     val builder: ISystem1Builder = AdkSystem1Builder(config)
 
-    override fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?): JsonElement? {
+    override fun response(session: UserSession, augmentation: Augmentation): Flow<SystemEvent> {
         // Now use an interface that can handle all three use cases.
         // For now we assume the instruction is dynamically created so that there is no need to
         // cache system1. Instead, we assume the prefix caching of the LLM will kick in.
         val system1Executor = builder.build(session, augmentation)
-        return system1Executor.invoke(emitter as? Emitter<System1Inform>)
+        return system1Executor.invoke()
     }
 
     companion object : ExtensionBuilder {
