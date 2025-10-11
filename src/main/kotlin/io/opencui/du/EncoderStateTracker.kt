@@ -269,7 +269,7 @@ data class BertStateTracker(
         )
     }
 
-    override suspend fun convertBlocking(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+    override suspend fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         logger.info("Getting $putterance under $expectations")
         // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
