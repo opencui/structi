@@ -780,7 +780,7 @@ interface IStateTracker : IExtension {
     fun convertBlocking(user: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
         // We keep this so that all the exist test can run.
         val userSession = UserSession(user)
-        return runBlocking {  convertBlocking(userSession, putterance, expectations) }
+        return runBlocking {  convert(userSession, putterance, expectations) }
     }
 
 
@@ -800,7 +800,7 @@ interface IStateTracker : IExtension {
         return frame == PickNotValue
     }
 
-    suspend fun convertBlocking(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
+    suspend fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**
      * Test whether a given entity event is from partial match. Mainly used for potential slot
      */

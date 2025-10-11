@@ -254,7 +254,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         )
     }
 
-    override suspend fun convertBlocking(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+    override suspend fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         // We should try to get this log level from session so that it is easy to change log info.
         // setLogLevel(DecoderStateTracker::class.java.name, "DEBUG")
 
