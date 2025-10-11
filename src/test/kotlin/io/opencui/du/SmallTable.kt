@@ -1,6 +1,5 @@
 package io.opencui.du
 
-import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.IChatbot
 import io.opencui.core.RoutingInfo
 import io.opencui.core.da.DialogActRewriter
@@ -915,12 +914,12 @@ class SmallTableDslTest() : DuTestHelper() {
     )
 
     fun testSmallTable() {
-        val frameEvents = stateTracker.convert("s", "I want to book a small table")
+        val frameEvents = stateTracker.convertBlocking("s", "I want to book a small table")
         assertEquals(frameEvents.toString(), """[FrameEvent(type=MakeReservation, slots=[EntityEvent(value="small", attribute=tableType)], frames=[], packageName=me.demo.reservation_v2)]""")
     }
 
     fun testSlotUpdate() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
             "s",
             "change time to 7:00pm",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
@@ -936,7 +935,7 @@ class SmallTableDslTest() : DuTestHelper() {
     }
 
     fun testDateUpdateExact() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
             "s",
             "change date to tomorrow",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
@@ -949,7 +948,7 @@ class SmallTableDslTest() : DuTestHelper() {
 
 
     fun testDateUpdateShort() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
             "s",
             "change to tomorrow",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))
@@ -963,7 +962,7 @@ class SmallTableDslTest() : DuTestHelper() {
 
 
     fun testDateUpdateInExact() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
             "s",
             "change time to 7:00pm please",
             DialogExpectations(ExpectedFrame("me.demo.reservation_v2.MakeReservation", "tableType"))

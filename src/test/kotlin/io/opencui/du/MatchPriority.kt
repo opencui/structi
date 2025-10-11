@@ -94,7 +94,7 @@ class MatchPriorityTest : DuTestHelper() {
     // TODO check convert result
     fun testMatchPriority() {
         // case 1: no expectation, "long time" should match "long time no see" -> Greeting
-        var frameEvent = stateTracker.convert(
+        var frameEvent = stateTracker.convertBlocking(
                 "s",
                 "it has been a long time")
         println("frame event without expectation: $frameEvent")
@@ -105,7 +105,7 @@ class MatchPriorityTest : DuTestHelper() {
         )
 
         // case 2: expected slot1, "long time" should fill slot via list recognizer
-        frameEvent = stateTracker.convert(
+        frameEvent = stateTracker.convertBlocking(
                 "s",
                 "longer time",
                 DialogExpectations(ExpectedFrame("org.a.someIntent", "slot1"))
@@ -118,7 +118,7 @@ class MatchPriorityTest : DuTestHelper() {
         )
 
         // case 3: expected slot1, but utterance can not fill slot1, should match new frame -> Greeting
-        frameEvent = stateTracker.convert(
+        frameEvent = stateTracker.convertBlocking(
                 "s",
                 "good day",
                 DialogExpectations(ExpectedFrame("org.a.someIntent", "slot1"))
@@ -131,7 +131,7 @@ class MatchPriorityTest : DuTestHelper() {
         )
 
         // case 4: expected slot2(kotlin.String), any utterance should fill slot2
-        frameEvent = stateTracker.convert(
+        frameEvent = stateTracker.convertBlocking(
                 "s",
                 "good day",
                 DialogExpectations(ExpectedFrame("org.a.someIntent", "slot2"))
