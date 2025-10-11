@@ -6,6 +6,8 @@ import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -41,7 +43,6 @@ open class System1Generation(
     var mode: System1Mode = System1Mode.FALLBACK
   ): Generation {
 
-
     override fun run(session: UserSession): ActionResult {
         logger.info("Start of System1Generation with $system1Id")
         val system1Builder = session.getSystem1Builder(system1Id, packageName)
@@ -53,20 +54,11 @@ open class System1Generation(
 
         val system1Action = system1Builder.build(session, augmentation)
 
-        val channel = Channel<System1Inform>(Channel.UNLIMITED)
-        system1Action.invoke(
-            object : Emitter<System1Inform> {
-                override fun send(x: System1Inform) {
-                    println("Emitter: Emitting '$x'") // Added for clarity
-                    channel.trySend(x) // trySend is non-suspending
-                }
-            })
-        channel.close()
-
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.
+        val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
         val actionResult = ActionResult(
-            channel.receiveAsFlow(),
+            dialogActFlow,
             createLog("AugmentedGeneration"),
             true
         )

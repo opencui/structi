@@ -218,7 +218,7 @@ class DialogManager {
         return responseAsync(pinput, session).toList()
     }
 
-    suspend fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
+    fun responseAsync(pinput: ParsedQuery, session: UserSession): Flow<ActionResult> = flow {
         session.turnId += 1
         session.addUserMessage(pinput.query)
 

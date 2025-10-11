@@ -14,19 +14,16 @@ import com.google.adk.tools.BaseTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import com.google.genai.types.GenerateContentConfig;
-import io.opencui.core.Emitter
 import io.opencui.core.SystemEvent
 import io.opencui.core.UserSession
-import io.opencui.core.da.DialogAct
-import io.opencui.core.da.System1Inform
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -99,32 +96,43 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             AdkSystem1Builder.artifactService,
             AdkSystem1Builder.sessionService )
         
-
-        val flow = AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, jsonOutput = true)
+        // the flow here is ignored for now.
+        AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, jsonOutput = true)
 
         // now we need to get result from agent.
         val sessionService = runner.sessionService()
         val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
 
-        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return null
+        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return flow { emit(SystemEvent.Result()) }
         logger.info("adkfunc get: {}", value)
-        return Json.encodeToJsonElement( value) as JsonElement?
+        return flow{
+            emit(SystemEvent.Result(Json.encodeToJsonElement( value)))
+        }
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> svInvoke(converter: Converter<T>, emitter: Emitter<System1Inform>?): T {
-        val result = invoke(emitter)!!
-        assert(result is JsonObject)
+    suspend fun <T> svInvoke(converter: Converter<T>): T {
+        val event = invoke().first()
+        val result = when (event) {
+            is SystemEvent.Result -> event.result
+            is SystemEvent.SystemError -> throw ProviderInvokeException(event.templates.pick())
+            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
+        }
         return converter(result)
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> mvInvoke(converter: Converter<T>): List<T> {
-        val result = invoke()!!
-        assert(result is ArrayNode)
-        val results = mutableListOf<T>()
-        result.map { converter(it) }
-        return results
+    suspend fun <T> mvInvoke(converter: Converter<T>): List<T> {
+
+        val event = invoke().first()
+        val result = when (event) {
+            is SystemEvent.Result -> event.result
+            is SystemEvent.SystemError -> throw ProviderInvokeException(event.templates.pick())
+            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
+        }
+
+        val jsonArray = result as ArrayNode
+        return jsonArray.map { converter(it) }
     }
 
     companion object{
