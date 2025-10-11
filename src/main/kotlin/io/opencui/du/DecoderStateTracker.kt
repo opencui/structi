@@ -156,27 +156,6 @@ data class RestNluService(val url: String) {
     }
 
     // This returns skills (skills requires attention automatically even not immediately but one by one, not frames)
-    fun detectTriggerables(
-        ctxt: Context,
-        utterance: String,
-        expectations: List<String> = emptyList(),
-        candidates: Map<String, List<String>> = emptyMap()): List<TriggerDecision> {
-
-        val input = IntentRequest(DugMode.SKILL, utterance, expectations, candidates)
-        logger.info("connecting to $url/v1/predict/${ctxt.bot}")
-        logger.info("utterance = $utterance and expectations = $expectations")
-        val jsonRequest = Json.encodeToString(input).trimIndent()
-        val request: HttpRequest = buildRequest(ctxt, jsonRequest)
-
-        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-        val body = response.body()
-        if (response.statusCode() != 200) {
-            logger.error("NLU request error: ${response.toString()}")
-            return emptyList()
-        }
-        return Json.decodeFromString<List<TriggerDecision>>(body)
-    }
-
     suspend fun detectTriggerablesAsync(
         ctxt: Context,
         utterance: String,
@@ -196,31 +175,8 @@ data class RestNluService(val url: String) {
         }
         return Json.decodeFromString<List<TriggerDecision>>(response.body())
     }
+
     // handle all slots.
-    fun fillSlots(
-        ctxt: Context,
-        utterance: String,
-        frame: String,
-        slots: List<String>,
-        valueCandidates: Map<String, List<String>> = emptyMap(),
-        expectedSlots: List<String> = emptyList()): Map<String, SlotValue> {
-        logger.info("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
-        if (slots.isEmpty()) return emptyMap()
-
-        val input = SlotRequest(DugMode.SLOT, utterance, frame,  slots, valueCandidates, expectedSlots)
-        logger.info("connecting to $url/v1/predict/${ctxt.bot}")
-
-        val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
-
-        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() != 200) {
-            logger.error("NLU request error: ${response.toString()}")
-            return emptyMap()
-        }
-
-        return Json.decodeFromString<Map<String, SlotValue>>(response.body())
-    }
-
     suspend fun fillSlotsAsync(
         ctxt: Context,
         utterance: String,
@@ -241,20 +197,6 @@ data class RestNluService(val url: String) {
             return emptyMap()
         }
         return Json.decodeFromString<Map<String, SlotValue>>(response.body())
-    }
-
-    fun yesNoInference(ctxt: Context, utterance: String, question: String, dialogActType: String? = null, targetFrame: String? = null, targetSlot: String? = null): YesNoResult? {
-        val input = YesNoRequest(DugMode.BINARY, utterance, question, dialogActType, targetFrame, targetSlot)
-        logger.info("connecting to $url/v1/predict")
-        logger.info("utterance = $utterance and questions = $question")
-        val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
-
-        val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() != 200) {
-            logger.error("NLU request error: ${response.toString()}")
-            return null
-        }
-        return Json.decodeFromString<YesNoResult>(response.body())
     }
 
     suspend fun yesNoInferenceAsync(ctxt: Context, utterance: String, question: String, dialogActType: String? = null, targetFrame: String? = null, targetSlot: String? = null): YesNoResult? {
@@ -507,7 +449,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
     }
 
-    fun handleGenericSlotWithSlotType(duContext: DuContext, valueInfos: List<ValueInfo>, triggerable: TriggerDecision) : List<FrameEvent>? {
+    suspend fun handleGenericSlotWithSlotType(duContext: DuContext, valueInfos: List<ValueInfo>, triggerable: TriggerDecision) : List<FrameEvent>? {
         val activeFrames = expandActiveFrames(duContext)
         for (activeFrame in activeFrames) {
             // Just in case the same slot is used in different frames.
@@ -873,7 +815,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
 
 
     // For Slot{Update, *}, we might need to have a separate logic.
-    fun fillTheseSlotsIndirect(
+    suspend fun fillTheseSlotsIndirect(
         duContext: DuContext,
         slotValueDecider: EntityEventExtractor,
         slotMetas: List<DUSlotMeta>,
@@ -909,7 +851,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
             .map { it.label }.toList()
 
         // TODO: pass expected slot to potentially improve the nlu performance.
-        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlots,nluSlotValues)
+        val results = nluService.fillSlotsAsync(context, duContext.utterance, topLevelFrameType, nluSlots,nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
         // Now we add the extract evidence.

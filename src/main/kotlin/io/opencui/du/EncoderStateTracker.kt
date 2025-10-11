@@ -733,7 +733,7 @@ data class BertStateTracker(
         logger.info("res: $res")
         return res
     }
-    
+
     fun slotTransformBySlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): Map<String, DUSlotMeta> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance
