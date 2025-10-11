@@ -3,6 +3,7 @@ package io.opencui.du
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
@@ -776,10 +777,10 @@ interface IStateTracker : IExtension {
      * @param expectations describes the current state of dialog from chatbot side,
      * @return list of FrameEvents, structural semantic representation of what user said.
      */
-    fun convert(user: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
+    fun convertBlocking(user: String, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent> {
         // We keep this so that all the exist test can run.
         val userSession = UserSession(user)
-        return convert(userSession, putterance, expectations)
+        return runBlocking {  convertBlocking(userSession, putterance, expectations) }
     }
 
 
@@ -799,7 +800,7 @@ interface IStateTracker : IExtension {
         return frame == PickNotValue
     }
 
-    fun convert(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
+    suspend fun convertBlocking(session: UserSession, putterance: String, expectations: DialogExpectations = DialogExpectations()): List<FrameEvent>
     /**
      * Test whether a given entity event is from partial match. Mainly used for potential slot
      */

@@ -244,7 +244,7 @@ class StateTrackerTest : DuTestHelper() {
 
 
     fun testConvertWithExpectation() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "savings",
                 DialogExpectations(ExpectedFrame("org.Banks_1.CheckBalance", "account_type")))
@@ -256,7 +256,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals("\"saving's\"", frameEvents[0].slots[0].value)
         assertEquals("savings", frameEvents[0].slots[0].origValue)
 
-        val frameEvents2 = stateTracker.convert(
+        val frameEvents2 = stateTracker.convertBlocking(
                 "s",
                 "savings",
                 DialogExpectations(ExpectedFrame("org.Banks_1.CheckBalance", "recipient_account_type")))
@@ -270,7 +270,7 @@ class StateTrackerTest : DuTestHelper() {
     }
 
     fun testMatchIntent() {
-        val frameEvents = stateTracker.convert("s", "this is intent")
+        val frameEvents = stateTracker.convertBlocking("s", "this is intent")
         println("frame events: $frameEvents")
         assertEquals(1, frameEvents.size)
         assertEquals("someIntent", frameEvents[0].type)
@@ -281,7 +281,7 @@ class StateTrackerTest : DuTestHelper() {
     fun testMultiValue() {
         // framely.core.PageSelectableMulti # index is a slot which allows multi_value
         // framely.core.PageSelectableSingle # index is a same slot except not allow multi_value
-        val frameEvent = stateTracker.convert(
+        val frameEvent = stateTracker.convertBlocking(
                 "s",
                 "first and fourth",
                 DialogExpectations(ExpectedFrame("framely.core.PageSelectableMulti", "index"))
@@ -294,7 +294,7 @@ class StateTrackerTest : DuTestHelper() {
                 "should fill index with 1 and 4(multi value)"
         )
 
-        val frameEvent2 = stateTracker.convert(
+        val frameEvent2 = stateTracker.convertBlocking(
                 "s",
                 "first and fourth",
                 DialogExpectations(ExpectedFrame("framely.core.PageSelectableSingle", "index"))
@@ -309,7 +309,7 @@ class StateTrackerTest : DuTestHelper() {
 
 
     fun testMatchIDontThinkSo() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "I don't think so",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.confirmation.IStatus")))
@@ -327,7 +327,7 @@ class StateTrackerTest : DuTestHelper() {
                 ExpectedFrame("LibraryIntegration.ScheduleApp.scheduleIntent", "extraRequirement"),
                 ExpectedFrame("io.opencui.core.PagedSelectable", "index"))
 
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "as you like",
                 DialogExpectations(DialogExpectation(expects))
@@ -341,7 +341,7 @@ class StateTrackerTest : DuTestHelper() {
 
     fun testDontCareProactive() {
         // TODO(sean): need to revisit this when we have multiple intention support.
-        val frameEvents = stateTracker.convert("s", "this is intent, whatever frame")
+        val frameEvents = stateTracker.convertBlocking("s", "this is intent, whatever frame")
         println("frame events: $frameEvents")
         // assertEquals(1, frameEvents.size)
         // assertEquals("someFrame", frameEvents[0].type)
@@ -355,7 +355,7 @@ class StateTrackerTest : DuTestHelper() {
     // @Test
     fun testDontCareReactive1() {
         //  TODO: figure out what is the right DnotCare for frame slot, turn on test.
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "as you like",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot1"))
@@ -372,7 +372,7 @@ class StateTrackerTest : DuTestHelper() {
 
     fun testDontCareReactive2() {
         // test dont care on entity slot
-        val frameEvents2 = stateTracker.convert(
+        val frameEvents2 = stateTracker.convertBlocking(
                 "s",
                 "as you like",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"))
@@ -388,7 +388,7 @@ class StateTrackerTest : DuTestHelper() {
 
     fun testConfirmation() {
         val expressions = agent.expressionsByFrame
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "confirmed",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.confirmation.IStatus")))
@@ -397,7 +397,7 @@ class StateTrackerTest : DuTestHelper() {
 
         // current state is not confirming, should not return frame events of confirmation
         // TODO(@flora) in this case, we should try to match the second best expression?
-        val frameEvents2 = stateTracker.convert(
+        val frameEvents2 = stateTracker.convertBlocking(
                 "s",
                 "confirmed",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2")))
@@ -407,7 +407,7 @@ class StateTrackerTest : DuTestHelper() {
         assertEquals("[FrameEvent(type=IDonotGetIt, slots=[], frames=[], packageName=io.opencui.core)]", frameEvents2.toString())
 
         // confirming, utterance is not yes/no, should return nothing
-        val frameEvents3 = stateTracker.convert(
+        val frameEvents3 = stateTracker.convertBlocking(
                 "s",
                 "i want change my hotel",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2")))
@@ -418,7 +418,7 @@ class StateTrackerTest : DuTestHelper() {
     }
 
     fun testHasMore() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "I am good now",
                 DialogExpectations(ExpectedFrame("org.Banks_1.someIntent", "slot2"), ExpectedFrame("io.opencui.core.hasMore.IStatus")))
@@ -428,7 +428,7 @@ class StateTrackerTest : DuTestHelper() {
 
 
     fun testRecommendationExpression() {
-        val frameEvents = stateTracker.convert(
+        val frameEvents = stateTracker.convertBlocking(
                 "s",
                 "give me some recommendation",
                 DialogExpectations(ExpectedFrame("any.intent"))
@@ -444,7 +444,7 @@ class StateTrackerTest : DuTestHelper() {
 
 
     fun testPartialApplication() {
-        val frameEvents = stateTracker.convert("s", "this is intent")
+        val frameEvents = stateTracker.convertBlocking("s", "this is intent")
         println("frame event: $frameEvents")
         assertEquals(
                 "[FrameEvent(type=someIntent, slots=[EntityEvent(value=\"_context\", attribute=missSlot)], frames=[], packageName=org.Banks_1)]",
@@ -455,7 +455,7 @@ class StateTrackerTest : DuTestHelper() {
 
     fun testMultiFrameMatching() {
         // state tracker should try to fill slot for active frames
-        val frameEvent = stateTracker.convert(
+        val frameEvent = stateTracker.convertBlocking(
                 "s",
                 "go to beijing",
                 DialogExpectations(ExpectedFrame("framely.core.PageSelectable"), ExpectedFrame("org.Banks_1.someIntent"))
@@ -583,7 +583,7 @@ class StateTrackerTest : DuTestHelper() {
         val originalInput = "Alice want to buy a ticket from shanghai to beijing at today"
 
         // test high level function: convert
-        val frameEvent = stateTracker.convert("s", originalInput)
+        val frameEvent = stateTracker.convertBlocking("s", originalInput)
         println("frame event: $frameEvent")
         assertEquals(
                 "[FrameEvent(type=buyTicket, " +
@@ -595,7 +595,7 @@ class StateTrackerTest : DuTestHelper() {
     }
 
     fun testTwoSlotsWithSameEntity() {
-        val frameEvent = stateTracker.convert(
+        val frameEvent = stateTracker.convertBlocking(
                 "s",
                 "march chongqing",
                 DialogExpectations(ExpectedFrame("org.Banks_1.buyTicket", "departure"))
@@ -610,7 +610,7 @@ class StateTrackerTest : DuTestHelper() {
 
 
     fun testSingleTokenSlotFilling() {
-        val frameEvent = stateTracker.convert(
+        val frameEvent = stateTracker.convertBlocking(
                 "s",
                 "march",
                 DialogExpectations(ExpectedFrame("org.Banks_1.buyTicket", "departure"))
@@ -623,7 +623,7 @@ class StateTrackerTest : DuTestHelper() {
     }
 
     fun testHead() {
-        val frameEvent = stateTracker.convert(
+        val frameEvent = stateTracker.convertBlocking(
                 "s",
                 "book a table on friday",
                 DialogExpectations(ExpectedFrame("org.Banks_1.buyTicket", "departure"))

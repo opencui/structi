@@ -3,7 +3,6 @@ package io.opencui.du
 import io.opencui.core.*
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import kotlinx.coroutines.async
 import java.util.*
@@ -270,7 +269,7 @@ data class BertStateTracker(
         )
     }
 
-    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+    override suspend fun convertBlocking(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         logger.info("Getting $putterance under $expectations")
         // TODO(sean), eventually need to getLocale from user session, right now doing so break test.
         val utterance = putterance.lowercase(Locale.getDefault()).trim { it.isWhitespace() }
@@ -285,7 +284,7 @@ data class BertStateTracker(
         return res.map { postProcess(it, expectations) }
     }
 
-    fun convertImpl(pducontext: DuContext): List<FrameEvent> {
+    suspend fun convertImpl(pducontext: DuContext): List<FrameEvent> {
         val ducontext = pducontext as BertDuContext
         val expectations = ducontext.expectations
         val utterance = ducontext.utterance
@@ -442,7 +441,7 @@ data class BertStateTracker(
     }
 
     // When there is expectation presented.
-    fun handleExpectations(pducontext: DuContext): List<FrameEvent>? {
+    suspend fun handleExpectations(pducontext: DuContext): List<FrameEvent>? {
         val ducontext = pducontext as BertDuContext
         val candidates = ducontext.exemplars
         val expectations = ducontext.expectations
@@ -618,7 +617,7 @@ data class BertStateTracker(
     /**
      * fillSlots is used to create entity event.
      */
-    fun fillSlots(pducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
+    suspend fun fillSlots(pducontext: DuContext, topLevelFrameType: String, focusedSlot: String?): List<FrameEvent> {
         val ducontext = pducontext as BertDuContext
         // we need to make sure we include slots mentioned in the intent expression
         // Including all the top level slots.
@@ -626,7 +625,7 @@ data class BertStateTracker(
         return fillSlots(slotMap, ducontext, topLevelFrameType, focusedSlot)
     }
 
-    private fun fillSlots(
+    private suspend fun fillSlots(
         slotMap: Map<String, DUSlotMeta>,
         ducontext: BertDuContext,
         topLevelFrameType: String,
@@ -660,7 +659,7 @@ data class BertStateTracker(
     }
 
 
-    fun fillSlotUpdate(duContext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
+    suspend fun fillSlotUpdate(duContext: DuContext, targetSlot: DUSlotMeta): List<FrameEvent> {
 
         val utterance = duContext.utterance
 
@@ -686,13 +685,13 @@ data class BertStateTracker(
      * Given the expected frame/slot, also required slots, and also slot map result,
      * we extract the frame event rooted for frame type.
      */
-    private fun extractEntityEvents(
+    private suspend fun extractEntityEvents(
         ducontext: BertDuContext,
         frameType: String,
         requiredSlotMap: Map<String, DUSlotMeta>,
         expectedSlot: String?,
         dpredict: Deferred<UnifiedModelResult>?
-    ): List<FrameEvent> = runBlocking {
+    ): List<FrameEvent> {
 
         // this map is from type to annotation.
         val utterance = ducontext.utterance
@@ -732,10 +731,9 @@ data class BertStateTracker(
             }
         }
         logger.info("res: $res")
-        return@runBlocking res
+        return res
     }
-
-
+    
     fun slotTransformBySlotUpdate(ducontext: DuContext, targetSlot: DUSlotMeta): Map<String, DUSlotMeta> {
         // we need to make sure we include slots mentioned in the intent expression
         val utterance = ducontext.utterance

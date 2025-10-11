@@ -7,11 +7,13 @@ import io.opencui.core.RuntimeConfig
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
+import java.net.http.HttpRequest.BodyPublishers
 import java.net.http.HttpResponse
 import io.opencui.serialization.*
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.LoggerContext
 import io.opencui.core.da.DialogAct
+import kotlinx.coroutines.future.await
 import java.util.*
 
 
@@ -175,6 +177,25 @@ data class RestNluService(val url: String) {
         return Json.decodeFromString<List<TriggerDecision>>(body)
     }
 
+    suspend fun detectTriggerablesAsync(
+        ctxt: Context,
+        utterance: String,
+        expectations: List<String> = emptyList(),
+        candidates: Map<String, List<String>> = emptyMap()): List<TriggerDecision> {
+
+        val input = IntentRequest(DugMode.SKILL, utterance, expectations, candidates)
+        logger.info("connecting to $url/v1/predict/${ctxt.bot}")
+        logger.info("utterance = $utterance and expectations = $expectations")
+        val jsonRequest = Json.encodeToString(input).trimIndent()
+        val request: HttpRequest = buildRequest(ctxt, jsonRequest)
+
+        val response: HttpResponse<String> = client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+        if (response.statusCode() != 200) {
+            logger.error("NLU request error: ${response.toString()}")
+            return emptyList()
+        }
+        return Json.decodeFromString<List<TriggerDecision>>(response.body())
+    }
     // handle all slots.
     fun fillSlots(
         ctxt: Context,
@@ -200,6 +221,28 @@ data class RestNluService(val url: String) {
         return Json.decodeFromString<Map<String, SlotValue>>(response.body())
     }
 
+    suspend fun fillSlotsAsync(
+        ctxt: Context,
+        utterance: String,
+        frame: String,
+        slots: List<String>,
+        valueCandidates: Map<String, List<String>> = emptyMap(),
+        expectedSlots: List<String> = emptyList()): Map<String, SlotValue> {
+        logger.info("utterance = $utterance and expectations = ${expectedSlots}, entities = $valueCandidates")
+        if (slots.isEmpty()) return emptyMap()
+
+        val input = SlotRequest(DugMode.SLOT, utterance, frame,  slots, valueCandidates, expectedSlots)
+        logger.info("connecting to $url/v1/predict/${ctxt.bot}")
+
+        val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
+        val response: HttpResponse<String> = client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+        if (response.statusCode() != 200) {
+            logger.error("NLU request error: ${response.toString()}")
+            return emptyMap()
+        }
+        return Json.decodeFromString<Map<String, SlotValue>>(response.body())
+    }
+
     fun yesNoInference(ctxt: Context, utterance: String, question: String, dialogActType: String? = null, targetFrame: String? = null, targetSlot: String? = null): YesNoResult? {
         val input = YesNoRequest(DugMode.BINARY, utterance, question, dialogActType, targetFrame, targetSlot)
         logger.info("connecting to $url/v1/predict")
@@ -207,6 +250,20 @@ data class RestNluService(val url: String) {
         val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
 
         val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() != 200) {
+            logger.error("NLU request error: ${response.toString()}")
+            return null
+        }
+        return Json.decodeFromString<YesNoResult>(response.body())
+    }
+
+    suspend fun yesNoInferenceAsync(ctxt: Context, utterance: String, question: String, dialogActType: String? = null, targetFrame: String? = null, targetSlot: String? = null): YesNoResult? {
+        val input = YesNoRequest(DugMode.BINARY, utterance, question, dialogActType, targetFrame, targetSlot)
+        logger.info("connecting to $url/v1/predict")
+        logger.info("utterance = $utterance and questions = $question")
+        val request: HttpRequest = buildRequest(ctxt, Json.encodeToString(input))
+
+        val response: HttpResponse<String> = client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
         if (response.statusCode() != 200) {
             logger.error("NLU request error: ${response.toString()}")
             return null
@@ -255,7 +312,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         )
     }
 
-    override fun convert(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+    override suspend fun convertBlocking(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         // We should try to get this log level from session so that it is easy to change log info.
         // setLogLevel(DecoderStateTracker::class.java.name, "DEBUG")
 
@@ -310,7 +367,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     }
 
     // This layer is handling the
-    fun convertImpl(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
+    suspend fun convertImpl(session: UserSession, putterance: String, expectations: DialogExpectations): List<FrameEvent> {
         // if there is negative example, skip.
         val triggerables = detectTriggerables(putterance, expectations).filter { !it.hasNegative }
         logger.debug("getting $triggerables for utterance: $putterance expectations $expectations")
@@ -427,7 +484,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         }
     }
 
-    fun handleSlotSkill(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
+    suspend fun handleSlotSkill(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
         logger.debug("enter slot update.")
         // Potentially, we need to figure out two things, value and slot identifier. And of course
         // slot identifier need to agree with value on the types.
@@ -479,7 +536,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         return null
     }
 
-    fun handleGenericSlotWithValue(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
+    suspend fun handleGenericSlotWithValue(duContext: DuContext, triggerable: TriggerDecision) : List<FrameEvent>? {
         // TODO: now we need to handle the case for: change to tomorrow
         // For now we assume there is only one generic type, and we do not know which slot is our target.
         // In case there is no guessed slot.
@@ -541,10 +598,10 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         return slotMapTransformed.filter { it.triggers.isNotEmpty() }
     }
 
-    fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
+    suspend fun detectTriggerables(utterance: String, expectations: DialogExpectations): List<TriggerDecision> {
         // TODO(sean): how do we resolve the type for generic type?
         // We assume true/false or null here.
-        val pcandidates = nluService.detectTriggerables(
+        val pcandidates = nluService.detectTriggerablesAsync(
             context,
             utterance,
             expectations.activeFrames.map { it.frame})
@@ -575,7 +632,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     // 1. check what type the focused slot is,
     // 2. if it is boolean/IStatus, run Yes/No inference.
     // 3. run fillSlot for the target frame.
-    private fun handleExpectations(triggerable: TriggerDecision, expectedFrames: List<ExpectedFrame>): List<FrameEvent>? {
+    private suspend fun handleExpectations(triggerable: TriggerDecision, expectedFrames: List<ExpectedFrame>): List<FrameEvent>? {
         val duContext = triggerable.duContext
         val utterance = duContext.utterance
 
@@ -607,7 +664,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
                 }
 
                 // TODO(sean): need to add more information here to use rag based understanding.
-                val status = nluService.yesNoInference(context, utterance, question)
+                val status = nluService.yesNoInferenceAsync(context, utterance, question)
                 if (status != null && status != YesNoResult.Irrelevant) {
                     // First handle the frame wrappers we had for boolean type.
                     // what happens we have good match, and these matches are related to expectations.
@@ -714,7 +771,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
     /**
      * fillSlots is used to create entity event.
      */
-    private fun fillSlotsByFrame(
+    suspend private fun fillSlotsByFrame(
         duContext: DuContext,
         slotValueDecider: EntityEventExtractor,
         topLevelFrameType: String,
@@ -757,7 +814,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         return fillTheseSlots(duContext, slotValueDecider, slotMapAft, topLevelFrameType, focusedSlot)
     }
 
-    fun fillTheseSlots(
+    suspend fun fillTheseSlots(
         duContext: DuContext,
         slotValueDecider: EntityEventExtractor,
         slotMetas: List<DUSlotMeta>,
@@ -790,7 +847,7 @@ data class DecoderStateTracker(val duMeta: DUMeta, val forced_tag: String? = nul
         // For now, we only focus on the equal operator, we will handle other semantics later.
         val nluSlots = nluSlotMetas.map { it.label }.toList()
         // TODO (sean): add the expected slots here later to potentially improve
-        val results = nluService.fillSlots(context, duContext.utterance, topLevelFrameType, nluSlots,nluSlotValues)
+        val results = nluService.fillSlotsAsync(context, duContext.utterance, topLevelFrameType, nluSlots,nluSlotValues)
         logger.debug("got $results from fillSlots for ${duContext.utterance} on $nluSlots with $nluSlotValues")
 
         // Now we add the extract evidence.
