@@ -1,13 +1,12 @@
 package io.opencui.system1
 
 import io.opencui.core.*
-import io.opencui.core.da.System1Inform
-import io.opencui.serialization.JsonElement
+import io.opencui.core.da.DialogAct
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
@@ -263,13 +262,26 @@ data class ModelSpec(
 }
 
 
+// Assume you are inside a suspend function
+suspend fun Flow<String>.joinToString(sep: String = ", "): String {
+    // fold() suspends and processes the flow to produce a single value
+    val stringBuilder = fold(StringBuilder()) { builder, value ->
+        if (builder.isNotEmpty()) {
+            builder.append(sep)
+        }
+        builder.append(value)
+    }
+    return stringBuilder.toString()
+}
+
+
 //
 // All system1 configure use the ChatGPTSystem1 provider config meta.
 // System1 will be used for two different things: returning structured output, and/or emitting responses.
 // System1 will be connection level,
 interface ISystem1 : IExtension {
     // All three modes are entered from here.
-    fun response(session: UserSession, augmentation: Augmentation, emitter: Emitter<*>?=null): JsonElement?
+    fun response(session: UserSession, augmentation: Augmentation): Flow<SystemEvent>
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
@@ -278,35 +290,28 @@ interface ISystem1 : IExtension {
         const val MODELFAMILY = "model_family"
 
         // Use english for now.
-        fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) {
-            val botStore = Dispatcher.sessionManager.botStore ?: return
+        fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) : Flow<DialogAct> = flow {
+            val botStore = Dispatcher.sessionManager.botStore
+            if (botStore != null) {
+                val key = "summarize:$clasName:$methodName"
+                var value = botStore.get(key)
+                if (value == null) {
+                    val instruction =
+                        """Generate a detailed verb phrase to describe what LLM does using the following instruction:  ${augmentation.instruction}."""
+                    val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
+                    val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
 
-            val key = "summarize:$clasName:$methodName"
-            var value = botStore.get(key)
-            if (value == null) {
-                val instruction = """Generate a detailed verb phrase to describe what LLM does using the following instruction:  ${augmentation.instruction}."""
-                val summaryAugmentation = Augmentation(instruction, mode=System1Mode.FALLBACK)
-                val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
+                    val dialogActs = system1Action.invoke().filter {it is DialogAct }.map {it as DialogAct}
 
-                val botUtteranceFlow = channelFlow<System1Inform> {
-                    system1Action.invoke(
-                        object : Emitter<System1Inform> {
-                            override fun send(msg: System1Inform) {
-                                send(msg)
-                            }
-                        }
-                    )
+                    // need to save so that we do not have to run this over and over.
+                    value = dialogActs.map { it.templates.pick() }.joinToString("\n")
+                    // remember to save so that
+                    botStore.set(key, value)
                 }
 
-                val dialogActs : List<System1Inform> = runBlocking { botUtteranceFlow.toList().filter { it.type == System1Inform.TEXT } }
-
-                // need to save so that we do not have to run this over and over.
-                value = dialogActs.joinToString { it.templates.pick() }
-                botStore.set(key, value)
-            }
-
-            if (value.isNotEmpty()) {
-                session.emitter?.send(System1Inform(System1Inform.THINK, value ))
+                if (value.isNotEmpty()) {
+                    emit(SystemEvent.SystemReason( value))
+                }
             }
         }
 

@@ -16,6 +16,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import io.opencui.logger.ILogger
 import io.opencui.logger.Turn
+import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -36,6 +37,29 @@ interface IManaged {
 }
 
 
+// This is used to separate the reason for bot event.
+sealed class SystemEvent {
+
+    data class MarkSeen(val msgId: String) : SystemEvent()
+
+    object Typing: SystemEvent()
+
+    data class Result(val result: JsonElement?=null): SystemEvent()
+
+    // This is also dialog act.
+    data class SystemResponse(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
+         constructor(payload: String): this( templateOf(payload))
+    }
+
+    data class SystemError(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
+         constructor(payload: String): this(templateOf(payload))
+    }
+
+    data class SystemReason(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
+         constructor(payload: String): this(templateOf(payload))
+    }
+}
+
 interface ControlSink {
     val targetChannel: String?
     fun markSeen(msgId: String?) {}
@@ -45,14 +69,11 @@ interface ControlSink {
 // This is useful to create type sink.
 data class TypeSink(override val targetChannel: String) : ControlSink
 
-interface Emitter<T> {
-    fun send(msg: T)
-}
-
-interface Sink : ControlSink, Emitter<String>{
+interface Sink : ControlSink{
     // This is used for supporting fake streaming response back to client.
     // We assume the output from system2 chatbot is not super long, so we only
     // use this method to trigger forced delivery.
+    fun send(msg: String)
     fun flush() {}
 }
 

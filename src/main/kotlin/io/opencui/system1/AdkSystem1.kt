@@ -1,5 +1,6 @@
 package io.opencui.system1
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.google.genai.types.Schema
 import com.google.adk.agents.BaseAgent
@@ -13,15 +14,16 @@ import com.google.adk.tools.BaseTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import com.google.genai.types.GenerateContentConfig;
-import io.opencui.core.Emitter
+import io.opencui.core.SystemEvent
 import io.opencui.core.UserSession
-import io.opencui.core.da.System1Inform
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -59,7 +61,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
     var inputs: Map<String, Any?>? = null
 
     @Throws(ProviderInvokeException::class)
-    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
+    override fun invoke(): Flow<SystemEvent> {
         logger.info("start adk function.")
         val context = augmentation.context as AdkAugmentContext
         val inputStr = Json.encodeToString(inputs)
@@ -94,33 +96,43 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             AdkSystem1Builder.artifactService,
             AdkSystem1Builder.sessionService )
         
-        runBlocking {
-            AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, emitter, jsonOutput = true)
-        }
+        // the flow here is ignored for now.
+        AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, jsonOutput = true)
 
         // now we need to get result from agent.
         val sessionService = runner.sessionService()
         val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
 
-        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return null
-        logger.info("adkfunc get: $value")
-        return Json.encodeToJsonElement( value) as JsonElement?
+        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return flow { emit(SystemEvent.Result()) }
+        logger.info("adkfunc get: {}", value)
+        return flow{
+            emit(SystemEvent.Result(Json.encodeToJsonElement( value)))
+        }
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> svInvoke(converter: Converter<T>, emitter: Emitter<System1Inform>?): T {
-        val result = invoke(emitter)!!
-        assert(result is JsonObject)
+    suspend fun <T> svInvoke(converter: Converter<T>): T {
+        val event = invoke().first()
+        val result = when (event) {
+            is SystemEvent.Result -> event.result
+            is SystemEvent.SystemError -> throw ProviderInvokeException(event.templates.pick())
+            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
+        }
         return converter(result)
     }
 
     @Throws(ProviderInvokeException::class)
-    fun <T> mvInvoke(converter: Converter<T>, emitter: Emitter<System1Inform>?): List<T> {
-        val result = invoke(emitter)!!
-        assert(result is ArrayNode)
-        val results = mutableListOf<T>()
-        result.map { converter(it) }
-        return results
+    suspend fun <T> mvInvoke(converter: Converter<T>): List<T> {
+
+        val event = invoke().first()
+        val result = when (event) {
+            is SystemEvent.Result -> event.result
+            is SystemEvent.SystemError -> throw ProviderInvokeException(event.templates.pick())
+            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
+        }
+
+        val jsonArray = result as ArrayNode
+        return jsonArray.map { converter(it) }
     }
 
     companion object{
@@ -131,7 +143,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
 
 
 data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
+    override fun invoke(): Flow<SystemEvent> {
         val userInput = session.currentUtterance() ?: ""
 
         val userMsg = Content.fromParts(Part.fromText(userInput))
@@ -159,16 +171,12 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
             AdkSystem1Builder.artifactService,
             AdkSystem1Builder.sessionService )
 
-        runBlocking {
-            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
-        }
-        return null
+        return AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!)
     }
-
 }
 
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(emitter: Emitter<System1Inform>?): JsonElement? {
+    override fun invoke(): Flow<SystemEvent> {
         val label = "action agent"
         val agent = AdkSystem1Builder.build(label, model, augmentation.instruction, tools = emptyList())
 
@@ -196,10 +204,7 @@ data class AdkAction(val session: UserSession, val model: ModelConfig, val augme
 
         // For action, agent are supposedly only take structured input in the prompt, to generate the response.
         val userMsg = Content.fromParts(Part.fromText(""))
-        runBlocking {
-            AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!, emitter)
-        }
-        return null
+        return AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!)
     }
 }
 
@@ -275,15 +280,14 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
         // Now we return three different message: json for function, text for action/fallback, and error
         // The system 1 inform is just an envelope, its type is only useful for figuring out the source.
-        suspend fun callAgentAsync(
+        fun callAgentAsync(
             content: Content,  // for action, this should be empty, for
             runner: Runner,
             userId: String,
             sessionId: String,
-            emitter: Emitter<System1Inform>?,
             jsonOutput: Boolean = false,
             bufferUp: Boolean = true
-        ) {
+        ): Flow<SystemEvent> = flow {
             logger.info("User Query: $content")
             // Not really useful, but keep it for now.
             val serverSideTextBuffers = mutableMapOf<Pair<String, String>, String>()
@@ -299,7 +303,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
                     val currentBufferKey = Pair(event.invocationId(), event.author())
 
-                    logger.info("Processing event: author=${event.author()}, partial=${event.partial()}")
+                    logger.info("Processing event: author={}, partial={}", event.author(), event.partial())
 
                     // Handle text content, only handle the first part?
                     // TODO: right now we buffer up things, to stream out we need a new design.
@@ -318,25 +322,23 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 // JsonOutput is required for function.
                                 // We might use this opportunity to add error back to prompt so llm can fix.
                                 // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
+                                var jsonNode: JsonNode? = null
                                 try {
-                                    Json.parseToJsonElement(trimmedText)
-                                    emitter?.send(System1Inform(System1Inform.JSON, trimmedText))
+                                    emit(SystemEvent.Result(Json.parseToJsonElement(trimmedText)))
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
-                                    emitter?.send(System1Inform(System1Inform.ERROR, e.message.toString()))
+                                    emit(SystemEvent.SystemError(e.message.toString()))
                                 }
                             } else {
-                                emitter?.send(System1Inform(System1Inform.TEXT,  trimmedText))
+                                emit(SystemEvent.SystemResponse(trimmedText))
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emitter?.send(System1Inform("error", e.message.toString()))
+                emit(SystemEvent.SystemError(e.message.toString()))
             }
         }
     }
 }
-
-

@@ -218,8 +218,6 @@ data class UserSession(
 
     var hasSystem1: Boolean =  false
 
-    // This pointer to emitter that can be used by system1.
-    var emitter: Emitter<System1Inform>? = null
 
     // This can be used to presist a value, but it can be used again.
     fun <R: Any> save(className: String, propName: String, value : R?) : R?{
