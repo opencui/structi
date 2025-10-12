@@ -37,28 +37,7 @@ interface IManaged {
 }
 
 
-// This is used to separate the reason for bot event.
-sealed class SystemEvent {
 
-    data class MarkSeen(val msgId: String) : SystemEvent()
-
-    object Typing: SystemEvent()
-
-    data class Result(val result: JsonElement?=null): SystemEvent()
-
-    // This is also dialog act.
-    data class SystemResponse(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
-         constructor(payload: String): this( templateOf(payload))
-    }
-
-    data class SystemError(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
-         constructor(payload: String): this(templateOf(payload))
-    }
-
-    data class SystemReason(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
-         constructor(payload: String): this(templateOf(payload))
-    }
-}
 
 interface ControlSink {
     val targetChannel: String?

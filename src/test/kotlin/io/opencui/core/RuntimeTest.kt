@@ -1744,7 +1744,7 @@ class RuntimeTest {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                listOf(ActionResult(ActionLog("Exception", Json.makePrimitive(""), true)))
+                listOf(ActionResult(ActionStatus("Exception", Json.makePrimitive(""), true)))
             }
 
             val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.actionLog.botOwn }.map { it.botUtterance!!}.flatten()
