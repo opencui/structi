@@ -59,8 +59,7 @@ open class System1Generation(
         val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
         val actionResult = ActionResult(
             dialogActFlow,
-            createLog("AugmentedGeneration"),
-            true
+            createLog("AugmentedGeneration", true)
         )
         logger.info("End of System1Generation with $system1Id")
         return actionResult
@@ -80,8 +79,7 @@ interface DialogAct: EmissionAction {
         val success = true
         return ActionResult(
             listOf(this),
-            createLog(templates.pick()),
-            success
+            createLog(templates.pick(), success)
         )
     }
 
