@@ -30,15 +30,14 @@ data class ActionLog(
 
     @JsonIgnore
     var success: Boolean = true
+
+    @JsonIgnore
+    var botOwn: Boolean = true
 }
 
 data class ActionResult(
     val actionLog: ActionLog
 ) : Serializable {
-
-    var success: Boolean = actionLog.success
-
-    var botOwn: Boolean = true
 
     // Single Flow member
     @Transient
@@ -59,15 +58,13 @@ data class ActionResult(
         botUtteranceFlow = b?.asFlow()
     }
 
-
-
     // Constructor from Flow
     constructor(b: Flow<DialogAct>?, a: ActionLog, s: Boolean = true) : this(a, s) {
         botUtteranceFlow = b
     }
 
     override fun toString(): String {
-        return "ActionResult(actionLog=$actionLog, success=$success, botUtterance=${botUtterance})"
+        return "ActionResult(actionLog=$actionLog, success=${actionLog.success}, botUtterance=${botUtterance})"
     }
 
     // Custom serialization to handle the Flow
@@ -497,7 +494,7 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         } else {
             emptyLog()
         }
-        return ActionResult(res.botUtterance, actionLog, res.success)
+        return ActionResult(res.botUtterance, actionLog, res.actionLog.success)
     }
 }
 
@@ -591,7 +588,7 @@ class RespondAction : CompositeAction {
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
             val tmp = response.wrappedRun(session)
-            tmp.apply {if (!tmp.success) throw Exception("fail to respond!!!") }
+            tmp.apply {if (!tmp.actionLog.success) throw Exception("fail to respond!!!") }
         } else {
             logger.debug("RespondAction topFiller is ${topFiller?.path}")
             ActionResult(emptyLog())
@@ -725,7 +722,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
             if (result.botUtterance != null) {
                 messages.addAll(result.botUtterance!!)
             }
-            flag = flag && result.success
+            flag = flag && result.actionLog.success
         }
         Dispatcher.logger.info("got the following messages: ${messages.toString()}")
         return ActionResult(
