@@ -290,7 +290,7 @@ interface ISystem1 : IExtension {
         const val MODELFAMILY = "model_family"
 
         // Use english for now.
-        fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) : Flow<DialogAct> = flow {
+        fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) : Flow<SystemEvent> = flow {
             val botStore = Dispatcher.sessionManager.botStore
             if (botStore != null) {
                 val key = "summarize:$clasName:$methodName"
@@ -310,7 +310,7 @@ interface ISystem1 : IExtension {
                 }
 
                 if (value.isNotEmpty()) {
-                    emit(SystemEvent.SystemReason( value))
+                    emit(SystemEvent.Reason( value))
                 }
             }
         }

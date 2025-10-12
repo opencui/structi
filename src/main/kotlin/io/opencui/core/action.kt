@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.RawInform
 import io.opencui.serialization.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -28,16 +29,19 @@ sealed class SystemEvent : Serializable {
     data class Result(val result: JsonElement?=null): SystemEvent()
 
     // This is also dialog act.
-    data class SystemResponse(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
-         constructor(payload: String): this( templateOf(payload))
+    data class Response(val dialogAct: DialogAct): SystemEvent() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
     }
 
-    data class SystemError(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
-         constructor(payload: String): this(templateOf(payload))
+    data class Reason(val dialogAct: DialogAct): SystemEvent() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
     }
 
-    data class SystemReason(override var templates: Templates = emptyTemplate()): DialogAct, SystemEvent() {
-         constructor(payload: String): this(templateOf(payload))
+    data class Error(val dialogAct: DialogAct): SystemEvent() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
     }
 
     // isTestable controls whether this log will participate in the log comparison during testing.

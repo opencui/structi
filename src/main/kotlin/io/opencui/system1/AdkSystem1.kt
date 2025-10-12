@@ -115,7 +115,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         val event = invoke().first()
         val result = when (event) {
             is SystemEvent.Result -> event.result
-            is SystemEvent.SystemError -> throw ProviderInvokeException(event.templates.pick())
+            is SystemEvent.Error -> throw ProviderInvokeException(event.dialogAct.templates.pick())
             else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
         }
         return converter(result)
@@ -127,7 +127,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         val event = invoke().first()
         val result = when (event) {
             is SystemEvent.Result -> event.result
-            is SystemEvent.SystemError -> throw ProviderInvokeException(event.templates.pick())
+            is SystemEvent.Error -> throw ProviderInvokeException(event.dialogAct.templates.pick())
             else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
         }
 
@@ -327,17 +327,17 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                     emit(SystemEvent.Result(Json.parseToJsonElement(trimmedText)))
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
-                                    emit(SystemEvent.SystemError(e.message.toString()))
+                                    emit(SystemEvent.Error(e.message.toString()))
                                 }
                             } else {
-                                emit(SystemEvent.SystemResponse(trimmedText))
+                                emit(SystemEvent.Response(trimmedText))
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emit(SystemEvent.SystemError(e.message.toString()))
+                emit(SystemEvent.Error(e.message.toString()))
             }
         }
     }
