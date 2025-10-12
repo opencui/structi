@@ -48,11 +48,23 @@ sealed class SystemEvent : Serializable {
         constructor(payload: String): this( templateOf(payload))
     }
 
+}
+
+
+
+/**
+ * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
+ * and only the map utterance need the get utterance with channel as input parameter.
+ */
+data class ActionResult(
+    val actionLog: Status
+) : Serializable {
+
     // isTestable controls whether this log will participate in the log comparison during testing.
-    data class ActionStatus(
+    data class Status(
         val type: String,
         val payload: JsonElement,
-        @JsonIgnore val isTestable: Boolean = false) : SystemEvent() {
+        @JsonIgnore val isTestable: Boolean = false) : Serializable {
 
         @JsonIgnore
         var success: Boolean = true
@@ -60,15 +72,6 @@ sealed class SystemEvent : Serializable {
         @JsonIgnore
         var botOwn: Boolean = true
     }
-}
-
-/**
- * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
- * and only the map utterance need the get utterance with channel as input parameter.
- */
-data class ActionResult(
-    val actionLog: SystemEvent.ActionStatus
-) : Serializable {
 
     // Single Flow member
     @Transient
@@ -81,7 +84,7 @@ data class ActionResult(
     }
 
     // Constructor from Flow
-    constructor(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
+    constructor(b: Flow<DialogAct>?, a: Status) : this(a) {
         botUtteranceFlow = b
     }
 
@@ -105,15 +108,6 @@ data class ActionResult(
         val list = inp.readObject() as List<DialogAct>?
         botUtteranceFlow = list?.asFlow()
     }
-}
-
-fun buildActionResult(actionLog: SystemEvent.ActionStatus): Flow<SystemEvent> {
-    return flowOf(actionLog)
-}
-
-fun buildActionResult(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus) : Flow<SystemEvent> = flow {
-    if (b != null) emitAll(b.map{SystemEvent.Response(it)})
-    emit(a)
 }
 
 
@@ -158,16 +152,16 @@ interface EmissionAction: AtomAction
 // There are different composite actions, easy ones are list.
 interface CompositeAction : Action
 
-fun Action.emptyLog(s: Boolean = true) : SystemEvent.ActionStatus {
-    return SystemEvent.ActionStatus(this::class.java.simpleName, Json.makePrimitive(""), false).apply { success = s }
+fun Action.emptyLog(s: Boolean = true) : ActionResult.Status {
+    return ActionResult.Status(this::class.java.simpleName, Json.makePrimitive(""), false).apply { success = s }
 }
 
-fun Action.createLog(payload: String, s: Boolean=true): SystemEvent.ActionStatus {
+fun Action.createLog(payload: String, s: Boolean=true): ActionResult.Status {
     return createLog(Json.makePrimitive(payload), s)
 }
 
-fun Action.createLog(payload: JsonElement, s: Boolean=true): SystemEvent.ActionStatus {
-    return SystemEvent.ActionStatus(this::class.java.simpleName, payload, true).apply { success = s }
+fun Action.createLog(payload: JsonElement, s: Boolean=true): ActionResult.Status {
+    return ActionResult.Status(this::class.java.simpleName, payload, true).apply { success = s }
 }
 
 /**
@@ -743,7 +737,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
     override fun run(session: UserSession): ActionResult {
         // TODO(xiaoyun): the message can be different.
         val messages = mutableListOf<DialogAct>()
-        val logs = mutableListOf<SystemEvent.ActionStatus>()
+        val logs = mutableListOf<ActionResult.Status>()
         var flag = true
         for (action in actions) {
             val result = action.wrappedRun(session)
