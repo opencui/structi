@@ -208,7 +208,7 @@ class CloseSession() : ChartAction {
         // so that botOwn is true.
         closeSession(session.userIdentifier, session.botInfo)
         session.cleanup()
-        return ActionResult(createLog("CLEAN SESSION"), true)
+        return ActionResult(createLog("CLEAN SESSION"))
     }
 }
 
@@ -288,8 +288,7 @@ data class CleanupAction(
         }
 
         return ActionResult(
-            createLog("CLEANUP SLOT : ${toBeCleaned.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}"),
-            true
+            createLog("CLEANUP SLOT : ${toBeCleaned.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}")
         )
     }
 }
@@ -314,8 +313,7 @@ data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
         }
 
         return ActionResult(
-            createLog("RECHECK SLOT : ${toBeRechecked.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}"),
-            true
+            createLog("RECHECK SLOT : ${toBeRechecked.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}")
         )
     }
 }
@@ -339,8 +337,7 @@ data class ReinitAction(val toBeReinit: List<IFiller>) : StateAction {
         }
 
         return ActionResult(
-            createLog("REINIT SLOT : ${toBeReinit.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}"),
-            true
+            createLog("REINIT SLOT : ${toBeReinit.map { it.path!!.path.last() }.joinToString { "target=${it.host.javaClass.name}&slot=${if (it.isRoot()) "" else it.attribute}" }}")
         )
     }
 }
@@ -363,14 +360,12 @@ data class DirectlyFillAction<T>(
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
-            createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
-            true
+            createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}")
         )
         filler.directlyFill(value)
         filler.decorativeAnnotations.addAll(decorativeAnnotations)
         return ActionResult(
-            createLog("FILL SLOT for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
-            true
+            createLog("FILL SLOT for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}")
         )
     }
 }
@@ -382,8 +377,7 @@ data class DirectlyFillActionBySlot<T>(
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
-            createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
-            true
+            createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}")
         )
         return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).wrappedRun(session)
     }
@@ -396,8 +390,7 @@ data class FillAction<T>(
     override fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
-            createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
-            true
+            createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}")
         )
         val frameEventList = session.generateFrameEvent(filler, value)
         frameEventList.forEach {
@@ -409,8 +402,7 @@ data class FillAction<T>(
 
         if (frameEventList.isNotEmpty()) session.addEvents(frameEventList)
         return ActionResult(
-            createLog("FILL SLOT for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}"),
-            true
+            createLog("FILL SLOT for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}")
         )
     }
 }
@@ -426,8 +418,7 @@ data class FillActionBySlot<T>(
 
     override fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
-            createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}"),
-            true
+            createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}")
         )
         if (wrapFiller.targetFiller.isMV()) {
             return DirectlyFillAction(generator, wrapFiller, decorativeAnnotations).wrappedRun(session)
@@ -462,8 +453,7 @@ data class EndSlot(
     val frame: IFrame?, val slot: String?, val hard: Boolean) : StateAction {
     override fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
-            createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}; slot: ${slot}"),
-            true
+            createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}; slot: ${slot}")
         )
         return if (hard) MarkFillerDone(wrapFiller).wrappedRun(session) else MarkFillerFilled(wrapFiller).wrappedRun(session)
     }
@@ -583,7 +573,7 @@ data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
         }
         return ActionResult(
             prompts,
-            createLog(prompts.map { it.templates.pick() }.joinToString { it }), true)
+            createLog(prompts.map { it.templates.pick() }.joinToString { it }))
     }
 }
 
@@ -775,7 +765,7 @@ data class MaxDiscardAction(
         if (size > maxEntry) {
             targetSlot.removeAll(targetSlot.subList(maxEntry, targetSlot.size))
         }
-        return ActionResult(createLog("DISCARD mv entries that exceed max number, from $size entries to $maxEntry entries"), true)
+        return ActionResult(createLog("DISCARD mv entries that exceed max number, from $size entries to $maxEntry entries"))
     }
 }
 
@@ -1790,7 +1780,7 @@ data class UpdatePromptAction(
     override fun run(session: UserSession): ActionResult {
         wrapperTarget?.targetFiller?.decorativeAnnotations?.clear()
         wrapperTarget?.targetFiller?.decorativeAnnotations?.add(prompt)
-        return ActionResult(createLog("UPDATED PROMPTS for filler ${wrapperTarget?.attribute}"), true)
+        return ActionResult(createLog("UPDATED PROMPTS for filler ${wrapperTarget?.attribute}"))
     }
 }
 

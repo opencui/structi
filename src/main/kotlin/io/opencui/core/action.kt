@@ -72,17 +72,13 @@ data class ActionResult(
         botUtteranceFlow?.let { runBlocking { it.toList() } }
     }
 
-    constructor(a: SystemEvent.ActionStatus, s: Boolean = true) : this (a) {
-        actionLog.success = s
-    }
-
     // Constructor from List
-    constructor(b: List<DialogAct>?, a: SystemEvent.ActionStatus, s: Boolean = true) : this(a, s) {
+    constructor(b: List<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
         botUtteranceFlow = b?.asFlow()
     }
 
     // Constructor from Flow
-    constructor(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus, s: Boolean = true) : this(a, s) {
+    constructor(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
         botUtteranceFlow = b
     }
 
@@ -150,16 +146,16 @@ interface EmissionAction: AtomAction
 // There are different composite actions, easy ones are list.
 interface CompositeAction : Action
 
-fun Action.emptyLog() : SystemEvent.ActionStatus {
-    return SystemEvent.ActionStatus(this::class.java.simpleName, Json.makePrimitive(""), false)
+fun Action.emptyLog(s: Boolean = true) : SystemEvent.ActionStatus {
+    return SystemEvent.ActionStatus(this::class.java.simpleName, Json.makePrimitive(""), false).apply { success = s }
 }
 
-fun Action.createLog(payload: String): SystemEvent.ActionStatus {
-    return createLog(Json.makePrimitive(payload))
+fun Action.createLog(payload: String, s: Boolean=true): SystemEvent.ActionStatus {
+    return createLog(Json.makePrimitive(payload), s)
 }
 
-fun Action.createLog(payload: JsonElement): SystemEvent.ActionStatus {
-    return SystemEvent.ActionStatus(this::class.java.simpleName, payload, true)
+fun Action.createLog(payload: JsonElement, s: Boolean=true): SystemEvent.ActionStatus {
+    return SystemEvent.ActionStatus(this::class.java.simpleName, payload, true).apply { success = s }
 }
 
 /**
@@ -310,10 +306,10 @@ data class SimpleFillAction(
     override fun run(session: UserSession): ActionResult {
         // commit is responsible for marking the part of FrameEvent that it used
         val success = filler.commit(match)
-        if (!success) return ActionResult(emptyLog(), false)
+        if (!success) return ActionResult(emptyLog(false))
 
         session.schedule.state = Scheduler.State.RESCHEDULE
-        return ActionResult(emptyLog(), true)
+        return ActionResult(emptyLog(true))
     }
 }
 
@@ -326,7 +322,7 @@ data class RefocusActionBySlot(
     override fun run(session: UserSession): ActionResult {
         val path = session.findActiveFillerPathForTargetSlot(frame, slot)
         return if (path.isEmpty())
-            ActionResult(emptyLog(), true)
+            ActionResult(emptyLog(true))
         else
             RefocusAction(path as List<ICompositeFiller>).wrappedRun(session)
     }
@@ -510,14 +506,14 @@ data class SlotAskAction(val tag: String = "") : StateAction {
 
         val actionLog = if (res.actionLog != null) {
             if (res.actionLog.payload is ArrayNode) {
-                createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() })
+                createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() }, res.actionLog.success)
             } else {
-                createLog(res.actionLog.payload)
+                createLog(res.actionLog.payload, res.actionLog.success)
             }
         } else {
             emptyLog()
         }
-        return ActionResult(res.botUtterance, actionLog, res.actionLog.success)
+        return ActionResult(res.botUtterance, actionLog)
     }
 }
 
@@ -691,7 +687,7 @@ abstract class ExternalAction(
                 if (result.actionLog != null) {
                     jsonArrayLog.add(Json.encodeToJsonElement(result.actionLog))
                 }
-                return ActionResult(result.botUtterance, createLog(Json.makeArray(jsonArrayLog)), true)
+                return ActionResult(result.botUtterance, createLog(Json.makeArray(jsonArrayLog), true))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -700,8 +696,7 @@ abstract class ExternalAction(
         }
 
         return ActionResult(
-            createLog("EXTERNAL ACTION cannot construct action : ${packageName}.${actionName}"),
-            false
+            createLog("EXTERNAL ACTION cannot construct action : ${packageName}.${actionName}", false)
         )
     }
 
@@ -713,7 +708,8 @@ data class IntentAction(
     val jsonIntent: FullFrameBuilder
 ) : ChartAction, KernelMode {
     override fun run(session: UserSession): ActionResult {
-        val intent = jsonIntent.invoke(session)?: return ActionResult(createLog("INTENT ACTION cannot construct intent : $jsonIntent"), false)
+        val intent = jsonIntent.invoke(session)?:
+        return ActionResult(createLog("INTENT ACTION cannot construct intent : $jsonIntent", false))
 
         val intentFillerBuilder = intent.createBuilder()
         val topFiller = session.schedule.lastOrNull()
@@ -725,7 +721,7 @@ data class IntentAction(
         targetFillerWrapper.parent = currentFiller as FrameFiller<*>
         session.schedule.push(targetFillerWrapper)
         jsonIntent.init(session, targetFiller as FrameFiller<*>)
-        return ActionResult(createLog("INTENT ACTION : ${intent.javaClass.name}"), true)
+        return ActionResult(createLog("INTENT ACTION : ${intent.javaClass.name}", true))
     }
 }
 
@@ -750,8 +746,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
         Dispatcher.logger.info("got the following messages: ${messages.toString()}")
         return ActionResult(
             messages,
-            createLog(Json.makeArray(logs.map { l -> Json.encodeToJsonElement(l) })),
-            flag)
+            createLog(Json.makeArray(logs.map { l -> Json.encodeToJsonElement(l) }), flag))
     }
 }
 
@@ -795,7 +790,7 @@ class Handoff: EmissionAction {
         logger.info("Hand off session for ${session.userIdentifier} for $intentStr")
         val department = findDepartment(intentStr, session.chatbot!!.routing)
         Dispatcher.handOffSession(session.userIdentifier, session.botInfo, department)
-        return ActionResult(createLog("HandOff"), true)
+        return ActionResult(createLog("HandOff", true))
     }
 
     companion object {
