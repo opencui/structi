@@ -8,6 +8,10 @@ import io.opencui.core.da.RawInform
 import io.opencui.serialization.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -76,11 +80,6 @@ data class ActionResult(
         botUtteranceFlow?.let { runBlocking { it.toList() } }
     }
 
-    // Constructor from List
-    constructor(b: List<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
-        botUtteranceFlow = b?.asFlow()
-    }
-
     // Constructor from Flow
     constructor(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
         botUtteranceFlow = b
@@ -106,6 +105,15 @@ data class ActionResult(
         val list = inp.readObject() as List<DialogAct>?
         botUtteranceFlow = list?.asFlow()
     }
+}
+
+fun buildActionResult(actionLog: SystemEvent.ActionStatus): Flow<SystemEvent> {
+    return flowOf(actionLog)
+}
+
+fun buildActionResult(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus) : Flow<SystemEvent> = flow {
+    if (b != null) emitAll(b.map{SystemEvent.Response(it)})
+    emit(a)
 }
 
 
@@ -517,7 +525,7 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         } else {
             emptyLog()
         }
-        return ActionResult(res.botUtterance, actionLog)
+        return ActionResult(res.botUtterance?.asFlow(), actionLog)
     }
 }
 
@@ -691,7 +699,7 @@ abstract class ExternalAction(
                 if (result.actionLog != null) {
                     jsonArrayLog.add(Json.encodeToJsonElement(result.actionLog))
                 }
-                return ActionResult(result.botUtterance, createLog(Json.makeArray(jsonArrayLog), true))
+                return ActionResult(result.botUtterance?.asFlow(), createLog(Json.makeArray(jsonArrayLog), true))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -749,7 +757,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
         }
         Dispatcher.logger.info("got the following messages: ${messages.toString()}")
         return ActionResult(
-            messages,
+            messages.asFlow(),
             createLog(Json.makeArray(logs.map { l -> Json.encodeToJsonElement(l) }), flag))
     }
 }

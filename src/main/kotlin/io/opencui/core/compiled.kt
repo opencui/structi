@@ -23,6 +23,7 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.NoSuchPropertyException
+import kotlinx.coroutines.flow.asFlow
 
 /**
  * this file contains the things we need from platform, they will be declared on platform so that they can
@@ -572,7 +573,7 @@ data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
             }
         }
         return ActionResult(
-            prompts,
+            prompts.asFlow(),
             createLog(prompts.map { it.templates.pick() }.joinToString { it }))
     }
 }

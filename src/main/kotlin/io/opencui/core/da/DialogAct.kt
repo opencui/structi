@@ -6,6 +6,7 @@ import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -78,7 +79,7 @@ interface DialogAct: EmissionAction {
     override fun run(session: UserSession): ActionResult {
         val success = true
         return ActionResult(
-            listOf(this),
+            listOf(this).asFlow(),
             createLog(templates.pick(), success)
         )
     }
