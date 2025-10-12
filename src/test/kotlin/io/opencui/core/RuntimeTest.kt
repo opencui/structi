@@ -1747,13 +1747,13 @@ class RuntimeTest {
                 listOf(ActionResult(ActionResult.Status("Exception", Json.makePrimitive(""), true)))
             }
 
-            val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.actionLog.botOwn }.map { it.botUtterance!!}.flatten()
+            val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.status.botOwn }.map { it.botUtterance!!}.flatten()
             val rewrittenReplies = session.rewriteDialogAct(replies)
             for (reply in rewrittenReplies) {
                 println("reply = ${reply.templates.pick()}")
             }
 
-            val replyTextList = responses.filter { it.actionLog != null && it.actionLog!!.isTestable }.map { Json.encodeToString(it.actionLog!!) }
+            val replyTextList = responses.filter { it.status != null && it.status!!.isTestable }.map { Json.encodeToString(it.status!!) }
 
             val expected = replyTextList + (Json.encodeToString(dm.findDialogExpectation(session) ?: NullNode.instance))
 

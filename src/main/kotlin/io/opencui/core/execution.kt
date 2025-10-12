@@ -140,7 +140,7 @@ class DialogManager {
         val results = response(ParsedQuery(query, convertedFrameEventList), session)
 
         val dialogActs = results
-            .filter { it.botUtterance != null && it.actionLog.botOwn }
+            .filter { it.botUtterance != null && it.status.botOwn }
             .map { it.botUtterance!!}.flatten().distinct()
 
         val turn = Turn(
@@ -160,7 +160,7 @@ class DialogManager {
 
     fun processResults2(resultsFlow: Flow<ActionResult>): Flow<DialogAct> {
         return resultsFlow
-            .filter { it.botUtterance != null && it.actionLog.botOwn } // Ensure botUtterance is not null and botOwn is true
+            .filter { it.botUtterance != null && it.status.botOwn } // Ensure botUtterance is not null and botOwn is true
             .flatMapConcat { actionResult ->
                 // Flatten the list of DialogAct into the flow
                 actionResult.botUtterance!!.asFlow()
@@ -264,7 +264,7 @@ class DialogManager {
                 try {
                     assert(currentTurnWorks.size == 1)
                     val result = currentTurnWorks[0].wrappedRun(session).apply {
-                        this.actionLog.botOwn = botOwn
+                        this.status.botOwn = botOwn
                     }
                     actionResults += result
                     emit(result)

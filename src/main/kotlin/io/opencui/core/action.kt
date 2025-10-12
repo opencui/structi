@@ -8,10 +8,6 @@ import io.opencui.core.da.RawInform
 import io.opencui.serialization.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -57,7 +53,7 @@ sealed class SystemEvent : Serializable {
  * and only the map utterance need the get utterance with channel as input parameter.
  */
 data class ActionResult(
-    val actionLog: Status
+    val status: Status
 ) : Serializable {
 
     // isTestable controls whether this log will participate in the log comparison during testing.
@@ -89,7 +85,7 @@ data class ActionResult(
     }
 
     override fun toString(): String {
-        return "ActionResult(actionLog=$actionLog, success=${actionLog.success}, botUtterance=${botUtterance})"
+        return "ActionResult(actionLog=$status, success=${status.success}, botUtterance=${botUtterance})"
     }
 
     // Custom serialization to handle the Flow
@@ -510,11 +506,11 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         else
             SeqAction(flatActions).wrappedRun(session)
 
-        val actionLog = if (res.actionLog != null) {
-            if (res.actionLog.payload is ArrayNode) {
-                createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() }, res.actionLog.success)
+        val actionLog = if (res.status != null) {
+            if (res.status.payload is ArrayNode) {
+                createLog(res.status.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() }, res.status.success)
             } else {
-                createLog(res.actionLog.payload, res.actionLog.success)
+                createLog(res.status.payload, res.status.success)
             }
         } else {
             emptyLog()
@@ -613,7 +609,7 @@ class RespondAction : CompositeAction {
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
             val tmp = response.wrappedRun(session)
-            tmp.apply {if (!tmp.actionLog.success) throw Exception("fail to respond!!!") }
+            tmp.apply {if (!tmp.status.success) throw Exception("fail to respond!!!") }
         } else {
             logger.debug("RespondAction topFiller is ${topFiller?.path}")
             ActionResult(emptyLog())
@@ -690,8 +686,8 @@ abstract class ExternalAction(
             if (result != null) {
                 val jsonArrayLog = mutableListOf<JsonElement>()
                 jsonArrayLog.add(Json.makePrimitive("EXTERNAL ACTION : ${action.javaClass.name}"))
-                if (result.actionLog != null) {
-                    jsonArrayLog.add(Json.encodeToJsonElement(result.actionLog))
+                if (result.status != null) {
+                    jsonArrayLog.add(Json.encodeToJsonElement(result.status))
                 }
                 return ActionResult(result.botUtterance?.asFlow(), createLog(Json.makeArray(jsonArrayLog), true))
             }
@@ -741,13 +737,13 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
         var flag = true
         for (action in actions) {
             val result = action.wrappedRun(session)
-            if (result.actionLog != null) {
-                logs += result.actionLog
+            if (result.status != null) {
+                logs += result.status
             }
             if (result.botUtterance != null) {
                 messages.addAll(result.botUtterance!!)
             }
-            flag = flag && result.actionLog.success
+            flag = flag && result.status.success
         }
         Dispatcher.logger.info("got the following messages: ${messages.toString()}")
         return ActionResult(
