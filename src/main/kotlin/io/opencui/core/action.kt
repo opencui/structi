@@ -26,12 +26,17 @@ import kotlin.reflect.full.primaryConstructor
 data class ActionLog(
     val type: String,
     val payload: JsonElement,
-    @JsonIgnore val isTestable: Boolean = false) : Serializable
+    @JsonIgnore val isTestable: Boolean = false) : Serializable {
+
+    @JsonIgnore
+    var success: Boolean = true
+}
 
 data class ActionResult(
-    val actionLog: ActionLog?,
-    val success: Boolean = true
+    val actionLog: ActionLog
 ) : Serializable {
+
+    var success: Boolean = actionLog.success
 
     var botOwn: Boolean = true
 
@@ -45,13 +50,19 @@ data class ActionResult(
         botUtteranceFlow?.let { runBlocking { it.toList() } }
     }
 
+    constructor(a: ActionLog, s: Boolean = true) : this (a) {
+        actionLog.success = s
+    }
+
     // Constructor from List
-    constructor(b: List<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
+    constructor(b: List<DialogAct>?, a: ActionLog, s: Boolean = true) : this(a, s) {
         botUtteranceFlow = b?.asFlow()
     }
 
+
+
     // Constructor from Flow
-    constructor(b: Flow<DialogAct>?, a: ActionLog?, s: Boolean = true) : this(a, s) {
+    constructor(b: Flow<DialogAct>?, a: ActionLog, s: Boolean = true) : this(a, s) {
         botUtteranceFlow = b
     }
 
@@ -279,10 +290,10 @@ data class SimpleFillAction(
     override fun run(session: UserSession): ActionResult {
         // commit is responsible for marking the part of FrameEvent that it used
         val success = filler.commit(match)
-        if (!success) return ActionResult(null, false)
+        if (!success) return ActionResult(emptyLog(), false)
 
         session.schedule.state = Scheduler.State.RESCHEDULE
-        return ActionResult(null, true)
+        return ActionResult(emptyLog(), true)
     }
 }
 
@@ -295,7 +306,7 @@ data class RefocusActionBySlot(
     override fun run(session: UserSession): ActionResult {
         val path = session.findActiveFillerPathForTargetSlot(frame, slot)
         return if (path.isEmpty())
-            ActionResult(null, true)
+            ActionResult(emptyLog(), true)
         else
             RefocusAction(path as List<ICompositeFiller>).wrappedRun(session)
     }
@@ -484,7 +495,7 @@ data class SlotAskAction(val tag: String = "") : StateAction {
                 createLog(res.actionLog.payload)
             }
         } else {
-            null
+            emptyLog()
         }
         return ActionResult(res.botUtterance, actionLog, res.success)
     }
@@ -566,7 +577,7 @@ class SlotDoneAction(val filler: AnnotatedWrapperFiller) : StateAction {
         if (actions.isNotEmpty()) {
             return SeqAction(actions).wrappedRun(session)
         }
-        return ActionResult(null)
+        return ActionResult(emptyLog())
     }
     override fun toString(): String {
         return """SlotDoneAction(${filler.targetFiller} with ${filler.targetFiller.path})"""

@@ -484,7 +484,7 @@ class EndTopIntent : StateAction {
             return MarkFillerDone((session.schedule.first() as AnnotatedWrapperFiller)).wrappedRun(session)
         }
 
-        return ActionResult(null)
+        return ActionResult(emptyLog())
     }
 }
 
