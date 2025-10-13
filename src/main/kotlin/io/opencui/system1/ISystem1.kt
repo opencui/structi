@@ -2,6 +2,7 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -12,6 +13,8 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.full.declaredFunctions
 
 // The goal of the type system is to figure out
@@ -274,6 +277,15 @@ suspend fun Flow<String>.joinToString(sep: String = ", "): String {
     return stringBuilder.toString()
 }
 
+// In order to preserve the standard function semantics, while emit thinking event, we
+// rely on coroutine context.
+class System1Sink(
+    private val emit: suspend (SystemEvent) -> Unit
+) : AbstractCoroutineContextElement(Key) {
+    companion object Key : CoroutineContext.Key<System1Sink>
+    suspend fun send(t: SystemEvent) = emit(t)
+}
+
 
 //
 // All system1 configure use the ChatGPTSystem1 provider config meta.
@@ -290,7 +302,7 @@ interface ISystem1 : IExtension {
         const val MODELFAMILY = "model_family"
 
         // Use english for now.
-        fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder) : Flow<SystemEvent> = flow {
+        suspend fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation, system1Builder: ISystem1Builder)  {
             val botStore = Dispatcher.sessionManager.botStore
             if (botStore != null) {
                 val key = "summarize:$clasName:$methodName"
@@ -310,7 +322,8 @@ interface ISystem1 : IExtension {
                 }
 
                 if (value.isNotEmpty()) {
-                    emit(SystemEvent.Reason( value))
+                    val sink = currentCoroutineContext()[System1Sink]
+                    sink?.send(SystemEvent.Reason( value))
                 }
             }
         }

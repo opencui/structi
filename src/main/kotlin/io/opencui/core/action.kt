@@ -12,35 +12,6 @@ import kotlin.math.min
 import kotlin.reflect.full.primaryConstructor
 
 
-// This is used to separate the reason for bot event.
-sealed class SystemEvent : Serializable {
-
-    data class MarkSeen(val msgId: String) : SystemEvent()
-
-    object Typing: SystemEvent()
-
-    data class Result(val result: JsonElement?=null): SystemEvent()
-
-    // This is also dialog act.
-    data class Response(val dialogAct: DialogAct): SystemEvent() {
-        constructor(templates: Templates) : this(RawInform(templates))
-        constructor(payload: String): this( templateOf(payload))
-    }
-
-    data class Reason(val dialogAct: DialogAct): SystemEvent() {
-        constructor(templates: Templates) : this(RawInform(templates))
-        constructor(payload: String): this( templateOf(payload))
-    }
-
-    data class Error(val dialogAct: DialogAct): SystemEvent() {
-        constructor(templates: Templates) : this(RawInform(templates))
-        constructor(payload: String): this( templateOf(payload))
-    }
-
-}
-
-
-
 /**
  * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
  * and only the map utterance need the get utterance with channel as input parameter.
