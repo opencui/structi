@@ -18,10 +18,15 @@ import io.opencui.core.SystemEvent
 import io.opencui.core.UserSession
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.shareIn
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
@@ -33,6 +38,16 @@ data class AdkAugmentContext(
     val inputSchema: Schema? = null,
     val outputSchema: Schema? = null
 ): AugmentContext
+
+
+fun <T> Flow<T>.split(
+    scope: CoroutineScope,
+    predicate: (T) -> Boolean
+): Pair<Flow<T>, Flow<T>> {
+    val shared = this.shareIn(scope, SharingStarted.WhileSubscribed(), replay = 0)
+    return shared.filter(predicate) to shared.filterNot(predicate)
+}
+
 
 //
 // For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
@@ -98,36 +113,36 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             AdkSystem1Builder.sessionService )
         
         // the flow here is ignored for now.
-        return flow {
-            emitAll (AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, jsonOutput = true))
+        val flow = AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, jsonOutput = true)
 
-            // now we need to get result from agent.
-            val sessionService = runner.sessionService()
-            val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
+        // now we need to get result from agent.
+        val sessionService = runner.sessionService()
+        val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
 
-            val value = sessionInRunner?.state()?.get(RESULTKEY)
-            if (value == null) {
-                emit(SystemEvent.Result())
-            } else {
-                logger.info("adkfunc get: {}", value)
-                emit(SystemEvent.Result(Json.encodeToJsonElement(value)))
-            }
+        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return flow { emit(SystemEvent.Result()) }
+        logger.info("adkfunc get: {}", value)
+        return flow{
+            emit(SystemEvent.Result(Json.encodeToJsonElement( value)))
         }
     }
 
     @Throws(ProviderInvokeException::class)
     suspend fun <T> svInvoke(converter: Converter<T>): T {
-        val result = when (val event = invoke().first { it is SystemEvent.Result }) {
-            is SystemEvent.Result -> event.result
-            is SystemEvent.Error -> throw ProviderInvokeException(event.dialogAct.templates.pick())
-            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
+        val sink = currentCoroutineContext()[System1Sink]
+        val (result, rest) = invoke().split { it is SystemEvent.Result }
+        val result = when (eventFlow) {
+            is SystemEvent.Result -> eventFlow.result
+            is SystemEvent.Error -> throw ProviderInvokeException(eventFlow.dialogAct.templates.pick())
+            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${eventFlow::class.java}")
         }
         return converter(result)
     }
 
     @Throws(ProviderInvokeException::class)
     suspend fun <T> mvInvoke(converter: Converter<T>): List<T> {
-        val result = when (val event = invoke().first()) {
+
+        val event = invoke().first()
+        val result = when (event) {
             is SystemEvent.Result -> event.result
             is SystemEvent.Error -> throw ProviderInvokeException(event.dialogAct.templates.pick())
             else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
