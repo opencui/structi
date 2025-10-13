@@ -23,7 +23,6 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.NoSuchPropertyException
-import kotlinx.coroutines.flow.asFlow
 
 /**
  * this file contains the things we need from platform, they will be declared on platform so that they can
@@ -356,7 +355,7 @@ data class ReinitActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : 
 }
 
 data class DirectlyFillAction<T>(
-    val generator: () -> T?,
+    val generator: suspend () -> T?,
     val filler: AnnotatedWrapperFiller, val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
     override suspend fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
@@ -372,7 +371,7 @@ data class DirectlyFillAction<T>(
 }
 
 data class DirectlyFillActionBySlot<T>(
-    val generator: () -> T?,
+    val generator: suspend () -> T?,
     val frame: IFrame?,
     val slot: String?,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
@@ -385,7 +384,7 @@ data class DirectlyFillActionBySlot<T>(
 }
 
 data class FillAction<T>(
-    val generator: () -> T?,
+    val generator: suspend () -> T?,
     val filler: IFiller,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
     override suspend fun run(session: UserSession): ActionResult {
@@ -409,13 +408,13 @@ data class FillAction<T>(
 }
 
 data class FillActionBySlot<T>(
-    val generator: () -> T?,
+    val generator: suspend () -> T?,
     val frame: IFrame?,
     val slot: String?,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
 
-    constructor(generaotr: () -> T?, slot: String?, decorativeAnnotations: List<Annotation> = listOf()):
-            this(generaotr, null, slot, decorativeAnnotations)
+    constructor(generator: suspend () -> T?, slot: String?, decorativeAnnotations: List<Annotation> = listOf()):
+            this(generator, null, slot, decorativeAnnotations)
 
     override suspend fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
