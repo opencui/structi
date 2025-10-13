@@ -14,7 +14,6 @@ import com.google.adk.tools.BaseTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import com.google.genai.types.GenerateContentConfig;
-import io.opencui.core.SystemEvent
 import io.opencui.core.UserSession
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
@@ -25,7 +24,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.toList
@@ -79,7 +77,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
     var inputs: Map<String, Any?>? = null
 
     @Throws(ProviderInvokeException::class)
-    override fun invoke(): Flow<SystemEvent> {
+    override fun invoke(): Flow<System1Event> {
         logger.info("start adk function.")
         val context = augmentation.context as AdkAugmentContext
         val inputStr = Json.encodeToString(inputs)
@@ -121,18 +119,18 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         val sessionService = runner.sessionService()
         val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
 
-        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return flow { emit(SystemEvent.Result()) }
+        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return flow { emit(System1Event.Result()) }
         logger.info("adkfunc get: {}", value)
         return flow{
-            emit(SystemEvent.Result(Json.encodeToJsonElement( value)))
+            emit(System1Event.Result(Json.encodeToJsonElement( value)))
         }
     }
 
     @Throws(ProviderInvokeException::class)
     suspend fun <T> svInvoke(converter: Converter<T>): T = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (resultFlow, restFlow) = invoke().split (this) { it is SystemEvent.Result }
-        val results = resultFlow.toList().map { (it as SystemEvent.Result).result }
+        val (resultFlow, restFlow) = invoke().split (this) { it is System1Event.Result }
+        val results = resultFlow.toList().map { (it as System1Event.Result).result }
         if (results.size != 1) {
             throw ProviderInvokeException("there is ${results.size} results, expected only 1 result.")
         }
@@ -146,10 +144,10 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
     @Throws(ProviderInvokeException::class)
     suspend fun <T> mvInvoke(converter: Converter<T>): List<T> = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (resultFlow, restFlow) = invoke().split (this) { it is SystemEvent.Result }
+        val (resultFlow, restFlow) = invoke().split (this) { it is System1Event.Result }
 
         // Assume all the
-        val results = resultFlow.toList().map { (it as SystemEvent.Result).result }
+        val results = resultFlow.toList().map { (it as System1Event.Result).result }
         if (results.size != 1) {
             throw ProviderInvokeException("there is ${results.size} results, expected only 1 result.")
         }
@@ -171,7 +169,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
 
 
 data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(): Flow<SystemEvent> {
+    override fun invoke(): Flow<System1Event> {
         val userInput = session.currentUtterance() ?: ""
 
         val userMsg = Content.fromParts(Part.fromText(userInput))
@@ -204,7 +202,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 }
 
 data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
-    override fun invoke(): Flow<SystemEvent> {
+    override fun invoke(): Flow<System1Event> {
         val label = "action agent"
         val agent = AdkSystem1Builder.build(label, model, augmentation.instruction, tools = emptyList())
 
@@ -315,7 +313,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             sessionId: String,
             jsonOutput: Boolean = false,
             bufferUp: Boolean = true
-        ): Flow<SystemEvent> = flow {
+        ): Flow<System1Event> = flow {
             logger.info("User Query: $content")
             // Not really useful, but keep it for now.
             val serverSideTextBuffers = mutableMapOf<Pair<String, String>, String>()
@@ -352,20 +350,20 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
                                 var jsonNode: JsonNode? = null
                                 try {
-                                    emit(SystemEvent.Result(Json.parseToJsonElement(trimmedText)))
+                                    emit(System1Event.Result(Json.parseToJsonElement(trimmedText)))
                                 } catch (e: Exception) {
                                     logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
-                                    emit(SystemEvent.Error(e.message.toString()))
+                                    emit(System1Event.Error(e.message.toString()))
                                 }
                             } else {
-                                emit(SystemEvent.Response(trimmedText))
+                                emit(System1Event.Response(trimmedText))
                             }
                         }
                     }
                 }
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
-                emit(SystemEvent.Error(e.message.toString()))
+                emit(System1Event.Error(e.message.toString()))
             }
         }
     }
