@@ -1700,7 +1700,7 @@ class RuntimeTest {
         assertEquals(extension0, extension1)
         val service = HelloWorldService(session)
         val action = service.searchResponse()
-        val result = action!!.run(session)
+        val result = runBlocking { action!!.run(session) }
     }
 
     fun process(lines: List<String>) {
@@ -1744,18 +1744,18 @@ class RuntimeTest {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                listOf(ActionResult(SystemEvent.ActionStatus("Exception", Json.makePrimitive(""), true)))
+                listOf(ActionResult(ActionResult.Status("Exception", Json.makePrimitive(""), true)))
             }
 
-            val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.actionLog.botOwn }.map { it.botUtterance!!}.flatten()
+            val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.status.botOwn }.map { it.botUtterance!!}.flatten()
             val rewrittenReplies = session.rewriteDialogAct(replies)
             for (reply in rewrittenReplies) {
                 println("reply = ${reply.templates.pick()}")
             }
 
-            val replyTextList = responses.filter { it.actionLog != null && it.actionLog!!.isTestable }.map { Json.encodeToString(it.actionLog!!) }
+            val replyTextList = responses.filter { it.status != null && it.status!!.isTestable }.map { Json.encodeToString(it.status!!) }
 
-            val expected = replyTextList + (Json.encodeToString(dm.findDialogExpectation(session) ?: NullNode.instance))
+            val expected = replyTextList + (Json.encodeToString(runBlocking{dm.findDialogExpectation(session) } ?: NullNode.instance))
 
             expected.forEach { println(it) }
 

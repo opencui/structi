@@ -6,9 +6,11 @@ import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.toList
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -43,7 +45,7 @@ open class System1Generation(
     var mode: System1Mode = System1Mode.FALLBACK
   ): Generation {
 
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         logger.info("Start of System1Generation with $system1Id")
         val system1Builder = session.getSystem1Builder(system1Id, packageName)
 
@@ -58,7 +60,7 @@ open class System1Generation(
         // the system1 should already return the System1Inform.
         val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
         val actionResult = ActionResult(
-            dialogActFlow,
+            dialogActFlow.toList(),
             createLog("AugmentedGeneration", true)
         )
         logger.info("End of System1Generation with $system1Id")
@@ -75,7 +77,7 @@ open class System1Generation(
 // these explicitly. These represent what bot want to express, not how they express it.
 interface DialogAct: EmissionAction {
     var templates: Templates
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val success = true
         return ActionResult(
             listOf(this),

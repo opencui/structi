@@ -140,7 +140,7 @@ class DialogManager {
         val results = response(ParsedQuery(query, convertedFrameEventList), session)
 
         val dialogActs = results
-            .filter { it.botUtterance != null && it.actionLog.botOwn }
+            .filter { it.botUtterance != null && it.status.botOwn }
             .map { it.botUtterance!!}.flatten().distinct()
 
         val turn = Turn(
@@ -160,7 +160,7 @@ class DialogManager {
 
     fun processResults2(resultsFlow: Flow<ActionResult>): Flow<DialogAct> {
         return resultsFlow
-            .filter { it.botUtterance != null && it.actionLog.botOwn } // Ensure botUtterance is not null and botOwn is true
+            .filter { it.botUtterance != null && it.status.botOwn } // Ensure botUtterance is not null and botOwn is true
             .flatMapConcat { actionResult ->
                 // Flatten the list of DialogAct into the flow
                 actionResult.botUtterance!!.asFlow()
@@ -264,7 +264,7 @@ class DialogManager {
                 try {
                     assert(currentTurnWorks.size == 1)
                     val result = currentTurnWorks[0].wrappedRun(session).apply {
-                        this.actionLog.botOwn = botOwn
+                        this.status.botOwn = botOwn
                     }
                     actionResults += result
                     emit(result)
@@ -317,7 +317,7 @@ class DialogManager {
     }
 
 
-    fun findDialogExpectation(session: UserSession): DialogExpectation? {
+    suspend fun findDialogExpectation(session: UserSession): DialogExpectation? {
         val entity = session.schedule.lastOrNull()
         if (session.schedule.isEmpty() || entity == null || entity.askStrategy is ExternalEventStrategy) return null
         val topFrameWrapperFiller = session.schedule.filterIsInstance<AnnotatedWrapperFiller>().lastOrNull { it.targetFiller is FrameFiller<*> }!!
@@ -325,13 +325,13 @@ class DialogManager {
     }
 
 
-    private fun getDialogActs(session: UserSession, filler: IFiller): List<DialogAct> {
+    private suspend fun generateDialogActs(session: UserSession, filler: IFiller): List<DialogAct> {
         val actions = filler.slotAskAnnotation()?.actions ?: emptyList()
         return SeqAction(actions).wrappedRun(session).botUtterance!!
     }
 
     // This can be used recursively for cases like
-    private fun findExpectedFrames(session: UserSession, topFrameWrapperFiller: AnnotatedWrapperFiller): List<ExpectedFrame> {
+    private suspend fun findExpectedFrames(session: UserSession, topFrameWrapperFiller: AnnotatedWrapperFiller): List<ExpectedFrame> {
         assert(topFrameWrapperFiller.targetFiller is FrameFiller<*>)
         val topFrame = (topFrameWrapperFiller.targetFiller as FrameFiller<*>).frame()
         val res = mutableListOf<ExpectedFrame>()
@@ -345,7 +345,7 @@ class DialogManager {
                         // hardcode status for HasMore
                         val typeStr = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
                         val frameName = HasMore::class.qualifiedName!!
-                        val dialogActs = getDialogActs(session, potentialHasMoreFiller)
+                        val dialogActs = generateDialogActs(session, potentialHasMoreFiller)
                         res += ExpectedFrame(frameName, "status", typeStr, dialogActs)
                         val potentialMVFiller = potentialHasMoreFiller.parent?.parent
                         if (potentialMVFiller != null) {
@@ -363,7 +363,7 @@ class DialogManager {
             }
             is Confirmation -> {
                 val typeStr = io.opencui.core.confirmation.IStatus::class.qualifiedName!!
-                val dialogActs = getDialogActs(session, topFrameWrapperFiller)
+                val dialogActs = generateDialogActs(session, topFrameWrapperFiller)
                 res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", typeStr, dialogActs)
                 val targetFiller = (topFrameWrapperFiller.parent as? AnnotatedWrapperFiller)?.targetFiller
                 if (targetFiller != null) {
@@ -386,7 +386,7 @@ class DialogManager {
                             }
                             if (expectedTargetFiller is MultiValueFiller<*>) {
                                 val typeStr = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
-                                val dialogActs = getDialogActs(session, expectedTargetFiller)
+                                val dialogActs = generateDialogActs(session, expectedTargetFiller)
                                 res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", typeStr)
                             }
                         }
@@ -398,7 +398,7 @@ class DialogManager {
             }
             is HasMore -> {
                 val typeStr = io.opencui.core.hasMore.IStatus::class.qualifiedName!!
-                val dialogActs = getDialogActs(session, topFrameWrapperFiller)
+                val dialogActs = generateDialogActs(session, topFrameWrapperFiller)
                 res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", typeStr, dialogActs)
                 val multiValueFiller = topFrameWrapperFiller.parent as? MultiValueFiller<*>
                 if (multiValueFiller != null) {
@@ -409,7 +409,7 @@ class DialogManager {
             }
             is BoolGate -> {
                 val typeStr = io.opencui.core.booleanGate.IStatus::class.qualifiedName!!
-                val dialogActs = getDialogActs(session, topFrameWrapperFiller)
+                val dialogActs = generateDialogActs(session, topFrameWrapperFiller)
                 res += ExpectedFrame(BoolGate::class.qualifiedName!!, "status", typeStr)
                 val targetFiller = (topFrameWrapperFiller.parent as? AnnotatedWrapperFiller)?.targetFiller
                 if (targetFiller != null) {
@@ -432,7 +432,7 @@ class DialogManager {
 
                 if (frameFiller.qualifiedTypeStr() != Confirmation::class.qualifiedName!!
                     && (focusFiller?.targetFiller as? InterfaceFiller<*>)?.qualifiedTypeStr() == CONFIRMATIONSTATUS) {
-                    val dialogActs = getDialogActs(session, frameFiller)
+                    val dialogActs = generateDialogActs(session, frameFiller)
                     res += ExpectedFrame(Confirmation::class.qualifiedName!!, "status", CONFIRMATIONSTATUS, dialogActs)
                 }
                 // TODO (sean), why we only care about the top of stack?
@@ -453,18 +453,18 @@ class DialogManager {
         if (res.firstOrNull { it.frame == HasMore::class.qualifiedName } == null && session.schedule.firstOrNull { it is FrameFiller<*> && it.frame() is HasMore } != null) {
             // check if there is undone HasMore
             val filler = session.schedule.firstOrNull { it is FrameFiller<*> && it.frame() is HasMore } as IFiller
-            val dialogActs = getDialogActs(session, filler)
+            val dialogActs = generateDialogActs(session, filler)
             res += ExpectedFrame(HasMore::class.qualifiedName!!, "status", HASMORESTATUS, dialogActs)
         }
         return res
     }
 
-    private fun findExpectationByFiller(session: UserSession, filler: IFiller): ExpectedFrame? {
+    private suspend fun findExpectationByFiller(session: UserSession, filler: IFiller): ExpectedFrame? {
         when (filler) {
             is EntityFiller<*> -> {
                 val frameName = filler.qualifiedEventType() + (extractSlotType(filler)?.let { "$${it}" } ?: "")
                 val typeStr = filler.qualifiedTypeStr()
-                val dialogActs = getDialogActs(session, filler)
+                val dialogActs = generateDialogActs(session, filler)
                 return ExpectedFrame(frameName, filler.attribute, typeStr, dialogActs)
             }
             is FrameFiller<*> -> {
@@ -472,7 +472,7 @@ class DialogManager {
                 val focusFiller = if (index != -1 && session.schedule.size > index+1) session.schedule[index+1] as? AnnotatedWrapperFiller else null
                 val frameName = filler.qualifiedEventType()!!
                 val typeStr = (focusFiller?.targetFiller as? TypedFiller<*>)?.qualifiedTypeStr()
-                val dialogActs = if (focusFiller == null) emptyList() else getDialogActs(session, focusFiller)
+                val dialogActs = if (focusFiller == null) emptyList() else generateDialogActs(session, focusFiller)
                 return ExpectedFrame(frameName, focusFiller?.attribute, typeStr, dialogActs)
             }
             is InterfaceFiller<*> -> {

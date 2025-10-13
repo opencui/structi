@@ -323,7 +323,7 @@ data class UserSession(
     /**
      * Chart building are in kernel mode and should not be exposed to execution.
      */
-    fun userStep(): List<Action> {
+    suspend fun userStep(): List<Action> {
         var res = kernelStep()
         while (res.size == 1 && (res[0] is KernelMode)) {
             res[0].wrappedRun(this)

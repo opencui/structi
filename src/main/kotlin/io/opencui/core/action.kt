@@ -44,11 +44,24 @@ sealed class SystemEvent : Serializable {
         constructor(payload: String): this( templateOf(payload))
     }
 
+}
+
+
+
+/**
+ * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
+ * and only the map utterance need the get utterance with channel as input parameter.
+ */
+data class ActionResult(
+    val status: Status,
+    val botUtterance: List<DialogAct>?= null
+) : Serializable {
+
     // isTestable controls whether this log will participate in the log comparison during testing.
-    data class ActionStatus(
+    data class Status(
         val type: String,
         val payload: JsonElement,
-        @JsonIgnore val isTestable: Boolean = false) : SystemEvent() {
+        @JsonIgnore val isTestable: Boolean = false) : Serializable {
 
         @JsonIgnore
         var success: Boolean = true
@@ -56,55 +69,15 @@ sealed class SystemEvent : Serializable {
         @JsonIgnore
         var botOwn: Boolean = true
     }
-}
-
-/**
- * There should be two concepts here: the bot utterance for one channel, and mapped utterance for multiple channels.
- * and only the map utterance need the get utterance with channel as input parameter.
- */
-data class ActionResult(
-    val actionLog: SystemEvent.ActionStatus
-) : Serializable {
 
     // Single Flow member
-    @Transient
-    private var botUtteranceFlow: Flow<DialogAct>? = null
+    constructor(a: Status) : this(a, null)
+    
 
-
-    // List access when needed.
-    val botUtterance: List<DialogAct>? by lazy {
-        botUtteranceFlow?.let { runBlocking { it.toList() } }
-    }
-
-    // Constructor from List
-    constructor(b: List<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
-        botUtteranceFlow = b?.asFlow()
-    }
-
-    // Constructor from Flow
-    constructor(b: Flow<DialogAct>?, a: SystemEvent.ActionStatus) : this(a) {
-        botUtteranceFlow = b
-    }
+    constructor(b: List<DialogAct>?, a: Status) : this(a, b) 
 
     override fun toString(): String {
-        return "ActionResult(actionLog=$actionLog, success=${actionLog.success}, botUtterance=${botUtterance})"
-    }
-
-    // Custom serialization to handle the Flow
-    @Throws(IOException::class)
-    private fun writeObject(out: ObjectOutputStream) {
-        out.defaultWriteObject()
-        // Serialize the Flow as a List
-        val list = botUtteranceFlow?.let { runBlocking { it.toList() } }
-        out.writeObject(list)
-    }
-
-    @Throws(IOException::class, ClassNotFoundException::class)
-    private fun readObject(inp: ObjectInputStream) {
-        inp.defaultReadObject()
-        // Recreate Flow from the deserialized List
-        val list = inp.readObject() as List<DialogAct>?
-        botUtteranceFlow = list?.asFlow()
+        return "ActionResult(actionLog=$status, success=${status.success}, botUtterance=${botUtterance})"
     }
 }
 
@@ -127,9 +100,9 @@ interface SideEffect {
  * 4. generate event (This is indirect state change).
  */
 interface Action: Serializable {
-    fun run(session: UserSession): ActionResult
+    suspend fun run(session: UserSession): ActionResult
 
-    fun wrappedRun(session: UserSession) : ActionResult {
+    suspend fun wrappedRun(session: UserSession) : ActionResult {
         Dispatcher.logger.debug("Executing ${this::class.java}")
         return run(session)
     }
@@ -150,16 +123,16 @@ interface EmissionAction: AtomAction
 // There are different composite actions, easy ones are list.
 interface CompositeAction : Action
 
-fun Action.emptyLog(s: Boolean = true) : SystemEvent.ActionStatus {
-    return SystemEvent.ActionStatus(this::class.java.simpleName, Json.makePrimitive(""), false).apply { success = s }
+fun Action.emptyLog(s: Boolean = true) : ActionResult.Status {
+    return ActionResult.Status(this::class.java.simpleName, Json.makePrimitive(""), false).apply { success = s }
 }
 
-fun Action.createLog(payload: String, s: Boolean=true): SystemEvent.ActionStatus {
+fun Action.createLog(payload: String, s: Boolean=true): ActionResult.Status {
     return createLog(Json.makePrimitive(payload), s)
 }
 
-fun Action.createLog(payload: JsonElement, s: Boolean=true): SystemEvent.ActionStatus {
-    return SystemEvent.ActionStatus(this::class.java.simpleName, payload, true).apply { success = s }
+fun Action.createLog(payload: JsonElement, s: Boolean=true): ActionResult.Status {
+    return ActionResult.Status(this::class.java.simpleName, payload, true).apply { success = s }
 }
 
 /**
@@ -174,7 +147,7 @@ data class StartFill(
     val label: String
 ) : ChartAction, KernelMode {
     // override val type = ActionType.CHART
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         // start every action with consuming corresponding events
         match.triggered = true
         match.typeUsed = true
@@ -307,7 +280,7 @@ data class SimpleFillAction(
     val filler: AEntityFiller,
     var match: FrameEvent
 ) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         // commit is responsible for marking the part of FrameEvent that it used
         val success = filler.commit(match)
         if (!success) return ActionResult(emptyLog(false))
@@ -323,7 +296,7 @@ data class RefocusActionBySlot(
     val frame: IFrame,
     val slot: String?
 ) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val path = session.findActiveFillerPathForTargetSlot(frame, slot)
         return if (path.isEmpty())
             ActionResult(emptyLog(true))
@@ -335,7 +308,7 @@ data class RefocusActionBySlot(
 data class RefocusAction(
     val refocusPath: List<IFiller>
 ) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         var scheduler: Scheduler? = null
         for (s in session.schedulers) {
             if (refocusPath.isNotEmpty() && refocusPath.first() == s.firstOrNull()) {
@@ -384,7 +357,7 @@ data class RefocusAction(
 data class ReactiveMVAction(
     val refocusPath: List<IFiller>
 ) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         var scheduler: Scheduler? = null
         for (s in session.schedulers) {
             if (refocusPath.isNotEmpty() && refocusPath.first() == s.firstOrNull()) {
@@ -431,7 +404,7 @@ data class ReactiveMVAction(
 
 
 data class RecoverAction(val tag: String = "") : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         session.schedule.state = Scheduler.State.RESCHEDULE
         return ActionResult(emptyLog())
     }
@@ -454,7 +427,7 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         session.schedule.side = Scheduler.Side.INSIDE
     }
 
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val filler = session.schedule.last()
 
         // decorative prompts from outer targets of VR, prompt only once
@@ -508,11 +481,11 @@ data class SlotAskAction(val tag: String = "") : StateAction {
         else
             SeqAction(flatActions).wrappedRun(session)
 
-        val actionLog = if (res.actionLog != null) {
-            if (res.actionLog.payload is ArrayNode) {
-                createLog(res.actionLog.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() }, res.actionLog.success)
+        val actionLog = if (res.status != null) {
+            if (res.status.payload is ArrayNode) {
+                createLog(res.status.payload.filterIsInstance<ObjectNode>().joinToString("\n") { it["payload"].textValue() }, res.status.success)
             } else {
-                createLog(res.actionLog.payload, res.actionLog.success)
+                createLog(res.status.payload, res.status.success)
             }
         } else {
             emptyLog()
@@ -525,14 +498,14 @@ data class SlotPostAskAction(
     val filler: IFiller,
     var match: FrameEvent
 ) : StateAction {
-    private fun goback(session: UserSession): ActionResult {
+    private suspend fun goback(session: UserSession): ActionResult {
         // we need to go back the ask again.
         session.schedule.state = Scheduler.State.ASK
         val delegateActionResult = session.findSystemAnnotation(SystemAnnotationType.IDonotGetIt)?.searchResponse()?.wrappedRun(session)
         return delegateActionResult ?: ActionResult(emptyLog())
     }
 
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         if (filler is AEntityFiller) {
             var finalMatch = match
             val related = match.slots.find { it.attribute == filler.attribute && !it.isUsed }
@@ -590,7 +563,7 @@ data class SlotPostAskAction(
 
 // temporarily absorb SlotDone into SlotPostAsk and SimpleFill. need to refactor SlotDone
 class SlotDoneAction(val filler: AnnotatedWrapperFiller) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         session.schedule.state = Scheduler.State.RESCHEDULE
         val slotDoneAnnotations = filler.path!!.findAll<SlotDoneAnnotation>()
         val actions = slotDoneAnnotations.filter { it.condition() }.flatMap { it.actions }
@@ -605,13 +578,13 @@ class SlotDoneAction(val filler: AnnotatedWrapperFiller) : StateAction {
 }
 
 class RespondAction : CompositeAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val topFiller = session.schedule.lastOrNull()
         val wrapperFiller = topFiller as? AnnotatedWrapperFiller
         val response = ((wrapperFiller?.targetFiller as? FrameFiller<*>)?.frame() as? IIntent)?.searchResponse()
         val res = if (response != null) {
             val tmp = response.wrappedRun(session)
-            tmp.apply {if (!tmp.actionLog.success) throw Exception("fail to respond!!!") }
+            tmp.apply {if (!tmp.status.success) throw Exception("fail to respond!!!") }
         } else {
             logger.debug("RespondAction topFiller is ${topFiller?.path}")
             ActionResult(emptyLog())
@@ -627,7 +600,7 @@ class RespondAction : CompositeAction {
 
 // This go through the filler stack.
 class RescheduleAction : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val schedule = session.schedule
         logger.debug("Reschedule start with ${schedule.size}...")
         while (schedule.size > 0) {
@@ -679,7 +652,7 @@ abstract class ExternalAction(
     open val frame: IFrame,
     private vararg val args: Any?
 ) : CompositeAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         try {
             val kClass = Class.forName("${packageName}.${actionName}", true, javaClass.classLoader).kotlin
             val ctor = kClass.primaryConstructor
@@ -688,8 +661,8 @@ abstract class ExternalAction(
             if (result != null) {
                 val jsonArrayLog = mutableListOf<JsonElement>()
                 jsonArrayLog.add(Json.makePrimitive("EXTERNAL ACTION : ${action.javaClass.name}"))
-                if (result.actionLog != null) {
-                    jsonArrayLog.add(Json.encodeToJsonElement(result.actionLog))
+                if (result.status != null) {
+                    jsonArrayLog.add(Json.encodeToJsonElement(result.status))
                 }
                 return ActionResult(result.botUtterance, createLog(Json.makeArray(jsonArrayLog), true))
             }
@@ -711,7 +684,7 @@ abstract class ExternalAction(
 data class IntentAction(
     val jsonIntent: FullFrameBuilder
 ) : ChartAction, KernelMode {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val intent = jsonIntent.invoke(session)?:
         return ActionResult(createLog("INTENT ACTION cannot construct intent : $jsonIntent", false))
 
@@ -732,20 +705,20 @@ data class IntentAction(
 // TODO(xiaoyun): separate execution path for composite action later.
 open class SeqAction(val actions: List<Action>): CompositeAction {
     constructor(vararg actions: Action): this(actions.toList())
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         // TODO(xiaoyun): the message can be different.
         val messages = mutableListOf<DialogAct>()
-        val logs = mutableListOf<SystemEvent.ActionStatus>()
+        val logs = mutableListOf<ActionResult.Status>()
         var flag = true
         for (action in actions) {
             val result = action.wrappedRun(session)
-            if (result.actionLog != null) {
-                logs += result.actionLog
+            if (result.status != null) {
+                logs += result.status
             }
             if (result.botUtterance != null) {
                 messages.addAll(result.botUtterance!!)
             }
-            flag = flag && result.actionLog.success
+            flag = flag && result.status.success
         }
         Dispatcher.logger.info("got the following messages: ${messages.toString()}")
         return ActionResult(
@@ -755,7 +728,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
 }
 
 open class LazyAction(private val actionGenerator: ()->Action): EmissionAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         return actionGenerator.invoke().wrappedRun(session)
     }
 }
@@ -789,7 +762,7 @@ class Handoff: EmissionAction {
         }
     }
 
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val intentStr = session.getOpenPayloadIntent()?.lowercase()
         logger.info("Hand off session for ${session.userIdentifier} for $intentStr")
         val department = findDepartment(intentStr, session.chatbot!!.routing)
