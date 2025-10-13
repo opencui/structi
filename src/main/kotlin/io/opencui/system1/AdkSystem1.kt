@@ -19,6 +19,7 @@ import io.opencui.core.UserSession
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.toList
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
@@ -127,29 +129,38 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
     }
 
     @Throws(ProviderInvokeException::class)
-    suspend fun <T> svInvoke(converter: Converter<T>): T {
+    suspend fun <T> svInvoke(converter: Converter<T>): T = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (result, rest) = invoke().split { it is SystemEvent.Result }
-        val result = when (eventFlow) {
-            is SystemEvent.Result -> eventFlow.result
-            is SystemEvent.Error -> throw ProviderInvokeException(eventFlow.dialogAct.templates.pick())
-            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${eventFlow::class.java}")
+        val (resultFlow, restFlow) = invoke().split (this) { it is SystemEvent.Result }
+        val results = resultFlow.toList().map { (it as SystemEvent.Result).result }
+        if (results.size != 1) {
+            throw ProviderInvokeException("there is ${results.size} results, expected only 1 result.")
         }
-        return converter(result)
+
+        restFlow.collect {
+            sink?.send(it)
+        }
+        return@coroutineScope converter(results[0])
     }
 
     @Throws(ProviderInvokeException::class)
-    suspend fun <T> mvInvoke(converter: Converter<T>): List<T> {
+    suspend fun <T> mvInvoke(converter: Converter<T>): List<T> = coroutineScope {
+        val sink = currentCoroutineContext()[System1Sink]
+        val (resultFlow, restFlow) = invoke().split (this) { it is SystemEvent.Result }
 
-        val event = invoke().first()
-        val result = when (event) {
-            is SystemEvent.Result -> event.result
-            is SystemEvent.Error -> throw ProviderInvokeException(event.dialogAct.templates.pick())
-            else -> throw ProviderInvokeException("Unexpected event type from ADK function: ${event::class.java}")
+        // Assume all the
+        val results = resultFlow.toList().map { (it as SystemEvent.Result).result }
+        if (results.size != 1) {
+            throw ProviderInvokeException("there is ${results.size} results, expected only 1 result.")
         }
 
-        val jsonArray = result as ArrayNode
-        return jsonArray.map { converter(it) }
+        restFlow.collect {
+            sink?.send(it)
+        }
+
+        val jsonArray = results[0] as ArrayNode
+
+        return@coroutineScope jsonArray.map { converter(it) }
     }
 
     companion object{

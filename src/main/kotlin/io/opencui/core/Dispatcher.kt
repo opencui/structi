@@ -2,6 +2,7 @@ package io.opencui.core
 
 import io.opencui.channel.IChannel
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.RawInform
 import io.opencui.core.da.System1Inform
 import io.opencui.core.da.UserDefinedInform
 import io.opencui.sessionmanager.SessionManager
@@ -18,6 +19,7 @@ import io.opencui.logger.ILogger
 import io.opencui.logger.Turn
 import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.runBlocking
+import java.io.Serializable
 
 /**
  * For receiving purpose, we do not need to implement this, as it is simply a rest controller
@@ -37,6 +39,32 @@ interface IManaged {
 }
 
 
+// This is used to separate the reason for bot event.
+sealed class SystemEvent : Serializable {
+
+    data class MarkSeen(val msgId: String) : SystemEvent()
+
+    object Typing: SystemEvent()
+
+    data class Result(val result: JsonElement?=null): SystemEvent()
+
+    // This is also dialog act.
+    data class Response(val dialogAct: DialogAct): SystemEvent() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
+    }
+
+    data class Reason(val dialogAct: DialogAct): SystemEvent() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
+    }
+
+    data class Error(val dialogAct: DialogAct): SystemEvent() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
+    }
+
+}
 
 
 interface ControlSink {
