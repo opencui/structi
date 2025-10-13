@@ -204,7 +204,7 @@ data class BoolGate(
 }
 
 class CloseSession() : ChartAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         // next time the same channel/id is call, we need a new UserSession.
         // so that botOwn is true.
         closeSession(session.userIdentifier, session.botInfo)
@@ -264,7 +264,7 @@ data class StitchedIntent<T: IFrame>(
 data class CleanupAction(
     val toBeCleaned: List<IFiller>
 ) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         for (fillerToBeCleaned in toBeCleaned) {
             // (TODO: verify whether this indeed is not needed)
             fillerToBeCleaned.clear()
@@ -296,7 +296,7 @@ data class CleanupAction(
 
 
 data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val fillersToBeCleaned = mutableListOf<IFiller>()
         for (slotToBeCleaned in toBeCleaned) {
             val targetFiller = session.findWrapperFillerForTargetSlot(slotToBeCleaned.first, slotToBeCleaned.second) ?: continue
@@ -308,7 +308,7 @@ data class CleanupActionBySlot(val toBeCleaned: List<Pair<IFrame, String?>>) : S
 }
 
 data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         for (fillerToBeRechecked in toBeRechecked) {
             (fillerToBeRechecked as? AnnotatedWrapperFiller)?.recheck(session)
         }
@@ -320,7 +320,7 @@ data class RecheckAction(val toBeRechecked: List<IFiller>) : StateAction {
 }
 
 data class RecheckActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val fillersToBeRechecked = mutableListOf<AnnotatedWrapperFiller>()
         for (slotToBeCleaned in toBeRechecked) {
             val targetFiller = session.findWrapperFillerForTargetSlot(slotToBeCleaned.first, slotToBeCleaned.second) ?: continue
@@ -332,7 +332,7 @@ data class RecheckActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) :
 }
 
 data class ReinitAction(val toBeReinit: List<IFiller>) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         for (filler in toBeReinit) {
             (filler as? AnnotatedWrapperFiller)?.reinit()
         }
@@ -344,7 +344,7 @@ data class ReinitAction(val toBeReinit: List<IFiller>) : StateAction {
 }
 
 data class ReinitActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val fillersToBeReinit = mutableListOf<AnnotatedWrapperFiller>()
         for (slot in toBeRechecked) {
             val targetFiller = session.findWrapperFillerForTargetSlot(slot.first, slot.second) ?: continue
@@ -358,7 +358,7 @@ data class ReinitActionBySlot(val toBeRechecked: List<Pair<IFrame, String?>>) : 
 data class DirectlyFillAction<T>(
     val generator: () -> T?,
     val filler: AnnotatedWrapperFiller, val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
             createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}")
@@ -376,7 +376,7 @@ data class DirectlyFillActionBySlot<T>(
     val frame: IFrame?,
     val slot: String?,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}")
         )
@@ -388,7 +388,7 @@ data class FillAction<T>(
     val generator: () -> T?,
     val filler: IFiller,
     val decorativeAnnotations: List<Annotation> = listOf()) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val param = filler.path!!.path.last()
         val value = generator() ?: return ActionResult(
             createLog("FILL SLOT value is null for target : ${param.host::class.qualifiedName}, slot : ${if (param.isRoot()) "" else param.attribute}")
@@ -417,7 +417,7 @@ data class FillActionBySlot<T>(
     constructor(generaotr: () -> T?, slot: String?, decorativeAnnotations: List<Annotation> = listOf()):
             this(generaotr, null, slot, decorativeAnnotations)
 
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}, slot : ${slot}")
         )
@@ -429,14 +429,14 @@ data class FillActionBySlot<T>(
 }
 
 data class MarkFillerDone(val filler: AnnotatedWrapperFiller): StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         filler.markDone()
         return ActionResult(createLog("end filler for: ${filler.targetFiller.attribute}"))
     }
 }
 
 data class UnMarkFillerDone(val filler: AnnotatedWrapperFiller): StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         filler.markDone(false)
         (filler.targetFiller as MultiValueFiller<*>).append(session)
         return ActionResult(createLog("end filler for: ${filler.targetFiller.attribute}"))
@@ -444,7 +444,7 @@ data class UnMarkFillerDone(val filler: AnnotatedWrapperFiller): StateAction {
 }
 
 data class MarkFillerFilled(val filler: AnnotatedWrapperFiller): StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         filler.markFilled()
         return ActionResult(createLog("end filler for: ${filler.targetFiller.attribute}"))
     }
@@ -452,7 +452,7 @@ data class MarkFillerFilled(val filler: AnnotatedWrapperFiller): StateAction {
 
 data class EndSlot(
     val frame: IFrame?, val slot: String?, val hard: Boolean) : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val wrapFiller = frame?.let { session.findWrapperFillerForTargetSlot(frame, slot) } ?: return ActionResult(
             createLog("cannot find filler for frame : ${if (frame != null) frame::class.qualifiedName else null}; slot: ${slot}")
         )
@@ -461,7 +461,7 @@ data class EndSlot(
 }
 
 class EndTopIntent : StateAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val topFrameFiller = (session.schedule.firstOrNull() as? AnnotatedWrapperFiller)?.targetFiller as? FrameFiller<*>
         // find skills slot of main if there is one, we need a protocol to decide which intent to end
         if (topFrameFiller != null) {
@@ -514,7 +514,7 @@ abstract class AbstractAbortIntent(override var session: UserSession? = null) : 
 }
 
 data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val specifiedQualifiedIntentName = frame.intentType?.value
         var targetFiller: AnnotatedWrapperFiller? = null
         val fillersNeedToPop = mutableSetOf<IFiller>()
@@ -573,7 +573,7 @@ data class AbortIntentAction(val frame: AbstractAbortIntent) : ChartAction {
             }
         }
         return ActionResult(
-            prompts.asFlow(),
+            prompts,
             createLog(prompts.map { it.templates.pick() }.joinToString { it }))
     }
 }
@@ -761,7 +761,7 @@ data class OldValueCheck(
 data class MaxDiscardAction(
     val targetSlot: MutableList<*>, val maxEntry: Int
 ) : EmissionAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         val size = targetSlot.size
         if (size > maxEntry) {
             targetSlot.removeAll(targetSlot.subList(maxEntry, targetSlot.size))
@@ -1778,7 +1778,7 @@ abstract class AbstractSlotAppend<T: Any>(override var session: UserSession? = n
 data class UpdatePromptAction(
     val wrapperTarget: AnnotatedWrapperFiller?,
     val prompt: SlotPromptAnnotation): EmissionAction {
-    override fun run(session: UserSession): ActionResult {
+    override suspend fun run(session: UserSession): ActionResult {
         wrapperTarget?.targetFiller?.decorativeAnnotations?.clear()
         wrapperTarget?.targetFiller?.decorativeAnnotations?.add(prompt)
         return ActionResult(createLog("UPDATED PROMPTS for filler ${wrapperTarget?.attribute}"))

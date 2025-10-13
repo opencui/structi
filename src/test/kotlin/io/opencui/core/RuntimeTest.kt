@@ -1700,7 +1700,7 @@ class RuntimeTest {
         assertEquals(extension0, extension1)
         val service = HelloWorldService(session)
         val action = service.searchResponse()
-        val result = action!!.run(session)
+        val result = runBlocking { action!!.run(session) }
     }
 
     fun process(lines: List<String>) {
@@ -1755,7 +1755,7 @@ class RuntimeTest {
 
             val replyTextList = responses.filter { it.status != null && it.status!!.isTestable }.map { Json.encodeToString(it.status!!) }
 
-            val expected = replyTextList + (Json.encodeToString(dm.findDialogExpectation(session) ?: NullNode.instance))
+            val expected = replyTextList + (Json.encodeToString(runBlocking{dm.findDialogExpectation(session) } ?: NullNode.instance))
 
             expected.forEach { println(it) }
 
