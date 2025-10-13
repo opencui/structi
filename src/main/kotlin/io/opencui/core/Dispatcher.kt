@@ -38,35 +38,6 @@ interface IManaged {
     fun handOffSession(id:String, botInfo: BotInfo, department: String) {}
 }
 
-
-// This is used to separate the reason for bot event.
-sealed class SystemEvent : Serializable {
-
-    data class MarkSeen(val msgId: String) : SystemEvent()
-
-    object Typing: SystemEvent()
-
-    data class Result(val result: JsonElement?=null): SystemEvent()
-
-    // This is also dialog act.
-    data class Response(val dialogAct: DialogAct): SystemEvent() {
-        constructor(templates: Templates) : this(RawInform(templates))
-        constructor(payload: String): this( templateOf(payload))
-    }
-
-    data class Reason(val dialogAct: DialogAct): SystemEvent() {
-        constructor(templates: Templates) : this(RawInform(templates))
-        constructor(payload: String): this( templateOf(payload))
-    }
-
-    data class Error(val dialogAct: DialogAct): SystemEvent() {
-        constructor(templates: Templates) : this(RawInform(templates))
-        constructor(payload: String): this( templateOf(payload))
-    }
-
-}
-
-
 interface ControlSink {
     val targetChannel: String?
     fun markSeen(msgId: String?) {}

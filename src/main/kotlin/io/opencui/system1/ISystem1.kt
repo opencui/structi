@@ -2,6 +2,8 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
+import io.opencui.core.da.RawInform
+import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -194,6 +196,29 @@ enum class System1Mode {
     FALLBACK
 }
 
+// This is used to separate the reason for bot event.
+sealed class System1Event {
+    data class Result(val result: JsonElement?=null): System1Event()
+
+    // This is also dialog act.
+    data class Response(val dialogAct: DialogAct): System1Event() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
+    }
+
+    data class Reason(val dialogAct: DialogAct): System1Event() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
+    }
+
+    data class Error(val dialogAct: DialogAct): System1Event() {
+        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(payload: String): this( templateOf(payload))
+    }
+}
+
+
+
 /**
  * It is likely that the users are actually served by two systems: fast and slow.
  * The fast system can take care of many intuitive, automatic thinking that operates quickly and effortlessly.
@@ -280,10 +305,10 @@ suspend fun Flow<String>.joinToString(sep: String = ", "): String {
 // In order to preserve the standard function semantics, while emit thinking event, we
 // rely on coroutine context.
 class System1Sink(
-    private val emit: suspend (SystemEvent) -> Unit
+    private val emit: suspend (System1Event) -> Unit
 ) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<System1Sink>
-    suspend fun send(t: SystemEvent) = emit(t)
+    suspend fun send(t: System1Event) = emit(t)
 }
 
 
@@ -293,7 +318,7 @@ class System1Sink(
 // System1 will be connection level,
 interface ISystem1 : IExtension {
     // All three modes are entered from here.
-    fun response(session: UserSession, augmentation: Augmentation): Flow<SystemEvent>
+    fun response(session: UserSession, augmentation: Augmentation): Flow<System1Event>
 
     companion object {
         val logger: Logger = LoggerFactory.getLogger(ISystem1::class.java)
@@ -323,7 +348,7 @@ interface ISystem1 : IExtension {
 
                 if (value.isNotEmpty()) {
                     val sink = currentCoroutineContext()[System1Sink]
-                    sink?.send(SystemEvent.Reason( value))
+                    sink?.send(System1Event.Reason( value))
                 }
             }
         }
