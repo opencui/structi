@@ -1750,7 +1750,7 @@ class RuntimeTest {
             val replies : List<DialogAct> = responses.filter { it.botUtterance != null && it.status.botOwn }.map { it.botUtterance!!}.flatten()
             val rewrittenReplies = session.rewriteDialogAct(replies)
             for (reply in rewrittenReplies) {
-                println("reply = ${reply.templates.pick()}")
+                println("reply = ${runBlocking { reply.templates.pick() }}")
             }
 
             val replyTextList = responses.filter { it.status != null && it.status!!.isTestable }.map { Json.encodeToString(it.status!!) }

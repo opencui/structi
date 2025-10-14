@@ -86,7 +86,7 @@ fun Sink.send(msgMap: Map<String, List<String>>) {
     }
 }
 
-fun Sink.send(session: UserSession, dialogAct: DialogAct) {
+suspend fun Sink.send(session: UserSession, dialogAct: DialogAct) {
     val msgMap = Dispatcher.convertDialogActsToText(session, listOf(dialogAct), session.targetChannel)
     send(msgMap)
 }
@@ -143,7 +143,7 @@ object Dispatcher {
     /**
      * This the place where we can remove extra prompt if we need to.
      */
-    fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
+    suspend fun convertDialogActsToText(session: UserSession, responses: List<DialogAct>, targetChannels: List<String>): Map<String, List<String>> {
         val rewrittenResponses = session.rewriteDialogAct(responses)
 
         // This is used to replace IDon'tGetIt with System1Inform, we only do this when both are present.
