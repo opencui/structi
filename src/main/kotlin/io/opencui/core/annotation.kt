@@ -46,8 +46,8 @@ data class Condition(private val f: suspend () -> Boolean): () -> Boolean, Seria
     override fun invoke(): Boolean = runBlocking { f() }
 }
 
-data class Prompts(val prompts: List<String>) : Serializable {
-    constructor(vararg prompts: String) : this(prompts.toList())
+data class Prompts(val prompts: List<suspend ()->String>) : Serializable {
+    constructor(vararg prompts: suspend ()-> String) : this(prompts.toList())
 
     fun isNotEmpty() = prompts.isNotEmpty()
     fun random() = prompts.random()
@@ -56,22 +56,25 @@ data class Prompts(val prompts: List<String>) : Serializable {
 
 // This has two sides: how it is used and how it is created, and also just a type.
 data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
-    fun pick(channel: String = SideEffect.RESTFUL): String {
+    suspend fun pick(channel: String = SideEffect.RESTFUL): String {
         val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return ""
-        return if (prompts.isNotEmpty()) prompts.random() else ""
+        return if (prompts.isNotEmpty()) prompts.random().invoke() else ""
     }
 }
 
+inline fun <T, R> suspendWith(receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
+
 fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(pairs.toMap())
-fun templateOf(vararg prompts: String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
+fun templateOf(vararg prompts: suspend ()->String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
+fun templateOf(vararg prompts: String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(prompts.toList().map{ {it}} )))
 
 fun emptyTemplate() = Templates(mapOf())
 
-fun <T> convertDialogActGen(source: () -> T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
+fun <T> convertDialogActGen(source: suspend () -> T, dialogActGen: suspend (T) -> DialogAct): suspend () -> DialogAct {
     return {dialogActGen(source())}
 }
 
-fun <T> convertDialogAct(source: T, dialogActGen: (T) -> DialogAct): () -> DialogAct {
+fun <T> convertDialogAct(source: T, dialogActGen: suspend (T) -> DialogAct): suspend () -> DialogAct {
     return {dialogActGen(source)}
 }
 
