@@ -691,7 +691,7 @@ open class SeqAction(val actions: List<Action>): CompositeAction {
     }
 }
 
-open class LazyAction(private val actionGenerator: ()->Action): EmissionAction {
+open class LazyAction(private val actionGenerator: suspend ()->Action): EmissionAction {
     override suspend fun run(session: UserSession): ActionResult {
         return actionGenerator.invoke().wrappedRun(session)
     }
