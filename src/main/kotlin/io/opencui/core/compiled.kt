@@ -14,6 +14,7 @@ import io.opencui.core.hasMore.No
 import io.opencui.core.Dispatcher.closeSession
 import io.opencui.core.da.DialogAct
 import io.opencui.serialization.Json
+import kotlinx.coroutines.runBlocking
 import java.io.Serializable
 import java.lang.RuntimeException
 import java.util.*
@@ -1078,12 +1079,12 @@ data class PagedSelectable<T: Any> (
     @JsonIgnore var singleEntryPrompt: ((T) -> DialogAct)? = null,
     @JsonIgnore var implicit: Boolean = false,
     @JsonIgnore var autoFillSwitch: () -> Boolean = {true},
-    @JsonIgnore var candidateListProvider: (() -> List<T>)? = null
+    @JsonIgnore var candidateListProvider: (suspend () -> List<T>)? = null
 ): IIntent {
     // So that we can use the old construction.
     constructor(
         session: UserSession? = null,
-        valuesProvider: (() -> List<T>)? = null,
+        valuesProvider: (suspend () -> List<T>)? = null,
         kClass: () -> KClass<T>,
         promptTemplate: (List<T>) -> DialogAct,
         pageSize: Int = 5,
@@ -1118,7 +1119,8 @@ data class PagedSelectable<T: Any> (
         get() =  if (suggestionIntentBuilder != null) {
             getMutablePropertyValueByReflection(suggestionIntent!!, "result") as? List<T> ?: listOf()
         } else {
-            candidateListProvider!!()
+            // TODO: this is a rare use case,
+            runBlocking { candidateListProvider!!() }
         }
 
     val candidates: List<T>
