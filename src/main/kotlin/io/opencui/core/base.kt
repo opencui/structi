@@ -13,6 +13,8 @@ import io.opencui.core.user.IUserIdentifier
 import io.opencui.du.*
 import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.Serializable
 import java.time.LocalDateTime
 import kotlin.reflect.KClass
@@ -185,6 +187,47 @@ interface IEntity : ICui {
  */
 interface CuiDisabled : Serializable
 
+
+class SuspendListCache<T>(private val block: suspend () -> List<T>) : suspend ((T)->Boolean) -> List<T> {
+    private val mutex = Mutex()
+    @Volatile private var cached: Any? = UNSET
+    override suspend fun invoke(matcher: (T) -> Boolean): List<T> {
+        val c = cached
+        val list = if (c !== UNSET) {
+            c as List<T>
+        } else {
+            mutex.withLock {
+                val again = cached
+                if (again !== UNSET) again as List<T>
+                else block().also { cached = it }
+            }
+        }
+        return list.filter { matcher(it) }
+    }
+
+    private object UNSET
+}
+
+
+class SuspendCache<T>(private val block: suspend () -> T) : suspend () -> T{
+    private val mutex = Mutex()
+    @Volatile private var cached: Any? = UNSET
+    override suspend fun invoke(): T {
+        val c = cached
+        val value = if (c !== UNSET) {
+            c as T
+        } else {
+            mutex.withLock {
+                val again = cached
+                if (again !== UNSET) again as T
+                else block().also { cached = it }
+            }
+        }
+        return value
+    }
+
+    private object UNSET
+}
 
 /**
  * For value disambiguation, we need to expose some information for the generic implementation
