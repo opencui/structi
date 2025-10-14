@@ -3,6 +3,7 @@ package io.opencui.core
 
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.SlotRequest
+import kotlinx.coroutines.runBlocking
 import java.io.Serializable
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
@@ -40,9 +41,9 @@ interface Annotation: Serializable {
 // LangPack should host the all dialog act,
 // There are map from channel to string generator, string generator has types (dialog act).
 // Actions are language independent.
-
-data class Condition(private val f: () -> Boolean): () -> Boolean, Serializable {
-    override fun invoke(): Boolean = f()
+// TODO: Need to remove runBlocking eventually.
+data class Condition(private val f: suspend () -> Boolean): () -> Boolean, Serializable {
+    override fun invoke(): Boolean = runBlocking { f() }
 }
 
 data class Prompts(val prompts: List<String>) : Serializable {
