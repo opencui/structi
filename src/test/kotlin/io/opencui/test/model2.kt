@@ -1831,7 +1831,7 @@ data class ValueRecheckTestIntent(override var session: UserSession? = null): II
     @JsonIgnore
     public fun _check_ab(): ValueCheck = ValueCheck(session, {checkAB()}, listOf(
         SlotNotifyFailure(b, "b", "kotlin.String", FailType.VC, templateOf("restful" to
-      Prompts(suspendWith(session!!){ """${b} b fails""" }))),
+      Prompts(withSuspend(session!!){ """${b} b fails""" }))),
         CleanupActionBySlot(listOf(Pair(this, "b")))
     ))
     @JsonIgnore
