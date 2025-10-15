@@ -62,7 +62,35 @@ data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
     }
 }
 
-inline fun <T, R> suspendWith(receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
+
+//
+inline fun <T, R> withSuspend(receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
+inline fun <S, T, R> withSuspend(scope: S, receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
+
+suspend fun <T> Iterable<T>.joinToStringSuspend(
+    separator: CharSequence = ", ",
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    limit: Int = -1,
+    truncated: CharSequence = "...",
+    transform: (suspend (T) -> CharSequence)? = null
+): String {
+    val buffer = StringBuilder()
+    buffer.append(prefix)
+
+    var count = 0
+    for (element in this) {
+        if (++count > 1) buffer.append(separator)
+        if (limit < 0 || count <= limit) {
+            val text = if (transform != null) transform(element) else element.toString()
+            buffer.append(text)
+        } else break
+    }
+    if (limit >= 0 && count > limit) buffer.append(truncated)
+    buffer.append(postfix)
+    return buffer.toString()
+}
+
 
 fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(pairs.toMap())
 fun templateOf(vararg prompts: suspend ()->String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
