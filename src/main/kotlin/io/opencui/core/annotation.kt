@@ -53,7 +53,6 @@ data class Prompts(val prompts: List<suspend ()->String>) : Serializable {
     fun random() = prompts.random()
 }
 
-
 // This has two sides: how it is used and how it is created, and also just a type.
 data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
     suspend fun pick(channel: String = SideEffect.RESTFUL): String {
@@ -65,7 +64,19 @@ data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
 
 //
 inline fun <T, R> withSuspend(receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
-inline fun <S, T, R> withSuspend(scope: S, receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
+inline fun <S, T, R> withSuspend(scope: S, receiver: T, crossinline block: suspend S.(T) -> R): suspend ()-> R = { scope.block(receiver) }
+
+// This is a specialized version of withSuspend that automatically gets the language context (rgLang)
+// from the IFrame it's called on. This is for prompts that only need the language context.
+inline fun <R> IFrame.withLang(crossinline block: suspend RGBase.() -> R): suspend () -> R {
+    return withSuspend(this.session!!.rgLang, block)
+}
+
+// This is an overloaded version for prompts that need both the language context and another value (the receiver).
+inline fun <T, R> IFrame.withLang(receiver: T, crossinline block: suspend RGBase.(T) -> R): suspend () -> R {
+    return withSuspend(this.session!!.rgLang, receiver, block)
+}
+
 
 suspend fun <T> Iterable<T>.joinToStringSuspend(
     separator: CharSequence = ", ",
