@@ -92,6 +92,10 @@ interface DialogAct: EmissionAction {
             else -> this::class.qualifiedName!!
         }
     }
+
+    suspend fun render(session: UserSession): Map<String, List<String>> {
+        return templates.channelPrompts.mapValues { (_, prompts) -> prompts.prompts.map { it() } }
+    }
 }
 
 interface SlotDialogAct: DialogAct {
