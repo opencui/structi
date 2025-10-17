@@ -182,8 +182,8 @@ class SessionManager(private val sessionStore: ISessionStore, val botStore: IBot
         sessionStore.updateSession(channel.channelId(), channel.userId!!, botInfo, session)
     }
 
-    fun updateTurn(turn: Turn, dialogActs: List<DialogAct>, session: UserSession) {
-        turn.dialogActs = Json.encodeToJsonElement(dialogActs)
+    suspend fun updateTurn(turn: Turn, dialogActs: List<DialogAct>, session: UserSession) {
+        turn.dialogActs = Json.encodeToJsonElement(dialogActs.map {it.render(session)})
         Dispatcher.logTurns(session, turn)
         updateUserSession(session.userIdentifier, session.botInfo, session)
     }

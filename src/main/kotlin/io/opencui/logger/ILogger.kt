@@ -19,6 +19,8 @@ import java.util.*
 import org.apache.kafka.common.serialization.StringSerializer
 import java.io.Closeable
 
+
+// Turn is used to save the conversation history.
 data class Turn(
     val utterance: String,
     val expectations: JsonElement,  // this should be an array of expectation, each is an object.
