@@ -17,22 +17,14 @@ import com.google.genai.types.GenerateContentConfig;
 import io.opencui.core.UserSession
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.shareIn
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
 
 
 // This can be used.
@@ -40,15 +32,6 @@ data class AdkAugmentContext(
     val inputSchema: Schema? = null,
     val outputSchema: Schema? = null
 ): AugmentContext
-
-
-fun <T> Flow<T>.split(
-    scope: CoroutineScope,
-    predicate: (T) -> Boolean
-): Pair<Flow<T>, Flow<T>> {
-    val shared = this.shareIn(scope, SharingStarted.WhileSubscribed(), replay = 0)
-    return shared.filter(predicate) to shared.filterNot(predicate)
-}
 
 
 //
@@ -142,42 +125,50 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
     @Throws(ProviderInvokeException::class)
     suspend fun <T> svInvoke(converter: Converter<T>): T = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (resultFlow, restFlow) = invoke().split(this) { it is System1Event.Result }
+        var resultEvent: System1Event.Result? = null
 
-        val restJob = launch {
-            restFlow.collect { sink?.send(it) }
+        invoke().collect { event ->
+            when (event) {
+                is System1Event.Result -> {
+                    if (resultEvent != null) {
+                        throw ProviderInvokeException("there is more than 1 result, expected only 1 result.")
+                    }
+                    resultEvent = event
+                }
+                else -> sink?.send(event)
+            }
         }
 
-        try {
-            val resultEvent = resultFlow.firstOrNull() as? System1Event.Result
-                ?: throw ProviderInvokeException("there is 0 results, expected only 1 result.")
+        val finalResult = resultEvent
+            ?: throw ProviderInvokeException("there is 0 results, expected only 1 result.")
 
-            return@coroutineScope converter(resultEvent.result)
-        } finally {
-            restJob.cancelAndJoin()
-        }
+        return@coroutineScope converter(finalResult.result)
     }
 
     @Throws(ProviderInvokeException::class)
     suspend fun <T> mvInvoke(converter: Converter<T>): List<T> = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (resultFlow, restFlow) = invoke().split(this) { it is System1Event.Result }
+        var resultEvent: System1Event.Result? = null
 
-        val restJob = launch {
-            restFlow.collect { sink?.send(it) }
+        invoke().collect { event ->
+            when (event) {
+                is System1Event.Result -> {
+                    if (resultEvent != null) {
+                        throw ProviderInvokeException("there is more than 1 result, expected only 1 result.")
+                    }
+                    resultEvent = event
+                }
+                else -> sink?.send(event)
+            }
         }
 
-        try {
-            val resultEvent = resultFlow.firstOrNull() as? System1Event.Result
-                ?: throw ProviderInvokeException("there is 0 results, expected only 1 result.")
+        val finalResult = resultEvent
+            ?: throw ProviderInvokeException("there is 0 results, expected only 1 result.")
 
-            val jsonArray = resultEvent.result as? ArrayNode
-                ?: throw ProviderInvokeException("function result is not an array as expected.")
+        val jsonArray = finalResult.result as? ArrayNode
+            ?: throw ProviderInvokeException("function result is not an array as expected.")
 
-            return@coroutineScope jsonArray.map { converter(it) }
-        } finally {
-            restJob.cancelAndJoin()
-        }
+        return@coroutineScope jsonArray.map { converter(it) }
     }
 
     companion object{
