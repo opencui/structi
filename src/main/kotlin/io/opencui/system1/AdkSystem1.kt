@@ -18,6 +18,7 @@ import io.opencui.core.UserSession
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -26,11 +27,12 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.toList
 import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 
 
 // This can be used.
@@ -77,7 +79,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
     var inputs: Map<String, Any?>? = null
 
     @Throws(ProviderInvokeException::class)
-    override fun invoke(): Flow<System1Event> {
+    override fun invoke(): Flow<System1Event> = flow {
         logger.info("start adk function.")
         val context = augmentation.context as AdkAugmentContext
         val inputStr = Json.encodeToString(inputs)
@@ -98,8 +100,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
         val initialState = ConcurrentHashMap<String, Any>()
 
-        // adkSession to hold the input.
-        val adkSession = AdkSystem1Builder.sessionService.createSession(
+        AdkSystem1Builder.sessionService.createSession(
             label,
             session.userId!!,
             initialState,
@@ -110,55 +111,73 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
             agent,
             label,
             AdkSystem1Builder.artifactService,
-            AdkSystem1Builder.sessionService )
-        
-        // the flow here is ignored for now.
-        val flow = AdkSystem1Builder.callAgentAsync(userMsg, runner, session.userId!!, session.sessionId!!, jsonOutput = true)
+            AdkSystem1Builder.sessionService
+        )
 
-        // now we need to get result from agent.
+        val agentFlow = AdkSystem1Builder.callAgentAsync(
+            userMsg,
+            runner,
+            session.userId!!,
+            session.sessionId!!,
+            jsonOutput = false
+        )
+
+        agentFlow.collect { emit(it) }
+
         val sessionService = runner.sessionService()
-        val sessionInRunner = sessionService.getSession(label, session.userId!!, session.sessionId!!, Optional.empty()).blockingGet()
+        val sessionInRunner = sessionService
+            .getSession(label, session.userId!!, session.sessionId!!, Optional.empty())
+            .blockingGet()
 
-        val value = sessionInRunner?.state()?.get(RESULTKEY) ?: return flow { emit(System1Event.Result()) }
+        val value = sessionInRunner?.state()?.get(RESULTKEY)
         logger.info("adkfunc get: {}", value)
-        return flow{
-            emit(System1Event.Result(Json.encodeToJsonElement( value)))
+
+        if (value != null) {
+            emit(System1Event.Result(Json.encodeToJsonElement(value)))
+        } else {
+            emit(System1Event.Result())
         }
     }
 
     @Throws(ProviderInvokeException::class)
     suspend fun <T> svInvoke(converter: Converter<T>): T = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (resultFlow, restFlow) = invoke().split (this) { it is System1Event.Result }
-        val results = resultFlow.toList().map { (it as System1Event.Result).result }
-        if (results.size != 1) {
-            throw ProviderInvokeException("there is ${results.size} results, expected only 1 result.")
+        val (resultFlow, restFlow) = invoke().split(this) { it is System1Event.Result }
+
+        val restJob = launch {
+            restFlow.collect { sink?.send(it) }
         }
 
-        restFlow.collect {
-            sink?.send(it)
+        try {
+            val resultEvent = resultFlow.firstOrNull() as? System1Event.Result
+                ?: throw ProviderInvokeException("there is 0 results, expected only 1 result.")
+
+            return@coroutineScope converter(resultEvent.result)
+        } finally {
+            restJob.cancelAndJoin()
         }
-        return@coroutineScope converter(results[0])
     }
 
     @Throws(ProviderInvokeException::class)
     suspend fun <T> mvInvoke(converter: Converter<T>): List<T> = coroutineScope {
         val sink = currentCoroutineContext()[System1Sink]
-        val (resultFlow, restFlow) = invoke().split (this) { it is System1Event.Result }
+        val (resultFlow, restFlow) = invoke().split(this) { it is System1Event.Result }
 
-        // Assume all the
-        val results = resultFlow.toList().map { (it as System1Event.Result).result }
-        if (results.size != 1) {
-            throw ProviderInvokeException("there is ${results.size} results, expected only 1 result.")
+        val restJob = launch {
+            restFlow.collect { sink?.send(it) }
         }
 
-        restFlow.collect {
-            sink?.send(it)
+        try {
+            val resultEvent = resultFlow.firstOrNull() as? System1Event.Result
+                ?: throw ProviderInvokeException("there is 0 results, expected only 1 result.")
+
+            val jsonArray = resultEvent.result as? ArrayNode
+                ?: throw ProviderInvokeException("function result is not an array as expected.")
+
+            return@coroutineScope jsonArray.map { converter(it) }
+        } finally {
+            restJob.cancelAndJoin()
         }
-
-        val jsonArray = results[0] as ArrayNode
-
-        return@coroutineScope jsonArray.map { converter(it) }
     }
 
     companion object{
