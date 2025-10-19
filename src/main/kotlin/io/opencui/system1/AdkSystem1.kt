@@ -358,7 +358,6 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 // JsonOutput is required for function.
                                 // We might use this opportunity to add error back to prompt so llm can fix.
                                 // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
-                                var jsonNode: JsonNode? = null
                                 try {
                                     emit(System1Event.Result(Json.parseToJsonElement(trimmedText)))
                                 } catch (e: Exception) {

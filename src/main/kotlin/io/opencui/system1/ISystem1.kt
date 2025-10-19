@@ -338,7 +338,9 @@ interface ISystem1 : IExtension {
                     val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
                     val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
 
-                    val dialogActs = system1Action.invoke().filter {it is DialogAct }.map {it as DialogAct}
+                    val dialogActs = system1Action.invoke()
+                        .filterIsInstance<System1Event.Response>()
+                        .map { it.dialogAct }
 
                     // need to save so that we do not have to run this over and over.
                     value = dialogActs.map { it.templates.pick() }.joinToString("\n")
