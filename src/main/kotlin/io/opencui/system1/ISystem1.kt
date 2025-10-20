@@ -346,9 +346,11 @@ interface ISystem1 : IExtension {
                     value = dialogActs.map { it.templates.pick() }.joinToString("\n")
                     // remember to save so that
                     botStore.set(key, value)
+                    logger.info("Save thinking for $key")
                 }
 
                 if (value.isNotEmpty()) {
+                    logger.info("Emit reason: $value")
                     val sink = currentCoroutineContext()[System1Sink]
                     sink?.send(System1Event.Reason( value))
                 }
