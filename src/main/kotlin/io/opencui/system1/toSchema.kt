@@ -1,9 +1,12 @@
 package io.opencui.system1
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.superclasses
 import kotlin.reflect.jvm.javaField
 
 // Placeholder imports for GenAI types.
@@ -66,6 +69,22 @@ fun <T : Any> KClass<T>.toGenAISchema(): Schema {
         }
     }
 
+    val typeInfo = this.resolveJsonTypeInfo()
+    if (typeInfo?.use == JsonTypeInfo.Id.CLASS) {
+        val discriminator = typeInfo.property.takeIf { it.isNotBlank() } ?: "@class"
+        if (!propertiesMap.containsKey(discriminator)) {
+            val discriminatorSchemaBuilder = Schema.builder().type(Type.Known.STRING.name)
+            val qualifier = this.qualifiedName
+            if (qualifier != null) {
+                discriminatorSchemaBuilder.description("Concrete type identifier. Use \"$qualifier\".")
+            }
+            propertiesMap[discriminator] = discriminatorSchemaBuilder.build()
+        }
+        if (!requiredProperties.contains(discriminator)) {
+            requiredProperties.add(discriminator)
+        }
+    }
+
     if (propertiesMap.isNotEmpty()) {
         schemaBuilder.properties(propertiesMap)
     }
@@ -112,4 +131,14 @@ private fun createSchemaFromKType(type: KType): Schema {
     return schemaBuilder.build()
 }
 
+private fun KClass<*>.resolveJsonTypeInfo(): JsonTypeInfo? {
+    this.findAnnotation<JsonTypeInfo>()?.let { return it }
+    for (superClass in this.superclasses) {
+        val info = superClass.resolveJsonTypeInfo()
+        if (info != null) {
+            return info
+        }
+    }
+    return null
+}
 
