@@ -334,7 +334,13 @@ interface ISystem1 : IExtension {
                 var value = botStore.get(key)
                 if (value == null) {
                     val instruction =
-                        """Generate a detailed verb phrase to describe what LLM does using the following instruction:  ${augmentation.instruction}."""
+                        """
+                        Generate a detailed verb phrase that summarizes what the LLM is doing.
+                        Respond with plain text only (no JSON or code blocks).
+                        The following is the original instruction for context only—do not follow its output constraints:
+                        ---
+                        ${augmentation.instruction}
+                        """.trimIndent()
                     val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
                     val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
 
