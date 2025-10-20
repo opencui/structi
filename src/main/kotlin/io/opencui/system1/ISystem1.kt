@@ -3,6 +3,7 @@ package io.opencui.system1
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.RawInform
+import io.opencui.core.da.System1Inform
 import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -202,21 +203,20 @@ sealed class System1Event {
 
     // This is also dialog act.
     data class Response(val dialogAct: DialogAct): System1Event() {
-        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(templates: Templates) : this(System1Inform.response(templates))
         constructor(payload: String): this( templateOf(payload))
     }
 
     data class Reason(val dialogAct: DialogAct): System1Event() {
-        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(templates: Templates) : this(System1Inform.think(templates))
         constructor(payload: String): this( templateOf(payload))
     }
 
     data class Error(val dialogAct: DialogAct): System1Event() {
-        constructor(templates: Templates) : this(RawInform(templates))
+        constructor(templates: Templates) : this(System1Inform.error(templates))
         constructor(payload: String): this( templateOf(payload))
     }
 }
-
 
 
 /**
