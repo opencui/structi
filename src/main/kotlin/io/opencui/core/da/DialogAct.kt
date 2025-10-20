@@ -1,5 +1,6 @@
 package io.opencui.core.da
 
+import clojure.`template$apply_template`
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
@@ -292,13 +293,14 @@ class DumbDialogAct : DialogAct {
 data class RawInform(override var templates: Templates = emptyTemplate()) : DialogAct
 
 data class System1Inform(val type: String, override var templates: Templates = emptyTemplate()) : DialogAct {
-    constructor(type: String, payload: String): this(type, templateOf(payload))
-
     companion object {
-        const val JSON = "json"
         const val ERROR = "error"
-        const val TEXT = "text"
+        const val RESPONSE = "response"
         const val THINK = "thinking"
+
+        fun response(templates: Templates): System1Inform = System1Inform(RESPONSE, templates)
+        fun error(templates: Templates): System1Inform = System1Inform(ERROR, templates)
+        fun think(templates: Templates): System1Inform = System1Inform(THINK, templates)
     }
 }
 
