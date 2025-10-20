@@ -25,6 +25,7 @@ import java.util.Optional
 import kotlinx.coroutines.reactive.asFlow
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.cancellation.CancellationException
 
 
 // This can be used.
@@ -370,6 +371,8 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                logger.info("ADK run cancelled: ${e.stackTraceToString()}")
             } catch (e: Exception) {
                 logger.error("Error processing ADK events: ${e.message}", e)
                 emit(System1Event.Error(e.message.toString()))
