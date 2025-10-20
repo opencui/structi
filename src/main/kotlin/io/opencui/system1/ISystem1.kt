@@ -335,7 +335,7 @@ interface ISystem1 : IExtension {
                 if (value == null) {
                     val instruction =
                         """
-                        Generate a detailed verb phrase that summarizes what the LLM is doing.
+                        Generate a detailed verb phrase that summarizes what the LLM is doing based on the instruction given in the end.
                         Respond with plain text only (no JSON or code blocks).
                         The following is the original instruction for context only—do not follow its output constraints:
                         ---
