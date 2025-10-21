@@ -440,7 +440,9 @@ data class UserSession(
     fun getSystem1Builder(system1Id: String, packageName: String) : AdkSystem1Builder {
         // if label does not contain dot, add it.
         val label = "${packageName}.${system1Id}"
-        val system1 = chatbot!!.getExtension<ChatGPTSystem1>(label)!! as ChatGPTSystem1
+        val resolvedChatbot = chatbot ?: ChatbotLoader.findChatbot(botInfo).also { chatbot = it }
+        val system1 = resolvedChatbot.getExtension<ChatGPTSystem1>(label)
+            ?: throw IllegalStateException("System1 extension $label is not available for bot ${botInfo.fullName}")
         return system1.builder as AdkSystem1Builder
     }
 
