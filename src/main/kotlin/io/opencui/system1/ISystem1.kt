@@ -356,8 +356,8 @@ interface ISystem1 : IExtension {
                 }
 
                 if (value.isNotEmpty()) {
-                    logger.info("Emit reason: $value")
                     val sink = currentCoroutineContext()[System1Sink]
+                    logger.info("Emit reason with sink present ${(sink != null)}: $value" )
                     sink?.send(System1Event.Reason( value))
                 }
             }
