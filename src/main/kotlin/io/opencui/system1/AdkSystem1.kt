@@ -267,6 +267,11 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         val sessionService = InMemorySessionService()
         val artifactService = InMemoryArtifactService()
 
+        private data class StreamAccumulator(
+            val builder: StringBuilder = StringBuilder(),
+            var lastEmittedLength: Int = 0
+        )
+
         fun build(
             label: String,
             model: ModelConfig,
@@ -323,11 +328,12 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             userId: String,
             sessionId: String,
             jsonOutput: Boolean = false,
-            bufferUp: Boolean = true
+            bufferUp: Boolean = false
         ): Flow<System1Event> = flow {
             logger.info("User Query: $content")
             // Not really useful, but keep it for now.
-            val serverSideTextBuffers = mutableMapOf<Pair<String, String>, String>()
+
+            val textAccumulators = mutableMapOf<Pair<String, String>, StreamAccumulator>()
             try {
                 // We need to config the runner later.
                 val runConfig = RunConfig.builder().build()
@@ -342,31 +348,51 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
                     logger.info("Processing event: author={}, partial={}", event.author(), event.partial())
 
-                    // Handle text content, only handle the first part?
-                    // TODO: right now we buffer up things, to stream out we need a new design.
                     val parts = event.content().orElse(null)?.parts()?.orElse(null)
                     parts?.firstOrNull()?.text()?.orElse(null)?.let { textPart ->
-                        val doNotBuffer = !event.partial().orElse(false) || bufferUp
+                        val isPartial = event.partial().orElse(false)
 
-                        if (!doNotBuffer) {
-                            serverSideTextBuffers.merge(currentBufferKey, textPart) { old, new -> old + new }
-                        } else {
-                            val finalText = (serverSideTextBuffers.remove(currentBufferKey) ?: "") + textPart
-                            val trimmedText = finalText.trim()
+                        if (jsonOutput) {
+                            val accumulator = textAccumulators.getOrPut(currentBufferKey) { StreamAccumulator() }
+                            accumulator.builder.append(textPart)
 
-                            // Try to parse as JSON first
-                            if (jsonOutput) {
-                                // JsonOutput is required for function.
-                                // We might use this opportunity to add error back to prompt so llm can fix.
-                                // check(trimmedText.startsWith("{") && trimmedText.endsWith("}"))
+                            if (!isPartial) {
+                                val resultPayload = accumulator.builder.toString().trim()
+                                textAccumulators.remove(currentBufferKey)
                                 try {
-                                    emit(System1Event.Result(Json.parseToJsonElement(trimmedText)))
+                                    emit(System1Event.Result(Json.parseToJsonElement(resultPayload)))
                                 } catch (e: Exception) {
-                                    logger.warn("JSON parse error for final text from ${trimmedText}: ${e.message}")
+                                    logger.warn("JSON parse error for final text from ${resultPayload}: ${e.message}")
                                     emit(System1Event.Error(e.message.toString()))
                                 }
-                            } else {
-                                emit(System1Event.Response(trimmedText))
+                            }
+                        } else {
+                            val accumulator = textAccumulators.getOrPut(currentBufferKey) { StreamAccumulator() }
+                            accumulator.builder.append(textPart)
+
+                            val shouldEmitPartial = !bufferUp && isPartial
+                            val shouldEmitFinal = !isPartial
+
+                            if (shouldEmitPartial) {
+                                val toEmit = accumulator.builder.substring(accumulator.lastEmittedLength)
+                                if (toEmit.isNotEmpty()) {
+                                    accumulator.lastEmittedLength = accumulator.builder.length
+                                    emit(System1Event.Response(toEmit))
+                                }
+                            }
+
+                            if (shouldEmitFinal) {
+                                val previouslyEmitted = accumulator.lastEmittedLength
+                                val finalText = when {
+                                    bufferUp -> accumulator.builder.toString().trim()
+                                    previouslyEmitted == 0 -> accumulator.builder.toString().trim()
+                                    else -> accumulator.builder.substring(previouslyEmitted)
+                                }
+                                accumulator.lastEmittedLength = accumulator.builder.length
+                                textAccumulators.remove(currentBufferKey)
+                                if (finalText.isNotEmpty()) {
+                                    emit(System1Event.Response(finalText))
+                                }
                             }
                         }
                     }
