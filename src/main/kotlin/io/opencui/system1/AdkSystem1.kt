@@ -1,6 +1,5 @@
 package io.opencui.system1
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.google.genai.types.Schema
 import com.google.adk.agents.BaseAgent

@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
+import io.opencui.system1.System1Event
 import io.opencui.system1.System1Mode
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
+import io.opencui.system1.System1Sink
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.collect
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -53,11 +54,23 @@ open class System1Generation(
 
         val system1Action = system1Builder.build(session, augmentation)
 
-        // We can decide handle flow or result, here.
-        // the system1 should already return the System1Inform.
-        val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
+        val sink = currentCoroutineContext()[System1Sink]
+        var lastResponse: DialogAct? = null
+
+        system1Action.invoke().collect { event ->
+            when (event) {
+                is System1Event.Response -> {
+                    sink?.send(event)
+                    lastResponse = event.dialogAct
+                }
+                is System1Event.Reason,
+                is System1Event.Error -> sink?.send(event)
+                is System1Event.Result -> {}
+            }
+        }
+
         val actionResult = ActionResult(
-            dialogActFlow.toList(),
+            lastResponse?.let { listOf(it) },
             createLog("AugmentedGeneration", true)
         )
         logger.info("End of System1Generation with $system1Id")
