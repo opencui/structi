@@ -376,7 +376,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                                 val toEmit = accumulator.builder.substring(accumulator.lastEmittedLength)
                                 if (toEmit.isNotEmpty()) {
                                     accumulator.lastEmittedLength = accumulator.builder.length
-                                    emit(System1Event.Response(toEmit))
+                                    emit(System1Event.Reason(toEmit))
                                 }
                             }
 
