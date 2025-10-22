@@ -31,12 +31,16 @@ data class System1Request(
 data class System1Reply(val reply: String)
 
 // augmentation might also change. We have another layer.
-interface ISystem1Executor {
+// Response
+interface ISystem1Component {
     operator fun invoke() : Flow<System1Event>
 }
 
+interface StructComponent : ISystem1Component
+interface ResponseComponent: ISystem1Component
+
 interface ISystem1Builder {
-    fun build(session: UserSession, augmentation: Augmentation): ISystem1Executor
+    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
 }
 
 
