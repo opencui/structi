@@ -58,7 +58,7 @@ data class AdkAugmentContext(
 //
 // Input should be handled as input, members should be handled as state.
 // Instead of using {} to refer to member data, build will user kotlin template ${}.
-data class AdkFunction(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : ISystem1Executor {
+data class AdkFunction(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : StructComponent {
     var inputs: Map<String, Any?>? = null
 
     @Throws(ProviderInvokeException::class)
@@ -178,7 +178,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
 }
 
 
-data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
+data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ResponseComponent {
     override fun invoke(): Flow<System1Event> {
         val userInput = session.currentUtterance() ?: ""
 
@@ -211,7 +211,8 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
     }
 }
 
-data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ISystem1Executor {
+
+data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ResponseComponent {
     override fun invoke(): Flow<System1Event> {
         val label = "action agent"
         val agent = AdkSystem1Builder.build(label, model, augmentation.instruction, tools = emptyList())
@@ -237,7 +238,6 @@ data class AdkAction(val session: UserSession, val model: ModelConfig, val augme
             AdkSystem1Builder.artifactService,
             AdkSystem1Builder.sessionService )
 
-
         // For action, agent are supposedly only take structured input in the prompt, to generate the response.
         val userMsg = Content.fromParts(Part.fromText(""))
         return AdkSystem1Builder.callAgentAsync(userMsg, runner, userId!!, sessionId!!)
@@ -251,7 +251,7 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
     override fun build(
         session: UserSession,
         augmentation: Augmentation
-    ): ISystem1Executor {
+    ): ISystem1Component {
         return when (augmentation.mode) {
             System1Mode.FALLBACK -> AdkFallback(session, model, augmentation)
             System1Mode.ACTION -> AdkAction(session, model, augmentation)
