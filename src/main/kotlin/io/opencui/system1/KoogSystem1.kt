@@ -283,31 +283,20 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             model: ModelConfig,
             instruction: String,
             toolRegistry: ToolRegistry = ToolRegistry{},
-            selfContained: Boolean = false
+            strategy: AIAgentFunctionalStrategy<Input, Output>
         ): AIAgent<Input, Output> {
 
             val promptExecutor = buildPromptExecutor(model)
             val llModel = buildLLModel(model)
-            val strategy: AIAgentFunctionalStrategy<Input, Output> = AIAgentFunctionalStrategy {
-                ctx, input ->
-                // Minimal example: ask the LLM and decode Output
-                val json = ctx.askLLM(
-                    system = instruction,
-                    user = "INPUT:\n${ctx.encode(input, serializer<Input>())}\n" +
-                           "Respond ONLY as JSON for Output."
-                )
-                ctx.decode(json, serializer<Output>())
-            }
 
-            return AIAgent<Input, Output>(
+            return AIAgent(
                 promptExecutor = promptExecutor,
                 systemPrompt = instruction,
                 llmModel =  llModel,
                 toolRegistry = toolRegistry,
-                temperature = model.temperature as Double,
-                inputSerializer = serializer<Input>(),      // <-- force typed agent
-                outputSerializer = serializer<Output>()
-                )
+                temperature = model.temperature?.toDouble() ?: 0.0,
+                strategy = strategy
+            )
         }
 
         // Now we return three different message: json for function, text for action/fallback, and error
