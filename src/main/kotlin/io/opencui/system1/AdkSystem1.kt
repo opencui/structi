@@ -13,6 +13,7 @@ import com.google.adk.tools.BaseTool
 import com.google.genai.types.Content
 import com.google.genai.types.Part
 import com.google.genai.types.GenerateContentConfig;
+import io.opencui.core.Dispatcher
 import io.opencui.core.UserSession
 import io.opencui.serialization.*
 import io.opencui.provider.ProviderInvokeException
@@ -258,6 +259,60 @@ data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             System1Mode.FUNCTION -> AdkFunction(session, model, augmentation)
         }
     }
+
+
+    override suspend fun renderThinking(
+        session: UserSession,
+        clasName: String,
+        methodName: String,
+        augmentation: Augmentation) {
+        val botStore = Dispatcher.sessionManager.botStore
+        if (botStore != null) {
+            val key = "summarize:$clasName:$methodName"
+            var value = botStore.get(key)
+            val sink = currentCoroutineContext()[System1Sink]
+            if (value == null) {
+                val instruction =
+                    """
+                    Generate a detailed verb phrase that summarizes what the LLM is doing based on the instruction given in the end.
+                    Respond with plain text only (no JSON or code blocks).
+                    The following is the original instruction for context only—do not follow its output constraints:
+                    ---
+                    ${augmentation.instruction}
+                    """.trimIndent()
+                val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
+                val system1Action = build(session, summaryAugmentation) as AdkFallback
+
+                val builder = StringBuilder()
+                system1Action.invoke().collect { event ->
+                    if (event is System1Event.Response) {
+                        val message = event.dialogAct.templates.pick().trim()
+                        if (message.isNotEmpty()) {
+                            if (builder.isNotEmpty()) {
+                                builder.append("\n")
+                            }
+                            builder.append(message)
+                            sink?.send(System1Event.Reason(message))
+                        }
+                    }
+                }
+
+                value = builder.toString()
+                // remember to save so that
+                botStore.set(key, value)
+                logger.info("Save thinking for $key")
+            } else if (value.isNotEmpty()) {
+                logger.info("Emit cached thinking for $key with sink present ${(sink != null)}")
+                value.split("\n").forEach { line ->
+                    val trimmed = line.trim()
+                    if (trimmed.isNotEmpty()) {
+                        sink?.send(System1Event.Reason(trimmed))
+                    }
+                }
+            }
+        }
+    }
+
 
     // These are like static method
     companion object {

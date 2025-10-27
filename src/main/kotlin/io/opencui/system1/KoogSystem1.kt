@@ -2,11 +2,19 @@ package io.opencui.system1
 
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.AIAgentFunctionalStrategy
+import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.prompt.dsl.prompt
+import ai.koog.prompt.executor.clients.google.structure.GoogleBasicJsonSchemaGenerator
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.clients.openai.base.structure.OpenAIBasicJsonSchemaGenerator
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.streaming.StreamFrame
+import ai.koog.prompt.structure.json.JsonStructuredData
+import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
+import ai.koog.prompt.structure.json.generator.JsonSchemaGenerator
 import com.fasterxml.jackson.databind.node.ArrayNode
 import io.opencui.core.UserSession
 import io.opencui.provider.ProviderInvokeException
@@ -18,7 +26,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.serialization.serializer
+
+
 
 data class KoogAugmentContext(
     val inputSchema: Schema? = null,
@@ -27,21 +36,7 @@ data class KoogAugmentContext(
 
 
 //
-// For now, we only support LLMAgent as left module, so there is no need for collaboration between agents.
-// Since the LLM execute the things from scratch every time, and then there are prefix based caching, so
-// for now, we assume that instruction are instantiated with slot value every time it is evaluated.
-// We will not be using {} from state for collaboration purpose. In other words, instruction capture slot values.
-//
-// There are two thing we need to do: create agent (create schema, prepare input, and then run it and handle output).
-// it will be used for two different use cases: action, and function.
-//
-// but we will really build Llm Agent.
 
-//
-// Question, for fallback, should we allow build to use slot value? if we do, should we keep
-// history? For now, we assume that they can, but the history is not useful. As we are use it
-// a single turn solution.
-//
 // The content for runner:
 // For Action, the content can be user said nothing.
 // For Fallback, the content can be user utterance.
@@ -69,7 +64,7 @@ data class KoogFunction(val session: UserSession, val model: ModelConfig, val au
             augmentation.instruction,
             context.inputSchema,
             context.outputSchema,
-            selfContained = true
+
         )
 
         // Now we need to get input into agent state (only for input), the slot is embedded in instruction.
@@ -251,6 +246,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         }
     }
 
+
     // These are like static method
     companion object {
         val logger = LoggerFactory.getLogger(KoogSystem1Builder::class.java)
@@ -268,6 +264,26 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             }
         }
 
+        //
+        fun buildSchemaGenerator(model: ModelConfig) : JsonSchemaGenerator{
+            return when(model.family) {
+                "openai" -> OpenAIBasicJsonSchemaGenerator
+                "gemini" -> GoogleBasicJsonSchemaGenerator
+                else -> BasicJsonSchemaGenerator
+            }
+        }
+
+        inline fun <reified T> buildJsonStructure(value: T, model: ModelConfig, exampleForecasts: List<T>): JsonStructuredData<T> {
+            val schemaGenerator = buildSchemaGenerator(model)
+            val structure = JsonStructuredData.createJsonStructure<T>(
+                // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
+                schemaGenerator = schemaGenerator,
+                examples = exampleForecasts
+            )
+            return structure
+        }
+
+
         fun buildLLModel(model: ModelConfig): LLModel {
             return when(model.family) {
                 "openai" -> when(model.label) {
@@ -279,7 +295,6 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         }
 
         inline fun <reified Input, reified Output> build(
-            label: String,
             model: ModelConfig,
             instruction: String,
             toolRegistry: ToolRegistry = ToolRegistry{},
@@ -297,91 +312,6 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 temperature = model.temperature?.toDouble() ?: 0.0,
                 strategy = strategy
             )
-        }
-
-        // Now we return three different message: json for function, text for action/fallback, and error
-        // The system 1 inform is just an envelope, its type is only useful for figuring out the source.
-        fun callAgentAsync(
-            content: Content,  // for action, this should be empty, for
-            runner: Runner,
-            userId: String,
-            sessionId: String,
-            jsonOutput: Boolean = false,
-            bufferUp: Boolean = false
-        ): Flow<System1Event> = flow {
-            logger.info("User Query: $content")
-            // Not really useful, but keep it for now.
-
-            val textAccumulators = mutableMapOf<Pair<String, String>, StreamAccumulator>()
-            try {
-                // We need to config the runner later.
-                val runConfig = RunConfig.builder().build()
-
-                // Use Google Koog Java async streaming
-                val eventFlow = runner.runAsync(userId, sessionId, content, runConfig).asFlow()
-
-                eventFlow.collect { event: Event ->
-                    if (event.author() == "user") return@collect
-
-                    val currentBufferKey = Pair(event.invocationId(), event.author())
-
-                    logger.info("Processing event: author={}, partial={}", event.author(), event.partial())
-
-                    val parts = event.content().orElse(null)?.parts()?.orElse(null)
-                    parts?.firstOrNull()?.text()?.orElse(null)?.let { textPart ->
-                        val isPartial = event.partial().orElse(false)
-
-                        if (jsonOutput) {
-                            val accumulator = textAccumulators.getOrPut(currentBufferKey) { StreamAccumulator() }
-                            accumulator.builder.append(textPart)
-
-                            if (!isPartial) {
-                                val resultPayload = accumulator.builder.toString().trim()
-                                textAccumulators.remove(currentBufferKey)
-                                try {
-                                    emit(System1Event.Result(Json.parseToJsonElement(resultPayload)))
-                                } catch (e: Exception) {
-                                    logger.warn("JSON parse error for final text from ${resultPayload}: ${e.message}")
-                                    emit(System1Event.Error(e.message.toString()))
-                                }
-                            }
-                        } else {
-                            val accumulator = textAccumulators.getOrPut(currentBufferKey) { StreamAccumulator() }
-                            accumulator.builder.append(textPart)
-
-                            val shouldEmitPartial = !bufferUp && isPartial
-                            val shouldEmitFinal = !isPartial
-
-                            if (shouldEmitPartial) {
-                                val toEmit = accumulator.builder.substring(accumulator.lastEmittedLength)
-                                if (toEmit.isNotEmpty()) {
-                                    accumulator.lastEmittedLength = accumulator.builder.length
-                                    emit(System1Event.Reason(toEmit))
-                                }
-                            }
-
-                            if (shouldEmitFinal) {
-                                val previouslyEmitted = accumulator.lastEmittedLength
-                                val finalText = when {
-                                    bufferUp -> accumulator.builder.toString().trim()
-                                    previouslyEmitted == 0 -> accumulator.builder.toString().trim()
-                                    else -> accumulator.builder.substring(previouslyEmitted)
-                                }
-                                accumulator.lastEmittedLength = accumulator.builder.length
-                                textAccumulators.remove(currentBufferKey)
-                                if (finalText.isNotEmpty()) {
-                                    emit(System1Event.Response(finalText))
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (e: CancellationException) {
-                logger.info("Koog run cancelled: ${e.stackTraceToString()}")
-            } catch (e: Exception) {
-                logger.error("Error processing Koog events: ${e.message}", e)
-                emit(System1Event.Error(e.message.toString()))
-            }
         }
     }
 }

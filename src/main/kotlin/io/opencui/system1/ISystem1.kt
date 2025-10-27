@@ -311,6 +311,20 @@ class System1Sink(
     suspend fun send(t: System1Event) = emit(t)
 }
 
+// augmentation might also change. We have another layer.
+// Response
+interface ISystem1Component {
+    operator fun invoke() : Flow<System1Event>
+}
+
+interface StructComponent : ISystem1Component
+interface ResponseComponent: ISystem1Component
+
+interface ISystem1Builder {
+    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
+
+    suspend fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation)
+}
 
 //
 // All system1 configure use the ChatGPTSystem1 provider config meta.
