@@ -30,18 +30,6 @@ data class System1Request(
 
 data class System1Reply(val reply: String)
 
-// augmentation might also change. We have another layer.
-// Response
-interface ISystem1Component {
-    operator fun invoke() : Flow<System1Event>
-}
-
-interface StructComponent : ISystem1Component
-interface ResponseComponent: ISystem1Component
-
-interface ISystem1Builder {
-    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
-}
 
 
 // the chatGPTSystem1 is rag capable system 1, means it is located with indexing/retrieval capabilities.

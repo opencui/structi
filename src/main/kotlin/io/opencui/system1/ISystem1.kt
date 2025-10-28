@@ -311,6 +311,20 @@ class System1Sink(
     suspend fun send(t: System1Event) = emit(t)
 }
 
+// augmentation might also change. We have another layer.
+// Response
+interface ISystem1Component {
+    operator fun invoke() : Flow<System1Event>
+}
+
+interface StructComponent : ISystem1Component
+interface ResponseComponent: ISystem1Component
+
+interface ISystem1Builder {
+    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
+
+    suspend fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation)
+}
 
 //
 // All system1 configure use the ChatGPTSystem1 provider config meta.
@@ -332,6 +346,7 @@ interface ISystem1 : IExtension {
             if (botStore != null) {
                 val key = "summarize:$clasName:$methodName"
                 var value = botStore.get(key)
+                val sink = currentCoroutineContext()[System1Sink]
                 if (value == null) {
                     val instruction =
                         """
@@ -344,21 +359,32 @@ interface ISystem1 : IExtension {
                     val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
                     val system1Action = system1Builder.build(session, summaryAugmentation) as AdkFallback
 
-                    val dialogActs = system1Action.invoke()
-                        .filterIsInstance<System1Event.Response>()
-                        .map { it.dialogAct }
+                    val builder = StringBuilder()
+                    system1Action.invoke().collect { event ->
+                        if (event is System1Event.Response) {
+                            val message = event.dialogAct.templates.pick().trim()
+                            if (message.isNotEmpty()) {
+                                if (builder.isNotEmpty()) {
+                                    builder.append("\n")
+                                }
+                                builder.append(message)
+                                sink?.send(System1Event.Reason(message))
+                            }
+                        }
+                    }
 
-                    // need to save so that we do not have to run this over and over.
-                    value = dialogActs.map { it.templates.pick() }.joinToString("\n")
+                    value = builder.toString()
                     // remember to save so that
                     botStore.set(key, value)
                     logger.info("Save thinking for $key")
-                }
-
-                if (value.isNotEmpty()) {
-                    val sink = currentCoroutineContext()[System1Sink]
-                    logger.info("Emit reason with sink present ${(sink != null)}: $value" )
-                    sink?.send(System1Event.Reason( value))
+                } else if (value.isNotEmpty()) {
+                    logger.info("Emit cached thinking for $key with sink present ${(sink != null)}")
+                    value.split("\n").forEach { line ->
+                        val trimmed = line.trim()
+                        if (trimmed.isNotEmpty()) {
+                            sink?.send(System1Event.Reason(trimmed))
+                        }
+                    }
                 }
             }
         }
