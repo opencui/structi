@@ -1,6 +1,8 @@
 buildscript {
-    ext.kotlin_version = '1.9.25'
+    ext.kotlin_version = '2.2.21'
     ext.boot_version = "3.3.13"
+    ext.koog_version = "0.5.1"
+    ext.ktor_version = "2.3.12"
 }
 
 plugins {
@@ -16,13 +18,13 @@ version '1.1-SNAPSHOT'
 
 compileKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
+        freeCompilerArgs = ["-Xjsr305=strict", "-Xlambdas=class"]
         jvmTarget = "17"
     }
 }
 compileTestKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
+        freeCompilerArgs = ["-Xjsr305=strict", "-Xlambdas=class"]
         jvmTarget = "17"
     }
 }
@@ -58,6 +60,11 @@ dependencies {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
         exclude group: 'com.google.guava', module: 'guava'
     }
+
+    implementation "ai.koog:koog-agents:$koog_version"
+    // include Ktor client dependency explicitly
+    // implementation "io.ktor:ktor-client-cio:$ktor_version"
+
     implementation "org.clojure:data.json:2.5.0"
     implementation "org.apache.lucene:lucene-core:8.4.1"
     implementation "org.apache.lucene:lucene-analyzers-smartcn:8.4.1"

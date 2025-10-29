@@ -20,6 +20,7 @@ import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
 import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.ChatGPTSystem1
+import io.opencui.system1.ISystem1Builder
 import io.opencui.system1.ModelConfig
 import java.io.ObjectInputStream
 import java.io.Serializable
@@ -437,13 +438,13 @@ data class UserSession(
     }
 
     // For now, expose this Adk only interface. We can generalize this when we need to support more framework.
-    fun getSystem1Builder(system1Id: String, packageName: String) : AdkSystem1Builder {
+    fun getSystem1Builder(system1Id: String, packageName: String) : ISystem1Builder {
         // if label does not contain dot, add it.
         val label = "${packageName}.${system1Id}"
         val resolvedChatbot = chatbot ?: ChatbotLoader.findChatbot(botInfo).also { chatbot = it }
         val system1 = resolvedChatbot.getExtension<ChatGPTSystem1>(label)
             ?: throw IllegalStateException("System1 extension $label is not available for bot ${botInfo.fullName}")
-        return system1.builder as AdkSystem1Builder
+        return system1.builder
     }
 
     /**
