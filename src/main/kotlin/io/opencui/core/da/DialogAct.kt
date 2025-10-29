@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.IFlowComponent
+import io.opencui.system1.IFuncComponent
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -52,15 +53,32 @@ open class System1Generation(
             mode = mode
         )
 
-        val system1Action = system1Builder.build(session, augmentation) as IFlowComponent
+        val system1Action = system1Builder.build(session, augmentation)
 
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.
-        val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
-        val actionResult = ActionResult(
-            dialogActFlow.toList(),
-            createLog("AugmentedGeneration", true)
-        )
+        val actionResult = when (system1Action) {
+            is IFlowComponent -> {
+                val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
+                ActionResult(
+                    dialogActFlow.toList(),
+                    createLog("AugmentedGeneration", true)
+                )
+            }
+
+            is IFuncComponent<*> -> {
+                val result = system1Action.invoke() as String
+                ActionResult(
+                    listOf(RawInform(templateOf(result))),
+                    createLog("AugmentedGeneration", true)
+                )
+            }
+
+            else -> {
+                throw RuntimeException("Unknown ISystem1Component")
+            }
+        }
+        
         logger.info("End of System1Generation with $system1Id")
         return actionResult
     }
