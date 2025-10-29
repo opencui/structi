@@ -59,7 +59,7 @@ data class AdkAugmentContext(
 //
 // Input should be handled as input, members should be handled as state.
 // Instead of using {} to refer to member data, build will user kotlin template ${}.
-data class AdkFunction(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : StructComponent {
+data class AdkFunction(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : IFlowComponent {
     var inputs: Map<String, Any?>? = null
 
     @Throws(ProviderInvokeException::class)
@@ -179,7 +179,7 @@ data class AdkFunction(val session: UserSession, val model: ModelConfig,  val au
 }
 
 
-data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ResponseComponent {
+data class AdkFallback(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : IFlowComponent {
     override fun invoke(): Flow<System1Event> {
         val userInput = session.currentUtterance() ?: ""
 
@@ -213,7 +213,7 @@ data class AdkFallback(val session: UserSession, val model: ModelConfig, val aug
 }
 
 
-data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : ResponseComponent {
+data class AdkAction(val session: UserSession, val model: ModelConfig, val augmentation: Augmentation) : IFlowComponent {
     override fun invoke(): Flow<System1Event> {
         val label = "action agent"
         val agent = AdkSystem1Builder.build(label, model, augmentation.instruction, tools = emptyList())

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
-import io.opencui.system1.ResponseComponent
+import io.opencui.system1.IFlowComponent
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -52,7 +52,7 @@ open class System1Generation(
             mode = mode
         )
 
-        val system1Action = system1Builder.build(session, augmentation) as ResponseComponent
+        val system1Action = system1Builder.build(session, augmentation) as IFlowComponent
 
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.

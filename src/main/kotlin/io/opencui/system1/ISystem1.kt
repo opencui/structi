@@ -2,13 +2,10 @@ package io.opencui.system1
 
 import io.opencui.core.*
 import io.opencui.core.da.DialogAct
-import io.opencui.core.da.RawInform
 import io.opencui.core.da.System1Inform
 import io.opencui.serialization.JsonElement
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.*
 import kotlin.reflect.KClass
@@ -313,12 +310,18 @@ class System1Sink(
 
 // augmentation might also change. We have another layer.
 // Response
-interface ISystem1Component {
-    operator fun invoke() : Flow<System1Event>
+interface ISystem1Component
+
+// This google adk way of doing it.
+interface IFlowComponent : ISystem1Component {
+     operator fun invoke() : Flow<System1Event>
 }
 
-interface StructComponent : ISystem1Component
-interface ResponseComponent: ISystem1Component
+// This is koog way of doing it.
+interface IFuncComponent<T> : ISystem1Component {
+    suspend operator fun invoke(): T
+}
+
 
 interface ISystem1Builder {
     fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
