@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
 import io.opencui.system1.IFlowComponent
+import io.opencui.system1.IFuncComponent
+import io.opencui.system1.ISystem1FlowBuilder
+import io.opencui.system1.ISystem1FuncBuilder
 import io.opencui.system1.System1Mode
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -51,16 +54,33 @@ open class System1Generation(
             templates.pick(),
             mode = mode
         )
-
-        val system1Action = system1Builder.build(session, augmentation) as IFlowComponent
-
+        
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.
-        val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
-        val actionResult = ActionResult(
-            dialogActFlow.toList(),
-            createLog("AugmentedGeneration", true)
-        )
+        val actionResult = when (system1Builder) {
+            is ISystem1FlowBuilder -> {
+                val system1Action = system1Builder.build(session, augmentation) as IFlowComponent
+                val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
+                ActionResult(
+                    dialogActFlow.toList(),
+                    createLog("AugmentedGeneration", true)
+                )
+            }
+
+            is ISystem1FuncBuilder -> {
+                val system1Action = system1Builder.build<String>(session, augmentation)
+                val result = system1Action.invoke()
+                ActionResult(
+                    listOf(RawInform(templateOf(result))),
+                    createLog("AugmentedGeneration", true)
+                )
+            }
+
+            else -> {
+                throw RuntimeException("Unknown ISystem1Component")
+            }
+        }
+
         logger.info("End of System1Generation with $system1Id")
         return actionResult
     }
