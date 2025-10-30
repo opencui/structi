@@ -324,9 +324,15 @@ interface IFuncComponent<T> : ISystem1Component {
 
 
 interface ISystem1Builder {
-    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
-
     suspend fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation)
+}
+
+interface ISystem1FlowBuilder: ISystem1Builder {
+    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
+}
+
+interface ISystem1FuncBuilder: ISystem1Builder {
+     fun <T> build(session: UserSession, augmentation: Augmentation): IFuncComponent<T>
 }
 
 //

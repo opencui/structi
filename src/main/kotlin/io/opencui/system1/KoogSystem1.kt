@@ -27,18 +27,17 @@ import ai.koog.prompt.structure.json.JsonStructuredData
 import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.JsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
-import com.fasterxml.jackson.databind.node.ArrayNode
 import io.opencui.core.UserSession
-import io.opencui.provider.ProviderInvokeException
-import io.opencui.serialization.Converter
-import io.opencui.serialization.Json
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
-import java.util.concurrent.ConcurrentHashMap
 
+
+data class KoogFunction<T>(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : IFuncComponent<T> {
+
+    override suspend fun invoke(): T {
+        TODO("Not yet implemented")
+    }
+
+}
 
 // At the runtime, this is used to create agent based on augmentation.
 data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
@@ -47,7 +46,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         session: UserSession,
         augmentation: Augmentation
     ): ISystem1Component {
-        TODO("Not yet implemented")
+
     }
 
     override suspend fun renderThinking(
