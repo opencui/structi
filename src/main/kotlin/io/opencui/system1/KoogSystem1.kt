@@ -31,6 +31,7 @@ import io.opencui.core.UserSession
 import org.slf4j.LoggerFactory
 
 
+//
 data class KoogFunction<T>(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : IFuncComponent<T> {
 
     override suspend fun invoke(): T {
@@ -40,13 +41,13 @@ data class KoogFunction<T>(val session: UserSession, val model: ModelConfig,  va
 }
 
 // At the runtime, this is used to create agent based on augmentation.
-data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
+data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
 
-    override fun build(
+    override fun <T> build(
         session: UserSession,
         augmentation: Augmentation
-    ): ISystem1Component {
-
+    ): IFuncComponent<T> {
+        return KoogFunction<T>(session, model, augmentation)
     }
 
     override suspend fun renderThinking(

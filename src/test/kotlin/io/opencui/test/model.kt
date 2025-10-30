@@ -747,27 +747,6 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
             else -> BookFlightAction_0(this)
         }
     }
-
-    suspend fun testPromptFunction(hotel: Hotel?, name: String?): Hotel {
-        val instruction: String = "just return a hotel object"
-        val system1Id: String = "test"
-        val system1Builder = session?.getSystem1Builder(system1Id, "io.opencui.test")!!
-
-        val augmentation = Augmentation(
-            instruction,
-            mode = System1Mode.FUNCTION)
-
-        // now we also need to add schema, or AdkAugmentContent.
-        val system1Func = system1Builder.build(session!!, augmentation) as AdkFunction
-        system1Func.inputs = mapOf(
-            "hotel" to hotel,
-            "name" to name
-        )
-
-        val inputSchema = Schema.builder().build()
-        augmentation.context = AdkAugmentContext(inputSchema, inputSchema)
-        return system1Func.svInvoke(Json.getConverter<Hotel>(session))
-    }
 }
 
 
