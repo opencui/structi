@@ -20,6 +20,7 @@ import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.message.Message
 import ai.koog.prompt.structure.StructureFixingParser
 import ai.koog.prompt.structure.StructuredOutput
 import ai.koog.prompt.structure.StructuredOutputConfig
@@ -29,13 +30,13 @@ import ai.koog.prompt.structure.json.generator.JsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
 import io.opencui.core.UserSession
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 
-//
-data class KoogFunction<T>(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : IFuncComponent<T> {
-
+// The agent function is so simply because of the type based koog design.
+data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
     override suspend fun invoke(): T {
-        TODO("Not yet implemented")
+        return agent.run("")
     }
 
 }
@@ -84,7 +85,6 @@ object StructureOutputConfigurators {
         )
         return config
     }
-
 }
 
 
@@ -112,24 +112,23 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
     companion object {
         val logger = LoggerFactory.getLogger(KoogSystem1Builder::class.java)
         // use shared state for now.
-
-        private data class StreamAccumulator(
-            val builder: StringBuilder = StringBuilder(),
-            var lastEmittedLength: Int = 0
-        )
+        val executors = ConcurrentHashMap<String, PromptExecutor>()
 
         fun buildPromptExecutor(model: ModelConfig): PromptExecutor {
-            return when(model.family) {
-                "openai" -> simpleOpenAIExecutor(model.apikey!!)
-                else -> throw RuntimeException("Unsupported model family.")
+            if (model.family !in executors.keys) {
+                val executor = when (model.family) {
+                    "openai" -> simpleOpenAIExecutor(model.apikey!!)
+                    else -> throw RuntimeException("Unsupported model family.")
+                }
+                executors[model.family] = executor
             }
+            return executors[model.family]!!
         }
 
 
-
-        inline fun <reified  T> createStrategy(basic: Boolean, augmentation: Augmentation, model: ModelConfig): AIAgentGraphStrategy<String, T> {
-             val agentStrategy = strategy<String, T>("default structure output strategy") {
-                    val prepareRequest by node<String, String> { request -> augmentation.instruction }
+        inline fun <reified  T> createStrategy(basic: Boolean, augmentation: Augmentation, model: ModelConfig): AIAgentGraphStrategy<Unit, T> {
+             val agentStrategy = strategy<Unit, T>("default structure output strategy") {
+                    val prepareRequest by node<Unit, String> { augmentation.instruction }
 
                     @Suppress("DuplicatedCode")
                     val getStructuredOutput by nodeLLMRequestStructured(
@@ -174,8 +173,8 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
             model: ModelConfig,
             instruction: String,
             toolRegistry: ToolRegistry = ToolRegistry{},
-            strategy: AIAgentFunctionalStrategy<String, Output>
-        ): AIAgent<String, Output> {
+            strategy: AIAgentFunctionalStrategy<Unit, Output>
+        ): AIAgent<Unit, Output> {
 
             val promptExecutor = buildPromptExecutor(model)
             val llModel = buildLLModel(model)
