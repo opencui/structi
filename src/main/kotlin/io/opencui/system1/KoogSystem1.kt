@@ -40,6 +40,54 @@ data class KoogFunction<T>(val session: UserSession, val model: ModelConfig,  va
 
 }
 
+object StructureOutputConfigurators {
+
+    inline fun <reified T> getConfig(
+        basic: Boolean,
+        examples: List<T> = emptyList(),
+        fixModel: LLModel = AnthropicModels.Haiku_3_5): StructuredOutputConfig<T> {
+
+        val genericStructure = JsonStructuredData.createJsonStructure<T>(
+            // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
+            schemaGenerator = if (basic) BasicJsonSchemaGenerator else StandardJsonSchemaGenerator,
+            examples = examples,
+        )
+
+
+        val openAiStructure = JsonStructuredData.createJsonStructure<T>(
+            schemaGenerator = if (basic) OpenAIBasicJsonSchemaGenerator else OpenAIStandardJsonSchemaGenerator,
+            examples = examples
+        )
+
+        val googleStructure = JsonStructuredData.createJsonStructure<T>(
+            schemaGenerator = if (basic) GoogleBasicJsonSchemaGenerator else GoogleStandardJsonSchemaGenerator,
+            examples = examples
+        )
+
+        val config = StructuredOutputConfig(
+            byProvider = mapOf(
+                // Native modes leveraging native structured output support in models, with custom definitions for LLM providers that might have different format.
+                LLMProvider.OpenAI to StructuredOutput.Native(openAiStructure),
+                LLMProvider.Google to StructuredOutput.Native(googleStructure),
+                // Anthropic does not support native structured output yet.
+                LLMProvider.Anthropic to StructuredOutput.Manual(genericStructure),
+            ),
+
+            // Fallback manual structured output mode, via explicit prompting with additional message, not native model support
+            default = StructuredOutput.Manual(genericStructure),
+
+            // Helper parser to attempt a fix if a malformed output is produced.
+            fixingParser = StructureFixingParser(
+                fixingModel = fixModel,
+                retries = 2,
+            ),
+        )
+        return config
+    }
+
+}
+
+
 // At the runtime, this is used to create agent based on augmentation.
 data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
 
@@ -77,68 +125,21 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
             }
         }
 
-        // this will need to be selected based on structure of
-        fun buildBasicSchemaGenerator(model: ModelConfig) : JsonSchemaGenerator{
-            return when(model.family) {
-                "openai" -> OpenAIBasicJsonSchemaGenerator
-                "gemini" -> GoogleBasicJsonSchemaGenerator
-                else -> BasicJsonSchemaGenerator
-            }
-        }
-
-        fun buildStandardSchemaGenerator(model: ModelConfig) : JsonSchemaGenerator{
-            return when(model.family) {
-                "openai" -> OpenAIStandardJsonSchemaGenerator
-                "gemini" -> GoogleStandardJsonSchemaGenerator
-                else -> StandardJsonSchemaGenerator
-            }
-        }
 
 
-        inline fun <reified  T> createStrategy(complex: Boolean, augmentation: Augmentation, model: ModelConfig): AIAgentGraphStrategy<String, T> {
+        inline fun <reified  T> createStrategy(basic: Boolean, augmentation: Augmentation, model: ModelConfig): AIAgentGraphStrategy<String, T> {
              val agentStrategy = strategy<String, T>("default structure output strategy") {
                     val prepareRequest by node<String, String> { request -> augmentation.instruction }
 
                     @Suppress("DuplicatedCode")
                     val getStructuredOutput by nodeLLMRequestStructured(
-                        config = StructuredOutputConfig(
-                            // Fallback manual structured output mode, via explicit prompting with additional message, not native model support
-                            default = getStructuredOutput<T>(complex, model),
-                            byProvider = mapOf(),
-                            // Helper parser to attempt a fix if a malformed output is produced.
-                            fixingParser = StructureFixingParser(
-                                fixingModel = AnthropicModels.Haiku_3_5,
-                                retries = 2,
-                            ),
-                        )
+                        config = StructureOutputConfigurators.getConfig<T>(basic)
                     )
 
                     nodeStart then prepareRequest then getStructuredOutput
                     edge(getStructuredOutput forwardTo nodeFinish transformed { it.getOrThrow().structure })
                 }
             return agentStrategy
-        }
-
-        inline fun <reified T> buildJsonStructure(complex: Boolean, model: ModelConfig, examples: List<T>): JsonStructuredData<T> {
-            val schemaGenerator = if (complex) buildStandardSchemaGenerator(model) else buildBasicSchemaGenerator(model)
-            val structure = JsonStructuredData.createJsonStructure<T>(
-                // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
-                schemaGenerator = schemaGenerator,
-                examples = examples
-            )
-            return structure
-        }
-
-
-        inline fun <reified T> getStructuredOutput(complex: Boolean, model: ModelConfig, examples : List<T> = emptyList()): StructuredOutput<T> {
-            val llmProvider = getLLMProvider(model)
-            val structure = buildJsonStructure(complex, model, examples)
-
-            return when(llmProvider) {
-                LLMProvider.OpenAI -> StructuredOutput.Native(structure)
-                LLMProvider.Google -> StructuredOutput.Native(structure)
-                else -> StructuredOutput.Manual(structure)
-            }
         }
 
         fun buildLLModel(model: ModelConfig): LLModel {
@@ -162,7 +163,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
         }
 
         fun buildAIAgentConfig(augmentation: Augmentation, model: ModelConfig) = AIAgentConfig(
-            prompt = prompt("weather-forecast-with-tools") {
+            prompt = prompt("default") {
                 system(augmentation.instruction)
             },
             model = buildLLModel(model),

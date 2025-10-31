@@ -248,6 +248,7 @@ data class Augmentation(
     val mode: System1Mode = System1Mode.FALLBACK) {
     var context: AugmentContext? = null
     var source: String? = null
+    var label: String = "default"
 }
 
 // For now, we only support this, but we can potentially support other.
