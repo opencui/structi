@@ -16,11 +16,11 @@ import ai.koog.prompt.executor.clients.google.structure.GoogleStandardJsonSchema
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.clients.openai.base.structure.OpenAIBasicJsonSchemaGenerator
 import ai.koog.prompt.executor.clients.openai.base.structure.OpenAIStandardJsonSchemaGenerator
+import ai.koog.prompt.executor.llms.all.simpleGoogleAIExecutor
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
-import ai.koog.prompt.message.Message
 import ai.koog.prompt.structure.StructureFixingParser
 import ai.koog.prompt.structure.StructuredOutput
 import ai.koog.prompt.structure.StructuredOutputConfig
@@ -34,15 +34,14 @@ import java.util.concurrent.ConcurrentHashMap
 
 
 // The agent function is so simply because of the type based koog design.
-data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
+data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<Unit, T>) : IFuncComponent<T> {
     override suspend fun invoke(): T {
-        return agent.run("")
+        return agent.run(Unit)
     }
-
 }
 
-object StructureOutputConfigurators {
 
+object StructureOutputConfigurator {
     inline fun <reified T> getConfig(
         basic: Boolean,
         examples: List<T> = emptyList(),
@@ -89,13 +88,14 @@ object StructureOutputConfigurators {
 
 
 // At the runtime, this is used to create agent based on augmentation.
-data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
+data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
-    override fun <T> build(
+    inline fun <reified T> build(
         session: UserSession,
         augmentation: Augmentation
     ): IFuncComponent<T> {
-        return KoogFunction<T>(session, model, augmentation)
+        val agent = build<T>(model, augmentation)
+        return KoogFunction<T>(session, agent)
     }
 
     override suspend fun renderThinking(
@@ -114,10 +114,11 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
         // use shared state for now.
         val executors = ConcurrentHashMap<String, PromptExecutor>()
 
-        fun buildPromptExecutor(model: ModelConfig): PromptExecutor {
+        fun getPromptExecutor(model: ModelConfig): PromptExecutor {
             if (model.family !in executors.keys) {
                 val executor = when (model.family) {
                     "openai" -> simpleOpenAIExecutor(model.apikey!!)
+                    "gemini" -> simpleGoogleAIExecutor(model.apikey!!)
                     else -> throw RuntimeException("Unsupported model family.")
                 }
                 executors[model.family] = executor
@@ -126,13 +127,15 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
         }
 
 
-        inline fun <reified  T> createStrategy(basic: Boolean, augmentation: Augmentation, model: ModelConfig): AIAgentGraphStrategy<Unit, T> {
+        inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<Unit, T> {
              val agentStrategy = strategy<Unit, T>("default structure output strategy") {
-                    val prepareRequest by node<Unit, String> { augmentation.instruction }
+                    val prepareRequest by node<Unit, String> {
+                        "" // System prompt already carries the instruction; no user message.
+                    }
 
                     @Suppress("DuplicatedCode")
                     val getStructuredOutput by nodeLLMRequestStructured(
-                        config = StructureOutputConfigurators.getConfig<T>(basic)
+                        config = StructureOutputConfigurator.getConfig<T>(basic)
                     )
 
                     nodeStart then prepareRequest then getStructuredOutput
@@ -151,33 +154,15 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
             }
         }
 
-        fun getLLMProvider(model: ModelConfig) : LLMProvider {
-            return when(model.family) {
-                "openai" -> LLMProvider.OpenAI
-                "gemini" -> LLMProvider.Google
-                "qwen" -> LLMProvider.Alibaba
-                "llama" -> LLMProvider.Meta
-                else -> throw RuntimeException("Unsupported model family")
-            }
-        }
-
-        fun buildAIAgentConfig(augmentation: Augmentation, model: ModelConfig) = AIAgentConfig(
-            prompt = prompt("default") {
-                system(augmentation.instruction)
-            },
-            model = buildLLModel(model),
-            maxAgentIterations = 10
-        )
-
         inline fun <reified Output> build(
             model: ModelConfig,
-            instruction: String,
+            augmentation: Augmentation,
             toolRegistry: ToolRegistry = ToolRegistry{},
-            strategy: AIAgentFunctionalStrategy<Unit, Output>
         ): AIAgent<Unit, Output> {
 
-            val promptExecutor = buildPromptExecutor(model)
+            val promptExecutor = getPromptExecutor(model)
             val llModel = buildLLModel(model)
+            val instruction = augmentation.instruction
 
             return AIAgent(
                 promptExecutor = promptExecutor,
@@ -185,7 +170,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
                 llmModel =  llModel,
                 toolRegistry = toolRegistry,
                 temperature = model.temperature?.toDouble() ?: 0.0,
-                strategy = strategy
+                strategy = createStrategy(augmentation.basicOutput)
             )
         }
     }

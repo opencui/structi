@@ -41,7 +41,7 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
         // Now use an interface that can handle all three use cases.
         // For now we assume the instruction is dynamically created so that there is no need to
         // cache system1. Instead, we assume the prefix caching of the LLM will kick in.
-        check(builder is ISystem1FlowBuilder)
+        check(builder is AdkSystem1Builder)
         val system1Executor = builder.build(session, augmentation) as IFlowComponent
         return system1Executor.invoke()
     }

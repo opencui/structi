@@ -247,9 +247,9 @@ data class AdkAction(val session: UserSession, val model: ModelConfig, val augme
 
 
 // At the runtime, this is used to create agent based on augmentation.
-data class AdkSystem1Builder(val model: ModelConfig) : ISystem1FlowBuilder {
+data class AdkSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
-    override fun build(
+    fun build(
         session: UserSession,
         augmentation: Augmentation
     ): ISystem1Component {

@@ -249,6 +249,7 @@ data class Augmentation(
     var context: AugmentContext? = null
     var source: String? = null
     var label: String = "default"
+    var basicOutput: Boolean = true
 }
 
 // For now, we only support this, but we can potentially support other.
@@ -319,21 +320,13 @@ interface IFlowComponent : ISystem1Component {
 }
 
 // This is koog way of doing it.
-interface IFuncComponent<T> : ISystem1Component {
+interface IFuncComponent<T>: ISystem1Component {
     suspend operator fun invoke(): T
 }
 
 
 interface ISystem1Builder {
     suspend fun renderThinking(session: UserSession, clasName: String, methodName: String, augmentation: Augmentation)
-}
-
-interface ISystem1FlowBuilder: ISystem1Builder {
-    fun build(session: UserSession, augmentation: Augmentation): ISystem1Component
-}
-
-interface ISystem1FuncBuilder: ISystem1Builder {
-     fun <T> build(session: UserSession, augmentation: Augmentation): IFuncComponent<T>
 }
 
 //
