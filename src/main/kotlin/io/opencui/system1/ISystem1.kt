@@ -4,7 +4,6 @@ import io.opencui.core.*
 import io.opencui.core.da.DialogAct
 import io.opencui.core.da.System1Inform
 import io.opencui.serialization.JsonElement
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.*

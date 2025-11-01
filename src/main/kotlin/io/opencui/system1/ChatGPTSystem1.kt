@@ -3,6 +3,7 @@ package io.opencui.system1
 import io.opencui.core.*
 import io.opencui.core.da.KnowledgePart
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
 
 data class OpenAIMessage(val role: String, val content: String)
@@ -10,10 +11,6 @@ fun List<CoreMessage>.convert(): List<OpenAIMessage> {
     return this.map { OpenAIMessage(if (it.user) "user" else "assistant", it.message) }
 }
 
-fun extractAfterXMLTag(input: String, tag: String): String {
-    val index = input.lastIndexOf(tag)
-    return if (index != -1) input.substring(index + tag.length) else ""
-}
 
 // Feedback is only useful when turns is empty.
 data class System1Request(
@@ -33,15 +30,19 @@ data class System1Reply(val reply: String)
 // the chatGPTSystem1 is rag capable system 1, means it is located with indexing/retrieval capabilities.
 // This is mother of all LLM based system 1. But it can only pick one implementation.
 data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
-    val builder: ISystem1Builder = AdkSystem1Builder(config)
+    val builder: ISystem1Builder = KoogSystem1Builder(config)
 
     override fun response(session: UserSession, augmentation: Augmentation): Flow<System1Event> {
         // Now use an interface that can handle all three use cases.
         // For now we assume the instruction is dynamically created so that there is no need to
         // cache system1. Instead, we assume the prefix caching of the LLM will kick in.
-        check(builder is AdkSystem1Builder)
-        val system1Executor = builder.build(session, augmentation) as IFlowComponent
-        return system1Executor.invoke()
+        check(builder is KoogSystem1Builder)
+        val system1Executor = builder.build<String>(session, augmentation)
+        // Emit the response.
+        return flow {
+            val response = system1Executor.invoke()
+            emit(System1Event.Response(response))
+        }
     }
 
     companion object : ExtensionBuilder {
