@@ -28,7 +28,9 @@ import ai.koog.prompt.structure.json.JsonStructuredData
 import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.JsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
+import io.opencui.core.Dispatcher
 import io.opencui.core.UserSession
+import kotlinx.coroutines.currentCoroutineContext
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
@@ -104,7 +106,37 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         methodName: String,
         augmentation: Augmentation
     ) {
-        TODO("Not yet implemented")
+        val botStore = Dispatcher.sessionManager.botStore
+        if (botStore != null) {
+            val key = "summarize:$clasName:$methodName"
+            var value = botStore.get(key)
+            val sink = currentCoroutineContext()[System1Sink]
+            if (value == null) {
+                val instruction =
+                    """
+                    Generate a detailed verb phrase that summarizes what the LLM is doing based on the instruction given in the end.
+                    Respond with plain text only (no JSON or code blocks).
+                    The following is the original instruction for context only—do not follow its output constraints:
+                    ---
+                    ${augmentation.instruction}
+                    """.trimIndent()
+                val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
+                val system1Action = build<String>(session, summaryAugmentation) as KoogFunction<String>
+
+                value = system1Action.invoke()
+                // remember to save so that
+                botStore.set(key, value)
+                logger.info("Save thinking for $key")
+            } else if (value.isNotEmpty()) {
+                logger.info("Emit cached thinking for $key with sink present ${(sink != null)}")
+                value.split("\n").forEach { line ->
+                    val trimmed = line.trim()
+                    if (trimmed.isNotEmpty()) {
+                        sink?.send(System1Event.Reason(trimmed))
+                    }
+                }
+            }
+        }
     }
 
 

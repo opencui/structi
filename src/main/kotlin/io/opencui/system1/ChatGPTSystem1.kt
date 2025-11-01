@@ -30,10 +30,8 @@ data class System1Request(
 
 data class System1Reply(val reply: String)
 
-
-
 // the chatGPTSystem1 is rag capable system 1, means it is located with indexing/retrieval capabilities.
-// This is mother of all LLM based system 1
+// This is mother of all LLM based system 1. But it can only pick one implementation.
 data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
     val builder: ISystem1Builder = AdkSystem1Builder(config)
 
