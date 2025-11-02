@@ -3,7 +3,6 @@ package io.opencui.test
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.opencui.core.*
 import io.opencui.core.da.UserDefinedInform
-import kotlin.reflect.KMutableProperty0
 
 
 public data class HelloWorldService(

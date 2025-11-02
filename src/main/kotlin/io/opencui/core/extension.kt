@@ -1,5 +1,6 @@
 package io.opencui.core
 
+import ai.koog.agents.core.tools.reflect.ToolSet
 import io.opencui.channel.IChannel
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.system1.ChatGPTSystem1
@@ -319,7 +320,7 @@ interface IService: Serializable, IExtension
 
 // All IProvider are the base for implementation. We need two separate type hierarchy
 // The object should
-interface IProvider : IService, IExtension {
+interface IProvider : IService, IExtension, ToolSet {
     // This is to access the user somehow.
     var session: UserSession?
 }

@@ -12,6 +12,8 @@ import io.opencui.system1.AdkFunction
 import io.opencui.system1.Augmentation
 import com.google.genai.types.Schema
 import io.opencui.system1.AdkAugmentContext
+import io.opencui.system1.KoogFunction
+import io.opencui.system1.KoogSystem1Builder
 import io.opencui.system1.System1Mode
 import java.io.Serializable
 
@@ -746,6 +748,20 @@ data class BookFlight(override var session: UserSession? = null) : IIntent {
         return when {
             else -> BookFlightAction_0(this)
         }
+    }
+
+    suspend fun testPromptFunction(hotel: Hotel?, name: String?): Hotel {
+        val instruction: String = "just return a hotel object, with input: $hotel, $name"
+        val system1Id: String = "test"
+        val system1Builder = session?.getSystem1Builder(system1Id, "io.opencui.test")!! as KoogSystem1Builder
+
+        val augmentation = Augmentation(
+            instruction,
+            mode = System1Mode.FUNCTION)
+
+        // now we also need to add schema, or AdkAugmentContent.
+        val system1Func = system1Builder.build<Hotel>(session!!, augmentation) as KoogFunction<Hotel>
+        return system1Func.invoke()
     }
 }
 

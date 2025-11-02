@@ -16,6 +16,7 @@ import ai.koog.prompt.executor.clients.google.structure.GoogleStandardJsonSchema
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.clients.openai.base.structure.OpenAIBasicJsonSchemaGenerator
 import ai.koog.prompt.executor.clients.openai.base.structure.OpenAIStandardJsonSchemaGenerator
+import ai.koog.prompt.executor.llms.all.simpleGoogleAIExecutor
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLMProvider
@@ -27,27 +28,76 @@ import ai.koog.prompt.structure.json.JsonStructuredData
 import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.JsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
+import io.opencui.core.Dispatcher
 import io.opencui.core.UserSession
+import kotlinx.coroutines.currentCoroutineContext
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 
-//
-data class KoogFunction<T>(val session: UserSession, val model: ModelConfig,  val augmentation: Augmentation) : IFuncComponent<T> {
-
+// The agent function is so simply because of the type based koog design.
+data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<Unit, T>) : IFuncComponent<T> {
     override suspend fun invoke(): T {
-        TODO("Not yet implemented")
+        return agent.run(Unit)
     }
-
 }
 
-// At the runtime, this is used to create agent based on augmentation.
-data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
 
-    override fun <T> build(
+object StructureOutputConfigurator {
+    inline fun <reified T> getConfig(
+        basic: Boolean,
+        examples: List<T> = emptyList(),
+        fixModel: LLModel = AnthropicModels.Haiku_3_5): StructuredOutputConfig<T> {
+
+        val genericStructure = JsonStructuredData.createJsonStructure<T>(
+            // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
+            schemaGenerator = if (basic) BasicJsonSchemaGenerator else StandardJsonSchemaGenerator,
+            examples = examples,
+        )
+
+
+        val openAiStructure = JsonStructuredData.createJsonStructure<T>(
+            schemaGenerator = if (basic) OpenAIBasicJsonSchemaGenerator else OpenAIStandardJsonSchemaGenerator,
+            examples = examples
+        )
+
+        val googleStructure = JsonStructuredData.createJsonStructure<T>(
+            schemaGenerator = if (basic) GoogleBasicJsonSchemaGenerator else GoogleStandardJsonSchemaGenerator,
+            examples = examples
+        )
+
+        val config = StructuredOutputConfig(
+            byProvider = mapOf(
+                // Native modes leveraging native structured output support in models, with custom definitions for LLM providers that might have different format.
+                LLMProvider.OpenAI to StructuredOutput.Native(openAiStructure),
+                LLMProvider.Google to StructuredOutput.Native(googleStructure),
+                // Anthropic does not support native structured output yet.
+                LLMProvider.Anthropic to StructuredOutput.Manual(genericStructure),
+            ),
+
+            // Fallback manual structured output mode, via explicit prompting with additional message, not native model support
+            default = StructuredOutput.Manual(genericStructure),
+
+            // Helper parser to attempt a fix if a malformed output is produced.
+            fixingParser = StructureFixingParser(
+                fixingModel = fixModel,
+                retries = 2,
+            ),
+        )
+        return config
+    }
+}
+
+
+// At the runtime, this is used to create agent based on augmentation.
+data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
+
+    inline fun <reified T> build(
         session: UserSession,
         augmentation: Augmentation
     ): IFuncComponent<T> {
-        return KoogFunction<T>(session, model, augmentation)
+        val agent = build<T>(model, augmentation)
+        return KoogFunction<T>(session, agent)
     }
 
     override suspend fun renderThinking(
@@ -56,7 +106,37 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
         methodName: String,
         augmentation: Augmentation
     ) {
-        TODO("Not yet implemented")
+        val botStore = Dispatcher.sessionManager.botStore
+        if (botStore != null) {
+            val key = "summarize:$clasName:$methodName"
+            var value = botStore.get(key)
+            val sink = currentCoroutineContext()[System1Sink]
+            if (value == null) {
+                val instruction =
+                    """
+                    Generate a detailed verb phrase that summarizes what the LLM is doing based on the instruction given in the end.
+                    Respond with plain text only (no JSON or code blocks).
+                    The following is the original instruction for context only—do not follow its output constraints:
+                    ---
+                    ${augmentation.instruction}
+                    """.trimIndent()
+                val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
+                val system1Action = build<String>(session, summaryAugmentation) as KoogFunction<String>
+
+                value = system1Action.invoke()
+                // remember to save so that
+                botStore.set(key, value)
+                logger.info("Save thinking for $key")
+            } else if (value.isNotEmpty()) {
+                logger.info("Emit cached thinking for $key with sink present ${(sink != null)}")
+                value.split("\n").forEach { line ->
+                    val trimmed = line.trim()
+                    if (trimmed.isNotEmpty()) {
+                        sink?.send(System1Event.Reason(trimmed))
+                    }
+                }
+            }
+        }
     }
 
 
@@ -64,81 +144,36 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
     companion object {
         val logger = LoggerFactory.getLogger(KoogSystem1Builder::class.java)
         // use shared state for now.
+        val executors = ConcurrentHashMap<String, PromptExecutor>()
 
-        private data class StreamAccumulator(
-            val builder: StringBuilder = StringBuilder(),
-            var lastEmittedLength: Int = 0
-        )
-
-        fun buildPromptExecutor(model: ModelConfig): PromptExecutor {
-            return when(model.family) {
-                "openai" -> simpleOpenAIExecutor(model.apikey!!)
-                else -> throw RuntimeException("Unsupported model family.")
+        fun getPromptExecutor(model: ModelConfig): PromptExecutor {
+            if (model.family !in executors.keys) {
+                val executor = when (model.family) {
+                    "openai" -> simpleOpenAIExecutor(model.apikey!!)
+                    "gemini" -> simpleGoogleAIExecutor(model.apikey!!)
+                    else -> throw RuntimeException("Unsupported model family.")
+                }
+                executors[model.family] = executor
             }
-        }
-
-        // this will need to be selected based on structure of
-        fun buildBasicSchemaGenerator(model: ModelConfig) : JsonSchemaGenerator{
-            return when(model.family) {
-                "openai" -> OpenAIBasicJsonSchemaGenerator
-                "gemini" -> GoogleBasicJsonSchemaGenerator
-                else -> BasicJsonSchemaGenerator
-            }
-        }
-
-        fun buildStandardSchemaGenerator(model: ModelConfig) : JsonSchemaGenerator{
-            return when(model.family) {
-                "openai" -> OpenAIStandardJsonSchemaGenerator
-                "gemini" -> GoogleStandardJsonSchemaGenerator
-                else -> StandardJsonSchemaGenerator
-            }
+            return executors[model.family]!!
         }
 
 
-        inline fun <reified  T> createStrategy(complex: Boolean, augmentation: Augmentation, model: ModelConfig): AIAgentGraphStrategy<String, T> {
-             val agentStrategy = strategy<String, T>("default structure output strategy") {
-                    val prepareRequest by node<String, String> { request -> augmentation.instruction }
+        inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<Unit, T> {
+             val agentStrategy = strategy<Unit, T>("default structure output strategy") {
+                    val prepareRequest by node<Unit, String> {
+                        "" // System prompt already carries the instruction; no user message.
+                    }
 
                     @Suppress("DuplicatedCode")
                     val getStructuredOutput by nodeLLMRequestStructured(
-                        config = StructuredOutputConfig(
-                            // Fallback manual structured output mode, via explicit prompting with additional message, not native model support
-                            default = getStructuredOutput<T>(complex, model),
-                            byProvider = mapOf(),
-                            // Helper parser to attempt a fix if a malformed output is produced.
-                            fixingParser = StructureFixingParser(
-                                fixingModel = AnthropicModels.Haiku_3_5,
-                                retries = 2,
-                            ),
-                        )
+                        config = StructureOutputConfigurator.getConfig<T>(basic)
                     )
 
                     nodeStart then prepareRequest then getStructuredOutput
                     edge(getStructuredOutput forwardTo nodeFinish transformed { it.getOrThrow().structure })
                 }
             return agentStrategy
-        }
-
-        inline fun <reified T> buildJsonStructure(complex: Boolean, model: ModelConfig, examples: List<T>): JsonStructuredData<T> {
-            val schemaGenerator = if (complex) buildStandardSchemaGenerator(model) else buildBasicSchemaGenerator(model)
-            val structure = JsonStructuredData.createJsonStructure<T>(
-                // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
-                schemaGenerator = schemaGenerator,
-                examples = examples
-            )
-            return structure
-        }
-
-
-        inline fun <reified T> getStructuredOutput(complex: Boolean, model: ModelConfig, examples : List<T> = emptyList()): StructuredOutput<T> {
-            val llmProvider = getLLMProvider(model)
-            val structure = buildJsonStructure(complex, model, examples)
-
-            return when(llmProvider) {
-                LLMProvider.OpenAI -> StructuredOutput.Native(structure)
-                LLMProvider.Google -> StructuredOutput.Native(structure)
-                else -> StructuredOutput.Manual(structure)
-            }
         }
 
         fun buildLLModel(model: ModelConfig): LLModel {
@@ -151,33 +186,15 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
             }
         }
 
-        fun getLLMProvider(model: ModelConfig) : LLMProvider {
-            return when(model.family) {
-                "openai" -> LLMProvider.OpenAI
-                "gemini" -> LLMProvider.Google
-                "qwen" -> LLMProvider.Alibaba
-                "llama" -> LLMProvider.Meta
-                else -> throw RuntimeException("Unsupported model family")
-            }
-        }
-
-        fun buildAIAgentConfig(augmentation: Augmentation, model: ModelConfig) = AIAgentConfig(
-            prompt = prompt("weather-forecast-with-tools") {
-                system(augmentation.instruction)
-            },
-            model = buildLLModel(model),
-            maxAgentIterations = 10
-        )
-
         inline fun <reified Output> build(
             model: ModelConfig,
-            instruction: String,
+            augmentation: Augmentation,
             toolRegistry: ToolRegistry = ToolRegistry{},
-            strategy: AIAgentFunctionalStrategy<String, Output>
-        ): AIAgent<String, Output> {
+        ): AIAgent<Unit, Output> {
 
-            val promptExecutor = buildPromptExecutor(model)
+            val promptExecutor = getPromptExecutor(model)
             val llModel = buildLLModel(model)
+            val instruction = augmentation.instruction
 
             return AIAgent(
                 promptExecutor = promptExecutor,
@@ -185,7 +202,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1FuncBuilder {
                 llmModel =  llModel,
                 toolRegistry = toolRegistry,
                 temperature = model.temperature?.toDouble() ?: 0.0,
-                strategy = strategy
+                strategy = createStrategy(augmentation.basicOutput)
             )
         }
     }
