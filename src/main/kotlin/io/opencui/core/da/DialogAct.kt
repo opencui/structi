@@ -3,7 +3,6 @@ package io.opencui.core.da
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
-import io.opencui.system1.AdkSystem1Builder
 import io.opencui.system1.Augmentation
 import io.opencui.system1.IFlowComponent
 import io.opencui.system1.KoogSystem1Builder
@@ -58,15 +57,6 @@ open class System1Generation(
         // the system1 should already return the System1Inform.
         val actionResult = when (system1Builder) {
             // Use the actually class name.
-            is AdkSystem1Builder -> {
-                val system1Action = system1Builder.build(session, augmentation) as IFlowComponent
-                val dialogActFlow = system1Action.invoke().filter { it is DialogAct }.map { it as DialogAct }
-                ActionResult(
-                    dialogActFlow.toList(),
-                    createLog("AugmentedGeneration", true)
-                )
-            }
-
             is KoogSystem1Builder -> {
                 val system1Action = system1Builder.build<String>(session, augmentation)
                 val result = system1Action.invoke()
