@@ -2,7 +2,7 @@ buildscript {
     ext.kotlin_version = '2.2.21'
     ext.boot_version = "3.3.13"
     ext.koog_version = "0.5.2"
-    ext.ktor_version = "2.3.12"
+    ext.ktor_version = "3.2.2"
 }
 
 plugins {
@@ -68,8 +68,6 @@ dependencies {
     api "io.ktor:ktor-client-core-jvm"
     api "io.ktor:ktor-client-cio"
     api "io.ktor:ktor-client-cio-jvm"
-    api "io.ktor:ktor-client-plugins"
-    api "io.ktor:ktor-client-plugins-jvm"
 
     implementation "org.clojure:data.json:2.5.0"
     implementation "org.apache.lucene:lucene-core:8.4.1"
