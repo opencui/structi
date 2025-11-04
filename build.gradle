@@ -68,6 +68,8 @@ dependencies {
     api "io.ktor:ktor-client-core-jvm"
     api "io.ktor:ktor-client-cio"
     api "io.ktor:ktor-client-cio-jvm"
+    api "io.ktor:ktor-client-plugins"
+    api "io.ktor:ktor-client-plugins-jvm"
 
     implementation "org.clojure:data.json:2.5.0"
     implementation "org.apache.lucene:lucene-core:8.4.1"
