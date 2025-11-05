@@ -24,16 +24,18 @@ import ai.koog.prompt.structure.json.JsonStructuredData
 import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
 import io.opencui.core.Dispatcher
+import io.opencui.core.IFrame
 import io.opencui.core.UserSession
 import kotlinx.coroutines.currentCoroutineContext
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.reflect.full.isSuperclassOf
 
 
 // The agent function is so simply because of the type based koog design.
-data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<Unit, T>) : IFuncComponent<T> {
+data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
     override suspend fun invoke(): T {
-        return agent.run(Unit)
+        return agent.run("")
     }
 }
 
@@ -88,8 +90,16 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         session: UserSession,
         augmentation: Augmentation
     ): IFuncComponent<T> {
-        val agent = build<T>(model, augmentation)
-        return KoogFunction<T>(session, agent)
+        if (IFrame::class.isSuperclassOf(T::class)) {
+            val agent = build<T>(model, augmentation)
+            return KoogFunction(session, agent)
+        } else if (T::class == String::class){
+            val agent = build(model, augmentation)
+            @Suppress("UNCHECKED_CAST")
+            return KoogFunction(session, agent) as IFuncComponent<T>
+        } else {
+            throw RuntimeException("The {T::class} is not supported as return type.")
+        }
     }
 
     override suspend fun renderThinking(
@@ -154,9 +164,9 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         }
 
 
-        inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<Unit, T> {
-             val agentStrategy = strategy<Unit, T>("default structure output strategy") {
-                    val prepareRequest by node<Unit, String> {
+        inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<String, T> {
+             val agentStrategy = strategy<String, T>("default structure output strategy") {
+                    val prepareRequest by node<String, String> {
                         "" // System prompt already carries the instruction; no user message.
                     }
 
@@ -190,7 +200,27 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             model: ModelConfig,
             augmentation: Augmentation,
             toolRegistry: ToolRegistry = ToolRegistry{},
-        ): AIAgent<Unit, Output> {
+        ): AIAgent<String, Output> {
+
+            val promptExecutor = getPromptExecutor(model)
+            val llModel = buildLLModel(model)
+            val instruction = augmentation.instruction
+
+            return AIAgent<String, Output>(
+                promptExecutor = promptExecutor,
+                systemPrompt = instruction,
+                llmModel =  llModel,
+                toolRegistry = toolRegistry,
+                temperature = model.temperature?.toDouble() ?: 0.0,
+                strategy = createStrategy(augmentation.basicSchema)
+            )
+        }
+
+        fun build(
+            model: ModelConfig,
+            augmentation: Augmentation,
+            toolRegistry: ToolRegistry = ToolRegistry{},
+        ): AIAgent<String, String> {
 
             val promptExecutor = getPromptExecutor(model)
             val llModel = buildLLModel(model)
@@ -202,7 +232,6 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 llmModel =  llModel,
                 toolRegistry = toolRegistry,
                 temperature = model.temperature?.toDouble() ?: 0.0,
-                strategy = createStrategy(augmentation.basicSchema)
             )
         }
     }
