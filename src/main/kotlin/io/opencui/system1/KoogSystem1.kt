@@ -1,16 +1,11 @@
 package io.opencui.system1
 
 import ai.koog.agents.core.agent.AIAgent
-import ai.koog.agents.core.agent.AIAgentFunctionalStrategy
-import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
-import ai.koog.agents.core.agent.entity.AIAgentStrategy
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.prompt.dsl.prompt
-import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.google.GoogleModels
 import ai.koog.prompt.executor.clients.google.structure.GoogleBasicJsonSchemaGenerator
 import ai.koog.prompt.executor.clients.google.structure.GoogleStandardJsonSchemaGenerator
@@ -27,7 +22,6 @@ import ai.koog.prompt.structure.StructuredOutput
 import ai.koog.prompt.structure.StructuredOutputConfig
 import ai.koog.prompt.structure.json.JsonStructuredData
 import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
-import ai.koog.prompt.structure.json.generator.JsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
 import io.opencui.core.Dispatcher
 import io.opencui.core.UserSession
@@ -46,24 +40,24 @@ data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<Unit, T>
 
 object StructureOutputConfigurator {
     inline fun <reified T> getConfig(
-        basic: Boolean,
+        basicSchema: Boolean,
         examples: List<T> = emptyList(),
-        fixModel: LLModel = AnthropicModels.Haiku_3_5): StructuredOutputConfig<T> {
+        fixModel: LLModel? = null): StructuredOutputConfig<T> {
 
         val genericStructure = JsonStructuredData.createJsonStructure<T>(
             // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
-            schemaGenerator = if (basic) BasicJsonSchemaGenerator else StandardJsonSchemaGenerator,
+            schemaGenerator = if (basicSchema) BasicJsonSchemaGenerator else StandardJsonSchemaGenerator,
             examples = examples,
         )
 
 
         val openAiStructure = JsonStructuredData.createJsonStructure<T>(
-            schemaGenerator = if (basic) OpenAIBasicJsonSchemaGenerator else OpenAIStandardJsonSchemaGenerator,
+            schemaGenerator = if (basicSchema) OpenAIBasicJsonSchemaGenerator else OpenAIStandardJsonSchemaGenerator,
             examples = examples
         )
 
         val googleStructure = JsonStructuredData.createJsonStructure<T>(
-            schemaGenerator = if (basic) GoogleBasicJsonSchemaGenerator else GoogleStandardJsonSchemaGenerator,
+            schemaGenerator = if (basicSchema) GoogleBasicJsonSchemaGenerator else GoogleStandardJsonSchemaGenerator,
             examples = examples
         )
 
@@ -80,10 +74,7 @@ object StructureOutputConfigurator {
             default = StructuredOutput.Manual(genericStructure),
 
             // Helper parser to attempt a fix if a malformed output is produced.
-            fixingParser = StructureFixingParser(
-                fixingModel = fixModel,
-                retries = 2,
-            ),
+            fixingParser = if (fixModel != null) StructureFixingParser(fixingModel = fixModel, retries = 2) else null,
         )
         return config
     }
@@ -122,14 +113,16 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     ${augmentation.instruction}
                     """.trimIndent()
                 val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
-                summaryAugmentation.basicOutput = false
+                summaryAugmentation.basicSchema = false
                 val system1Action = build<String>(session, summaryAugmentation) as KoogFunction<String>
 
                 value = system1Action.invoke()
                 // remember to save so that
                 botStore.set(key, value)
                 logger.info("Save thinking for $key")
-            } else if (value.isNotEmpty()) {
+            }
+
+            if (value.isNotEmpty()) {
                 logger.info("Emit cached thinking for $key with sink present ${(sink != null)}")
                 value.split("\n").forEach { line ->
                     val trimmed = line.trim()
@@ -209,7 +202,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 llmModel =  llModel,
                 toolRegistry = toolRegistry,
                 temperature = model.temperature?.toDouble() ?: 0.0,
-                strategy = createStrategy(augmentation.basicOutput)
+                strategy = createStrategy(augmentation.basicSchema)
             )
         }
     }

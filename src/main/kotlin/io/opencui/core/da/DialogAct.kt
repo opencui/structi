@@ -4,12 +4,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.opencui.core.*
 import io.opencui.system1.Augmentation
-import io.opencui.system1.IFlowComponent
 import io.opencui.system1.KoogSystem1Builder
 import io.opencui.system1.System1Mode
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.Serializable
@@ -52,7 +48,7 @@ open class System1Generation(
             templates.pick(),
             mode = mode
         )
-        augmentation.basicOutput = false
+        augmentation.basicSchema = false
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.
         val actionResult = when (system1Builder) {
