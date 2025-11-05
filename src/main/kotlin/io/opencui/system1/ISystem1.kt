@@ -248,7 +248,7 @@ data class Augmentation(
     var context: AugmentContext? = null
     var source: String? = null
     var label: String = "default"
-    var basicOutput: Boolean = true
+    var basicSchema: Boolean = true
 }
 
 // For now, we only support this, but we can potentially support other.
