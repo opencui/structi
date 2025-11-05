@@ -11,6 +11,7 @@ import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
+import ai.koog.prompt.executor.clients.google.GoogleModels
 import ai.koog.prompt.executor.clients.google.structure.GoogleBasicJsonSchemaGenerator
 import ai.koog.prompt.executor.clients.google.structure.GoogleStandardJsonSchemaGenerator
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
@@ -180,9 +181,14 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             return when(model.family) {
                 "openai" -> when(model.label) {
                     "gtp4o" -> OpenAIModels.Chat.GPT4o
-                    else -> throw RuntimeException("Unsupported model")
+                    else -> throw RuntimeException("Unsupported openai model")
                 }
-                else -> throw RuntimeException("Unsupported model")
+                "gemini" -> when(model.label) {
+                    "gemini-2.5-flash" -> GoogleModels.Gemini2_5Flash
+                    "gemini-2.5-pro" -> GoogleModels.Gemini2_5Pro
+                     else -> throw RuntimeException("Unsupported google model")
+                }
+                else -> throw RuntimeException("Unsupported model family")
             }
         }
 
