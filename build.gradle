@@ -12,6 +12,8 @@ plugins {
     id "maven-publish"
 }
 
+def coroutinesVersion = "1.10.2"
+
 group 'io.opencui'
 version '1.1-SNAPSHOT'
 
@@ -39,6 +41,12 @@ configurations {
         exclude group: "org.slf4j", module: "slf4j-simple"
         exclude group: "org.apache.logging.log4j", module: "log4j-to-slf4j"
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == "org.jetbrains.kotlinx" &&
+                details.requested.name.startsWith("kotlinx-coroutines")) {
+                details.useVersion(coroutinesVersion)
+            }
+        }
     }
 
     // Add this to enforce logback as your only logging implementation
@@ -73,8 +81,8 @@ dependencies {
     implementation "org.apache.lucene:lucene-core:8.4.1"
     implementation "org.apache.lucene:lucene-analyzers-smartcn:8.4.1"
     implementation "org.apache.lucene:lucene-queryparser:8.4.1"
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-rx3:1.10.2") // Use the latest compatible version
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}"
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-rx3:${coroutinesVersion}") // Use the latest compatible version
     implementation 'org.postgresql:postgresql:42.7.2'
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
