@@ -94,7 +94,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             val agent = build<T>(model, augmentation)
             return KoogFunction(session, agent)
         } else if (T::class == String::class){
-            val agent = build(model, augmentation)
+            val agent = buildForString(model, augmentation)
             @Suppress("UNCHECKED_CAST")
             return KoogFunction(session, agent) as IFuncComponent<T>
         } else {
@@ -216,7 +216,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
             )
         }
 
-        fun build(
+        fun buildForString(
             model: ModelConfig,
             augmentation: Augmentation,
             toolRegistry: ToolRegistry = ToolRegistry{},
