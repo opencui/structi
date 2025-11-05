@@ -12,8 +12,10 @@ plugins {
     id "maven-publish"
 }
 
-def coroutinesVersion = "1.10.2"
-def serializationVersion = "1.8.1"
+ext {
+    coroutinesVersion = "1.10.2"
+    serializationVersion = "1.8.1"
+}
 
 group 'io.opencui'
 version '1.1-SNAPSHOT'
@@ -43,13 +45,12 @@ configurations {
         exclude group: "org.apache.logging.log4j", module: "log4j-to-slf4j"
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
         resolutionStrategy.eachDependency { details ->
-            if (details.requested.group == "org.jetbrains.kotlinx" &&
-                details.requested.name.startsWith("kotlinx-coroutines")) {
-                details.useVersion(coroutinesVersion)
-            }
-            if (details.requested.group == "org.jetbrains.kotlinx" &&
-                details.requested.name.startsWith("kotlinx-serialization")) {
-                details.useVersion(serializationVersion)
+            if (details.requested.group == "org.jetbrains.kotlinx") {
+                if (details.requested.name.startsWith("kotlinx-coroutines")) {
+                    details.useVersion(coroutinesVersion)
+                } else if (details.requested.name.startsWith("kotlinx-serialization")) {
+                    details.useVersion(serializationVersion)
+                }
             }
         }
     }
