@@ -122,6 +122,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                     ${augmentation.instruction}
                     """.trimIndent()
                 val summaryAugmentation = Augmentation(instruction, mode = System1Mode.FALLBACK)
+                summaryAugmentation.basicOutput = false
                 val system1Action = build<String>(session, summaryAugmentation) as KoogFunction<String>
 
                 value = system1Action.invoke()

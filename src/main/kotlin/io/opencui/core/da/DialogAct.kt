@@ -52,7 +52,7 @@ open class System1Generation(
             templates.pick(),
             mode = mode
         )
-        
+        augmentation.basicOutput = false
         // We can decide handle flow or result, here.
         // the system1 should already return the System1Inform.
         val actionResult = when (system1Builder) {

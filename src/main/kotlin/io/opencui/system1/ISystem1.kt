@@ -253,7 +253,7 @@ data class Augmentation(
 
 // For now, we only support this, but we can potentially support other.
 enum class System1Type {
-    GooggleADK
+    Boog
 }
 
 
@@ -261,7 +261,7 @@ enum class System1Type {
 data class ModelConfig(
     val family: String,
     val label: String,
-    val providerType: System1Type = System1Type.GooggleADK,
+    val providerType: System1Type = System1Type.Boog,
     val url: String? = null,
     val apikey: String? = null,
     val temperature: Float? = null,
