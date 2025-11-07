@@ -55,7 +55,7 @@ open class System1Generation(
             // Use the actually class name.
             is KoogSystem1Builder -> {
                 val system1Action = system1Builder.build<String>(session, augmentation)
-                val result = system1Action.invoke()
+                val result = system1Action.invoke(session.currentUtterance())
                 ActionResult(
                     listOf(RawInform(templateOf(result))),
                     createLog("AugmentedGeneration", true)

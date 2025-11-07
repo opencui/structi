@@ -34,11 +34,10 @@ import kotlin.reflect.full.isSuperclassOf
 
 // The agent function is so simply because of the type based koog design.
 data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
-    override suspend fun invoke(): T {
-        return agent.run("")
+    override suspend fun invoke(input: String?): T {
+        return agent.run(input ?: "")
     }
 }
-
 
 object StructureOutputConfigurator {
     inline fun <reified T> getConfig(
@@ -166,9 +165,7 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
         inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<String, T> {
              val agentStrategy = strategy<String, T>("default structure output strategy") {
-                    val prepareRequest by node<String, String> {
-                        "" // System prompt already carries the instruction; no user message.
-                    }
+                    val prepareRequest by node<String, String> { input -> input }
 
                     @Suppress("DuplicatedCode")
                     val getStructuredOutput by nodeLLMRequestStructured(

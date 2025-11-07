@@ -320,7 +320,7 @@ interface IFlowComponent : ISystem1Component {
 
 // This is koog way of doing it.
 interface IFuncComponent<T>: ISystem1Component {
-    suspend operator fun invoke(): T
+    suspend operator fun invoke(input: String? = null): T
 }
 
 
