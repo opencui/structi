@@ -1,6 +1,7 @@
 package io.opencui.system1
 
 import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
@@ -30,7 +31,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.full.isSuperclassOf
-
+import ai.koog.agents.features.eventHandler.feature.handleEvents
 
 // The agent function is so simply because of the type based koog design.
 data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
@@ -212,6 +213,28 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 strategy = createStrategy(augmentation.basicSchema)
             )
         }
+
+        inline fun <reified Output> build(
+            promptExecutor: PromptExecutor,
+            agentConfig: AIAgentConfig,
+            basicSchema: Boolean,
+            toolRegistry: ToolRegistry = ToolRegistry{}): AIAgent<String, Output> {
+
+            val agentStrategy = createStrategy<Output>(basicSchema)
+            return AIAgent<String, Output>(
+                promptExecutor = promptExecutor,
+                strategy = agentStrategy, // no tools needed for this example
+                agentConfig = agentConfig,
+                toolRegistry = toolRegistry
+            ) {
+                handleEvents {
+                    onAgentExecutionFailed {
+                        eventContext -> println("An error occurred: ${eventContext.throwable.message}\n${eventContext.throwable.stackTraceToString()}")
+                    }
+                }
+            }
+        }
+
 
         fun buildForString(
             model: ModelConfig,

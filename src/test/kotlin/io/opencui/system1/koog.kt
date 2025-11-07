@@ -34,6 +34,7 @@ import ai.koog.prompt.text.text
 import kotlinx.serialization.json.Json
 
 import ai.koog.agents.core.tools.annotations.LLMDescription
+import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -199,9 +200,7 @@ data class FullWeatherForecastRequest(
     val city: String,
     val country: String
 ) {
-    override fun toString(): String {
-        return  text { "Requesting forecast for City: ${city} Country: ${country}" }
-    }
+    override fun toString(): String = "Requesting forecast for City: ${city} Country: ${country}"
 }
 
 
@@ -209,65 +208,12 @@ private val json = Json {
     prettyPrint = true
 }
 
-
-
 suspend fun main() {
     /*
      This structure has a generic schema that is suitable for manual structured output mode.
      But to use native structured output support in different LLM providers you might need to use custom JSON schema generators
      that would produce the schema these providers expect.
      */
-    val genericWeatherStructure = JsonStructuredData.createJsonStructure<FullWeatherForecast>(
-        // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
-        schemaGenerator = StandardJsonSchemaGenerator,
-        examples = FullWeatherForecast.exampleForecasts,
-    )
-
-    val openAiWeatherStructure = JsonStructuredData.createJsonStructure<FullWeatherForecast>(
-        schemaGenerator = OpenAIStandardJsonSchemaGenerator,
-        examples = FullWeatherForecast.exampleForecasts,
-    )
-
-    val googleWeatherStructure = JsonStructuredData.createJsonStructure<FullWeatherForecast>(
-        schemaGenerator = GoogleStandardJsonSchemaGenerator,
-        examples = FullWeatherForecast.exampleForecasts,
-    )
-
-    val agentStrategy = strategy<FullWeatherForecastRequest, FullWeatherForecast>("advanced-full-weather-forecast") {
-        val prepareRequest by node<FullWeatherForecastRequest, String> { request ->
-            text {
-                +"Requesting forecast for"
-                +"City: ${request.city}"
-                +"Country: ${request.country}"
-            }
-        }
-
-        @Suppress("DuplicatedCode")
-        val getStructuredForecast by nodeLLMRequestStructured(
-            config = StructuredOutputConfig(
-                byProvider = mapOf(
-                    // Native modes leveraging native structured output support in models, with custom definitions for LLM providers that might have different format.
-                    LLMProvider.OpenAI to StructuredOutput.Native(openAiWeatherStructure),
-                    LLMProvider.Google to StructuredOutput.Native(googleWeatherStructure),
-                    // Anthropic does not support native structured output yet.
-                    LLMProvider.Anthropic to StructuredOutput.Manual(genericWeatherStructure),
-                ),
-
-                // Fallback manual structured output mode, via explicit prompting with additional message, not native model support
-                default = StructuredOutput.Manual(genericWeatherStructure),
-
-                // Helper parser to attempt a fix if a malformed output is produced.
-                fixingParser = StructureFixingParser(
-                    fixingModel = AnthropicModels.Haiku_3_5,
-                    retries = 2,
-                ),
-            )
-        )
-
-        nodeStart then prepareRequest then getStructuredForecast
-        edge(getStructuredForecast forwardTo nodeFinish transformed { it.getOrThrow().structure })
-    }
-
     val agentConfig = AIAgentConfig(
         prompt = prompt("weather-forecast") {
             system(
@@ -284,20 +230,10 @@ suspend fun main() {
     val executor = MultiLLMPromptExecutor(
         LLMProvider.Google to GoogleLLMClient(""),
     )
+    
+    val agent = KoogSystem1Builder.build<FullWeatherForecast>(executor,  agentConfig, false)
 
-    val agent = AIAgent<FullWeatherForecastRequest, FullWeatherForecast>(
-        promptExecutor = executor,
-        strategy = agentStrategy, // no tools needed for this example
-        agentConfig = agentConfig
-    ) {
-        handleEvents {
-            onAgentExecutionFailed { eventContext ->
-                println("An error occurred: ${eventContext.throwable.message}\n${eventContext.throwable.stackTraceToString()}")
-            }
-        }
-    }
-
-    val result: FullWeatherForecast = agent.run(FullWeatherForecastRequest(city = "New York", country = "USA"))
+    val result: FullWeatherForecast = agent.run(FullWeatherForecastRequest(city = "New York", country = "USA").toString())
     println("Agent run result: $result")
 
 }
