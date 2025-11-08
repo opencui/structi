@@ -40,7 +40,7 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
         val system1Executor = builder.build<String>(session, augmentation)
         // Emit the response.
         return flow {
-            val response = system1Executor.invoke()
+            val response = system1Executor.invoke(session.currentUtterance())
             emit(System1Event.Response(response))
         }
     }

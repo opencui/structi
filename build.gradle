@@ -7,6 +7,7 @@ buildscript {
 
 plugins {
     id "org.jetbrains.kotlin.jvm" version "$kotlin_version"
+    id "org.jetbrains.kotlin.plugin.serialization" version "$kotlin_version"
     id "idea"
     id "java"
     id "maven-publish"
@@ -95,6 +96,7 @@ dependencies {
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     implementation "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:${serializationVersion}"
     api 'com.fasterxml.jackson.module:jackson-module-jsonSchema'
     implementation 'org.apache.kafka:kafka-clients:3.8.1'
 
@@ -121,3 +123,12 @@ task deployLocalJar(type: Copy) {
     from "libs/duckling-0.4.24-standalone.jar" // Replace with the actual path to your JAR file
     into "${System.properties['user.home']}/.m2/repository/io/opencui/duckling/0.4.24-standalone"
 }
+
+
+tasks.register("runKoog", JavaExec) {
+  group = "verification"
+  description = "Runs the Koog structured-output sample."
+  classpath = sourceSets.test.runtimeClasspath
+  mainClass = "io.opencui.system1.KoogKt"
+}
+
