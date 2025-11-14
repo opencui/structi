@@ -18,6 +18,7 @@ import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.message.Message
 import ai.koog.prompt.structure.StructureFixingParser
 import ai.koog.prompt.structure.StructuredOutput
 import ai.koog.prompt.structure.StructuredOutputConfig
@@ -149,6 +150,14 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         val logger = LoggerFactory.getLogger(KoogSystem1Builder::class.java)
         // use shared state for now.
         val executors = ConcurrentHashMap<String, PromptExecutor>()
+        private fun truncateForLog(value: String, limit: Int = 4000): String {
+            if (value.isEmpty()) return value
+            return if (value.length <= limit) {
+                value
+            } else {
+                value.take(limit) + "...[truncated]"
+            }
+        }
 
         fun getPromptExecutor(model: ModelConfig): PromptExecutor {
             if (model.family !in executors.keys) {
@@ -210,7 +219,38 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                 toolRegistry = toolRegistry,
                 temperature = model.temperature?.toDouble() ?: 0.0,
                 strategy = createStrategy(augmentation.basicSchema)
-            )
+            ) {
+                handleEvents {
+                    onLLMCallStarting { eventContext ->
+                        val promptPreview = eventContext.prompt.messages.joinToString(separator = " || ") {
+                            "${it.role}:${truncateForLog(it.content)}"
+                        }
+                        logger.info(
+                            "LLM call starting (runId={}, model={}:{}, messageCount={}, prompt={})",
+                            eventContext.runId,
+                            eventContext.model.provider,
+                            eventContext.model.label,
+                            eventContext.prompt.messages.size,
+                            promptPreview
+                        )
+                    }
+                    onLLMCallCompleted { eventContext ->
+                        eventContext.responses.forEachIndexed { index, response ->
+                            val finishReason = (response as? Message.Assistant)?.finishReason
+                            logger.info(
+                                "LLM call completed (runId={}, model={}:{}, responseIndex={}, role={}, finishReason={}, content={})",
+                                eventContext.runId,
+                                eventContext.model.provider,
+                                eventContext.model.label,
+                                index,
+                                response.role,
+                                finishReason,
+                                truncateForLog(response.content)
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         inline fun <reified Output> build(
