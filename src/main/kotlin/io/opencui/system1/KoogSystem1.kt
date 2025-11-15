@@ -150,7 +150,8 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
         val logger = LoggerFactory.getLogger(KoogSystem1Builder::class.java)
         // use shared state for now.
         val executors = ConcurrentHashMap<String, PromptExecutor>()
-        private fun truncateForLog(value: String, limit: Int = 4000): String {
+        @PublishedApi
+        internal fun truncateForLog(value: String, limit: Int = 4000): String {
             if (value.isEmpty()) return value
             return if (value.length <= limit) {
                 value
@@ -226,10 +227,10 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                             "${it.role}:${truncateForLog(it.content)}"
                         }
                         logger.info(
-                            "LLM call starting (runId={}, model={}:{}, messageCount={}, prompt={})",
+                            "LLM call starting (runId={}, provider={}, label={}, messageCount={}, prompt={})",
                             eventContext.runId,
                             eventContext.model.provider,
-                            eventContext.model.label,
+                            model.label,
                             eventContext.prompt.messages.size,
                             promptPreview
                         )
@@ -238,10 +239,10 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
                         eventContext.responses.forEachIndexed { index, response ->
                             val finishReason = (response as? Message.Assistant)?.finishReason
                             logger.info(
-                                "LLM call completed (runId={}, model={}:{}, responseIndex={}, role={}, finishReason={}, content={})",
+                                "LLM call completed (runId={}, provider={}, label={}, responseIndex={}, role={}, finishReason={}, content={})",
                                 eventContext.runId,
                                 eventContext.model.provider,
-                                eventContext.model.label,
+                                model.label,
                                 index,
                                 response.role,
                                 finishReason,
