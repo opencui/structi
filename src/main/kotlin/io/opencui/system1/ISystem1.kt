@@ -261,6 +261,7 @@ enum class System1Type {
 data class ModelConfig(
     val family: String,
     val label: String,
+    val provider: String? = null,
     val providerType: System1Type = System1Type.Koog,
     val url: String? = null,
     val apikey: String? = null,

@@ -49,24 +49,26 @@ data class ChatGPTSystem1(val config: ModelConfig) : ISystem1 {
         private val logger: org.slf4j.Logger = LoggerFactory.getLogger(ChatGPTSystem1::class.java)
         override fun invoke(config: Configuration): ISystem1 {
             println("configure for system1: ${config}")
-            val url = config[URL] as String?
+            val modelUrl = config[MODELURL] as String?
             val apikey = config[APIKEY] as String?
             val family = config[FAMILY]!! as String
             val label = config[LABEL]!! as String
+            val provider = config[PROVIDER] as String?
             val temperatureStr = config[TEMPERATURE] as String?
             val temperature: Float = if (temperatureStr.isNullOrEmpty()) 0.0f else temperatureStr.toFloat()
             val topkStr = config[TOPK]!! as String?
             val topk: Int = if (topkStr.isNullOrEmpty()) 1 else topkStr.toInt()
             val maxOutputTokensStr = config[maxOutputTokens] as String?
             val maxLength: Int = if (maxOutputTokensStr.isNullOrEmpty()) defaultMaxOutputTokens else maxOutputTokensStr.toInt()
-            val model = ModelConfig(family, label, url = url, apikey = apikey, temperature = temperature, topK = topk, maxOutputTokens = maxLength)
+            val model = ModelConfig(family, label, provider = provider, url = modelUrl, apikey = apikey, temperature = temperature, topK = topk, maxOutputTokens = maxLength)
             return ChatGPTSystem1(model)
         }
 
-        const val URL = "model_url"
+        const val MODELURL = "model_url"
         const val APIKEY = "model_apikey"
         const val FAMILY = "model_family"
         const val LABEL = "model_label"
+        const val PROVIDER = "model_provider"
         const val TOPK = "topk"
         const val maxOutputTokens = "max_output_tokens"
         const val TEMPERATURE = "temperature"
