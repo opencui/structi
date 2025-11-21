@@ -962,14 +962,13 @@ data class IDontGetItToRawInputUpgrader(val duMeta: DUMeta) {
 
         val expectedFrames = expectations.expectations.map { it.activeFrames }.flatten()
 
-        val matched = expectedFrames.find {
+        val matched = expectedFrames.findLast {
             val clazz = classLoader.loadClass(it.frame)
             // no entity events, no frame slot events.
             IRawInputHandler::class.java.isAssignableFrom(clazz)
         }
 
         if (matched == null)  return p1
-
 
         val entityEvents = listOf(
             EntityEvent.build("rawUserInput", utterance),
@@ -998,7 +997,7 @@ data class RawInputSkillConverter(val duMeta: DUMeta) {
             return listOf(FrameEvent.build(p1.fullType, entityEvents + p1.slots, frames = p1.frames))
         } else {
             println("Class $clazz is not implementing IRawInputHandler")
-            // Now we test whether the first lost is IRawInputHandler.
+            // Now we test whether the first slot is IRawInputHandler.
             val slotMeta = duMeta.getSlotMetas(p1.fullType).firstOrNull() ?: return listOf(p1)
             val frameEvents = build(slotMeta.type!!, utterance, expectations, classLoader)
             // last one needs to have rawUserInput.

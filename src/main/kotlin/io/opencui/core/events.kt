@@ -19,6 +19,12 @@ data class ListThat(val index: Int, val slot: String? = null): Reference {}
 data class ContentThat<T>(val value: T): Reference {}
 
 
+enum class EventSource {
+    @JsonProperty("user") USER,   // From user query.
+    @JsonProperty("api") API,  // From api.
+}
+
+
 /**
  * This is used to keep the input from user. But it can be produced by some rules.
  * In general, builder can not define the label that starts with _, or they are {} wrapped.
@@ -35,22 +41,15 @@ data class EntityEvent(
     var isUsed: Boolean = false
     var origValue: String? = null
 
-    // This and attribute define the context, and type/value defined value semantics.
-    var ownerType : String? = null
+    // If it is null, it is from USER.
+    var source : EventSource? = null
 
-    // Should we use JsonElement or JsonValue, depends on whether we want to be general.
-    // We should gradually replace the value with jsonValue.
-    var jsonValue: JsonValue? = null
     var isLeaf: Boolean = true
 
     var semantic : CompanionType = CompanionType.AND
 
     fun toCompanion(companionType: CompanionType) : EntityEvent {
         return EntityEvent(value, "${attribute}_", type).apply { semantic = companionType }
-    }
-
-    fun toOriginal(companionType: CompanionType) : EntityEvent {
-        return EntityEvent(value, attribute, type).apply { semantic = companionType }
     }
 
     fun toLongForm() : String {
@@ -90,10 +89,6 @@ data class EntityEvent(
     }
 }
 
-enum class EventSource {
-    @JsonProperty("user") USER,   // From user query.
-    @JsonProperty("api") API,  // From api.
-}
 
 
 /**
