@@ -1,7 +1,7 @@
 buildscript {
     ext.kotlin_version = '2.2.21'
     ext.boot_version = "3.3.13"
-    ext.koog_version = "0.5.4"
+    ext.koog_version = "0.6.0"
     ext.ktor_version = "3.2.2"
 }
 

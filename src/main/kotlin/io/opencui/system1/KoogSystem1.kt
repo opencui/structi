@@ -20,9 +20,9 @@ import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.structure.StructureFixingParser
-import ai.koog.prompt.structure.StructuredOutput
-import ai.koog.prompt.structure.StructuredOutputConfig
-import ai.koog.prompt.structure.json.JsonStructuredData
+import ai.koog.prompt.structure.StructuredRequest
+import ai.koog.prompt.structure.StructuredRequestConfig
+import ai.koog.prompt.structure.json.JsonStructure
 import ai.koog.prompt.structure.json.generator.BasicJsonSchemaGenerator
 import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
 import io.opencui.core.Dispatcher
@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.full.isSuperclassOf
 import ai.koog.agents.features.eventHandler.feature.handleEvents
+import ai.koog.prompt.structure.StructuredResponse
 
 // The agent function is so simply because of the type based koog design.
 data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
@@ -45,39 +46,39 @@ object StructureOutputConfigurator {
     inline fun <reified T> getConfig(
         basicSchema: Boolean,
         examples: List<T> = emptyList(),
-        fixModel: LLModel? = null): StructuredOutputConfig<T> {
+        fixModel: LLModel? = null): StructuredRequestConfig<T> {
 
-        val genericStructure = JsonStructuredData.createJsonStructure<T>(
+        val genericStructure = JsonStructure.create<T>(
             // Some models might not work well with json schema, so you may try simple, but it has more limitations (no polymorphism!)
             schemaGenerator = if (basicSchema) BasicJsonSchemaGenerator else StandardJsonSchemaGenerator,
             examples = examples,
         )
 
 
-        val openAiStructure = JsonStructuredData.createJsonStructure<T>(
+        val openAiStructure = JsonStructure.create<T>(
             schemaGenerator = if (basicSchema) OpenAIBasicJsonSchemaGenerator else OpenAIStandardJsonSchemaGenerator,
             examples = examples
         )
 
-        val googleStructure = JsonStructuredData.createJsonStructure<T>(
+        val googleStructure = JsonStructure.create<T>(
             schemaGenerator = if (basicSchema) GoogleBasicJsonSchemaGenerator else GoogleStandardJsonSchemaGenerator,
             examples = examples
         )
 
-        val config = StructuredOutputConfig(
+        val config = StructuredRequestConfig(
             byProvider = mapOf(
                 // Native modes leveraging native structured output support in models, with custom definitions for LLM providers that might have different format.
-                LLMProvider.OpenAI to StructuredOutput.Native(openAiStructure),
-                LLMProvider.Google to StructuredOutput.Native(googleStructure),
+                LLMProvider.OpenAI to StructuredRequest.Native(openAiStructure),
+                LLMProvider.Google to StructuredRequest.Native(googleStructure),
                 // Anthropic does not support native structured output yet.
-                LLMProvider.Anthropic to StructuredOutput.Manual(genericStructure),
+                LLMProvider.Anthropic to StructuredRequest.Manual(genericStructure),
             ),
 
             // Fallback manual structured output mode, via explicit prompting with additional message, not native model support
-            default = StructuredOutput.Manual(genericStructure),
+            default = StructuredRequest.Manual(genericStructure),
 
             // Helper parser to attempt a fix if a malformed output is produced.
-            fixingParser = if (fixModel != null) StructureFixingParser(fixingModel = fixModel, retries = 2) else null,
+            fixingParser = if (fixModel != null) StructureFixingParser(model = fixModel, retries = 2) else null,
         )
         return config
     }
@@ -175,16 +176,18 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
         inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<String, T> {
              val agentStrategy = strategy<String, T>("default structure output strategy") {
-                    val prepareRequest by node<String, String> { input -> input }
+                val prepareRequest by node<String, String> { input -> input }
 
-                    @Suppress("DuplicatedCode")
-                    val getStructuredOutput by nodeLLMRequestStructured(
-                        config = StructureOutputConfigurator.getConfig<T>(basic)
-                    )
-
-                    nodeStart then prepareRequest then getStructuredOutput
-                    edge(getStructuredOutput forwardTo nodeFinish transformed { it.getOrThrow().structure })
+                @Suppress("DuplicatedCode")
+                val getStructuredOutput by nodeLLMRequestStructured(
+                    config = StructureOutputConfigurator.getConfig<T>(basic)
+                )
+                val extractStructure by node<Result<StructuredResponse<T>>, T> {
+                    it.getOrThrow().data
                 }
+
+                nodeStart then prepareRequest then getStructuredOutput then extractStructure then nodeFinish
+             }
             return agentStrategy
         }
 

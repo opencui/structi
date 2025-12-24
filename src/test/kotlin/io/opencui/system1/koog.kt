@@ -2,39 +2,13 @@ package io.opencui.system1
 
 
 import ai.koog.prompt.dsl.prompt
-import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.google.GoogleModels
-import ai.koog.prompt.executor.clients.openai.OpenAIModels
-import ai.koog.prompt.executor.llms.all.simpleAnthropicExecutor
-import ai.koog.prompt.executor.llms.all.simpleGoogleAIExecutor
-import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
-import ai.koog.prompt.markdown.markdown
-import kotlinx.coroutines.runBlocking
-import kotlinx.io.files.Path
-import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
-import ai.koog.agents.core.dsl.builder.forwardTo
-import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
-import ai.koog.agents.features.eventHandler.feature.handleEvents
-import ai.koog.prompt.dsl.prompt
-import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
 import ai.koog.prompt.executor.clients.google.GoogleLLMClient
-import ai.koog.prompt.executor.clients.google.structure.GoogleStandardJsonSchemaGenerator
-import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
-import ai.koog.prompt.executor.clients.openai.base.structure.OpenAIStandardJsonSchemaGenerator
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.llm.LLMProvider
-import ai.koog.prompt.structure.StructureFixingParser
-import ai.koog.prompt.structure.StructuredOutput
-import ai.koog.prompt.structure.StructuredOutputConfig
-import ai.koog.prompt.structure.json.JsonStructuredData
-import ai.koog.prompt.structure.json.generator.StandardJsonSchemaGenerator
-import ai.koog.prompt.text.text
 import kotlinx.serialization.json.Json
 
-import ai.koog.agents.core.tools.annotations.LLMDescription
-import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
