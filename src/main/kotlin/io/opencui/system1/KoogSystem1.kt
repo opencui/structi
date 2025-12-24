@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.full.isSuperclassOf
 import ai.koog.agents.features.eventHandler.feature.handleEvents
+import ai.koog.prompt.structure.StructuredResponse
 
 // The agent function is so simply because of the type based koog design.
 data class KoogFunction<T>(val session: UserSession, val agent: AIAgent<String, T>) : IFuncComponent<T> {
@@ -175,16 +176,18 @@ data class KoogSystem1Builder(val model: ModelConfig) : ISystem1Builder {
 
         inline fun <reified  T> createStrategy(basic: Boolean): AIAgentGraphStrategy<String, T> {
              val agentStrategy = strategy<String, T>("default structure output strategy") {
-                    val prepareRequest by node<String, String> { input -> input }
+                val prepareRequest by node<String, String> { input -> input }
 
-                    @Suppress("DuplicatedCode")
-                    val getStructuredOutput by nodeLLMRequestStructured(
-                        config = StructureOutputConfigurator.getConfig<T>(basic)
-                    )
-
-                    nodeStart then prepareRequest then getStructuredOutput
-                    edge(getStructuredOutput forwardTo nodeFinish transformed { it.getOrThrow().structure })
+                @Suppress("DuplicatedCode")
+                val getStructuredOutput by nodeLLMRequestStructured(
+                    config = StructureOutputConfigurator.getConfig<T>(basic)
+                )
+                val extractStructure by node<Result<StructuredResponse<T>>, T> {
+                    it.getOrThrow().data
                 }
+
+                nodeStart then prepareRequest then getStructuredOutput then extractStructure then nodeFinish
+             }
             return agentStrategy
         }
 
