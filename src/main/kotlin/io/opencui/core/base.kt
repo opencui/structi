@@ -154,6 +154,32 @@ fun <T: Any> useClassLoader(classLoader: ClassLoader, block: () -> T): T {
     }
 }
 
+enum class Language(val label: String, val dialect: String?=null) {
+    English("English"),
+    French("French"),
+    SimplifiedChinese("Chinese", "simplified"),
+    TraditionalChinese("Chinese", "traditional"),
+}
+
+interface Builder<T> {
+    fun build(path: ParamPath): TypedFiller<T>
+}
+
+
+
+// Registry
+object Builders {
+    private val typedRegistry = mutableMapOf<KClass<*>, Builder<*>>()
+    private val fillerRegistry = mutableMapOf<Any, TypedFiller<*>>()
+
+    fun <T : Any> registerBuilder(clazz: KClass<T>, factory: Builder<T>) {
+        typedRegistry[clazz] = factory
+    }
+    fun <T: Any> registerBuilder(instance: Any, factory: TypedFiller<T>) {
+        fillerRegistry[instance] = factory
+    }
+}
+
 interface ICui: Serializable {
 
     fun <T: Any> fromTypeNameList(vararg typeName: String) : List<T> {
@@ -169,7 +195,6 @@ interface ICui: Serializable {
             constructor?.callBy(constructor.parameters.associateWith { null }) as T
         }
     }
-
 
 }
 
