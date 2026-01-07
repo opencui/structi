@@ -53,14 +53,33 @@ data class Prompts(val prompts: List<suspend ()->String>) : Serializable {
     fun random() = prompts.random()
 }
 
+
+interface DialogActRender : Serializable{
+    suspend fun pick(channel: String = SideEffect.RESTFUL): String
+    suspend fun render() : Map<String, List<String>>
+}
+
 // This has two sides: how it is used and how it is created, and also just a type.
-data class Templates(val channelPrompts: Map<String, Prompts>): Serializable {
-    suspend fun pick(channel: String = SideEffect.RESTFUL): String {
+data class Templates(val channelPrompts: Map<String, Prompts>): DialogActRender {
+    override suspend fun pick(channel: String): String {
         val prompts = channelPrompts[channel] ?: channelPrompts[SideEffect.RESTFUL] ?: return ""
         return if (prompts.isNotEmpty()) prompts.random().invoke() else ""
     }
+
+    override suspend fun render() : Map<String, List<String>> {
+        return channelPrompts.mapValues{ (_, prompts) -> prompts.prompts.map { it() } }
+    }
 }
 
+data class LlmDialogActRender(val dialogAct: DialogAct) : DialogActRender{
+    override suspend fun pick(channel: String): String {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun render() : Map<String, List<String>> {
+        TODO("Not yet implemented")
+    }
+}
 
 //
 inline fun <T, R> withSuspend(receiver: T, crossinline block: suspend T.() -> R): suspend ()-> R = { receiver.block() }
@@ -102,12 +121,17 @@ suspend fun <T> Iterable<T>.joinToStringSuspend(
     return buffer.toString()
 }
 
-
+//
+// Eventually, the template encodes how to render some structured information (dialog action) into
+// natural language, per language and channel. But we want to basically remove this responsibility
+// from builder, while still allow them to have some channel level instruction. We should add instruction
+// at channel level, and make LLM support  (language, channel style, dialogact, history) -> text.
+//
 fun templateOf(vararg pairs: Pair<String, Prompts>) = Templates(pairs.toMap())
 fun templateOf(vararg prompts: suspend ()->String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(*prompts)))
 fun templateOf(vararg prompts: String) = Templates(mapOf(SideEffect.RESTFUL to Prompts(prompts.toList().map{ {it}} )))
 
-fun emptyTemplate() = Templates(mapOf())
+fun emptyTemplate() = Templates(emptyMap())
 
 fun <T> convertDialogActGen(source: suspend () -> T, dialogActGen: suspend (T) -> DialogAct): suspend () -> DialogAct {
     return {dialogActGen(source())}
@@ -167,13 +191,6 @@ data class ExternalEventStrategy(val condition: Boolean = true): EventStrategy {
     }
 }
 
-// This is sync event strategy, where we expect prompt is Request.
-data class InternalEventStrategy(val condition: Boolean = true): EventStrategy {
-    override fun canEnter(): Boolean {
-        return true
-    }
-}
-
 data class NeverAsk(val condition: Boolean = true): AskStrategy {
     override fun canEnter(): Boolean {
         return true
@@ -202,18 +219,16 @@ data class RecoverOnly(var condition: Boolean = false): AskStrategy {
     }
 }
 
+// Asking strategy also encode behavior.
 data class BoolGateAsk(val generator: () -> DialogAct): AskStrategy {
     override fun canEnter(): Boolean {
         return true
     }
 }
 
-// This is used to create the filter (dataflow program).
-data class FilterAnnotation<T, W>(
-    val filter: (W) -> Boolean,
-    val batch: (List<T>) -> List<W>) : kotlin.Annotation
 
-
+// The annotation should be used to build filler, they are currently
+// just a container, or markup, for creating actions.
 interface IValueRecAnnotation: Annotation
 
 data class ValueRecAnnotation(val recFrameGen: () -> IFrame, val showOnce: Boolean = false): IValueRecAnnotation
@@ -239,78 +254,4 @@ enum class SystemAnnotationType(val typeName: String) {
     ValueClarification("io.opencui.core.ValueClarification"),
     ResumeIntent("io.opencui.core.ResumeIntent"),
     System1Skill("io.opencui.core.System1")
-}
-
-
-
-// The goal of annotation is to support the following interface on IFrame:
-//  fun annotations(path: String): List<Annotation> = listOf()
-//  fun createBuilder(p: KMutableProperty0<out Any?>? = null): FillBuilder
-//  slot "this" is a special slot which indicates searching for frame confirmation
-//  fun searchConfirmation(slot: String): IFrame?
-//  fun searchStateUpdateByEvent(event: String): IFrameBuilder?
-//  fun searchResponse(): Action?
-
-// There are two type/instances are involved: Context, and Owner, with Owner's behavior are dependent on
-// Context. Furthermore, the context impact are from most specific to most general, which is no context at all.
-
-class ActionBuilders{
-
-    val creators = mutableMapOf<KClass<out IFrame>, (IFrame) -> Action?>()
-
-    inline fun <reified T : IFrame> register(noinline creater: (IFrame) -> Action?) {
-        creators[T::class] = creater
-    }
-
-    inline fun <reified  T: IFrame> searchResponse(p: IFrame): Action? {
-        return creators[T::class]!!(p)
-    }
-}
-
-class AnnotationBuilders {
-    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, ParamPath) -> List<Annotation>>()
-
-    inline fun <reified T : IFrame> register(noinline creater: (IFrame, ParamPath) -> List<Annotation>) {
-        creators[T::class] = creater
-    }
-
-    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: ParamPath): List<Annotation> {
-        return creators[T::class]!!(p, slot)
-    }
-}
-
-class ConfirmationBuilders {
-    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, ParamPath) -> IFrame?>()
-
-    inline fun <reified T : IFrame> register(noinline creater: (IFrame, ParamPath) -> IFrame?) {
-        creators[T::class] = creater
-    }
-
-    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: ParamPath): IFrame? {
-        return creators[T::class]!!(p, slot)
-    }
-}
-
-class StateUpdateByEventBuilders {
-    val creators = mutableMapOf<KClass<out IFrame>, (IFrame, String) -> IFrameBuilder?>()
-    inline fun <reified T : IFrame> register(noinline creater: (IFrame, String) -> IFrameBuilder?) {
-        creators[T::class] = creater
-    }
-
-    inline fun <reified  T: IFrame> searchResponse(p: IFrame, slot: String): IFrameBuilder? {
-        return creators[T::class]!!(p, slot)
-    }
-}
-
-// This can manage all the builder creation so that we do not have to create this separate method for this.
-class FillCreatorManager {
-    val creators = mutableMapOf<KClass<out IFrame>, (p: KMutableProperty0<out Any?>?) -> FillBuilder>()
-
-    inline fun <reified T : IFrame> register(noinline creater: (p: KMutableProperty0<out Any?>?) -> FillBuilder) {
-        creators[T::class] = creater
-    }
-
-    inline fun <reified  T: IFrame> createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder {
-        return creators[T::class]!!(p)
-    }
 }

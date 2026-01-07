@@ -169,9 +169,46 @@ interface ICui: Serializable {
             constructor?.callBy(constructor.parameters.associateWith { null }) as T
         }
     }
-
-
 }
+
+
+// This two interface can eventually be used to separate the playload from CUI way of building (filling),
+// But this is just move these back to filler, so not a big structural change, conceptually.
+// The filler should host cui related everything. The link from frame to filler is maintained by builders.
+interface IFrameCuiDefinition {
+    var session: UserSession?
+
+    // This is a computed property, not a stored one.
+    @JsonIgnore
+    fun getUserIdentifier(): IUserIdentifier? = session
+
+    fun annotations(path: String): List<Annotation> = listOf()
+
+    // This should be an extension function on the object itself so it can be defined for existing
+    // object.
+    // fun createBuilder(): FillBuilder
+
+    @JsonIgnore
+    fun getFallback(): CompositeAction? {
+        return null
+    }
+
+    // slot "this" is a special slot which indicates searching for frame confirmation
+    fun searchConfirmation(path: String): IFrame? {
+        return null
+    }
+
+    fun searchStateUpdateByEvent(event: String): IFrameBuilder? {
+        return null
+    }
+}
+
+interface IIntentCuiDefinition: IFrameCuiDefinition {
+    fun searchResponse(): Action? {
+        return null
+    }
+}
+
 
 /**
  * One should be able to access connection, and even session. The IService contains a set of functions.

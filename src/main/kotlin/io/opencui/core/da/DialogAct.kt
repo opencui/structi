@@ -151,14 +151,6 @@ data class SlotRequestMore(
                 templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
 }
 
-data class SlotGate(
-    override val slotName: String,
-    override val slotType: String,
-    override val context: List<IFrame> = listOf(),
-    override var templates: Templates = emptyTemplate()) : SlotDialogAct {
-    constructor(slotName: String, slotType: String,
-                templates: Templates = emptyTemplate()): this(slotName, slotType, listOf(), templates)
-}
 
 enum class FailType {
     VC,
@@ -211,6 +203,7 @@ data class SlotOffer<T>(
                 context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
 }
 
+
 data class SlotOfferSepInform<T>(
     val value: T,
     override val slotName: String,
@@ -221,6 +214,7 @@ data class SlotOfferSepInform<T>(
                 templates: Templates = emptyTemplate(),
                 context: List<IFrame> = listOf()): this(value, slotName, slotType, context, templates)
 }
+
 
 data class SlotOfferZepInform(
     override val slotName: String,
